@@ -93,7 +93,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                   <span className="col-span-2 h-1.5 bg-sf-apoio overflow-hidden">
                     <span
                       className="block h-full"
-                      style={{ width: `${(n / maiorTipo) * 100}%`, background: ALERTAS_PESSOAIS.has(kind) ? "var(--faixa-anil)" : "var(--faixa-ardosia)" }}
+                      style={{ width: `${(n / maiorTipo) * 100}%`, background: ALERTAS_PESSOAIS.has(kind) ? "var(--faixa-ocre)" : "var(--faixa-ardosia)" }}
                     />
                   </span>
                 </div>

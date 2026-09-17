@@ -9,17 +9,43 @@ import { useAnotacoes, type AnotacaoDraft } from "./AnotacoesContext";
 import { createAnotacao } from "@/lib/actions/anotacoes";
 import { ANOTACAO_LINK_LABELS, anotacaoLinkNeedsEntity, todayIsoDate, type AnotacaoLinkType } from "@/lib/anotacoes";
 
-// Ouro e vinho ficam reservados à marca/ação destrutiva (DESIGN-SYSTEM.md §16) e não podem
-// virar fundo destes chips de categoria — PROCESSO_JUDICIAL e PROCESSO_ADMINISTRATIVO usam
-// azul-tinta de ação e um tom neutro próprio para continuar distintos dos demais.
-const LINK_CHIPS: { value: AnotacaoLinkType; activeClass: string }[] = [
-  { value: "PROCESSO_JUDICIAL", activeClass: "bg-acao border-acao text-acao-tx" },
-  { value: "PROCESSO_ADMINISTRATIVO", activeClass: "bg-faixa-ameixa border-faixa-ameixa text-rotulo" },
-  { value: "CASO", activeClass: "bg-tx border-tx text-sf" },
-  { value: "ASSESSORIA", activeClass: "bg-fonte-pje border-fonte-pje text-white" },
-  { value: "ATENDIMENTO", activeClass: "bg-concluido border-concluido text-rotulo" },
-  { value: "FINANCEIRO", activeClass: "bg-aviso border-aviso text-rotulo" },
-  { value: "OUTROS", activeClass: "bg-tx-2 border-tx-2 text-sf" },
+// "VINCULAR A" — sete opções, UM estado de seleção.
+//
+// Até 17/09/2026 cada opção carregava a sua própria `activeClass`, e o chip escolhido mudava de
+// cor conforme QUAL opção fosse. É um grupo de escolha única: só um chip fica aceso por vez, e a
+// pergunta que ele responde é sempre a mesma — "é este". Sete pinturas para um estado só.
+//
+// Três das sete pinturas quebravam regra da casa, e não por descuido de quem escreveu: o
+// comentário anterior aqui defendia justamente que ouro e vinho ficassem fora. O problema é que
+// as cores escolhidas no lugar deles vieram do VOCABULÁRIO DE RISCO, que tem significado fixo no
+// produto inteiro:
+//
+//   bg-acao      · bordô, que é a ação e o vencido       → aqui significava "Processo Judicial"
+//   bg-aviso     · âmbar, que é "vence hoje"             → aqui significava "Financeiro"
+//   bg-concluido · verde, que é "em dia"                 → aqui significava "Atendimento"
+//
+// Quer dizer: escolher "Atendimento" pintava o chip da mesma cor que a tela usa para dizer "está
+// em dia". A regra que o próprio sistema tem escrita (tailwind.config.ts) é "cor é risco ou é
+// lugar, NUNCA categoria de conteúdo" — e este era o lugar onde ela estava sendo quebrada.
+//
+// Havia ainda uma quarta: `bg-faixa-ameixa`, roxo, removido do produto em 17/09/2026.
+//
+// E um defeito medido: `text-white` cravado sobre `bg-fonte-pje`. Esse token aponta para
+// --faixa-ardosia, que é ESCURA no tema Manhã (#2f5d73, branco a 7,16:1) e CLARA no Noite
+// (#4a93b5, branco a 3,42:1 — abaixo do mínimo AA de 4,5:1). É exatamente o defeito de
+// `text-white` cravado sobre fundo que troca com o tema, que já apareceu quatro vezes neste
+// repositório. O `--rotulo` existe para isso: ele inverte com a casca.
+//
+// Agora o chip selecionado é bronze (--guia-ativa), o mesmo "é este que está escolhido" da aba de
+// ficha e da caixa do rail. Uma cor, um significado.
+const LINK_CHIPS: AnotacaoLinkType[] = [
+  "PROCESSO_JUDICIAL",
+  "PROCESSO_ADMINISTRATIVO",
+  "CASO",
+  "ASSESSORIA",
+  "ATENDIMENTO",
+  "FINANCEIRO",
+  "OUTROS",
 ];
 
 type EntityOption = { id: string; name: string };
@@ -107,19 +133,20 @@ export default function AnotacaoDraftForm({ draft, splitView }: { draft: Anotaca
         <p className="text-etiqueta font-semibold text-tx-2 uppercase tracking-wide mb-1.5">Vincular a</p>
         <div className="flex flex-wrap gap-1.5">
           {LINK_CHIPS.map((chip) => {
-            const active = draft.linkType === chip.value;
+            const active = draft.linkType === chip;
             return (
               <button
-                key={chip.value}
+                key={chip}
                 type="button"
-                onClick={() => pickLinkType(chip.value)}
-                className={`text-etiqueta font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                aria-pressed={active}
+                onClick={() => pickLinkType(chip)}
+                className={`text-etiqueta font-semibold px-2.5 py-1 rounded-[2px] border transition-colors duration-100 ease-out ${
                   active
-                    ? chip.activeClass
-                    : "bg-sf border-regua text-tx-2 hover:border-regua"
+                    ? "bg-guia-ativa border-guia-ativa text-rotulo"
+                    : "bg-sf border-regua-forte text-tx-2 hover:bg-sf-apoio hover:text-tx"
                 }`}
               >
-                {ANOTACAO_LINK_LABELS[chip.value]}
+                {ANOTACAO_LINK_LABELS[chip]}
               </button>
             );
           })}

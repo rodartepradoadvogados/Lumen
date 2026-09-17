@@ -92,7 +92,8 @@ const config: Config = {
 
         // ---------------------------------------------------------------------------
         // FAIXA DE SECAO — a cor diz ONDE voce esta (redesign "Guias", F3).
-        // Cinco faixas, uma por secao do trabalho. Apontam para variaveis de app/globals.css e
+        // Tres faixas. Eram cinco: anil e ameixa sairam em 17/09/2026 ("tire o roxo
+        // completamente") — ver a nota em app/globals.css. Apontam para variaveis de app/globals.css e
         // por isso trocam sozinhas entre os temas. Regra do sistema: cor e risco ou e lugar,
         // NUNCA categoria de conteudo. Nenhum dos 12 tipos de alerta ganha cor propria.
         //
@@ -104,8 +105,6 @@ const config: Config = {
           ardosia: "var(--faixa-ardosia)",
           oliva: "var(--faixa-oliva)",
           ocre: "var(--faixa-ocre)",
-          anil: "var(--faixa-anil)",
-          ameixa: "var(--faixa-ameixa)",
         },
         // A ABA SELECIONADA — uma cor so, independente da secao. Ate 17/09/2026 a aba ativa
         // usava a faixa da secao (anil no Juridico, ameixa em Produtividade); o anil lia como
