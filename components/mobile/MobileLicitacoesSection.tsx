@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
 import { Plus } from "lucide-react";
 import type { getAssessoriaDetail } from "@/lib/actions/assessoria";
+import { TiraDeGuias, GuiaBotao } from "@/components/mobile/GuiaMobile";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 type Licitacao = Assessoria["licitacoes"][number];
@@ -50,20 +51,21 @@ export default function MobileLicitacoesSection({ assessoriaId, licitacoes }: { 
         <EmptyState title="Nenhuma licitação cadastrada" />
       ) : (
         <>
-          <div className="flex gap-1.5 overflow-x-auto px-4 pt-3 pb-1" style={{ scrollbarWidth: "none" }}>
-            {[{ value: "TODOS", label: `Todos (${licitacoes.length})` }, ...STATUS_OPTIONS.map((s) => ({ value: s.value, label: `${s.label} (${licitacoes.filter((l) => l.status === s.value).length})` }))].map((c) => (
-              <button
+          {/* Licitação vive dentro de Assessoria, que é da seção Jurídico — faixa anil. A
+              contagem passa a ser dado da guia, não texto colado no rótulo. */}
+          <TiraDeGuias faixa="anil" className="px-4 pt-3">
+            {[{ value: "TODOS", label: "Todos", n: licitacoes.length }, ...STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label, n: licitacoes.filter((l) => l.status === s.value).length }))].map((c) => (
+              <GuiaBotao
                 key={c.value}
-                type="button"
                 onClick={() => setStatusFilter(c.value)}
-                className={`text-corpo font-semibold px-2.5 py-1 rounded-full border shrink-0 whitespace-nowrap ${
-                  statusFilter === c.value ? "bg-acao text-acao-tx border-acao" : "border-regua text-tx-2"
-                }`}
+                faixa="anil"
+                ativa={statusFilter === c.value}
+                contagem={c.n}
               >
                 {c.label}
-              </button>
+              </GuiaBotao>
             ))}
-          </div>
+          </TiraDeGuias>
           <div className="flex justify-end px-4 pt-1 pb-2">
             <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="text-etiqueta border border-regua bg-sf text-tx px-1.5 py-1">
               <option value="prazo_asc">Prazo mais próximo</option>

@@ -11,6 +11,7 @@ import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import MobileSettleForm from "@/components/mobile/MobileSettleForm";
 import MobileNewPayableForm from "@/components/mobile/MobileNewPayableForm";
 import { ArrowLeft } from "lucide-react";
+import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
 
 export const dynamic = "force-dynamic";
 
@@ -56,11 +57,11 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
         </p>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <TiraDeGuias faixa="oliva">
         <TabLink label="Contas a Pagar" href={`/m/financeiro/despesas?from=${from}&to=${to}`} active={tab === "abertas"} />
         <TabLink label="Pagas" href={`/m/financeiro/despesas?tab=pagas&from=${from}&to=${to}`} active={tab === "pagas"} />
         <TabLink label="Todas" href={`/m/financeiro/despesas?tab=todas&from=${from}&to=${to}`} active={tab === "todas"} />
-      </div>
+      </TiraDeGuias>
 
       <form className="flex items-end gap-2" action="/m/financeiro/despesas">
         {tab !== "abertas" && <input type="hidden" name="tab" value={tab} />}
@@ -134,17 +135,11 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
   );
 }
 
+// Guia da casa, com a faixa da seção Financeiro (oliva) — ver components/mobile/GuiaMobile.tsx.
 function TabLink({ label, href, active }: { label: string; href: string; active: boolean }) {
   return (
-    <Link
-      href={href}
-      className={`text-corpo font-semibold px-3 py-1.5 rounded-full transition-colors ${
-        active
-          ? "bg-acao text-acao-tx"
-          : "bg-sf text-tx-2 border border-regua"
-      }`}
-    >
+    <GuiaLink href={href} faixa="oliva" ativa={active}>
       {label}
-    </Link>
+    </GuiaLink>
   );
 }

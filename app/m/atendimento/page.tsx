@@ -7,6 +7,7 @@ import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
 import { Plus, Search } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
+import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
 
 export const dynamic = "force-dynamic";
 
@@ -91,24 +92,18 @@ export default async function MobileAtendimento({
         </Link>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
-        {TABS.map((t) => {
-          const active = t.status ? searchParams.status === t.status : !searchParams.status;
-          return (
-            <Link
-              key={t.label}
-              href={tabHref(t.status)}
-              className={`shrink-0 text-corpo font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                active
-                  ? "bg-acao text-acao-tx"
-                  : "bg-sf text-tx-2 border border-regua"
-              }`}
-            >
-              {t.label}
-            </Link>
-          );
-        })}
-      </div>
+      <TiraDeGuias faixa="ocre" className="-mx-4 px-4">
+        {TABS.map((t) => (
+          <GuiaLink
+            key={t.label}
+            href={tabHref(t.status)}
+            faixa="ocre"
+            ativa={t.status ? searchParams.status === t.status : !searchParams.status}
+          >
+            {t.label}
+          </GuiaLink>
+        ))}
+      </TiraDeGuias>
 
       <form className="flex gap-2">
         {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}

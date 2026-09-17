@@ -10,6 +10,7 @@ import { Pencil, Paperclip } from "lucide-react";
 import CommentBox from "@/components/CommentBox";
 import MobileLicitacaoDocumentUpload from "@/components/mobile/MobileLicitacaoDocumentUpload";
 import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
+import { TiraDeGuias, GuiaBotao } from "@/components/mobile/GuiaMobile";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 type Licitacao = Assessoria["licitacoes"][number];
@@ -189,20 +190,13 @@ export default function MobileLicitacaoDetail({
           </div>
         )}
         {licitacao.tasks.length > 0 && (
-          <div className="flex gap-1.5 overflow-x-auto pb-1 mb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+          <TiraDeGuias faixa="anil" className="mb-1 -mx-1 px-1">
             {docChips.map((c) => (
-              <button
-                key={c.key}
-                type="button"
-                onClick={() => setDocFilter(c.key)}
-                className={`text-corpo font-semibold px-2.5 py-1 rounded-full border shrink-0 whitespace-nowrap ${
-                  docFilter === c.key ? "bg-acao text-acao-tx border-acao" : "border-regua text-tx-2"
-                }`}
-              >
+              <GuiaBotao key={c.key} onClick={() => setDocFilter(c.key)} faixa="anil" ativa={docFilter === c.key}>
                 {c.label}
-              </button>
+              </GuiaBotao>
             ))}
-          </div>
+          </TiraDeGuias>
         )}
         {filteredDocs.length === 0 ? (
           <p className="text-sm text-tx-3 py-1">Nenhum documento{docFilter !== "TODOS" ? " neste filtro" : " ainda"}.</p>

@@ -12,6 +12,7 @@ import { PERCENTUAL_BASE_LABELS, RECEIVABLE_KIND_LABELS } from "@/lib/honorarioL
 import MobileSettleForm from "@/components/mobile/MobileSettleForm";
 import MobileNewReceivableForm from "@/components/mobile/MobileNewReceivableForm";
 import { ArrowLeft, HandCoins } from "lucide-react";
+import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
 
 export const dynamic = "force-dynamic";
 
@@ -55,12 +56,12 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
         </p>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <TiraDeGuias faixa="oliva">
         <TabLink label="Contas a Receber" href={`/m/financeiro/receitas?from=${from}&to=${to}`} active={tab === "abertas"} />
         <TabLink label="Recebidas" href={`/m/financeiro/receitas?tab=pagas&from=${from}&to=${to}`} active={tab === "pagas"} />
         <TabLink label="A apurar" href={`/m/financeiro/receitas?tab=apurar&from=${from}&to=${to}`} active={tab === "apurar"} />
         <TabLink label="Todas" href={`/m/financeiro/receitas?tab=todas&from=${from}&to=${to}`} active={tab === "todas"} />
-      </div>
+      </TiraDeGuias>
 
       <form className="flex items-end gap-2" action="/m/financeiro/receitas">
         {tab !== "abertas" && <input type="hidden" name="tab" value={tab} />}
@@ -155,17 +156,11 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
   );
 }
 
+// Guia da casa, com a faixa da seção Financeiro (oliva) — ver components/mobile/GuiaMobile.tsx.
 function TabLink({ label, href, active }: { label: string; href: string; active: boolean }) {
   return (
-    <Link
-      href={href}
-      className={`text-corpo font-semibold px-3 py-1.5 rounded-full transition-colors ${
-        active
-          ? "bg-acao text-acao-tx"
-          : "bg-sf text-tx-2 border border-regua"
-      }`}
-    >
+    <GuiaLink href={href} faixa="oliva" ativa={active}>
       {label}
-    </Link>
+    </GuiaLink>
   );
 }
