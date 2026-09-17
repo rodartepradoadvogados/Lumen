@@ -11,13 +11,13 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **TODAS AS FASES CONCLUÍDAS** (F0–F9). Aberto: a conferência visual na máquina do dono |
-| **Próximo passo concreto** | **Conferência visual do dono.** Cada rodada dela achou defeito que o gate técnico não pegou — é a única verificação que sobrou, e a única que eu não consigo fazer |
+| **Fase atual** | **TODAS AS FASES CONCLUÍDAS** (F0–F9), **e a conferência visual do dono também** (2026-09-17, seção 10-C). Aberto: a F6 do PWA e o acesso ao banco a partir deste ambiente |
+| **Próximo passo concreto** | **F6 · o resto do PWA** — as rotas de `app/m/**` que não são tira de filtro. É a única frente grande de pé |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 15 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`, `audit`, `bolder`, `animate`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). `audit` já rodou no site público (PR #203); falta nas outras 4 superfícies — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
-| **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
-| **Bloqueios abertos** | Nenhum. Pendências: (a) **conferência visual pelo dono** — cada rodada de conferência dele achou defeito que o gate técnico não pegou; (b) `audit` do Portal, PWA e Painel Mestre (o do site já foi feito) → F8; (c) dos 10 defeitos reais do diagnóstico, **5 já caíram** (o rail fixo, o `text-white` do Painel Mestre, o `var(--sf)` inexistente, o halo, e o token de ouro ausente) |
+| **Última atualização** | 2026-09-17 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
+| **Bloqueios abertos** | Nenhum bloqueio. Pendências: (a) **F6 · o resto do PWA**; (b) **sem rota até o Neon a partir deste ambiente** — `/blog` não constrói aqui (119 de 120 páginas em toda entrega) e nenhuma verificação roda contra a tela renderizada, que é a causa de fundo dos quinze apontamentos da conferência. As duas pendências antigas caíram: o `audit` das outras quatro superfícies foi o PR #218 e a conferência visual aconteceu (seção 10-C) |
 
 ---
 
@@ -217,7 +217,7 @@ O produto tem 99 rotas e 4 temas. Redesenhar tela a tela seria caro e incoerente
 | Caminho de construção | (passo 5 do `init`) | ✅ `.impeccable/config.json` → `buildPath: "code"` |
 | Live mode | (passo 5 do `init`) | ✅ já configurado, deixado intocado |
 
-### F1 — Diagnóstico completo ◀ **VOCÊ ESTÁ AQUI**
+### F1 — Diagnóstico completo ✅ CONCLUÍDA (2026-09-16)
 
 **Objetivo:** medir o que existe, em todas as superfícies, antes de decidir o que substituir.
 
@@ -329,7 +329,7 @@ largo + abas reais; manter esse padrão.
 | **`critique`** 2ª rodada | Comparar nota com a linha de base |
 | **`live`** | **Opcional e presencial** — exige servidor de dev, navegador e o dono clicando. Nunca no caminho crítico |
 
-### F9 — Consolidação
+### F9 — Consolidação ✅ CONCLUÍDA (2026-09-17) — e depois dela, a **conferência visual** do dono, que fecha a F8 ◀ **VOCÊ ESTÁ AQUI**
 
 - **`documenter`** (sub-agente) reescreve `DESIGN.md` + `.impeccable/design.json` a partir do que foi
   construído — **não** do que foi planejado. Mundo novo exige tokens, não só prosa.
@@ -422,7 +422,7 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F1 | Diagnóstico PWA + Painel Mestre | `critique` | ✅ | #186 | 2026-09-16 | Piso de 13px vaza por componente compartilhado; `text-white` invisível no claro |
 | F1 | Consolidação e cobertura | — | ✅ | #186 | 2026-09-16 | `diagnostico/README.md` + seção 7 do inventário: **99 rotas cobertas** |
 | F5 | **`audit` do site público** | `audit` | ✅ | #203 | 2026-09-16 | **Primeira passagem própria de `audit` do projeto.** Nota 12/20. Achado central: oito campos de formulário sem `<label>` em toda a superfície pública |
-| F1 | `audit` das outras 4 superfícies | `audit` | ⬜ | — | — | **NÃO foi rodado.** As críticas cobriram contraste, tema, responsivo e um achado de desempenho, mas de forma incidental — não houve passagem dedicada de a11y/performance/theming/responsivo. Rodar junto com F8, quando houver navegador e banco |
+| F1 | `audit` das outras 4 superfícies | `audit` | ✅ | #218 | 2026-09-17 | Rodado junto com a F8, como previsto nesta linha. Ver a linha F8a abaixo: **18/20**, nenhum P0. Esta linha ficou marcada como pendente por duas semanas depois de o trabalho existir — a escrituração é que estava atrasada, não a entrega |
 | F2 | Brief do Portal | `shape` | ✅ | #187 | 2026-09-16 | Contrato de direção em `.impeccable/surfaces/app-app.md`, seis blocos + seed |
 | F2 | Rodada de direção | `new-work`, `concept-seed` | ✅ | #187 | 2026-09-16 | Seed `2cac85b3`, designado 4 de 7 → **“Guias”**. 2 competitivos, 4 declinados, 6 elevações nomeadas |
 | F2 | Mockup clicável | — | ✅ | #187 | 2026-09-16 | 5 telas do Portal + 4 do app, dois temas, contraste medido. Pedido do dono ampliou o escopo (o plano previa 2 telas) |
@@ -464,7 +464,7 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F7 | Painel Mestre | `extract`, `layout` | ✅ | #216 | 2026-09-17 | As abas saem de dentro de `[officeId]` e viram peça (`LumenAbas`/`LumenAba`). O Cofre — três tabelas de 5-6 colunas empilhadas, o caso extremo do diagnóstico — ganha as três abas. Identidade de tela nas 9 telas. A linguagem do Painel **continua distinta** do lado escritório, que é decisão do diagnóstico |
 | F8a | `audit` das 4 superfícies restantes | `audit`, `harden`, `optimize` | ✅ | #218 | 2026-09-17 | **18/20.** Nenhum P0. 10 `dark:` mortos no portal, 2 telas sem `<h1>`, as 4 folhas impressas sem título semântico, 6 imagens sem carregamento preguiçoso. Relatório em `diagnostico/05-audit-portal-pwa-painel-blog.md` |
 | F8b | `delight` — o estado vazio | `delight` | ✅ | #219 | 2026-09-17 | 74 usos de `EmptyState`, 66 dizendo só um título, e o componente nem aceitava ação. Ganhou slot de saída; `/processos` passa a distinguir "ainda não cadastrou" de "o filtro não casou" |
-| F8 | Verificação final | `audit`, `critique`, `polish` | ⬜ | — | — | **só a conferência visual na máquina do dono** — a única verificação deste plano que eu não consigo fazer |
+| F8 | Verificação final | `audit`, `critique`, `polish` | ✅ | #221–#228 | 2026-09-17 | **A conferência visual na máquina do dono aconteceu** — a única verificação deste plano que eu não conseguia fazer. Quinze apontamentos, oito PRs. Ver a seção 11 |
 | F9 | Consolidação | `documenter`, `doctor` | ✅ | #220 | 2026-09-17 | DESIGN.md reescrito a partir do produto construído; `docs/DESIGN-SYSTEM.md` marcado como histórico (dezenas de comentários citam suas seções); `doctor`: o código e o sistema documentado passam a concordar — **zero avisos** no detector |
 
 ---
@@ -586,6 +586,37 @@ sobe. Estava em dois e-mails e em dois lugares da agenda do PWA. No e-mail a fra
 pronta do servidor (`::first-letter` não é confiável em cliente de e-mail); no navegador, a classe
 `.inicial-maiuscula` resolve. No `/painel` o `capitalize` era classe **morta** — `uppercase` na
 mesma string já vencia.
+
+---
+
+## 10-C. A conferência visual do dono (2026-09-17)
+
+A F8 previa uma verificação que eu não conseguia fazer: abrir o produto na máquina do dono. Ela
+aconteceu, com quatro capturas e quinze apontamentos. Esta seção é o registro do que cada um era e
+onde foi parar — porque vários deles não eram "não gostei da cor", eram defeito medido que passou
+por todas as fases anteriores.
+
+| # | Apontamento | O que era, de fato | PR |
+|---|---|---|---|
+| 1 | Os números de alerta não batem: 22 no PWA, 1 no site, 14 na tarja | Três funções diferentes com a mesma cara de resposta. O sino do site contava `getTodayItems` (só o que vence hoje) e ABRIA a aba "Hoje"; o do PWA contava a Central inteira. Três desalinhamentos, não um: contagem, teto de exibição (9+ × 99+) e cor do badge | #221 |
+| 2 | As abas selecionadas estão ficando roxas | Verdade, e erro meu de origem: declarei `--faixa-anil` (#3b4a86) como azul-índigo; ele tem vermelho demais para ler como azul. Mais fundo que a cor: a aba repetia a seção, que o rail, a migalha e o título já diziam | #222 |
+| 3–8 | Financeiro fora do mês · seções abertas em Assessoria · `/cadastro` sem saída · página pública estreita · sem caminho até o blog · Painel Mestre igual ao portal | Seis correções diretas. A mais instrutiva: o "em aberto" do Financeiro somava conta de qualquer vencimento, então o Resumo do mês era um saldo perpétuo | #223 |
+| 9–13 | Rail, busca, sino, perfil, seletor da agenda do PWA | Duas das três queixas do rail eram o MESMO defeito: 62px úteis para um rótulo de 93px, e era o transbordo que criava a barra de rolagem horizontal | #224 |
+| 14 | A agenda dá pouco espaço ao painel do dia | O painel era 360px FIXOS: 19% num monitor de 1900px e 25% num notebook. Virou percentual, com divisória arrastável de ±15 pontos | #225 |
+| 15 | Tire o roxo completamente | Eram DOIS tokens (`anil` e `ameixa`), não um. A paleta de faixas caiu de cinco hues para três | #226 |
+| — | Blog: matérias todas do mesmo tamanho | Manchete e colunas, escolhido entre três propostas. O blog era também a única superfície pública sem Manhã/Noite | #227 |
+| — | Levantado por mim, aprovado pelo dono | A regra de lint contra `text-white` tinha duas brechas, e cada uma escondia defeito real: `fonte-pje` fora da lista de prefixos (EntityPicker, 3,42:1 no Noite) e a regra só enxergando fundo e texto no mesmo literal (ComunicadosForm, 3,81:1; ActingOfficeBanner, 3,81:1 **e** uma opacidade que nem se aplicava) | #228 |
+
+**O que a conferência ensina sobre este plano:** nove dos quinze apontamentos não eram gosto, eram
+medida — e nenhuma das oito fases anteriores os pegou. Duas razões, e vale registrar as duas:
+
+1. este ambiente **não tem rota até o banco**, então nenhuma fase conseguiu abrir o produto de
+   verdade — tudo foi verificado por `tsc`, `lint`, `build`, CSS de produção e harness de Chromium
+   com o CSS real, que pegam muita coisa e não pegam "isto está roxo na minha tela";
+2. o `audit` da F8, que é a passagem dedicada de a11y/tema/responsivo, roda **contra o código**,
+   não contra a tela renderizada.
+
+Enquanto (1) não mudar, a conferência do dono não é uma etapa do plano — é o gate.
 
 ---
 

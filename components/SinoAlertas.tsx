@@ -30,16 +30,36 @@ export default function SinoAlertas({ count }: { count: number }) {
   const [alertas, setAlertas] = useState<AlertaPrevia[] | null>(null);
   const [carregando, setCarregando] = useState(false);
   const caixaRef = useRef<HTMLDivElement>(null);
+  // Quando a lista foi buscada, e com qual contagem — é o que decide se ela ainda vale.
+  const buscaRef = useRef<{ em: number; count: number } | null>(null);
 
-  // Busca SOB DEMANDA, uma vez por sessão de painel aberto — ver a nota em
-  // lib/actions/alerts.ts sobre por que a lista não vem junto com a barra de topo.
+  // Busca SOB DEMANDA, na abertura — ver a nota em lib/actions/alerts.ts sobre por que a lista
+  // não vem junto com a barra de topo.
+  //
+  // E busca DE NOVO quando o que está em mãos não vale mais. A primeira versão guardava a lista
+  // para sempre: numa aba deixada aberta a manhã inteira, o número do sino subia (ele vem do
+  // servidor a cada navegação) e a gaveta continuava mostrando a lista da primeira abertura —
+  // o número e a lista discordando na mesma peça, que é exatamente o defeito que esta rodada
+  // começou corrigindo entre o site e o PWA.
+  //
+  // Dois gatilhos, e os dois são baratos:
+  //   · a CONTAGEM mudou desde a busca — prova de que algo entrou ou saiu da Central;
+  //   · passou mais de 60s — cobre o caso em que entrou e saiu a mesma quantidade, e o total
+  //     ficou igual por coincidência.
+  const VALIDADE_MS = 60_000;
   useEffect(() => {
-    if (!aberto || alertas !== null || carregando) return;
+    if (!aberto || carregando) return;
+    const b = buscaRef.current;
+    const valeAinda = b !== null && b.count === count && Date.now() - b.em < VALIDADE_MS;
+    if (valeAinda) return;
     setCarregando(true);
     listarPreviaAlertas()
-      .then(setAlertas)
+      .then((lista) => {
+        setAlertas(lista);
+        buscaRef.current = { em: Date.now(), count };
+      })
       .finally(() => setCarregando(false));
-  }, [aberto, alertas, carregando]);
+  }, [aberto, carregando, count]);
 
   useEffect(() => {
     if (!aberto) return;
@@ -89,7 +109,10 @@ export default function SinoAlertas({ count }: { count: number }) {
           </p>
 
           <div className="max-h-[60vh] overflow-y-auto scrollbar-thin">
-            {carregando && <p className="px-3 py-4 text-corpo text-tx-2">Carregando…</p>}
+            {/* "Carregando…" só quando não há nada em mãos. Numa revalidação a lista anterior
+                fica na tela até a nova chegar — piscar a gaveta inteira a cada 60s seria pior
+                que mostrar uma linha um minuto velha. */}
+            {carregando && alertas === null && <p className="px-3 py-4 text-corpo text-tx-2">Carregando…</p>}
             {!carregando && alertas?.length === 0 && (
               <p className="px-3 py-4 text-corpo text-tx-2">Nada pendente. O escritório está em dia.</p>
             )}

@@ -205,7 +205,11 @@ export default function EntityPicker({
                       type="button"
                       onClick={handleAdd}
                       disabled={pending}
-                      className="px-2.5 bg-fonte-pje hover:bg-fonte-pje dark:bg-fonte-pje dark:hover:bg-fonte-pje text-white text-xs font-semibold disabled:opacity-50"
+                      // text-rotulo, não text-white: --fonte-pje aponta para --faixa-ardosia, que é ESCURA no
+                      // tema Manhã (#2f5d73) e CLARA no Noite (#4a93b5). Branco sobre ela mede 7,16:1 no
+                      // Manhã e 3,42:1 no Noite — reprova AA. --rotulo inverte com a casca: 6,76:1 e 5,29:1.
+                      // Mesmo defeito dos chips de Anotações, achado na varredura de 17/09/2026.
+                      className="px-2.5 bg-fonte-pje hover:bg-fonte-pje dark:bg-fonte-pje dark:hover:bg-fonte-pje text-rotulo text-xs font-semibold disabled:opacity-50"
                     >
                       {pending ? "..." : "OK"}
                     </button>

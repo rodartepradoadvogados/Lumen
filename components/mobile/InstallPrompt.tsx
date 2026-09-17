@@ -67,6 +67,7 @@ export default function InstallPrompt() {
           {platform === "ios" ? (
             <>
               <p className="text-sm font-semibold">Instale o app na tela inicial</p>
+              {/* eslint-disable-next-line no-restricted-syntax -- Cartão bg-grafite-800, fixo nos dois temas. */}
               <p className="text-corpo text-white/70 mt-1 leading-relaxed">
                 Toque em <Share size={12} className="inline -mt-0.5" /> Compartilhar e depois em{" "}
                 <SquarePlus size={12} className="inline -mt-0.5" /> &ldquo;Adicionar à Tela de Início&rdquo;.
@@ -75,6 +76,7 @@ export default function InstallPrompt() {
           ) : (
             <>
               <p className="text-sm font-semibold">Instale o app Lúmen</p>
+              {/* eslint-disable-next-line no-restricted-syntax -- Cartão bg-grafite-800, fixo nos dois temas. */}
               <p className="text-corpo text-white/70 mt-1">Acesso rápido direto da tela inicial do seu celular.</p>
               <button
                 onClick={install}
@@ -85,6 +87,7 @@ export default function InstallPrompt() {
             </>
           )}
         </div>
+        {/* eslint-disable-next-line no-restricted-syntax -- Cartão bg-grafite-800, fixo nos dois temas. */}
         <button onClick={dismiss} className="text-white/50 hover:text-white shrink-0" aria-label="Fechar aviso de instalação">
           <X size={16} />
         </button>

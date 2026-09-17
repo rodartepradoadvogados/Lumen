@@ -132,6 +132,7 @@ export default function NoticesPanel({
           return (
             <div key={n.id} className={clsx("px-5 py-3 flex gap-3", n.pinned && "bg-marca-bg")}>
               <div
+                // eslint-disable-next-line no-restricted-syntax -- Círculo com a cor escolhida pelo usuário (style inline).
                 className="h-8 w-8 rounded-full flex items-center justify-center text-etiqueta font-bold text-white shrink-0"
                 style={{ backgroundColor: n.author.color }}
               >

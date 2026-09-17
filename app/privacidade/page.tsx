@@ -22,11 +22,13 @@ export default function PrivacidadePage() {
           só para o blog, ver app/blog/layout.tsx). */}
       <header className="bg-grafite-800 px-6 py-8">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
+          {/* eslint-disable-next-line no-restricted-syntax -- Cabeçalho bg-grafite-800, fixo nos dois temas. */}
           <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-white hover:text-white/80">
             <ArrowLeft size={14} /> Voltar
           </Link>
           <div className="flex items-center gap-2">
             <LumenMark size={22} />
+            {/* eslint-disable-next-line no-restricted-syntax -- Cabeçalho bg-grafite-800, fixo nos dois temas. */}
             <span className="font-semibold text-white">Lúmen</span>
           </div>
         </div>

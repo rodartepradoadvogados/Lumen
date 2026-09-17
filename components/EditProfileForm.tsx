@@ -84,6 +84,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
             initials
           )}
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            {/* eslint-disable-next-line no-restricted-syntax -- Ícone sobre a sobreposição bg-black/40 do hover da foto. */}
             <UploadCloud size={20} className="text-white" />
           </div>
         </div>

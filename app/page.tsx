@@ -443,6 +443,7 @@ export default async function HomePage() {
           />
           <GrainOverlay />
           <div className="relative faixa-site py-16 flex flex-col md:flex-row items-baseline gap-4 md:gap-10">
+            {/* eslint-disable-next-line no-restricted-syntax -- Faixa escura fixa da página pública (grafite + textura), não retematiza. */}
             <div className="text-[clamp(56px,9vw,108px)] font-extrabold leading-none tracking-[-.02em] text-white tabular-nums">
               93
             </div>
