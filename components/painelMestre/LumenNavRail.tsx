@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, Building2, Wallet, Users, Activity, ShieldCheck, Scale, Tag, Menu, X } from "lucide-react";
+import { LayoutDashboard, Building2, Wallet, Users, Activity, ShieldCheck, Scale, Tag, Menu, X, Bot, Database } from "lucide-react";
 import LumenMark from "@/components/LumenMark";
 
 type NavItem = { label: string; href: string; icon: LucideIcon; comingSoon?: boolean };
@@ -40,6 +40,7 @@ const GROUPS: NavGroup[] = [
       { label: "Produto e robôs", href: "/painel-mestre/produto", icon: Activity },
       { label: "Cofre de acesso", href: "/painel-mestre/cofre", icon: ShieldCheck },
       { label: "Confiança e LGPD", href: "/painel-mestre/confianca", icon: Scale },
+      { label: "Hermes Agent", href: "/painel-mestre/hermes", icon: Bot },
     ],
   },
 ];
