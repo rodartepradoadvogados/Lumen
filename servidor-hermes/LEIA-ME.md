@@ -102,15 +102,19 @@ Hermes, e a caixa continua respondendo pelo Claude, como hoje. Não há passo in
 | pedido | resposta |
 |---|---|
 | `GET /saude` | `200` com o estado, sem exigir segredo (serve para o nginx e para você) |
-| `POST /chat` sem o segredo, ou com o segredo errado | `401` |
+| qualquer outra rota sem o segredo, ou com o segredo errado | `401` |
 | perfil fora do formato `lumen-tenant-<slug>` | `400` |
 | mensagem vazia, ou acima de 8.000 caracteres | `400` |
 | corpo acima de 64 KiB | `413` |
 | escritório sem perfil provisionado no Hermes | `404` |
 | Hermes passou de 110 segundos | `504` |
-| resposta boa | `200` com `{"resposta": ..., "sessao": ...}` |
+| resposta boa em `POST /chat` | `200` com `{"resposta": ..., "sessao": ...}` |
+| `GET /perfis` | a lista de escritórios provisionados |
+| `POST /provisionar` com `{slug, officeId, nome}` | cria o perfil do escritório |
+| `POST /desprovisionar` com `{slug}` | remove o perfil |
+| slug fora do formato, `officeId` fora do formato, nome vazio | `400` |
 
-Três decisões que valem explicação:
+Quatro decisões que valem explicação:
 
 **O serviço não sobe sem o segredo.** Nem com um segredo curto (mínimo de 32 caracteres). Uma
 ponte sem autenticação não é uma ponte aberta: é um buraco, e falhar na hora de subir é a única
@@ -120,6 +124,11 @@ resposta honesta.
 direto ao sistema operacional. A pergunta do usuário pode conter aspas, `;`, `$(...)` — nada disso
 vira comando. (A rota antiga montava a linha de comando como texto e escapava as aspas à mão; isso
 funciona até o dia em que não funciona.)
+
+**As portas de provisionamento existem por necessidade, não por conforto.** Um escritório sem
+perfil no Hermes tem a caixa de conversa muda, e não há nada que a pessoa possa fazer pela tela.
+Por isso `/provisionar` e `/desprovisionar` moram aqui, ao lado do `/chat`: é o mesmo caminho, e
+sem elas o assistente só funcionaria para os escritórios que já existiam.
 
 **O registro guarda o tamanho da pergunta, nunca o conteúdo.** São dados de cliente de escritório
 de advocacia passando por aqui. `journalctl -u ponte-hermes` mostra quem perguntou para qual perfil
