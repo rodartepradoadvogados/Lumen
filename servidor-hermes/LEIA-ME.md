@@ -55,8 +55,18 @@ curl -s http://127.0.0.1:8787/saude
 # {"ok": true, "hermes": true}
 ```
 
-Se vier `"hermes": false`, o binário não está em `/root/.local/bin/lumen-master` — ajuste
-`HERMES_BIN` no `/etc/lumen-hermes.env` e reinicie.
+Se vier `"hermes": false`, o binário não está em `/usr/local/bin/hermes` — ajuste `HERMES_BIN` no
+`/etc/lumen-hermes.env` e reinicie.
+
+**A chave do modelo é por perfil.** O Hermes lê o `.env` DO PERFIL, não o global. Para descobrir
+qual arquivo é, pergunte a ele:
+
+```bash
+hermes -p <perfil> config env-path
+hermes -p <perfil> config check      # mostra o que falta, com ✓ e ○
+```
+
+Foi por não perguntar isso que uma chave gravada no arquivo global ficou horas sem efeito.
 
 ### 4. Abrir para a internet, com TLS
 
@@ -89,6 +99,11 @@ Na Vercel, em *Settings → Environment Variables*, no ambiente de **Production*
 |---|---|
 | `HERMES_URL` | `https://hermes.SEUDOMINIO.com.br` |
 | `HERMES_TOKEN` | o mesmo segredo do passo 2 |
+| `HERMES_PERFIL` | o nome do perfil que existe na máquina (ex.: `atendimento-lumen`) |
+
+A terceira é temporária. O desenho é um perfil por escritório (`lumen-tenant-<slug>`), e é o que o
+Lúmen calcula sozinho. Enquanto existir um perfil só, com outro nome, `HERMES_PERFIL` manda. Quando
+houver um por escritório, apague a variável e o cálculo automático volta a valer — sem release.
 
 Redeploy, e pronto: a caixa de conversa do portal passa a ser respondida pelo Hermes.
 
@@ -103,10 +118,11 @@ Hermes, e a caixa continua respondendo pelo Claude, como hoje. Não há passo in
 |---|---|
 | `GET /saude` | `200` com o estado, sem exigir segredo (serve para o nginx e para você) |
 | qualquer outra rota sem o segredo, ou com o segredo errado | `401` |
-| perfil fora do formato `lumen-tenant-<slug>` | `400` |
+| perfil fora do formato (minúsculas, dígitos, `.`, `-`, `_`) | `400` |
 | mensagem vazia, ou acima de 8.000 caracteres | `400` |
 | corpo acima de 64 KiB | `413` |
 | escritório sem perfil provisionado no Hermes | `404` |
+| provisionamento pedido numa instalação sem o script | `501` |
 | Hermes passou de 110 segundos | `504` |
 | resposta boa em `POST /chat` | `200` com `{"resposta": ..., "sessao": ...}` |
 | `GET /perfis` | a lista de escritórios provisionados |
