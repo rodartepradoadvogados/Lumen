@@ -11,9 +11,15 @@ type ChatMessage = {
 };
 
 // Formato mínimo compatível com Anthropic.MessageParam — o histórico completo
-// (incluindo blocos de tool_use/tool_result) é mantido em memória apenas para
-// reenviar ao endpoint; não é persistido no banco nem inspecionado em detalhe aqui.
-type HistoricoItem = { role: "user" | "assistant"; content: unknown };
+// A CONVERSA AGORA É GRAVADA (19/09/2026). O widget deixou de carregar o histórico inteiro na
+// memória para reenviá-lo a cada pergunta: ele guarda só o `sessaoId` e o servidor monta o
+// contexto a partir do banco (ver lib/assistenteSessoes.ts). O que isso muda na prática: fechar a
+// aba não perde mais a conversa, e uma conversa de dez turnos para de trafegar dez vezes.
+//
+// O id fica no `sessionStorage`, não no `localStorage`: é o escopo certo para "a conversa desta
+// aba". Em `localStorage`, duas abas abertas no mesmo navegador escreveriam na mesma conversa, e
+// as respostas apareceriam trocadas entre elas.
+const CHAVE_SESSAO = "lumen:assistente:sessao";
 
 export default function ClaudeAssistantWidget({ userName }: { userName: string }) {
   const [open, setOpen] = useState(false);
@@ -22,7 +28,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
   const [mensagens, setMensagens] = useState<ChatMessage[]>([
     { role: "assistant", text: `Olá, ${userName.split(" ")[0]}! Sou o assistente interno do escritório. Posso consultar processos, publicações, agenda, atendimento, clientes e (se você tiver acesso) o financeiro. Como posso ajudar?` },
   ]);
-  const [historico, setHistorico] = useState<HistoricoItem[]>([]);
+  const [sessaoId, setSessaoId] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Painel global "Anotações" (faixa retrátil na borda direita, ver AnotacoesContext.tsx) ocupa
@@ -33,6 +39,31 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
   // ver app/(app)/layout.tsx — mas fica defensivo para qualquer reuso futuro sem o provider).
   const anotacoes = useAnotacoesOptional();
   const rightOffsetPx = 24 + (anotacoes?.panelWidth ?? 0); // 24px = right-6 original
+
+  // Retoma a conversa desta aba, se houver. Acessor protegido: em aba anônima ou com dados do
+  // site bloqueados ele lança, e aí o widget simplesmente começa uma conversa nova.
+  useEffect(() => {
+    let guardado = "";
+    try {
+      guardado = window.sessionStorage.getItem(CHAVE_SESSAO) ?? "";
+    } catch {
+      return;
+    }
+    if (!guardado) return;
+    setSessaoId(guardado);
+    fetch(`/api/assistente/sessoes/${guardado}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d || !Array.isArray(d.mensagens) || d.mensagens.length === 0) return;
+        setMensagens(d.mensagens.map((m: { autor: string; texto: string }) => ({
+          role: m.autor === "assistant" ? "assistant" : "user",
+          text: m.texto,
+        })));
+      })
+      .catch(() => {
+        // Conversa apagada ou indisponível — segue com a saudação e uma sessão nova.
+      });
+  }, []);
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -51,7 +82,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
       const res = await fetch("/api/assistente", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mensagem: texto, historico }),
+        body: JSON.stringify({ mensagem: texto, sessaoId: sessaoId || undefined }),
       });
 
       const data = await res.json().catch(() => null);
@@ -63,7 +94,15 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
       }
 
       setMensagens((prev) => [...prev, { role: "assistant", text: data.resposta || "(sem resposta)" }]);
-      setHistorico(Array.isArray(data.historico) ? data.historico : []);
+      if (typeof data.sessaoId === "string" && data.sessaoId && data.sessaoId !== sessaoId) {
+        setSessaoId(data.sessaoId);
+        try {
+          window.sessionStorage.setItem(CHAVE_SESSAO, data.sessaoId);
+        } catch {
+          // Sem armazenamento a conversa ainda funciona nesta sessão de tela; só não é retomada
+          // depois de um recarregamento.
+        }
+      }
     } catch {
       setMensagens((prev) => [
         ...prev,

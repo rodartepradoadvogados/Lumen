@@ -214,6 +214,8 @@ model Office {
   driveSyncIssues         DriveSyncIssue[]
   blockedProcessNumbers   BlockedProcessNumber[]
   alertDismissals         AlertDismissal[]
+  assistantSessions       AssistantSession[]
+  assistantAuditLogs      AssistantAuditLog[]
   integrationRuns         IntegrationRun[]
   apiKeys                 ApiKey[]
   auditEvents             AuditEvent[]
@@ -387,6 +389,8 @@ model User {
   pareceresCriados            Parecer[]               @relation("ParecerCreatedBy")
   blockedProcessNumbers       BlockedProcessNumber[]
   alertDismissals             AlertDismissal[]
+  assistantSessions           AssistantSession[]
+  assistantAuditLogs          AssistantAuditLog[]
 
   // Termos de vigilância que este usuário cadastrou (ver model TermoVigilancia mais abaixo) —
   // só para exibir "criado por" na tela, não afeta quem enxerga o termo (isso é por officeId).
@@ -1262,11 +1266,11 @@ model EmailMessage {
 // ============ ANEXOS (referência ao repositório de arquivos conectado — Drive/OneDrive/etc.) ============
 
 model Attachment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   driveUrl  String
-  docType   String   @default("OUTRO") // ver lib/documentTypes.ts
-  createdAt DateTime @default(now())
+  docType   String    @default("OUTRO") // ver lib/documentTypes.ts
+  createdAt DateTime  @default(now())
   // Data da última alteração do ARQUIVO NO DRIVE (não de um campo deste registro) — nulo até a
   // primeira vez que alguém volta pra aba do Lúmen depois de abrir o documento (ver
   // refreshAttachmentModifiedDate, lib/actions/attachments.ts, chamada pelo listener de "focus"
@@ -2531,6 +2535,76 @@ model AlertDismissal {
 
   @@unique([userId, kind, entityId])
   @@index([officeId])
+}
+
+// ============ ASSISTENTE (chat interno com IA, por escritório) ============
+//
+// O chat do assistente era EFÊMERO: o front reenviava o histórico inteiro a cada pergunta e nada
+// ficava gravado. Funciona para uma pergunta solta e falha em tudo o mais — fechar a aba perdia a
+// conversa, trocar de aparelho perdia a conversa, e não havia como o escritório saber o que foi
+// perguntado sobre os dados dele.
+//
+// A SESSÃO É DO USUÁRIO, não do escritório. Um advogado perguntando sobre a estratégia de um caso
+// não está escrevendo um documento do escritório; os colegas não devem ler aquilo. O `officeId`
+// existe para o isolamento entre inquilinos (e para o Painel Mestre contar uso), não para dar
+// acesso cruzado: toda leitura filtra por userId E officeId.
+model AssistantSession {
+  id        String   @id @default(cuid())
+  officeId  String
+  office    Office   @relation(fields: [officeId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  titulo    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mensagens AssistantMessage[]
+
+  @@index([userId, updatedAt])
+  @@index([officeId, updatedAt])
+}
+
+// O conteúdo vai como JSON (texto) porque uma mensagem do Claude não é uma string: ela é uma
+// lista de blocos (texto, uso de ferramenta, resultado de ferramenta). Guardar só o texto jogaria
+// fora justamente o que prova de onde veio a resposta.
+model AssistantMessage {
+  id        String           @id @default(cuid())
+  sessionId String
+  session   AssistantSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  papel     String // "user" | "assistant"
+  conteudo  String
+  createdAt DateTime         @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+// REGISTRO DE USO — imutável, por escritório.
+//
+// Duas funções numa tabela só, e isso é decisão, não economia:
+//
+//   1. LGPD. O escritório precisa poder provar o que foi consultado sobre os dados dele, por
+//      quem e quando. Nada aqui é atualizado ou apagado pelo produto — só inserido e lido.
+//   2. LIMITE DE USO. Contar as linhas do último minuto para um escritório responde "quantas
+//      requisições ele já fez", que é exatamente o que um limitador precisa saber. Em ambiente
+//      serverless um contador em memória não serve: cada instância teria o seu, e o limite
+//      valeria por instância em vez de por escritório.
+//
+// `ferramenta` é nulo na linha da pergunta e preenchido na linha de cada consulta ao banco — é o
+// que permite responder "esta resposta veio de onde".
+model AssistantAuditLog {
+  id         String   @id @default(cuid())
+  officeId   String
+  office     Office   @relation(fields: [officeId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  sessionId  String?
+  acao       String // "PERGUNTA" | "FERRAMENTA" | "RECUSA_LIMITE"
+  ferramenta String?
+  detalhe    String?
+  createdAt  DateTime @default(now())
+
+  @@index([officeId, createdAt])
+  @@index([userId, createdAt])
 }
 
 // ============ BLOG JURÍDICO (público, por escritório) ============
