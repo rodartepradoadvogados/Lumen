@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
+import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 const HERMES_BIN = process.env.HERMES_BIN || "/root/.local/bin/lumen-master";
 const TENANT_PROFILE_PREFIX = "lumen-tenant-";
@@ -16,9 +17,9 @@ async function runHermesCommand(profileName: string, args: string[]): Promise<st
   const { execSync } = await import("child_process");
   try {
     return execSync(command, { encoding: "utf-8", timeout: 60000, maxBuffer: 1024 * 1024 * 5 }).trim();
-  } catch (error: any) {
-    console.error("[hermes/admin] Error:", error.message);
-    throw new Error(`Hermes command failed: ${error.message}`);
+  } catch (error) {
+    console.error("[hermes/admin] Error:", mensagemDeErro(error));
+    throw new Error(`Hermes command failed: ${mensagemDeErro(error)}`);
   }
 }
 
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
 
       const profileName = getTenantProfileName(slug);
       let health = "unknown";
-      let sessions: any[] = [];
+      let sessions: unknown[] = [];
 
       try {
         await runHermesCommand(profileName, ["chat", "-q", "ping", "--quiet"]);
@@ -103,9 +104,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[hermes/admin] Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: mensagemDeErro(error) }, { status: 500 });
   }
 }
 
@@ -149,9 +150,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[hermes/admin] Action error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: mensagemDeErro(error) }, { status: 500 });
   }
 }
 

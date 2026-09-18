@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
+import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 const PROVISION_SCRIPT = "/root/.hermes/profiles/lumen-master/scripts/provision_tenant.py";
-const HERMES_BIN = process.env.HERMES_BIN || "/root/.local/bin/lumen-master";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser({ ignoreActing: true });
@@ -42,11 +42,16 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, profile: result });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[hermes/provision] Error:", error);
-    let detail = error.message;
+    let detail = mensagemDeErro(error);
     try {
-      const stderr = error.stderr?.toString() || "";
+      // O erro de execSync carrega `stderr`, mas `catch` entrega `unknown` — a checagem aqui é
+      // o que torna esse acesso honesto, em vez de um `as any` que só cala o compilador.
+      const stderr =
+        typeof error === "object" && error !== null && "stderr" in error
+          ? String((error as { stderr?: unknown }).stderr ?? "")
+          : "";
       const lastLine = stderr.trim().split("\n").pop();
       if (lastLine) detail = lastLine;
     } catch {}
@@ -54,7 +59,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const user = await getCurrentUser({ ignoreActing: true });
   if (!user || !user.active || !user.isPlatformOwner) {
     return NextResponse.json({ error: "Acesso restrito ao dono da plataforma." }, { status: 403 });
@@ -66,7 +71,7 @@ export async function GET(request: NextRequest) {
     const output = execSync(command, { encoding: "utf-8", timeout: 30000 });
     const result = JSON.parse(output.trim().split("\n").pop() || "{}");
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error) {
     console.error("[hermes/provision] List error:", error);
     return NextResponse.json({ error: "Falha ao listar perfis" }, { status: 500 });
   }
@@ -90,7 +95,7 @@ export async function DELETE(request: NextRequest) {
     const output = execSync(command, { encoding: "utf-8", timeout: 60000 });
     const result = JSON.parse(output.trim().split("\n").pop() || "{}");
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error) {
     console.error("[hermes/provision] Deprovision error:", error);
     return NextResponse.json({ error: "Falha ao remover perfil" }, { status: 500 });
   }

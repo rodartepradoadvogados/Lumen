@@ -38,6 +38,37 @@ export function LumenStatusDot({ tone }: { tone: "ok" | "warn" | "risk" | "slate
   return <span className={`inline-block h-1.5 w-1.5 rounded-full ${cls}`} />;
 }
 
+// SELO DE ESTADO do Painel da Empresa.
+//
+// Criado em 18/09/2026 para destravar a publicação: a tela do Hermes Agent
+// (app/painel-mestre/hermes) importava `LumenBadge` deste arquivo, e ele nunca tinha sido
+// escrito — o build quebrava no import e a produção parou de atualizar. O recurso em si estava
+// inteiro; faltava esta peça de vinte linhas.
+//
+// Os tons saem do vocabulário de risco da casa (--concluido, --aviso, --urgente), não de cor
+// crua do Tailwind: a tela original usava `bg-green-100 text-green-800` e companhia, que não
+// retematizam — ficam iguais no tema claro e no escuro. Mesma razão pela qual LumenStatusDot,
+// logo acima, usa os mesmos tokens.
+export function LumenBadge({
+  variant = "default",
+  children,
+}: {
+  variant?: "success" | "warning" | "danger" | "default";
+  children: React.ReactNode;
+}) {
+  const cls = {
+    success: "bg-concluido-bg text-concluido border-linha-concluido",
+    warning: "bg-aviso-bg text-aviso border-linha-aviso",
+    danger: "bg-urgente-bg text-urgente border-linha-urgente",
+    default: "bg-sf-apoio text-tx-2 border-regua",
+  }[variant];
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-[2px] border text-etiqueta font-semibold ${cls}`}>
+      {children}
+    </span>
+  );
+}
+
 // Abas do Painel da Empresa. Existiam numa tela só — `[officeId]`, escritas ali dentro — e o
 // diagnóstico registrou o efeito: "abas reais + layout largo existe em 1 de 10 telas", com o
 // Cofre como caso extremo (três tabelas de cinco e seis colunas empilhadas na vertical, sem abas,
