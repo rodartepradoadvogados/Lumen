@@ -27,6 +27,7 @@ import {
 } from "@/lib/googleDrive";
 import { DOCUMENT_TYPES } from "@/lib/documentTypes";
 import { isReservedCaseSubfolder } from "@/lib/protocolos";
+import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 export type DriveSyncIssueType =
   | "PASTA_PROCESSO_SEM_CORRESPONDENCIA"
@@ -641,7 +642,12 @@ export async function syncOfficeDrive(officeId: string): Promise<SyncOfficeResul
   // Árvore da Assessoria — antes desta entrega ficava totalmente fora do sync reverso (documento
   // arrastado direto pro Drive numa pasta de empresa nunca virava AssessoriaDocumento sozinho).
   const assessoriaResult = await syncAssessoriaTree(officeId, registeredAssessoriaDocIds).catch((e) => {
-    console.error(`[drive-sync] falha ao varrer a árvore da Assessoria do escritório ${officeId}:`, e);
+    // NÃO registre o objeto de erro inteiro aqui. O erro do cliente do Google (gaxios) carrega
+    // `config.data` com o REFRESH TOKEN da conta em texto limpo — foi assim que um token do Drive
+    // deste escritório acabou legível no registro da Vercel. A mensagem basta para diagnosticar
+    // (`invalid_grant`, `403`, `quota`), e é o que sobra de útil sem virar vazamento. Perde-se a
+    // pilha de chamadas; é troca consciente.
+    console.error(`[drive-sync] falha ao varrer a árvore da Assessoria do escritório ${officeId}:`, mensagemDeErro(e));
     return { issues: [] as PendingIssue[], seenFileIds: new Set<string>(), registered: 0 };
   });
 
@@ -770,7 +776,12 @@ export async function syncAllOfficesDrive(): Promise<{
       issuesResolved += result.issuesResolved;
     } catch (e) {
       officesFailed++;
-      console.error(`[drive-sync] falha ao sincronizar escritório ${office.id}:`, e);
+      // NÃO registre o objeto de erro inteiro aqui. O erro do cliente do Google (gaxios) carrega
+      // `config.data` com o REFRESH TOKEN da conta em texto limpo — foi assim que um token do Drive
+      // deste escritório acabou legível no registro da Vercel. A mensagem basta para diagnosticar
+      // (`invalid_grant`, `403`, `quota`), e é o que sobra de útil sem virar vazamento. Perde-se a
+      // pilha de chamadas; é troca consciente.
+      console.error(`[drive-sync] falha ao sincronizar escritório ${office.id}:`, mensagemDeErro(e));
     }
   }
 
