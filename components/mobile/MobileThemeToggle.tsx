@@ -62,7 +62,10 @@ export default function MobileThemeToggle() {
       type="button"
       onClick={cycle}
       aria-label={`Tema atual: ${THEME_LABEL[mode]}. Toque para mudar para ${nextLabel}`}
-      className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-rail-marca hover:bg-white/10 transition-colors"
+      // h-11 (44px), não h-8: media 32px, o menor alvo do cabeçalho do app. O sino ao lado já
+      // é h-11; este ficou para trás. Achado pelo guard de tela — está no cabeçalho, que a
+      // varredura do F6 não cobriu.
+      className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-rail-marca hover:bg-white/10 transition-colors"
     >
       <Icon size={16} />
     </button>
