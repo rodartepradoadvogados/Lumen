@@ -98,7 +98,10 @@ export default async function MobileLayout({ children }: { children: React.React
             daqui — agora é só logo/nome do escritório + Alertas/Tema, pra bater com a proposta
             de Início nova; Perfil segue acessível por Menu (Mais). */}
         <header className="min-h-[52px] shrink-0 bg-gaveta border-b border-gaveta-linha text-gaveta-tinta flex items-center justify-between gap-2 px-4 py-2">
-          <Link href="/m" className="flex items-center gap-2 min-w-0">
+          {/* min-h-[44px]: media 42px, dois a menos que o piso de toque do app. Achado pelo
+              guard de tela (scripts/verificar-telas.mjs) na primeira passagem dele — a varredura
+              do F6 não o alcançou porque ele está no LAYOUT, não numa rota. */}
+          <Link href="/m" className="flex items-center gap-2 min-w-0 min-h-[44px]">
             <LumenMark size={24} />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
