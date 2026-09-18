@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
+import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 const HERMES_BIN = process.env.HERMES_BIN || "/root/.local/bin/lumen-master";
 const TENANT_PROFILE_PREFIX = "lumen-tenant-";
@@ -9,7 +10,7 @@ function getTenantProfileName(officeSlug: string): string {
   return `${TENANT_PROFILE_PREFIX}${officeSlug}`;
 }
 
-async function runHermesSessions(profileName: string, action: "list" | "delete", sessionId?: string): Promise<any> {
+async function runHermesSessions(profileName: string, action: "list" | "delete", sessionId?: string): Promise<string> {
   const args = ["sessions", action];
   if (sessionId) args.push(sessionId);
   args.push("--profile", profileName, "--quiet");
@@ -24,13 +25,13 @@ async function runHermesSessions(profileName: string, action: "list" | "delete",
       maxBuffer: 1024 * 1024 * 5
     });
     return output.trim();
-  } catch (error: any) {
-    console.error("[hermes/sessions] Error:", error.message);
-    throw new Error(`Hermes sessions failed: ${error.message}`);
+  } catch (error) {
+    console.error("[hermes/sessions] Error:", mensagemDeErro(error));
+    throw new Error(`Hermes sessions failed: ${mensagemDeErro(error)}`);
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const user = await getCurrentUser();
   if (!user || !user.active) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ sessions });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[hermes/sessions] Error:", error);
     return NextResponse.json(
       { error: "Não foi possível listar as sessões." },
@@ -90,7 +91,7 @@ export async function DELETE(request: NextRequest) {
   try {
     await runHermesSessions(profileName, "delete", sessionId);
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[hermes/sessions] Delete error:", error);
     return NextResponse.json(
       { error: "Não foi possível excluir a sessão." },
