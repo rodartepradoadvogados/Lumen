@@ -4,7 +4,12 @@
 // — agora com isolamento por Office (escritório/tenant) em toda entidade de negócio.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // `driverAdapters` existe SÓ para o ambiente do agente, e não muda nada na Vercel — ver a nota
+  // longa em lib/prisma.ts (adaptadorNeon). Em produção o Prisma continua abrindo TCP direto,
+  // como sempre; o adaptador só entra quando LUMEN_DB_ADAPTADOR=neon está no ambiente, e essa
+  // variável não existe na Vercel.
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
