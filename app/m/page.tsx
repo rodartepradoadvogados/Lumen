@@ -164,7 +164,7 @@ export default async function MobileHome() {
             do sino e da aba de baixo: mostra o que de fato está pendente, pra decidir se vale
             abrir sem precisar entrar. Card largo (não tile) de propósito: uma lista de verdade
             não cabe direito no formato compacto dos atalhos de "Acompanhar" abaixo. */}
-        <Link href="/m/alertas" className="flex items-center justify-between gap-2 px-1">
+        <Link href="/m/alertas" className="flex items-center justify-between gap-2 px-1 min-h-[44px]">
           <span className="flex items-center gap-1.5 text-corpo font-bold uppercase tracking-wide text-tx-2">
             <Bell size={12} strokeWidth={1.5} /> Central de Alertas
             {/* Mesmo glow reservado do portal (app/globals.css, ".live-dot") — indicador "isto
