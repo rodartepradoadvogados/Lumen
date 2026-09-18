@@ -589,6 +589,32 @@ mesma string já vencia.
 
 ---
 
+## 10-B-bis. Um achado meu que era falso — o raio (2026-09-18)
+
+Registrado porque o erro é instrutivo e porque ele já custou um PR.
+
+Eu classifiquei `rounded-md`/`rounded-lg` no PWA como "raio fora dos 2px da casa", varri 27
+ocorrências em 16 arquivos e descrevi isso no PR #229 como correção. **Estava errado.** A F3
+sobrescreveu a escala inteira de `borderRadius` em `tailwind.config.ts`: `sm`, `DEFAULT`, `md`,
+`lg`, `xl`, `2xl` e `3xl` valem todos `2px`. Quer dizer: `rounded-md` no código **já renderizava
+2px**. A varredura não mudou um pixel.
+
+Duas conclusões, e a segunda importa mais que a primeira:
+
+1. **Não existe pendência de raio.** As ~250 ocorrências restantes no produto estão corretas. A
+   regra de lint que eu ia escrever para "guardar o raio" não guardaria nada — guardaria uma
+   grafia.
+
+2. **O guard certo já existia, e é mais forte que lint.** Sobrescrever a escala CORRIGE o valor
+   em vez de reclamar dele: quem escrever `rounded-lg` amanhã acerta sem saber. Onde dá para
+   resolver por token, resolver por token vence a regra de lint — que só avisa depois do erro.
+
+O que o episódio ensina sobre o método: eu contei ocorrências e concluí sem abrir a configuração.
+A mesma pressa que, no mesmo dia, quase me fez "corrigir" quatro telas sem `<h1>` que tinham
+`<h1>` e três `dark:` que eram comentário. Contagem não é achado; achado é contagem + leitura.
+
+---
+
 ## 10-C. A conferência visual do dono (2026-09-17)
 
 A F8 previa uma verificação que eu não conseguia fazer: abrir o produto na máquina do dono. Ela

@@ -318,6 +318,16 @@ const config: Config = {
         // Sobrescrever a escala inteira faz todo `rounded-*` ja espalhado pelo codigo renderizar
         // no valor certo, e torna desnecessarios os dois blocos de seletor descendente que
         // app/globals.css mantinha para .portal-shell e .mobile-dark.
+        //
+        // ⚠ LEIA ANTES DE "CORRIGIR" UM `rounded-md` NO CÓDIGO.
+        // A escala INTEIRA vale 2px. `rounded-md` neste repositório NÃO é 6px, `rounded-lg` NÃO
+        // é 8px — os dois renderizam 2px, porque esta sobrescrita existe. Há ~250 ocorrências de
+        // `rounded-md`/`rounded-sm`/`rounded-lg` espalhadas pelo produto e TODAS já estão certas.
+        // Em 18/09/2026 eu mesmo li 27 delas como "raio fora do sistema" e as troquei por
+        // `rounded-[2px]`: zero efeito visual, 16 arquivos mexidos à toa. Trocar a grafia não
+        // conserta nada e não há nada para consertar.
+        // Se algum dia a direção quiser UMA grafia só, por legibilidade de quem lê o código, isso
+        // é decisão à parte — e o ganho é de leitura, não de produto.
         none: "0",
         sm: "2px",
         DEFAULT: "2px",
