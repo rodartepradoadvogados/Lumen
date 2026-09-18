@@ -1,0 +1,28 @@
+[Unit]
+Description=Ponte HTTP entre o Lumen e o Hermes
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# root porque os perfis do Hermes vivem em /root/.hermes e o binario em /root/.local/bin.
+# Se um dia os perfis mudarem de lugar, este servico deve mudar de usuario junto: ver o LEIA-ME.
+User=root
+# O segredo mora no arquivo, nao aqui: um Environment= nesta unidade apareceria em
+# `systemctl show` para qualquer usuario da maquina.
+EnvironmentFile=/etc/lumen-hermes.env
+ExecStart=/usr/bin/python3 /opt/lumen/servidor-hermes/servidor.py
+Restart=on-failure
+RestartSec=5
+
+# So escuta em 127.0.0.1 por padrao (HERMES_BIND). Quem faz TLS e atende a internet e o nginx.
+# Estas travas nao impedem o Hermes de trabalhar, so encolhem o estrago se a ponte for abusada:
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

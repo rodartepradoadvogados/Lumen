@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import TopBar from "@/components/TopBar";
-import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
-import HermesChatbox from "@/components/HermesChatbox";
-import { HermesProvider } from "@/components/HermesContext";
+import AssistenteWidget from "@/components/AssistenteWidget";
 import InactivityNotice from "@/components/InactivityNotice";
 import AppBadgeSync from "@/components/AppBadgeSync";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
@@ -87,11 +85,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <script dangerouslySetInnerHTML={{ __html: PORTAL_THEME_INIT_SCRIPT }} />
       <UndoToastProvider>
         {/* AnotacoesProvider (painel global "Anotações", faixa retrátil na borda direita) precisa
-            envolver tanto o AppShell (que renderiza o próprio painel) quanto o ClaudeAssistantWidget
+            envolver tanto o AppShell (que renderiza o próprio painel) quanto o AssistenteWidget
             (que lê o contexto só para se deslocar quando o painel está aberto — ver
             components/anotacoes/AnotacoesContext.tsx). */}
         <AnotacoesProvider>
-          <HermesProvider>
             <ServiceWorkerRegister />
             {/* AppShell (client) é quem de fato monta sidebar/topbar/faixas — aqui só resolve os dados
                 server-side de sempre e repassa como children/props. Guarda também as abas internas
@@ -108,13 +105,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               inactivityNotice={<InactivityNotice />}
               badgeSync={<AppBadgeSync initialCount={totalAlerts} />}
               actingBanner={user.actingAsOffice ? <ActingOfficeBanner officeName={user.actingAsOffice.name} /> : null}
-              claudeWidget={<ClaudeAssistantWidget userName={user.name} />}
-              hermesWidget={<HermesChatbox />}
+              assistenteWidget={<AssistenteWidget userName={user.name} />}
               anotacoesPanel={<AnotacoesPanel />}
             >
               {children}
             </AppShell>
-          </HermesProvider>
         </AnotacoesProvider>
       </UndoToastProvider>
     </div>

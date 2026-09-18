@@ -1,0 +1,144 @@
+# Ponte entre o Lúmen e o Hermes
+
+O Hermes é um programa de linha de comando, e os perfis dos escritórios ficam no disco do servidor.
+O Lúmen roda na Vercel, em contêineres efêmeros onde esse programa não existe. Por isso a chamada
+precisa atravessar a rede: o Lúmen pergunta por HTTP, **este serviço** executa o Hermes ali mesmo e
+devolve a resposta.
+
+São três arquivos e nenhuma dependência — só o Python 3 que o servidor já tem.
+
+---
+
+## Instalação, passo a passo
+
+Tudo abaixo roda **no servidor onde o Hermes está instalado**, como root.
+
+### 1. Copiar os arquivos
+
+```bash
+mkdir -p /opt/lumen/servidor-hermes
+# copie servidor.py para /opt/lumen/servidor-hermes/servidor.py
+chmod 755 /opt/lumen/servidor-hermes/servidor.py
+```
+
+### 2. Criar o segredo
+
+O segredo é a única coisa que separa o Hermes de quem alcançar a porta. Gere um novo, não invente
+um à mão, e **não reaproveite** nenhuma senha existente:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Guarde o que saiu — você vai precisar dele de novo no passo 5. Agora grave:
+
+```bash
+printf 'HERMES_TOKEN=%s\n' 'COLE_AQUI_O_SEGREDO' > /etc/lumen-hermes.env
+chmod 600 /etc/lumen-hermes.env
+```
+
+O `chmod 600` importa: sem ele, qualquer usuário da máquina lê o segredo.
+
+### 3. Subir o serviço
+
+```bash
+cp ponte-hermes.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now ponte-hermes
+systemctl status ponte-hermes
+```
+
+Confira que está de pé:
+
+```bash
+curl -s http://127.0.0.1:8787/saude
+# {"ok": true, "hermes": true}
+```
+
+Se vier `"hermes": false`, o binário não está em `/root/.local/bin/lumen-master` — ajuste
+`HERMES_BIN` no `/etc/lumen-hermes.env` e reinicie.
+
+### 4. Abrir para a internet, com TLS
+
+O serviço só escuta em `127.0.0.1`. Quem atende a internet e cuida do certificado é o nginx:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name hermes.SEUDOMINIO.com.br;
+
+    ssl_certificate     /etc/letsencrypt/live/hermes.SEUDOMINIO.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/hermes.SEUDOMINIO.com.br/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        # O Hermes pode levar dois minutos para responder. Sem isto, o nginx corta antes.
+        proxy_read_timeout 150s;
+    }
+}
+```
+
+> **Não publique a porta 8787 direto.** Sem TLS, o segredo viaja em texto limpo na rede.
+
+### 5. Ligar o Lúmen nele
+
+Na Vercel, em *Settings → Environment Variables*, no ambiente de **Production**:
+
+| variável | valor |
+|---|---|
+| `HERMES_URL` | `https://hermes.SEUDOMINIO.com.br` |
+| `HERMES_TOKEN` | o mesmo segredo do passo 2 |
+
+Redeploy, e pronto: a caixa de conversa do portal passa a ser respondida pelo Hermes.
+
+**Enquanto essas duas variáveis não existirem, nada acontece** — o Lúmen nem tenta falar com o
+Hermes, e a caixa continua respondendo pelo Claude, como hoje. Não há passo intermediário quebrado.
+
+---
+
+## O que este serviço faz, e o que ele recusa
+
+| pedido | resposta |
+|---|---|
+| `GET /saude` | `200` com o estado, sem exigir segredo (serve para o nginx e para você) |
+| `POST /chat` sem o segredo, ou com o segredo errado | `401` |
+| perfil fora do formato `lumen-tenant-<slug>` | `400` |
+| mensagem vazia, ou acima de 8.000 caracteres | `400` |
+| corpo acima de 64 KiB | `413` |
+| escritório sem perfil provisionado no Hermes | `404` |
+| Hermes passou de 110 segundos | `504` |
+| resposta boa | `200` com `{"resposta": ..., "sessao": ...}` |
+
+Três decisões que valem explicação:
+
+**O serviço não sobe sem o segredo.** Nem com um segredo curto (mínimo de 32 caracteres). Uma
+ponte sem autenticação não é uma ponte aberta: é um buraco, e falhar na hora de subir é a única
+resposta honesta.
+
+**Não existe shell no caminho.** O Hermes é executado com uma *lista* de argumentos, entregue
+direto ao sistema operacional. A pergunta do usuário pode conter aspas, `;`, `$(...)` — nada disso
+vira comando. (A rota antiga montava a linha de comando como texto e escapava as aspas à mão; isso
+funciona até o dia em que não funciona.)
+
+**O registro guarda o tamanho da pergunta, nunca o conteúdo.** São dados de cliente de escritório
+de advocacia passando por aqui. `journalctl -u ponte-hermes` mostra quem perguntou para qual perfil
+e quando — o suficiente para investigar um problema, sem virar uma segunda cópia das conversas.
+
+---
+
+## Manutenção
+
+```bash
+systemctl status ponte-hermes      # está de pé?
+journalctl -u ponte-hermes -n 50   # o que aconteceu
+systemctl restart ponte-hermes     # depois de mudar /etc/lumen-hermes.env
+```
+
+**Trocar o segredo:** gere um novo, grave no `/etc/lumen-hermes.env`, reinicie o serviço e
+atualize `HERMES_TOKEN` na Vercel. Entre um passo e outro a caixa de conversa cai na reserva
+(o Claude) em vez de dar erro — então a troca pode ser feita sem avisar ninguém.
+
+**Uma trava que ficou de fora:** o serviço roda como root, porque os perfis do Hermes estão em
+`/root/.hermes`. Se um dia esses perfis mudarem para um diretório próprio, vale mudar o `User=` da
+unidade junto — é a diferença entre um abuso da ponte alcançar o Hermes e alcançar a máquina.

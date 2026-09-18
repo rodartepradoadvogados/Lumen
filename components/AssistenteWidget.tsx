@@ -21,7 +21,7 @@ type ChatMessage = {
 // as respostas apareceriam trocadas entre elas.
 const CHAVE_SESSAO = "lumen:assistente:sessao";
 
-export default function ClaudeAssistantWidget({ userName }: { userName: string }) {
+export default function AssistenteWidget({ userName }: { userName: string }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -33,7 +33,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
 
   // Painel global "Anotações" (faixa retrátil na borda direita, ver AnotacoesContext.tsx) ocupa
   // a mesma coluna direita onde este widget fica fixo — sem este ajuste, o botão/janela do
-  // Claude ficaria embaixo/atrás do painel quando ele está aberto (256px) ou mesmo só com a
+  // A caixa ficaria embaixo/atrás do painel quando ele está aberto (256px) ou mesmo só com a
   // faixa fechada (34px, mais larga que o right-6/24px original). `useAnotacoesOptional` nunca
   // lança se o provider não existir na árvore (hoje sempre existe onde este widget é montado —
   // ver app/(app)/layout.tsx — mas fica defensivo para qualquer reuso futuro sem o provider).
@@ -125,7 +125,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        data-tip="Assistente Claude"
+        data-tip="Assistente Lúmen"
         style={{ right: rightOffsetPx }}
         // Grafite fixo nos dois temas + acento ouro, de propósito: mesmo par de cores da marca
         // (LumenMark), não um botão de ação comum — ver DESIGN-SYSTEM.md §15.

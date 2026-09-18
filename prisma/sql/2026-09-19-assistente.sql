@@ -73,3 +73,12 @@ DO $$ BEGIN
   ALTER TABLE "AssistantAuditLog" ADD CONSTRAINT "AssistantAuditLog_userId_fkey"
     FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ----------------------------------------------------------------------------
+-- 18/09/2026 — o Hermes volta a ser quem responde na caixa de conversa.
+--
+-- O Hermes guarda o contexto da conversa na maquina dele e a retoma por um id proprio. Este campo
+-- guarda esse id ao lado da conversa daqui, para a pergunta seguinte continuar de onde parou.
+-- Nulo quando quem respondeu foi o Claude (a reserva), que nao usa id externo.
+-- ----------------------------------------------------------------------------
+ALTER TABLE "AssistantSession" ADD COLUMN IF NOT EXISTS "hermesSessionId" TEXT;

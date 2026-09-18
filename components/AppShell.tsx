@@ -21,8 +21,7 @@ type AppShellProps = {
   inactivityNotice: React.ReactNode;
   badgeSync: React.ReactNode;
   actingBanner: React.ReactNode;
-  claudeWidget: React.ReactNode;
-  hermesWidget: React.ReactNode;
+  assistenteWidget: React.ReactNode;
   // Painel global "Anotações" (faixa retrátil, ver components/anotacoes/AnotacoesPanel.tsx) —
   // item de flexbox normal (não overlay) nesta mesma linha, para empurrar o conteúdo central
   // quando aberto, em vez de cobri-lo.
@@ -55,8 +54,7 @@ function AppShellInner({
   inactivityNotice,
   badgeSync,
   actingBanner,
-  claudeWidget,
-  hermesWidget,
+  assistenteWidget,
   anotacoesPanel,
   children,
 }: AppShellProps) {
@@ -104,8 +102,7 @@ function AppShellInner({
         inactivityNotice={inactivityNotice}
         badgeSync={badgeSync}
         actingBanner={actingBanner}
-        claudeWidget={claudeWidget}
-        hermesWidget={hermesWidget}
+        assistenteWidget={assistenteWidget}
         anotacoesPanel={anotacoesPanel}
       >
         {children}
@@ -123,8 +120,7 @@ function ShellChrome({
   inactivityNotice,
   badgeSync,
   actingBanner,
-  claudeWidget,
-  hermesWidget,
+  assistenteWidget,
   anotacoesPanel,
   children,
 }: Omit<AppShellProps, "topBar"> & { topBar: React.ReactNode }) {
@@ -182,8 +178,7 @@ function ShellChrome({
               />
             ))}
           </div>
-          {claudeWidget}
-          {hermesWidget}
+          {assistenteWidget}
         </div>
       </div>
       {anotacoesPanel}
