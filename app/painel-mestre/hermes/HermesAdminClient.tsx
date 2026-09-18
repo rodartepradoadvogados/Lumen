@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, AlertCircle, CheckCircle, Trash2, Activity, Database, Terminal, X } from "lucide-react";
+import { RefreshCw, AlertCircle, Trash2, Activity, Database, X } from "lucide-react";
 import { LumenPanel, LumenPanelHeader } from "@/components/painelMestre/LumenUi";
 import { Badge } from "@/components/ui";
+import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 type HermesProfile = {
   office: {
@@ -72,8 +73,8 @@ export default function HermesAdminClient() {
         await fetchStatus(slug);
       }
       fetchProfiles();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(mensagemDeErro(e));
     } finally {
       setActionLoading(null);
     }
@@ -90,8 +91,8 @@ export default function HermesAdminClient() {
       });
       if (!res.ok) throw new Error("Falha ao excluir sessão");
       await fetchStatus(slug);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(mensagemDeErro(e));
     } finally {
       setActionLoading(null);
     }
@@ -134,10 +135,10 @@ export default function HermesAdminClient() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm flex items-center gap-2">
+        <div className="bg-urgente-bg border border-linha-urgente text-urgente px-4 py-3 rounded-sm flex items-center gap-2">
           <AlertCircle size={20} />
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-red-100 rounded">
+          <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-urgente-bg rounded">
             <X size={16} />
           </button>
         </div>
@@ -248,7 +249,7 @@ export default function HermesAdminClient() {
               <button
                 onClick={() => fetchStatus(selectedProfile)}
                 disabled={actionLoading === selectedProfile}
-                className="text-sm text-acao hover:underline"
+                className="text-sm text-marca-tx hover:underline"
               >
                 <RefreshCw size={14} className="inline mr-1" /> Atualizar
               </button>
@@ -269,14 +270,14 @@ export default function HermesAdminClient() {
                       <button
                         onClick={() => deleteSession(selectedProfile, s.id)}
                         disabled={actionLoading === `${selectedProfile}-${s.id}`}
-                        className="p-1.5 hover:bg-red-50 text-red-600 rounded transition-colors"
+                        className="p-1.5 hover:bg-urgente-bg text-urgente rounded transition-colors"
                         title="Excluir sessão"
                       >
                         <Trash2 size={16} />
                       </button>
                     </li>
-                  ))
-                )}
+                  ))}
+                </ul>
               )}
             </div>
           </div>
@@ -284,3 +285,4 @@ export default function HermesAdminClient() {
       )}
     </div>
   );
+}
