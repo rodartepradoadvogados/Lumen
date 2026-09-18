@@ -41,6 +41,10 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERMES_BIN = os.environ.get("HERMES_BIN", "/root/.local/bin/lumen-master")
+SCRIPT_PROVISIONAMENTO = os.environ.get(
+    "HERMES_PROVISION_SCRIPT",
+    "/root/.hermes/profiles/lumen-master/scripts/provision_tenant.py",
+)
 TOKEN = os.environ.get("HERMES_TOKEN", "")
 ENDERECO = os.environ.get("HERMES_BIND", "127.0.0.1")
 PORTA = int(os.environ.get("HERMES_PORT", "8787"))
@@ -53,6 +57,9 @@ PERGUNTA_MAXIMA = 8_000  # caracteres
 # e hífen — o mesmo formato aceito na criação do escritório.
 PERFIL_VALIDO = re.compile(r"^lumen-tenant-[a-z0-9][a-z0-9-]{0,62}$")
 SESSAO_VALIDA = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+SLUG_VALIDO = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
+ID_VALIDO = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+NOME_MAXIMO = 200
 
 logging.basicConfig(
     level=logging.INFO,
@@ -98,6 +105,31 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None):
     return resposta, nova_sessao
 
 
+def executar_provisionamento(argumentos: list, espera_s: int):
+    """Roda o script de provisionamento e devolve o JSON da ultima linha.
+
+    Mesma regra do chat: lista de argumentos, nunca linha de comando montada como texto. A rota
+    antiga interpolava o slug direto — `--slug ${slug}` — o que fazia de um parametro de URL um
+    pedaco de comando. Aqui nao ha shell para interpolar nada.
+    """
+    concluido = subprocess.run(
+        ["python3", SCRIPT_PROVISIONAMENTO, *argumentos],
+        capture_output=True,
+        text=True,
+        timeout=espera_s,
+        check=False,
+    )
+    if concluido.returncode != 0:
+        erro = (concluido.stderr or "").strip().split("\n")
+        raise RuntimeError((erro[-1] if erro else "")[:300] or f"codigo {concluido.returncode}")
+
+    ultima = (concluido.stdout or "").strip().split("\n")[-1]
+    try:
+        return json.loads(ultima or "{}")
+    except ValueError:
+        raise RuntimeError("o script nao devolveu JSON na ultima linha")
+
+
 class Ponte(BaseHTTPRequestHandler):
     server_version = "ponte-hermes"
     sys_version = ""  # não anuncia a versão do Python para quem bater na porta
@@ -119,12 +151,32 @@ class Ponte(BaseHTTPRequestHandler):
         return hmac.compare_digest(cabecalho[7:], TOKEN)
 
     def do_GET(self):  # noqa: N802 (nome exigido pela biblioteca padrão)
+        # /saude nao exige segredo de proposito: serve ao nginx e a quem cuida da maquina, e nao
+        # revela nada alem de "estou de pe" e "o binario esta no lugar".
         if self.path == "/saude":
             self._responder(200, {"ok": True, "hermes": os.path.exists(HERMES_BIN)})
             return
+
+        if self.path == "/perfis":
+            if not self._autorizado():
+                self._responder(401, {"erro": "não autorizado"})
+                return
+            try:
+                self._responder(200, executar_provisionamento(["list"], 30))
+            except subprocess.TimeoutExpired:
+                self._responder(504, {"erro": "o provisionamento demorou demais"})
+            except Exception as erro:  # noqa: BLE001
+                log.error("falha ao listar perfis: %s", erro)
+                self._responder(500, {"erro": "falha ao listar perfis"})
+            return
+
         self._responder(404, {"erro": "rota desconhecida"})
 
     def do_POST(self):  # noqa: N802
+        if self.path in ("/provisionar", "/desprovisionar"):
+            self._provisionamento()
+            return
+
         if self.path != "/chat":
             self._responder(404, {"erro": "rota desconhecida"})
             return
@@ -186,6 +238,73 @@ class Ponte(BaseHTTPRequestHandler):
             return
 
         self._responder(200, {"resposta": resposta, "sessao": nova_sessao})
+
+    def _provisionamento(self):
+        """Cria ou remove o perfil de um escritorio no Hermes.
+
+        Um escritorio sem perfil provisionado tem a caixa de conversa muda — o /chat responde 404
+        e nao ha o que o dono possa fazer pela tela. Por isso estas duas portas existem: elas sao
+        o que transforma "escritorio criado" em "escritorio que pode perguntar".
+        """
+        if not self._autorizado():
+            log.warning("recusada: credencial inválida em %s", self.path)
+            self._responder(401, {"erro": "não autorizado"})
+            return
+
+        try:
+            tamanho = int(self.headers.get("content-length", "0"))
+        except ValueError:
+            tamanho = 0
+        if tamanho <= 0 or tamanho > CORPO_MAXIMO:
+            self._responder(413, {"erro": "corpo ausente ou grande demais"})
+            return
+
+        try:
+            corpo = json.loads(self.rfile.read(tamanho).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            self._responder(400, {"erro": "corpo inválido"})
+            return
+
+        slug = str(corpo.get("slug") or "")
+        if not SLUG_VALIDO.match(slug):
+            self._responder(400, {"erro": "slug inválido"})
+            return
+
+        if self.path == "/desprovisionar":
+            argumentos = ["deprovision", "--slug", slug]
+            espera = 60
+        else:
+            identificador = str(corpo.get("officeId") or "")
+            nome = str(corpo.get("nome") or "").strip()
+            if not ID_VALIDO.match(identificador):
+                self._responder(400, {"erro": "officeId inválido"})
+                return
+            if not nome or len(nome) > NOME_MAXIMO:
+                self._responder(400, {"erro": "nome ausente ou longo demais"})
+                return
+            argumentos = ["provision", "--slug", slug, "--id", identificador, "--name", nome]
+            espera = 120
+
+        log.info("%s para %s", self.path.lstrip("/"), slug)
+
+        try:
+            resultado = executar_provisionamento(argumentos, espera)
+        except subprocess.TimeoutExpired:
+            log.error("o provisionamento de %s passou de %ds", slug, espera)
+            self._responder(504, {"erro": "o provisionamento demorou demais"})
+            return
+        except Exception as erro:  # noqa: BLE001
+            log.error("falha no provisionamento de %s: %s", slug, erro)
+            # "nao existe" e um caso previsto, nao uma falha do servidor: quem chamou mandou um
+            # escritorio que o Hermes nao conhece, e a tela sabe o que dizer sobre isso.
+            texto = str(erro).lower()
+            if "not found" in texto or "nao encontrado" in texto or "não encontrado" in texto:
+                self._responder(404, {"erro": "perfil não encontrado"})
+            else:
+                self._responder(500, {"erro": f"falha no provisionamento: {erro}"})
+            return
+
+        self._responder(200, resultado)
 
     def log_message(self, formato, *args):
         # Silencia o registro padrão da biblioteca, que imprimiria a linha da requisição inteira.

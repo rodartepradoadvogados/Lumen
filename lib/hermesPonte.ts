@@ -51,63 +51,100 @@ export class FalhaDoHermes extends Error {
   }
 }
 
-export async function perguntarAoHermes(dados: {
-  slug: string;
-  mensagem: string;
-  sessao?: string | null;
-}): Promise<RespostaHermes> {
+/**
+ * Uma chamada qualquer à ponte, com o segredo e o tempo de espera já resolvidos.
+ *
+ * Existe para `perguntarAoHermes` e o provisionamento não repetirem a mesma cerimônia — e,
+ * principalmente, para o tratamento de erro ser um só: quem chama recebe sempre `FalhaDoHermes`
+ * com um motivo legível, nunca um erro de rede cru para traduzir na mão.
+ */
+async function chamar(
+  caminho: string,
+  opcoes: { metodo?: "GET" | "POST"; corpo?: unknown; esperaMs?: number },
+): Promise<unknown> {
   const base = process.env.HERMES_URL;
   const token = process.env.HERMES_TOKEN;
   if (!base || !token) throw new FalhaDoHermes("ponte não configurada");
 
-  // `AbortController` e não só o tempo de espera do servidor: sem isto, uma conexão que abre e
-  // nunca responde seguraria a função até o teto da Vercel, e o usuário veria a tela parada.
   const controle = new AbortController();
-  const relogio = setTimeout(() => controle.abort(), ESPERA_MS);
+  const relogio = setTimeout(() => controle.abort(), opcoes.esperaMs ?? ESPERA_MS);
 
   try {
-    const resposta = await fetch(`${base.replace(/\/+$/, "")}/chat`, {
-      method: "POST",
+    const resposta = await fetch(`${base.replace(/\/+$/, "")}${caminho}`, {
+      method: opcoes.metodo ?? "POST",
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        perfil: perfilDoEscritorio(dados.slug),
-        mensagem: dados.mensagem,
-        sessao: dados.sessao || undefined,
-      }),
+      body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
       signal: controle.signal,
       cache: "no-store",
     });
 
     if (!resposta.ok) {
-      // 404 é o caso previsto de "escritório ainda não provisionado no Hermes" — vale distinguir,
-      // porque é o único que tem conserto pelo painel e não por quem cuida do servidor.
       const corpo = await resposta.text().catch(() => "");
-      const detalhe = corpo.slice(0, 200);
       throw new FalhaDoHermes(
         resposta.status === 404
-          ? "perfil do escritório não provisionado no Hermes"
-          : `o servidor do Hermes respondeu ${resposta.status}${detalhe ? `: ${detalhe}` : ""}`,
+          ? "perfil do escritório não encontrado no Hermes"
+          : `o servidor do Hermes respondeu ${resposta.status}${corpo ? `: ${corpo.slice(0, 200)}` : ""}`,
       );
     }
-
-    const dadosResposta = (await resposta.json()) as { resposta?: unknown; sessao?: unknown };
-    const texto = typeof dadosResposta.resposta === "string" ? dadosResposta.resposta.trim() : "";
-    if (!texto) throw new FalhaDoHermes("o Hermes respondeu vazio");
-
-    return {
-      resposta: texto,
-      sessao: typeof dadosResposta.sessao === "string" ? dadosResposta.sessao : "",
-    };
+    return await resposta.json();
   } catch (erro) {
     if (erro instanceof FalhaDoHermes) throw erro;
     if (erro instanceof Error && erro.name === "AbortError") {
-      throw new FalhaDoHermes(`o Hermes não respondeu em ${Math.round(ESPERA_MS / 1000)}s`);
+      throw new FalhaDoHermes(`o Hermes não respondeu em ${Math.round((opcoes.esperaMs ?? ESPERA_MS) / 1000)}s`);
     }
     throw new FalhaDoHermes(`não foi possível alcançar o Hermes: ${mensagemDeErro(erro)}`);
   } finally {
     clearTimeout(relogio);
   }
+}
+
+// ── PERFIS DOS ESCRITÓRIOS ──────────────────────────────────────────────────────────────────
+// Um escritório sem perfil provisionado tem a caixa de conversa muda: o Hermes responde "perfil
+// não encontrado" e não há nada que a pessoa possa fazer pela tela. É por isso que estas três
+// funções são caminho crítico do produto, e não ferramenta de administrador.
+
+export async function listarPerfisDoHermes(): Promise<unknown> {
+  return chamar("/perfis", { metodo: "GET", esperaMs: 30_000 });
+}
+
+export async function provisionarNoHermes(dados: {
+  slug: string;
+  officeId: string;
+  nome: string;
+}): Promise<unknown> {
+  return chamar("/provisionar", { corpo: dados, esperaMs: 120_000 });
+}
+
+export async function desprovisionarNoHermes(slug: string): Promise<unknown> {
+  return chamar("/desprovisionar", { corpo: { slug }, esperaMs: 60_000 });
+}
+
+// ── A PERGUNTA ─────────────────────────────────────────────────────────────────────────────
+
+export async function perguntarAoHermes(dados: {
+  slug: string;
+  mensagem: string;
+  sessao?: string | null;
+}): Promise<RespostaHermes> {
+  const corpo = (await chamar("/chat", {
+    corpo: {
+      perfil: perfilDoEscritorio(dados.slug),
+      mensagem: dados.mensagem,
+      // O id da conversa do lado do Hermes. Ausente na primeira pergunta — é ele quem devolve.
+      sessao: dados.sessao || undefined,
+    },
+  })) as { resposta?: unknown; sessao?: unknown };
+
+  const texto = typeof corpo.resposta === "string" ? corpo.resposta.trim() : "";
+  // Resposta vazia é falha, não resposta: sem isto a tela mostraria um balão em branco e o
+  // usuário ficaria sem saber se perguntou errado ou se o assistente quebrou.
+  if (!texto) throw new FalhaDoHermes("o Hermes respondeu vazio");
+
+  return {
+    resposta: texto,
+    sessao: typeof corpo.sessao === "string" ? corpo.sessao : "",
+  };
 }
