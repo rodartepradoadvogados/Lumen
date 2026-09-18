@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { RefreshCw, AlertCircle, CheckCircle, Trash2, Activity, Database, Terminal, X } from "lucide-react";
-import { LumenPanel, LumenPanelHeader, LumenBadge } from "@/components/painelMestre/LumenUi";
+import { LumenPanel, LumenPanelHeader } from "@/components/painelMestre/LumenUi";
+import { Badge } from "@/components/ui";
 
 type HermesProfile = {
   office: {
@@ -101,16 +102,16 @@ export default function HermesAdminClient() {
   }, []);
 
   const statusColors = {
-    ready: "bg-green-100 text-green-800",
-    not_provisioned: "bg-yellow-100 text-yellow-800",
-    unhealthy: "bg-red-100 text-red-800",
-    unknown: "bg-gray-100 text-gray-800",
+    ready: "green",
+    not_provisioned: "amber",
+    unhealthy: "red",
+    unknown: "slate",
   };
 
   const healthColors = {
-    healthy: "bg-green-100 text-green-800",
-    unhealthy: "bg-red-100 text-red-800",
-    unknown: "bg-gray-100 text-gray-800",
+    healthy: "green",
+    unhealthy: "red",
+    unknown: "slate",
   };
 
   return (
@@ -178,15 +179,15 @@ export default function HermesAdminClient() {
                     <td className="p-3">
                       <div className="font-medium text-tx">{p.office.name}</div>
                       <div className="text-xs text-tx-2">{p.office.slug}</div>
-                      <LumenBadge variant={p.office.status === "ATIVA" ? "success" : "warning"}>
+                      <Badge color={p.office.status === "ATIVA" ? "green" : "amber"}>
                         {p.office.status}
-                      </LumenBadge>
+                      </Badge>
                     </td>
                     <td className="p-3 font-mono text-xs text-tx-2">{p.profile}</td>
                     <td className="p-3">
-                      <LumenBadge variant={statusColors[p.status as keyof typeof statusColors] || "default"}>
+                      <Badge color={statusColors[p.status as keyof typeof statusColors] || "slate"}>
                         {p.status === "ready" ? "Pronto" : p.status === "not_provisioned" ? "Não provisionado" : p.status}
-                      </LumenBadge>
+                      </Badge>
                     </td>
                     <td className="p-3 text-tx">{p.sessionCount}</td>
                     <td className="p-3 text-tx-2">{p.memorySizeKB} KB</td>
@@ -241,9 +242,9 @@ export default function HermesAdminClient() {
           />
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <LumenBadge variant={healthColors[status.health as keyof typeof healthColors] || "default"}>
+              <Badge color={healthColors[status.health as keyof typeof healthColors] || "slate"}>
                 {status.health === "healthy" ? "Saudável" : status.health === "unhealthy" ? "Não saudável" : "Desconhecido"}
-              </LumenBadge>
+              </Badge>
               <button
                 onClick={() => fetchStatus(selectedProfile)}
                 disabled={actionLoading === selectedProfile}
