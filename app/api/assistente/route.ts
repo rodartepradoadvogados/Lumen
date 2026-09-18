@@ -3,6 +3,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { assistantTools, AssistantTool } from "@/lib/assistantTools";
+import {
+  carregarHistorico,
+  criarSessao,
+  gravarMensagem,
+  tituloDaPergunta,
+  tocarSessao,
+} from "@/lib/assistenteSessoes";
+import { cabeMaisUmaPergunta, registrarUso, TETO_POR_MINUTO } from "@/lib/assistenteAuditoria";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +19,16 @@ export const dynamic = "force-dynamic";
 //
 // Env-gated como as demais integrações (WhatsApp, Google): sem ANTHROPIC_API_KEY
 // configurada, o endpoint responde 503 de forma amigável em vez de quebrar.
-// A conversa é efêmera — não persistimos histórico no banco, o front reenvia
-// o array `historico` a cada pergunta.
+//
+// A CONVERSA DEIXOU DE SER EFÊMERA (19/09/2026). Antes o front reenviava o array
+// `historico` inteiro a cada pergunta e nada ficava gravado: fechar a aba perdia
+// tudo, trocar de aparelho perdia tudo, e uma conversa de dez turnos trafegava dez
+// vezes. Agora o cliente manda só `mensagem` e `sessaoId`; o histórico sai do banco
+// (ver lib/assistenteSessoes.ts) e volta cortado numa janela, para uma conversa longa
+// não estourar o contexto e parar de funcionar justamente para quem mais a usa.
+//
+// `historico` no corpo continua aceito e IGNORADO: clientes antigos em cache não
+// quebram, só deixam de mandar peso à toa.
 // ============================================================================
 
 const MODEL = "claude-sonnet-5";
@@ -47,7 +63,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { mensagem?: string; historico?: Anthropic.MessageParam[] };
+  let body: { mensagem?: string; sessaoId?: string };
   try {
     body = await request.json();
   } catch {
@@ -58,7 +74,40 @@ export async function POST(request: NextRequest) {
   if (!mensagem) {
     return NextResponse.json({ error: "Envie uma mensagem." }, { status: 400 });
   }
-  const historicoRecebido = Array.isArray(body?.historico) ? body.historico : [];
+  // LIMITE DE USO, por escritório (ver lib/assistenteAuditoria.ts). Checado ANTES de qualquer
+  // trabalho: recusar depois de já ter consultado o banco e chamado a API não limita nada.
+  const { cabe, usadas } = await cabeMaisUmaPergunta(user.officeId);
+  if (!cabe) {
+    await registrarUso({
+      officeId: user.officeId,
+      userId: user.id,
+      acao: "RECUSA_LIMITE",
+      detalhe: `${usadas} perguntas no último minuto (teto ${TETO_POR_MINUTO})`,
+    });
+    return NextResponse.json(
+      { error: "O assistente atingiu o limite de perguntas deste minuto no escritório. Tente de novo em instantes." },
+      { status: 429 },
+    );
+  }
+
+  // Sessão: a primeira pergunta cria. O título sai dela — ver tituloDaPergunta.
+  let sessaoId = typeof body?.sessaoId === "string" ? body.sessaoId : "";
+  if (sessaoId) {
+    // Confere dono ANTES de carregar: sem isto, passar o id da conversa de um colega leria o
+    // histórico dele.
+    const dona = await prisma.assistantSession.findFirst({
+      where: { id: sessaoId, userId: user.id, officeId: user.officeId },
+      select: { id: true },
+    });
+    if (!dona) return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
+  } else {
+    const nova = await criarSessao(user.id, user.officeId, tituloDaPergunta(mensagem));
+    sessaoId = nova.id;
+  }
+
+  const historicoRecebido = await carregarHistorico(sessaoId);
+
+  await registrarUso({ officeId: user.officeId, userId: user.id, sessionId: sessaoId, acao: "PERGUNTA" });
 
   // Filtra as ferramentas disponíveis pela permissão do usuário logado: todo
   // módulo é liberado por padrão, exceto "financeiro", que exige isAdmin ou
@@ -71,7 +120,12 @@ export async function POST(request: NextRequest) {
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const messages: Anthropic.MessageParam[] = [...historicoRecebido, { role: "user", content: mensagem }];
+  const pergunta: Anthropic.MessageParam = { role: "user", content: mensagem };
+  const messages: Anthropic.MessageParam[] = [...historicoRecebido, pergunta];
+  await gravarMensagem(sessaoId, "user", mensagem);
+  // Índice de onde começam as mensagens NOVAS desta rodada — é o que será gravado no fim. Regravar
+  // o histórico carregado duplicaria a conversa a cada pergunta.
+  const inicioDoNovo = messages.length;
 
   try {
     let rounds = 0;
@@ -119,6 +173,17 @@ export async function POST(request: NextRequest) {
           ? await tool.executar(entrada, { userId: user.id, officeId: user.officeId })
           : `Ferramenta "${toolUse.name}" não está disponível para este usuário.`;
 
+        // Rastro de PROCEDÊNCIA: é esta linha que responde "de onde veio esse número". Sem ela, a
+        // auditoria diria que houve uma pergunta e não diria o que foi consultado por baixo.
+        await registrarUso({
+          officeId: user.officeId,
+          userId: user.id,
+          sessionId: sessaoId,
+          acao: "FERRAMENTA",
+          ferramenta: toolUse.name,
+          detalhe: tool ? JSON.stringify(entrada) : "ferramenta indisponível para este usuário",
+        });
+
         toolResults.push({
           type: "tool_result",
           tool_use_id: toolUse.id,
@@ -129,7 +194,15 @@ export async function POST(request: NextRequest) {
       messages.push({ role: "user", content: toolResults });
     }
 
-    return NextResponse.json({ resposta: respostaFinal, historico: messages });
+    // Grava só o que a rodada acrescentou, e só depois de ela terminar: se a API falhar no meio,
+    // a conversa não fica com um turno pela metade no banco.
+    for (const m of messages.slice(inicioDoNovo)) {
+      await gravarMensagem(sessaoId, m.role === "assistant" ? "assistant" : "user", m.content);
+    }
+    await tocarSessao(sessaoId);
+
+    // `historico` continua na resposta para o cliente antigo não quebrar; o novo usa `sessaoId`.
+    return NextResponse.json({ resposta: respostaFinal, sessaoId, historico: messages });
   } catch (error) {
     console.error("[assistente] erro ao chamar a API da Anthropic:", error);
 
