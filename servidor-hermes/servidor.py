@@ -40,7 +40,7 @@ import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-HERMES_BIN = os.environ.get("HERMES_BIN", "/root/.local/bin/lumen-master")
+HERMES_BIN = os.environ.get("HERMES_BIN", "/usr/local/bin/hermes")
 SCRIPT_PROVISIONAMENTO = os.environ.get(
     "HERMES_PROVISION_SCRIPT",
     "/root/.hermes/profiles/lumen-master/scripts/provision_tenant.py",
@@ -53,9 +53,14 @@ ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "110"))
 CORPO_MAXIMO = 64 * 1024  # 64 KiB: uma pergunta de chat não chega perto disso.
 PERGUNTA_MAXIMA = 8_000  # caracteres
 
-# O perfil é sempre "lumen-tenant-<slug do escritório>". O slug do Lúmen é minúsculo, com dígitos
-# e hífen — o mesmo formato aceito na criação do escritório.
-PERFIL_VALIDO = re.compile(r"^lumen-tenant-[a-z0-9][a-z0-9-]{0,62}$")
+# O nome do perfil é conferido contra um formato, não contra uma lista: minúsculas, dígitos, ponto,
+# hífen e sublinhado. NÃO se exige mais o prefixo "lumen-tenant-" — esse prefixo era invenção do
+# código antigo. O perfil que existe de verdade nesta instalação chama-se "atendimento-lumen", e
+# exigir um prefixo inventado recusaria justamente o perfil real.
+#
+# O que o formato garante continua valendo: o nome não pode virar opção de linha de comando (não
+# começa com hífen) nem caminho de arquivo (não tem barra).
+PERFIL_VALIDO = re.compile(r"^[a-z0-9][a-z0-9._-]{0,62}$")
 SESSAO_VALIDA = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 SLUG_VALIDO = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 ID_VALIDO = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
@@ -68,6 +73,10 @@ logging.basicConfig(
 log = logging.getLogger("ponte-hermes")
 
 
+class ProvisionamentoIndisponivel(Exception):
+    """Esta instalação do Hermes não tem o script de provisionamento."""
+
+
 class PerfilAusente(Exception):
     """O escritório ainda não tem perfil provisionado no Hermes."""
 
@@ -78,7 +87,14 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None):
     Sem shell: `subprocess.run` recebe a lista de argumentos e o sistema operacional a entrega ao
     programa como está. É o que torna seguro passar a pergunta de um usuário aqui dentro.
     """
-    argumentos = [HERMES_BIN, "chat", "-q", mensagem, "--profile", perfil, "--quiet"]
+    # O COMANDO REAL, confirmado com `hermes --help` e `hermes chat --help` na máquina:
+    #
+    #   hermes -p <perfil> chat -q "<pergunta>" --oneshot -Q [--resume <id>]
+    #
+    # `-p` vem ANTES do subcomando: é opção do programa, não do `chat`. O código antigo usava
+    # `chat --profile <perfil>`, opção que NÃO EXISTE — por isso nunca funcionou.
+    # `--oneshot` responde e sai, em vez de abrir sessão interativa. `-Q` cala o supérfluo.
+    argumentos = [HERMES_BIN, "-p", perfil, "chat", "-q", mensagem, "--oneshot", "-Q"]
     if sessao:
         argumentos += ["--resume", sessao]
 
@@ -94,7 +110,7 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None):
         erro = (concluido.stderr or "").strip()
         # O Hermes diz "profile ... not found" quando o escritório não foi provisionado. Esse caso
         # tem conserto pelo painel mestre, e não por quem cuida do servidor — por isso vira 404.
-        if "profile" in erro.lower() and "not found" in erro.lower():
+        if "profile" in erro.lower() and ("not found" in erro.lower() or "unknown" in erro.lower()):
             raise PerfilAusente(erro[:300])
         raise RuntimeError(erro[:300] or f"o Hermes terminou com código {concluido.returncode}")
 
@@ -112,6 +128,12 @@ def executar_provisionamento(argumentos: list, espera_s: int):
     antiga interpolava o slug direto — `--slug ${slug}` — o que fazia de um parametro de URL um
     pedaco de comando. Aqui nao ha shell para interpolar nada.
     """
+    # O script de provisionamento não existe em toda instalação — nesta, por exemplo, não existe.
+    # Dizer isso com clareza vale mais que um erro genérico de execução: quem lê o 501 sabe que
+    # falta instalar algo, e não fica procurando defeito na ponte.
+    if not os.path.exists(SCRIPT_PROVISIONAMENTO):
+        raise ProvisionamentoIndisponivel(SCRIPT_PROVISIONAMENTO)
+
     concluido = subprocess.run(
         ["python3", SCRIPT_PROVISIONAMENTO, *argumentos],
         capture_output=True,
@@ -163,6 +185,8 @@ class Ponte(BaseHTTPRequestHandler):
                 return
             try:
                 self._responder(200, executar_provisionamento(["list"], 30))
+            except ProvisionamentoIndisponivel as erro:
+                self._responder(501, {"erro": f"esta instalacao nao tem o script de provisionamento ({erro})"})
             except subprocess.TimeoutExpired:
                 self._responder(504, {"erro": "o provisionamento demorou demais"})
             except Exception as erro:  # noqa: BLE001
@@ -289,6 +313,10 @@ class Ponte(BaseHTTPRequestHandler):
 
         try:
             resultado = executar_provisionamento(argumentos, espera)
+        except ProvisionamentoIndisponivel as erro:
+            log.error("provisionamento indisponivel: %s", erro)
+            self._responder(501, {"erro": f"esta instalacao nao tem o script de provisionamento ({erro})"})
+            return
         except subprocess.TimeoutExpired:
             log.error("o provisionamento de %s passou de %ds", slug, espera)
             self._responder(504, {"erro": "o provisionamento demorou demais"})

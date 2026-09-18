@@ -24,10 +24,24 @@ import { mensagemDeErro } from "@/lib/mensagemDeErro";
  */
 const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 45_000);
 
+/**
+ * O nome do perfil do Hermes para um escritório.
+ *
+ * O desenho é um perfil por inquilino, `lumen-tenant-<slug>`, e é para lá que isto caminha. Mas a
+ * instalação de hoje tem UM perfil só, com outro nome (`atendimento-lumen`), criado antes desta
+ * convenção existir. `HERMES_PERFIL` existe para essa travessia: quando definida, ela manda, e o
+ * Lúmen fala com o perfil que de fato existe.
+ *
+ * Isto é uma ponte entre o desenho e a realidade, e é temporária de propósito. Quando houver um
+ * perfil por escritório, basta apagar a variável na Vercel — o código abaixo já faz o certo
+ * sozinho, sem release nenhum. Não invente um prefixo aqui: foi exatamente um prefixo inventado
+ * (`lumen-tenant-`, que nunca existiu na máquina) que manteve esta integração quebrada por dias.
+ */
 const PREFIXO_PERFIL = "lumen-tenant-";
 
-/** O identificador do escritório vira o nome do perfil do Hermes, que é por inquilino. */
 export function perfilDoEscritorio(slug: string): string {
+  const fixo = process.env.HERMES_PERFIL?.trim();
+  if (fixo) return fixo;
   return `${PREFIXO_PERFIL}${slug}`;
 }
 
