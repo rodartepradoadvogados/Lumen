@@ -170,7 +170,19 @@ export default async function DashboardPage() {
     timeLabel: timeLabel(t),
     urgencia: classificarPrazo(t.dueDate),
     caseId: t.case?.id ?? null,
-    caseLabel: t.case ? t.case.processNumber || t.case.title : null,
+    // SÓ o número do processo — nunca o título como reserva.
+    //
+    // Era `processNumber || title`, e o `subtitle` logo acima JÁ é `case.title`. Num caso sem
+    // número (consultivo, extrajudicial, atendimento convertido), a reserva devolvia exatamente a
+    // mesma string do subtítulo, e a linha exibia a mesma frase duas vezes, uma embaixo da outra.
+    //
+    // Achado em 18/09/2026, na primeira navegação do produto com banco de verdade neste ambiente.
+    // Nenhuma verificação anterior podia pegá-lo: só aparece quando existe um caso SEM número, e
+    // o dado que eu inventava nos harness sempre tinha número. É o tipo exato de defeito que a
+    // conferência do dono vinha encontrando por mim.
+    //
+    // Sem número, a etiqueta não existe: o título já está dito, e repeti-lo não acrescenta nada.
+    caseLabel: t.case?.processNumber ?? null,
   }));
 
   // "O dia" somava prazo vencido e prazo futuro no MESMO número, então a tela não dizia quantos
@@ -377,7 +389,8 @@ export default async function DashboardPage() {
                     dueDate: t.dueDate.toISOString(),
                     responsibleName: t.responsible?.name,
                     caseId: t.case?.id,
-                    caseLabel: t.case ? t.case.processNumber || t.case.title : null,
+                    // Mesma correção da fila do dia, acima — ver a nota longa lá.
+                    caseLabel: t.case?.processNumber ?? null,
                   }}
                 />
               ))}
