@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, X, Send, Bot, RefreshCw, Trash2 } from "lucide-react";
+import { X, Send, Bot, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { useAnotacoesOptional } from "@/components/anotacoes/AnotacoesContext";
 import { useHermesTenant } from "@/components/HermesContext";
@@ -12,7 +12,7 @@ type ChatMessage = {
 };
 
 export default function HermesChatbox() {
-  const { tenantId, tenantSlug, tenantName } = useHermesTenant();
+  const { tenantSlug, tenantName } = useHermesTenant();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -173,7 +173,7 @@ export default function HermesChatbox() {
                     "max-w-[85%] px-3 py-2 text-sm whitespace-pre-wrap break-words",
                     m.role === "user" && "bg-acao text-acao-tx",
                     m.role === "assistant" && "bg-sf border border-regua text-tx shadow-card",
-                    m.role === "error" && "bg-red-50 border border-red-200 text-red-700"
+                    m.role === "error" && "bg-urgente-bg border border-linha-urgente text-urgente"
                   )}
                 >
                   {m.text}
@@ -192,12 +192,12 @@ export default function HermesChatbox() {
           </div>
 
           {error && (
-            <div className="shrink-0 px-4 py-2 bg-red-50 border-b border-red-200 text-red-700 text-xs flex items-center justify-between">
+            <div className="shrink-0 px-4 py-2 bg-urgente-bg border-b border-linha-urgente text-urgente text-xs flex items-center justify-between">
               <span>{error}</span>
               <button
                 type="button"
                 onClick={() => setError(null)}
-                className="p-1 hover:bg-red-100 rounded"
+                className="p-1 hover:bg-urgente-bg rounded"
                 aria-label="Dispensar erro"
               >
                 <X size={14} />
@@ -212,7 +212,7 @@ export default function HermesChatbox() {
               onKeyDown={onKeyDown}
               placeholder="Pergunte sobre processos, agenda, clientes, documentos..."
               rows={1}
-              className="flex-1 resize-none border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40 max-h-28"
+              className="flex-1 resize-none border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx max-h-28"
               aria-label="Mensagem para o Hermes"
               disabled={enviando}
             />
