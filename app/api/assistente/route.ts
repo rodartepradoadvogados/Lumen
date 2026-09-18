@@ -11,8 +11,14 @@ import {
   tocarSessao,
 } from "@/lib/assistenteSessoes";
 import { cabeMaisUmaPergunta, registrarUso, TETO_POR_MINUTO } from "@/lib/assistenteAuditoria";
+import { sessaoDoHermes, gravarSessaoDoHermes } from "@/lib/assistenteSessoes";
+import { hermesConfigurado, perguntarAoHermes, FalhaDoHermes } from "@/lib/hermesPonte";
+import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 export const dynamic = "force-dynamic";
+// O Hermes pode levar dezenas de segundos, e depois de desistir dele ainda e preciso caber a
+// resposta da reserva DENTRO da mesma funcao. Sem este teto, a Vercel cortaria antes.
+export const maxDuration = 120;
 
 // ============================================================================
 // Assistente Claude — chat interno do escritório
@@ -29,6 +35,16 @@ export const dynamic = "force-dynamic";
 //
 // `historico` no corpo continua aceito e IGNORADO: clientes antigos em cache não
 // quebram, só deixam de mandar peso à toa.
+//
+// QUEM RESPONDE (18/09/2026). O dono decidiu que o assistente do escritório é o HERMES. Ele fala
+// primeiro; o Claude ficou de reserva, para quando o Hermes não atender. A troca é de CÉREBRO, não
+// de caixa: a conversa, o registro de uso e o limite por escritório valem para os dois, e é por
+// isso que eles moram aqui e não dentro de cada um.
+//
+// A reserva não é enfeite. O Hermes vive numa máquina só dele, que pode estar em manutenção, sem
+// rede ou com o escritório ainda não provisionado — e um assistente que emudece nesses dias não
+// serve para o trabalho de ninguém. Quando a reserva entra, isso vai para a auditoria com o
+// motivo, para a conta do dia seguinte não ficar sendo adivinhada.
 // ============================================================================
 
 const MODEL = "claude-sonnet-5";
@@ -53,12 +69,17 @@ export async function POST(request: NextRequest) {
   if (!user || !user.active) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
-  const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } });
+  const office = await prisma.office.findUnique({
+    where: { id: user.officeId },
+    select: { name: true, slug: true },
+  });
   const officeName = office?.name || "seu escritório";
 
-  if (!isAssistantConfigured()) {
+  // Nenhum dos dois configurado: não há o que tentar, e dizer isso é mais útil que uma falha
+  // genérica lá na frente.
+  if (!hermesConfigurado() && !isAssistantConfigured()) {
     return NextResponse.json(
-      { error: "Assistente Claude não está configurado. Peça para um administrador configurar a chave da Anthropic." },
+      { error: "O assistente não está configurado. Peça para um administrador ligar o Hermes ou a chave da Anthropic." },
       { status: 503 },
     );
   }
@@ -108,6 +129,60 @@ export async function POST(request: NextRequest) {
   const historicoRecebido = await carregarHistorico(sessaoId);
 
   await registrarUso({ officeId: user.officeId, userId: user.id, sessionId: sessaoId, acao: "PERGUNTA" });
+
+  // ── O HERMES RESPONDE ─────────────────────────────────────────────────────────────────────
+  // Ele guarda o próprio contexto na máquina dele e o retoma pelo id gravado na conversa — por
+  // isso aqui não vai histórico junto, só a pergunta. As mensagens continuam sendo gravadas deste
+  // lado: é o que a tela mostra, o que a auditoria consulta, e o que sobra se um dia aquela
+  // máquina for reinstalada.
+  if (hermesConfigurado() && office?.slug) {
+    try {
+      const resposta = await perguntarAoHermes({
+        slug: office.slug,
+        mensagem,
+        sessao: await sessaoDoHermes(sessaoId),
+      });
+
+      await gravarMensagem(sessaoId, "user", mensagem);
+      await gravarMensagem(sessaoId, "assistant", resposta.resposta);
+      if (resposta.sessao) await gravarSessaoDoHermes(sessaoId, resposta.sessao);
+      await tocarSessao(sessaoId);
+      await registrarUso({
+        officeId: user.officeId,
+        userId: user.id,
+        sessionId: sessaoId,
+        acao: "FERRAMENTA",
+        ferramenta: "hermes",
+        detalhe: "respondeu",
+      });
+
+      return NextResponse.json({ resposta: resposta.resposta, sessaoId });
+    } catch (erro) {
+      const motivo = erro instanceof FalhaDoHermes ? erro.motivo : mensagemDeErro(erro);
+      console.error("[assistente] Hermes indisponível:", motivo);
+
+      // O motivo entra na auditoria. Sem ele, "por que o Hermes não respondeu ontem" vira
+      // adivinhação, e a reserva passa despercebida justamente quando está sendo usada todo dia.
+      await registrarUso({
+        officeId: user.officeId,
+        userId: user.id,
+        sessionId: sessaoId,
+        acao: "FERRAMENTA",
+        ferramenta: "hermes",
+        detalhe: `indisponível: ${motivo}`,
+      });
+
+      if (!isAssistantConfigured()) {
+        return NextResponse.json(
+          { error: "O assistente do escritório está indisponível no momento. Tente novamente em instantes." },
+          { status: 503 },
+        );
+      }
+      // Sem `return`: a execução segue para a reserva, logo abaixo.
+    }
+  }
+
+  // ── A RESERVA: o Claude, com as ferramentas de leitura da casa ─────────────────────────────
 
   // Filtra as ferramentas disponíveis pela permissão do usuário logado: todo
   // módulo é liberado por padrão, exceto "financeiro", que exige isAdmin ou

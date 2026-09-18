@@ -100,6 +100,29 @@ export async function gravarMensagem(
   });
 }
 
+/**
+ * O id da mesma conversa do lado do Hermes, e a gravacao dele.
+ *
+ * Quem responde e o Hermes, que guarda o proprio contexto na maquina dele; aqui fica so a linha
+ * que liga uma conversa a outra. Se ela sumir, a proxima pergunta comeca conversa nova no Hermes
+ * — perde-se o fio, nao o historico, que esta gravado deste lado.
+ */
+export async function sessaoDoHermes(sessionId: string): Promise<string | null> {
+  const linha = await prisma.assistantSession.findUnique({
+    where: { id: sessionId },
+    select: { hermesSessionId: true },
+  });
+  return linha?.hermesSessionId ?? null;
+}
+
+export async function gravarSessaoDoHermes(sessionId: string, hermesSessionId: string): Promise<void> {
+  if (!hermesSessionId) return;
+  await prisma.assistantSession.update({
+    where: { id: sessionId },
+    data: { hermesSessionId },
+  });
+}
+
 /** Marca a conversa como mexida agora, para ela subir na lista. */
 export async function tocarSessao(sessionId: string): Promise<void> {
   await prisma.assistantSession.update({ where: { id: sessionId }, data: { updatedAt: new Date() } });

@@ -538,7 +538,7 @@ export default async function ConexoesPage({
         {
           id: "MCP",
           nome: "Servidores MCP",
-          descricao: "Ferramentas externas que o assistente (ClaudeAssistantWidget) pode chamar em nome do escritório.",
+          descricao: "Ferramentas externas que o assistente (AssistenteWidget) pode chamar em nome do escritório.",
           estado: "off",
           estadoTexto: "não configurado",
           // Disclosure explícita: hoje não existe NENHUM servidor MCP administrável no projeto —

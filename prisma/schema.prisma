@@ -2558,6 +2558,13 @@ model AssistantSession {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // O id da MESMA conversa do lado do Hermes, quando e ele quem responde (ver lib/hermesPonte.ts).
+  // O Hermes guarda o proprio contexto na maquina dele e o retoma por este id; aqui ficam as
+  // mensagens legiveis, que sao o que a tela mostra e o que a auditoria consulta. Sao dois
+  // registros da mesma conversa, e e de proposito: se o servidor do Hermes for reinstalado, o
+  // historico do escritorio continua aqui.
+  hermesSessionId String?
+
   mensagens AssistantMessage[]
 
   @@index([userId, updatedAt])
