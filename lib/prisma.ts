@@ -59,10 +59,54 @@ function extractAffectedId(args: unknown, result: unknown): string | null {
 // Fora de requisição a extensão é um no-op: isMaskedSupportRequest() devolve false porque
 // cookies() lança sem escopo de requisição (verificado sob tsx). Ou seja, seed e migração
 // continuam vendo dado cru, como devem.
+
+// ---------------------------------------------------------------------------------------------
+// ADAPTADOR NEON — existe só para este ambiente de agente conseguir falar com o banco.
+//
+// O problema: a política de rede deste ambiente não deixa sair TCP na 5432, que é por onde o
+// Prisma fala com o Postgres. Resultado, até 18/09/2026: nenhuma verificação aqui conseguia
+// abrir o produto de verdade. `next build` falhava em /blog (119 de 120 páginas em toda
+// entrega), `next start` não subia, e nenhuma tela era navegada com dado real. Nove dos quinze
+// apontamentos da conferência visual do dono saíram justamente desse buraco — ver a seção 10-C
+// do plano mestre.
+//
+// O que passa: HTTPS na 443. O driver serverless da Neon fala com o banco por WebSocket sobre
+// 443, e isso atravessa o proxy — medido antes de escrever esta linha, não suposto.
+//
+// A CHAVE DE SEGURANÇA é a variável LUMEN_DB_ADAPTADOR. Sem ela, esta função devolve undefined e
+// o Prisma se comporta exatamente como sempre: TCP direto, nenhuma dependência nova no caminho.
+// A variável NÃO existe na Vercel e não deve ser criada lá. Ou seja: produção não passa por aqui.
+//
+// Por que WebSocket e não o endpoint HTTP puro da Neon (que também responde daqui): o HTTP não
+// suporta transação interativa, e este código usa $transaction. Trocar o driver por um que não
+// transaciona seria consertar a verificação quebrando o produto.
+// CARREGADO SOB DEMANDA, com `require` dentro da função e não `import` no topo. A primeira
+// versão importava os três pacotes no topo do arquivo — e aí eles entrariam no pacote de
+// PRODUÇÃO por causa de um recurso que só serve ao ambiente do agente. Pior: o webpack embutiu o
+// `ws` e quebrou o mascaramento de quadro dele ("TypeError: t.mask is not a function"), derrubando
+// o build. Com o require aqui dentro, quem não tem a variável nunca toca nesses módulos, e
+// next.config.mjs os declara externos para o webpack não tentar embutir nenhum deles.
+function adaptadorNeon(): unknown {
+  if (process.env.LUMEN_DB_ADAPTADOR !== "neon") return undefined;
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) return undefined;
+  /* eslint-disable @typescript-eslint/no-require-imports -- ver a nota acima: o carregamento
+     precisa ser preguiçoso, senão o driver entra no pacote de produção. */
+  const { PrismaNeon } = require("@prisma/adapter-neon");
+  const { Pool, neonConfig } = require("@neondatabase/serverless");
+  // O driver da Neon precisa de um construtor de WebSocket explícito no Node (no browser ele usa
+  // o global). `ws` é dependência só por causa disto.
+  neonConfig.webSocketConstructor = require("ws");
+  /* eslint-enable @typescript-eslint/no-require-imports */
+  return new PrismaNeon(new Pool({ connectionString }));
+}
+
 export function createPrismaClient(options?: Prisma.PrismaClientOptions) {
-  const base = new PrismaClient(
-    options ?? { log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"] }
-  );
+  const adapter = adaptadorNeon();
+  const base = new PrismaClient({
+    ...(options ?? { log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"] }),
+    ...(adapter ? { adapter: adapter as never } : {}),
+  });
 
   return base.$extends({
     name: "vidro-fosco",
@@ -154,6 +198,11 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 // objeto.
 export const prismaBase: PrismaClient =
   globalForPrisma.prismaBase ||
-  new PrismaClient({ log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"] });
+  // Mesmo adaptador do client principal — senão, no ambiente do agente, o quebra-vidro seria o
+  // único caminho que ainda tentaria TCP e falharia sozinho.
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    ...(adaptadorNeon() ? { adapter: adaptadorNeon() as never } : {}),
+  });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prismaBase = prismaBase;

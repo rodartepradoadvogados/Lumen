@@ -18,6 +18,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // Os três pacotes do driver serverless da Neon NÃO devem ser empacotados pelo webpack.
+    //
+    // Eles só são carregados quando LUMEN_DB_ADAPTADOR=neon está no ambiente — o que acontece
+    // apenas no ambiente do agente, onde a política de rede bloqueia TCP na 5432 (ver a nota
+    // longa em lib/prisma.ts). Em produção nada os importa.
+    //
+    // Mesmo assim precisam constar aqui: o webpack resolve `require()` estaticamente e tentou
+    // embutir o `ws`, o que quebrou o mascaramento de quadro dele em tempo de execução
+    // ("TypeError: t.mask is not a function") e derrubou o build inteiro. Declarados externos, os
+    // três ficam onde devem — em node_modules, carregados só se alguém pedir.
+    serverComponentsExternalPackages: ["@prisma/adapter-neon", "@neondatabase/serverless", "ws"],
+  },
   async headers() {
     return [
       {
