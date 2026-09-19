@@ -40,7 +40,7 @@ const GROUPS: NavGroup[] = [
       { label: "Produto e robôs", href: "/painel-mestre/produto", icon: Activity },
       { label: "Cofre de acesso", href: "/painel-mestre/cofre", icon: ShieldCheck },
       { label: "Confiança e LGPD", href: "/painel-mestre/confianca", icon: Scale },
-      { label: "Hermes Agent", href: "/painel-mestre/hermes", icon: Bot },
+      { label: "Lúmen Agent", href: "/painel-mestre/hermes", icon: Bot },
     ],
   },
 ];

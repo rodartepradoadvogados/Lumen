@@ -57,6 +57,17 @@ export default function HermesAdminClient() {
     }
   }
 
+  function fecharDetalhes() {
+    setSelectedProfile(null);
+    setStatus(null);
+  }
+
+  // O cabeçalho do detalhe mostra o NOME do escritório, não o slug. O slug é identificador de
+  // sistema; quem opera o painel pensa em "Rodarte Prado", não em "rodarte-prado-advogados".
+  function nomeDoEscritorio(slug: string): string {
+    return profiles.find((p) => p.office.slug === slug)?.office.name ?? slug;
+  }
+
   async function fetchStatus(slug: string) {
     setSelectedProfile(slug);
     setStatus(null);
@@ -130,7 +141,7 @@ export default function HermesAdminClient() {
   };
 
   return (
-    <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
+    <div className="p-6 max-w-[1500px] mx-auto animate-fade-in space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-tx">Lúmen Agent — Painel de Controle</h1>
@@ -158,7 +169,15 @@ export default function HermesAdminClient() {
         </div>
       )}
 
-      <LumenPanel>
+      {/* DUAS COLUNAS QUANDO HÁ DETALHE ABERTO.
+          Antes o detalhe abria EMBAIXO da tabela. Com dois escritórios funcionava; com trinta,
+          clicar numa linha do meio jogaria a resposta para fora da tela, e a pessoa teria que
+          rolar para baixo procurando o que acabou de pedir. Agora a tabela encolhe para a
+          esquerda e o detalhe entra à direita, ao lado da linha que o abriu.
+          Abaixo de 1024px eles voltam a empilhar: em tela estreita, duas colunas de 300px são
+          piores que uma de 600. */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+      <LumenPanel className={`transition-all duration-300 ${selectedProfile && status ? "lg:flex-1 lg:min-w-0" : "w-full"}`}>
         <LumenPanelHeader
           title="Lúmen Agent por escritório"
           subtitle={`${profiles.length} escritório(s) monitorado(s)`}
@@ -191,7 +210,17 @@ export default function HermesAdminClient() {
                 </tr>
               ) : (
                 profiles.map((p) => (
-                  <tr key={p.office.id} className="hover:bg-sf-apoio/30">
+                  <tr
+                    key={p.office.id}
+                    // A linha que abriu o detalhe fica marcada. Sem isto, com o painel aberto ao
+                    // lado, não há como saber de QUEM é o detalhe que está na tela — e com trinta
+                    // escritórios isso deixa de ser detalhe e vira erro de leitura.
+                    className={
+                      selectedProfile === p.office.slug
+                        ? "bg-sf-apoio border-l-2 border-l-marca-tx"
+                        : "hover:bg-sf-apoio/30 border-l-2 border-l-transparent"
+                    }
+                  >
                     <td className="p-3">
                       <div className="font-medium text-tx">{p.office.name}</div>
                       <div className="text-xs text-tx-2">{p.office.slug}</div>
@@ -243,10 +272,19 @@ export default function HermesAdminClient() {
                         {p.status === "ready" && (
                           <>
                             <button
-                              onClick={() => fetchStatus(p.office.slug)}
+                              // Clicar de novo na mesma linha FECHA. É o gesto que todo mundo
+                              // tenta antes de procurar o X.
+                              onClick={() =>
+                                selectedProfile === p.office.slug ? fecharDetalhes() : fetchStatus(p.office.slug)
+                              }
                               disabled={actionLoading === p.office.slug}
-                              className="p-1.5 hover:bg-sf-apoio rounded text-tx-2 transition-colors"
-                              title="Ver detalhes"
+                              aria-expanded={selectedProfile === p.office.slug}
+                              className={`p-1.5 rounded transition-colors ${
+                                selectedProfile === p.office.slug
+                                  ? "bg-sf-apoio text-marca-tx"
+                                  : "hover:bg-sf-apoio text-tx-2"
+                              }`}
+                              title={selectedProfile === p.office.slug ? "Fechar detalhes" : "Ver detalhes"}
                             >
                               <Activity size={16} />
                             </button>
@@ -274,13 +312,28 @@ export default function HermesAdminClient() {
       </LumenPanel>
 
       {selectedProfile && status && (
-        <LumenPanel>
-          <LumenPanelHeader
-            title={`Detalhes: ${selectedProfile}`}
-            subtitle={`Perfil: ${status.profile} • Saúde: ${status.health}`}
-          />
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
+        <LumenPanel className="w-full lg:w-[380px] lg:shrink-0 animate-fade-in">
+          {/* Cabeçalho próprio em vez do LumenPanelHeader: a régua de baixo precisa atravessar
+              a largura inteira, e um botão ao lado do componente pronto deixaria a régua parando
+              no meio do painel. */}
+          <div className="px-5 py-4 border-b border-regua flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h3 className="text-tx font-semibold text-base truncate">{nomeDoEscritorio(selectedProfile)}</h3>
+              <p className="text-xs text-tx-2 mt-0.5 truncate">
+                {selectedProfile} • perfil {status.profile}
+              </p>
+            </div>
+            <button
+              onClick={fecharDetalhes}
+              aria-label="Fechar detalhes"
+              className="p-1.5 hover:bg-sf-apoio rounded text-tx-2 transition-colors shrink-0"
+              title="Fechar detalhes"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className="space-y-4 p-5">
+            <div className="flex items-center gap-3 flex-wrap">
               <LumenBadge variant={healthColors[status.health as keyof typeof healthColors] || "default"}>
                 {status.health === "healthy" ? "Saudável" : status.health === "unhealthy" ? "Não saudável" : "Desconhecido"}
               </LumenBadge>
@@ -321,6 +374,7 @@ export default function HermesAdminClient() {
           </div>
         </LumenPanel>
       )}
+      </div>
     </div>
   );
 }
