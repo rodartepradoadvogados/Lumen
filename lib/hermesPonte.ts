@@ -16,13 +16,18 @@
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 /**
- * Quanto se espera pelo Hermes antes de desistir e cair na reserva.
+ * Quanto se espera pelo Hermes antes de desistir.
  *
- * 45s e não os 120s que o programa aceita: depois de desistir ainda é preciso tempo para o Claude
- * responder DENTRO da mesma função (ver `maxDuration` na rota). Um tempo de espera que consome o
- * orçamento inteiro transforma a reserva em enfeite — ela nunca chegaria a rodar.
+ * ERA 45s, e 45s era pouco. Os 45 vinham de guardar orçamento para a reserva responder dentro da
+ * mesma função — mas a reserva saiu do desenho (o dono desligou a chave da Anthropic), e o que
+ * sobrou foi um corte cedo demais: no primeiro uso real, a pergunta "liste os processos com
+ * título, número e cliente" morreu aqui. O agente estava trabalhando; quem desistiu fomos nós.
+ *
+ * 90s, com `maxDuration = 120` na rota: sobram 30s de folga para o resto do trabalho da função.
+ * O serviço do outro lado corta em 110s e o nginx em 150s, então esta é a trava mais curta da
+ * corrente — que é onde ela deve estar, para o erro vir com explicação em vez de um corte seco.
  */
-const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 45_000);
+const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 90_000);
 
 /**
  * O nome do perfil do Hermes para um escritório.

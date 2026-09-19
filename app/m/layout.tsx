@@ -155,7 +155,7 @@ export default async function MobileLayout({ children }: { children: React.React
 
       <main className="pb-20 min-h-screen max-w-md mx-auto">{children}</main>
 
-      <MobileBottomNav agendaBadgeCount={agendaBadgeCount} modules={modules} />
+      <MobileBottomNav agendaBadgeCount={agendaBadgeCount} modules={modules} userName={user.name} />
       <InstallPrompt />
     </div>
     </UndoToastProvider>

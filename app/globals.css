@@ -2029,3 +2029,29 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
    `::first-letter` não é confiável em cliente de e-mail, então lá a frase chega pronta do
    servidor (ver primeiraMaiuscula em lib/email.ts); aqui, no navegador, o CSS resolve. */
 .inicial-maiuscula::first-letter { text-transform: uppercase; }
+
+/* ---------------------------------------------------------------------------
+   A RESPOSTA DO ASSISTENTE, que vem em markdown simples.
+   O agente escreve `**112 processos**` e listas com hífen. Sem estilo, o
+   renderizador (lib/markdownSimples.tsx) devolve h2/h3/ul/blockquote com o
+   tamanho de MATÉRIA DE BLOG — o que dentro de um balão de conversa fica
+   grotesco. Aqui o mesmo markdown ganha a escala de uma conversa.
+   Sem isto, a alternativa seria o texto cru: no primeiro uso real do agente a
+   resposta apareceu como "você tem **20 processos**", com os asteriscos na
+   tela do advogado.
+   --------------------------------------------------------------------------- */
+.assistente-md > * + * { margin-top: 6px; }
+.assistente-md h2,
+.assistente-md h3 { font-size: 1em; font-weight: 600; }
+.assistente-md ul,
+.assistente-md ol { padding-left: 18px; }
+.assistente-md ul { list-style: disc; }
+.assistente-md ol { list-style: decimal; }
+.assistente-md li + li { margin-top: 3px; }
+.assistente-md strong { font-weight: 600; }
+.assistente-md a { text-decoration: underline; }
+.assistente-md blockquote {
+  padding-left: 10px;
+  border-left: 2px solid var(--regua-forte);
+  color: var(--tx-2);
+}

@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Newspaper, Calendar, Plus, Briefcase, DollarSign } from "lucide-react";
+import { Newspaper, Calendar, Plus, Briefcase, Sparkles } from "lucide-react";
 import MobileNewEntitySheet from "@/components/mobile/MobileNewEntitySheet";
+import MobileAssistente from "@/components/mobile/MobileAssistente";
 import type { OfficeModules } from "@/lib/officeModules";
 
 // Cinco abas fixas (documento 08 do handoff do redesenho — Fase 4, PWA): Publicações, Agenda,
-// "+" central (Novo Atendimento), Processo, Financeiro (resumo) — substitui as cinco antigas
-// (Início/Agenda/Alertas/Publicações/Menu).
+// "+" central (Novo Atendimento), Processo e — desde 19/09/2026 — o Lúmen Agent, que tomou o
+// lugar do Financeiro (ver a nota na lista abaixo).
 //
 // Início e Menu (Mais) NÃO desaparecem — nada se perde, só saem do destaque da barra fixa (troca
 // de escopo pedida pelo dono do projeto: seguir as 5 abas do documento, mas sem tirar acesso a
@@ -30,17 +31,35 @@ const items = [
   // produto: "o botão de + tinha que dar a opção de escolher o que adicionar".
   { href: null, label: "", Icon: Plus, badge: null, central: true },
   { href: "/m/processos", label: "Processo", Icon: Briefcase, badge: null },
-  { href: "/m/financeiro", label: "R$", Icon: DollarSign, badge: null },
+  // O LÚMEN AGENT ENTRA NO LUGAR DO FINANCEIRO (pedido do dono, 19/09/2026).
+  //
+  // A barra tem cinco lugares e todos estavam ocupados. O financeiro saiu daqui porque JÁ SE
+  // CHEGA A ELE PELO MENU (/m/mais) — continua a um toque, só deixa de gastar um dos cinco
+  // lugares fixos. O agente não tinha nenhum caminho no celular: a caixa flutuante do portal não
+  // é montada neste layout, então no aplicativo ele simplesmente não existia.
+  //
+  // Bronze (--guia-ativa) e não bordô: bordô é a cor de AÇÃO da casa, e já está no "+" central
+  // ao lado. Dois quadrados bordô na mesma barra disputariam a atenção um com o outro.
+  { href: null, label: "Agent", Icon: Sparkles, badge: null, agente: true },
 ];
 
-export default function MobileBottomNav({ agendaBadgeCount = 0, modules }: { agendaBadgeCount?: number; modules: OfficeModules }) {
+export default function MobileBottomNav({
+  agendaBadgeCount = 0,
+  modules,
+  userName = "",
+}: {
+  agendaBadgeCount?: number;
+  modules: OfficeModules;
+  userName?: string;
+}) {
   const pathname = usePathname();
   const [newEntityOpen, setNewEntityOpen] = useState(false);
+  const [assistenteOpen, setAssistenteOpen] = useState(false);
 
   return (
     <>
     <nav className="fixed bottom-0 inset-x-0 h-[76px] bg-sf border-t-2 border-regua-forte flex items-center z-40">
-      {items.map(({ href, label, Icon, badge, central }) => {
+      {items.map(({ href, label, Icon, badge, central, agente }) => {
         const active = href !== null && (pathname === href || pathname.startsWith(`${href}/`));
         const badgeCount = badge === "agenda" ? agendaBadgeCount : 0;
 
@@ -56,6 +75,23 @@ export default function MobileBottomNav({ agendaBadgeCount = 0, modules }: { age
               <span className="h-[52px] w-[52px] bg-acao text-acao-tx rounded-[2px] flex items-center justify-center">
                 <Icon size={24} />
               </span>
+            </button>
+          );
+        }
+
+        if (agente) {
+          return (
+            <button
+              key="agente"
+              type="button"
+              onClick={() => setAssistenteOpen(true)}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5"
+              aria-label="Abrir o Lúmen Agent"
+            >
+              <span className="flex items-center justify-center h-8 w-8 rounded-full border border-guia-ativa">
+                <Icon size={17} className="text-guia-ativa" />
+              </span>
+              <span className="text-corpo font-medium leading-none text-guia-ativa">{label}</span>
             </button>
           );
         }
@@ -86,6 +122,7 @@ export default function MobileBottomNav({ agendaBadgeCount = 0, modules }: { age
       })}
     </nav>
     <MobileNewEntitySheet open={newEntityOpen} onClose={() => setNewEntityOpen(false)} modules={modules} />
+    <MobileAssistente aberto={assistenteOpen} aoFechar={() => setAssistenteOpen(false)} userName={userName} />
     </>
   );
 }
