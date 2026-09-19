@@ -2,30 +2,57 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
+import {
+  hermesConfigurado,
+  perfilDoEscritorio,
+  estadoDosPerfis,
+  perguntarAoHermes,
+  FalhaDoHermes,
+} from "@/lib/hermesPonte";
 
-const HERMES_BIN = process.env.HERMES_BIN || "/root/.local/bin/lumen-master";
-const TENANT_PROFILE_PREFIX = "lumen-tenant-";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
-function getTenantProfileName(officeSlug: string): string {
-  return `${TENANT_PROFILE_PREFIX}${officeSlug}`;
+// ============================================================================
+// PAINEL MESTRE — o estado do Lúmen Agent em cada escritório.
+//
+// DOIS DEFEITOS CORRIGIDOS AQUI, e vale saber quais eram, porque os dois enganavam quem olhava:
+//
+// 1. A listagem filtrava `isInternal: false`, escondendo o escritório interno da plataforma — o
+//    do próprio dono. Ele procurava o escritório dele na tela e não achava, enquanto o agente
+//    estava lá, funcionando. Agora todos aparecem, com o interno marcado como tal.
+//
+// 2. O status vinha de executar o binário do Hermes E de ler /root/.hermes no disco — duas coisas
+//    que não existem num contêiner da Vercel. A chamada sempre falhava, e o código traduzia
+//    qualquer falha como "não provisionado". Resultado: TODO escritório aparecia como não
+//    provisionado, para sempre, inclusive os que estavam perfeitos. Um status que só sabe dizer
+//    uma coisa não é um status, é um enfeite.
+//
+// Agora o estado vem pela ponte (lib/hermesPonte.ts), que lê o disco da máquina certa. E é leitura
+// de disco: a rota antiga mandava o agente responder "ping" para descobrir se estava vivo — uma
+// chamada de modelo, PAGA, por escritório, toda vez que a tela abrisse.
+// ============================================================================
+
+function semPonte() {
+  return NextResponse.json(
+    {
+      error:
+        "A ponte com o Hermes não está configurada. Defina HERMES_URL e HERMES_TOKEN — ver servidor-hermes/LEIA-ME.md.",
+    },
+    { status: 503 },
+  );
 }
 
-async function runHermesCommand(profileName: string, args: string[]): Promise<string> {
-  const fullArgs = [profileName, ...args];
-  const command = `${HERMES_BIN} ${fullArgs.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(" ")}`;
-
-  const { execSync } = await import("child_process");
-  try {
-    return execSync(command, { encoding: "utf-8", timeout: 60000, maxBuffer: 1024 * 1024 * 5 }).trim();
-  } catch (error) {
-    console.error("[hermes/admin] Error:", mensagemDeErro(error));
-    throw new Error(`Hermes command failed: ${mensagemDeErro(error)}`);
-  }
+async function exigirDono() {
+  // `ignoreActing: true`: a checagem vale contra a identidade REAL de quem está logado, nunca
+  // contra um escritório que o dono esteja "atuando como" no momento.
+  const user = await getCurrentUser({ ignoreActing: true });
+  if (!user || !user.active || !user.isPlatformOwner) return null;
+  return user;
 }
 
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser({ ignoreActing: true });
-  if (!user || !user.active || !user.isPlatformOwner) {
+  if (!(await exigirDono())) {
     return NextResponse.json({ error: "Acesso restrito ao dono da plataforma." }, { status: 403 });
   }
 
@@ -33,127 +60,117 @@ export async function GET(request: NextRequest) {
   const action = searchParams.get("action") || "list";
   const slug = searchParams.get("slug");
 
-  try {
-    if (action === "list") {
-      const offices = await prisma.office.findMany({
-        where: { isInternal: false },
-        select: { id: true, slug: true, name: true, status: true, createdAt: true },
-        orderBy: { createdAt: "desc" }
-      });
+  if (action === "list") {
+    // TODOS os escritórios, inclusive o interno — ver a nota no topo.
+    const offices = await prisma.office.findMany({
+      select: { id: true, slug: true, name: true, status: true, isInternal: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+    });
 
-      const profiles = [];
-      for (const office of offices) {
-        const profileName = getTenantProfileName(office.slug);
-        let status = "not_provisioned";
-        let sessionCount = 0;
-        let memorySize = 0;
+    const perfis = offices.map((o) => perfilDoEscritorio(o.slug));
 
-        try {
-          const sessionsOut = await runHermesCommand(profileName, ["sessions", "list", "--quiet"]);
-          sessionCount = sessionsOut.split("\n").filter(Boolean).length;
-          status = "ready";
-        } catch {
-          status = "not_provisioned";
-        }
-
-        try {
-          const statePath = `/root/.hermes/profiles/${profileName}/state.db`;
-          const fs = await import("fs");
-          if (fs.existsSync(statePath)) {
-            const stats = fs.statSync(statePath);
-            memorySize = stats.size;
-          }
-        } catch {}
-
-        profiles.push({
-          office: { id: office.id, slug: office.slug, name: office.name, status: office.status },
-          profile: profileName,
-          status,
-          sessionCount,
-          memorySizeKB: Math.round(memorySize / 1024)
-        });
+    // Sem a ponte, a tela ainda serve: lista os escritórios e diz que o estado é desconhecido —
+    // que é a verdade. É diferente de dizer "não provisionado", que seria uma afirmação falsa.
+    let estados: Awaited<ReturnType<typeof estadoDosPerfis>> = [];
+    let aviso: string | null = null;
+    if (hermesConfigurado()) {
+      try {
+        estados = await estadoDosPerfis(perfis);
+      } catch (erro) {
+        aviso = erro instanceof FalhaDoHermes ? erro.motivo : mensagemDeErro(erro);
       }
-
-      return NextResponse.json({ profiles });
+    } else {
+      aviso = "ponte não configurada";
     }
 
-    if (action === "status" && slug) {
-      const office = await prisma.office.findUnique({ where: { slug } });
-      if (!office) return NextResponse.json({ error: "Escritório não encontrado" }, { status: 404 });
+    const porPerfil = new Map(estados.map((e) => [e.perfil, e]));
 
-      const profileName = getTenantProfileName(slug);
-      let health = "unknown";
-      let sessions: unknown[] = [];
-
-      try {
-        await runHermesCommand(profileName, ["chat", "-q", "ping", "--quiet"]);
-        health = "healthy";
-      } catch {
-        health = "unhealthy";
-      }
-
-      try {
-        const sessionsOut = await runHermesCommand(profileName, ["sessions", "list", "--quiet"]);
-        sessions = sessionsOut.split("\n").filter(Boolean).map(line => {
-          const [id, ...rest] = line.split(/\s+/);
-          return { id, title: rest.join(" ") || "Sem título" };
-        });
-      } catch {}
-
-      return NextResponse.json({ health, sessions, profile: profileName });
-    }
-
-    return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
-  } catch (error) {
-    console.error("[hermes/admin] Error:", error);
-    return NextResponse.json({ error: mensagemDeErro(error) }, { status: 500 });
+    return NextResponse.json({
+      aviso,
+      profiles: offices.map((office) => {
+        const perfil = perfilDoEscritorio(office.slug);
+        const estado = porPerfil.get(perfil);
+        return {
+          office: {
+            id: office.id,
+            slug: office.slug,
+            name: office.name,
+            status: office.status,
+            isInternal: office.isInternal,
+          },
+          profile: perfil,
+          status: estado ? (estado.existe ? "ready" : "not_provisioned") : "unknown",
+          sessionCount: estado?.sessoes ?? 0,
+          memorySizeKB: estado?.memoriaKB ?? 0,
+        };
+      }),
+    });
   }
+
+  if (action === "status" && slug) {
+    const office = await prisma.office.findUnique({ where: { slug }, select: { slug: true } });
+    if (!office) return NextResponse.json({ error: "Escritório não encontrado" }, { status: 404 });
+    if (!hermesConfigurado()) return semPonte();
+
+    const perfil = perfilDoEscritorio(slug);
+    try {
+      const [estado] = await estadoDosPerfis([perfil]);
+      return NextResponse.json({
+        profile: perfil,
+        health: estado?.existe ? "provisioned" : "not_provisioned",
+        sessionCount: estado?.sessoes ?? 0,
+        memorySizeKB: estado?.memoriaKB ?? 0,
+        sessions: [],
+      });
+    } catch (erro) {
+      const motivo = erro instanceof FalhaDoHermes ? erro.motivo : mensagemDeErro(erro);
+      return NextResponse.json({ error: motivo }, { status: 502 });
+    }
+  }
+
+  return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
 }
 
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser({ ignoreActing: true });
-  if (!user || !user.active || !user.isPlatformOwner) {
+  if (!(await exigirDono())) {
     return NextResponse.json({ error: "Acesso restrito ao dono da plataforma." }, { status: 403 });
   }
 
-  let body: { action: string; slug?: string; sessionId?: string };
+  let body: { action?: string; slug?: string; sessionId?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Corpo inválido" }, { status: 400 });
   }
 
-  const { action, slug, sessionId } = body;
+  const { action, slug } = body;
   if (!slug) return NextResponse.json({ error: "slug obrigatório" }, { status: 400 });
+  if (!hermesConfigurado()) return semPonte();
 
-  const office = await prisma.office.findUnique({ where: { slug } });
+  const office = await prisma.office.findUnique({ where: { slug }, select: { slug: true } });
   if (!office) return NextResponse.json({ error: "Escritório não encontrado" }, { status: 404 });
 
-  const profileName = getTenantProfileName(slug);
-
-  try {
-    if (action === "restart") {
-      await runHermesCommand(profileName, ["chat", "-q", "ping", "--quiet"]);
-      return NextResponse.json({ success: true, message: "Health check OK" });
+  // Teste de verdade: manda uma pergunta e vê se volta resposta. Custa uma chamada de modelo, e
+  // por isso é uma AÇÃO que alguém pede, não algo que a tela faça sozinha ao abrir.
+  if (action === "restart") {
+    try {
+      const r = await perguntarAoHermes({ slug, mensagem: "responda apenas: ok" });
+      return NextResponse.json({ success: true, message: `Respondeu: ${r.resposta.slice(0, 120)}` });
+    } catch (erro) {
+      const motivo = erro instanceof FalhaDoHermes ? erro.motivo : mensagemDeErro(erro);
+      return NextResponse.json({ error: motivo }, { status: 502 });
     }
-
-    if (action === "clear_memory") {
-      const statePath = `/root/.hermes/profiles/${profileName}/state.db`;
-      const fs = await import("fs");
-      if (fs.existsSync(statePath)) fs.unlinkSync(statePath);
-      return NextResponse.json({ success: true, message: "Memória limpa" });
-    }
-
-    if (action === "delete_session" && sessionId) {
-      await runHermesCommand(profileName, ["sessions", "delete", sessionId, "--quiet"]);
-      return NextResponse.json({ success: true });
-    }
-
-    return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
-  } catch (error) {
-    console.error("[hermes/admin] Action error:", error);
-    return NextResponse.json({ error: mensagemDeErro(error) }, { status: 500 });
   }
-}
 
-export const dynamic = "force-dynamic";
+  // Apagar memória e apagar conversa ainda não têm porta na ponte. Dizer isso é melhor que a rota
+  // antiga fazia: ela chamava `fs.unlinkSync` num caminho do contêiner da Vercel, não encontrava
+  // nada, e respondia "Memória limpa" — sucesso anunciado sobre coisa nenhuma.
+  if (action === "clear_memory" || action === "delete_session") {
+    return NextResponse.json(
+      { error: "Ainda não disponível pela ponte. Será feito na máquina do Hermes." },
+      { status: 501 },
+    );
+  }
+
+  return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
+}

@@ -136,12 +136,46 @@ export async function desprovisionarNoHermes(slug: string): Promise<unknown> {
   return chamar("/desprovisionar", { corpo: { slug }, esperaMs: 60_000 });
 }
 
+export type EstadoDoPerfil = {
+  perfil: string;
+  existe: boolean;
+  memoriaKB: number;
+  sessoes: number;
+};
+
+/**
+ * O estado de vários perfis de uma vez, lido do disco da máquina.
+ *
+ * Numa chamada só, de propósito: o painel mestre lista todos os escritórios, e uma requisição por
+ * escritório transformaria abrir a tela numa saraivada de chamadas à outra ponta.
+ *
+ * E é leitura de disco, não uma pergunta ao modelo. A tela antiga descobria se um escritório
+ * estava provisionado mandando o agente responder "ping" — uma chamada paga por escritório, toda
+ * vez que alguém abrisse a página. Saber se a pasta existe não deveria custar dinheiro.
+ */
+export async function estadoDosPerfis(perfis: string[]): Promise<EstadoDoPerfil[]> {
+  if (perfis.length === 0) return [];
+  const corpo = (await chamar("/estado", { corpo: { perfis }, esperaMs: 20_000 })) as {
+    estados?: unknown;
+  };
+  return Array.isArray(corpo.estados) ? (corpo.estados as EstadoDoPerfil[]) : [];
+}
+
 // ── A PERGUNTA ─────────────────────────────────────────────────────────────────────────────
 
 export async function perguntarAoHermes(dados: {
   slug: string;
   mensagem: string;
   sessao?: string | null;
+  /**
+   * Onde o agente busca os dados do escritório, e com que credencial.
+   *
+   * Vai JUNTO COM A PERGUNTA, e não gravado no servidor do Hermes, porque a credencial é daquela
+   * pergunta: ela carrega quem perguntou e o que essa pessoa pode ver (ver lib/agenteCredencial).
+   * Um token guardado no servidor seria do escritório inteiro, e aí o financeiro de um sócio
+   * vazaria para um estagiário que soubesse formular a pergunta.
+   */
+  ferramentas?: { url: string; credencial: string };
 }): Promise<RespostaHermes> {
   const corpo = (await chamar("/chat", {
     corpo: {
@@ -149,6 +183,7 @@ export async function perguntarAoHermes(dados: {
       mensagem: dados.mensagem,
       // O id da conversa do lado do Hermes. Ausente na primeira pergunta — é ele quem devolve.
       sessao: dados.sessao || undefined,
+      ferramentas: dados.ferramentas,
     },
   })) as { resposta?: unknown; sessao?: unknown };
 

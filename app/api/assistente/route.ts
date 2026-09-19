@@ -13,6 +13,8 @@ import {
 import { cabeMaisUmaPergunta, registrarUso, TETO_POR_MINUTO } from "@/lib/assistenteAuditoria";
 import { sessaoDoHermes, gravarSessaoDoHermes } from "@/lib/assistenteSessoes";
 import { hermesConfigurado, perguntarAoHermes, FalhaDoHermes } from "@/lib/hermesPonte";
+import { emitirCredencial } from "@/lib/agenteCredencial";
+import { getAppUrl } from "@/lib/appUrl";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 export const dynamic = "force-dynamic";
@@ -137,10 +139,20 @@ export async function POST(request: NextRequest) {
   // máquina for reinstalada.
   if (hermesConfigurado() && office?.slug) {
     try {
+      // A permissão viaja com a pergunta. `temAcessoFinanceiro` é a MESMA regra que a tela usa —
+      // administrador ou acesso expresso — e é decidida aqui, do lado de cá, nunca pelo agente.
+      const credencial = await emitirCredencial({
+        officeId: user.officeId,
+        userId: user.id,
+        financeiro: Boolean(user.isAdmin || user.financeAccess),
+        sessionId: sessaoId,
+      });
+
       const resposta = await perguntarAoHermes({
         slug: office.slug,
         mensagem,
         sessao: await sessaoDoHermes(sessaoId),
+        ferramentas: { url: `${getAppUrl()}/api/agente/ferramentas`, credencial },
       });
 
       await gravarMensagem(sessaoId, "user", mensagem);

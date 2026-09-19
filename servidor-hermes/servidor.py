@@ -41,6 +41,7 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERMES_BIN = os.environ.get("HERMES_BIN", "/usr/local/bin/hermes")
+PASTA_PERFIS = os.environ.get("HERMES_PROFILES_DIR", "/root/.hermes/profiles")
 SCRIPT_PROVISIONAMENTO = os.environ.get(
     "HERMES_PROVISION_SCRIPT",
     "/root/.hermes/profiles/lumen-master/scripts/provision_tenant.py",
@@ -81,11 +82,20 @@ class PerfilAusente(Exception):
     """O escritório ainda não tem perfil provisionado no Hermes."""
 
 
-def executar_hermes(perfil: str, mensagem: str, sessao: str | None):
+def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas: dict | None = None):
     """Roda o Hermes e devolve (resposta, id_da_sessao).
 
     Sem shell: `subprocess.run` recebe a lista de argumentos e o sistema operacional a entrega ao
     programa como está. É o que torna seguro passar a pergunta de um usuário aqui dentro.
+
+    AS FERRAMENTAS VÃO PELO AMBIENTE, e só deste processo. O Lúmen manda, junto com a pergunta, o
+    endereço onde o agente consulta os dados e a credencial daquela pergunta. Aqui elas viram duas
+    variáveis de ambiente do processo filho — que morre quando a resposta sai.
+
+    Por que não gravar num arquivo de configuração do perfil: a credencial é DE UMA PERGUNTA. Ela
+    sabe quem perguntou e o que essa pessoa pode ver. Guardá-la no disco a transformaria numa
+    credencial do escritório inteiro, valendo para sempre — e aí o financeiro de um sócio passaria
+    a responder a quem apenas soubesse formular a pergunta. É exatamente o que o dono proibiu.
     """
     # O COMANDO REAL, confirmado com `hermes --help` e `hermes chat --help` na máquina:
     #
@@ -98,12 +108,18 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None):
     if sessao:
         argumentos += ["--resume", sessao]
 
+    ambiente = os.environ.copy()
+    if ferramentas:
+        ambiente["LUMEN_FERRAMENTAS_URL"] = str(ferramentas.get("url") or "")
+        ambiente["LUMEN_FERRAMENTAS_CREDENCIAL"] = str(ferramentas.get("credencial") or "")
+
     concluido = subprocess.run(
         argumentos,
         capture_output=True,
         text=True,
         timeout=ESPERA_S,
         check=False,
+        env=ambiente,
     )
 
     if concluido.returncode != 0:
@@ -152,6 +168,36 @@ def executar_provisionamento(argumentos: list, espera_s: int):
         raise RuntimeError("o script nao devolveu JSON na ultima linha")
 
 
+def estado_do_perfil(perfil: str) -> dict:
+    """O que se sabe sobre um perfil SEM gastar uma pergunta ao modelo.
+
+    O painel mestre precisa dizer se um escritorio esta provisionado. A rota antiga descobria isso
+    mandando o Hermes responder "ping" — uma chamada de modelo, paga, para CADA escritorio, a cada
+    vez que a tela abrisse. Custo real para uma informacao que o disco ja da de graca.
+
+    Aqui a resposta vem do sistema de arquivos: a pasta do perfil existe, quanto ocupa a memoria
+    dele, e quantas conversas ele guarda. Se alguem quiser mesmo saber se ele RESPONDE, que peca
+    uma pergunta de verdade — de proposito, e nao por acidente de renderizacao.
+    """
+    caminho = os.path.join(PASTA_PERFIS, perfil)
+    existe = os.path.isdir(caminho)
+    memoria_kb = 0
+    sessoes = 0
+
+    if existe:
+        estado = os.path.join(caminho, "state.db")
+        if os.path.exists(estado):
+            memoria_kb = round(os.path.getsize(estado) / 1024)
+        pasta_sessoes = os.path.join(caminho, "sessions")
+        if os.path.isdir(pasta_sessoes):
+            try:
+                sessoes = len([n for n in os.listdir(pasta_sessoes) if not n.startswith(".")])
+            except OSError:
+                sessoes = 0
+
+    return {"perfil": perfil, "existe": existe, "memoriaKB": memoria_kb, "sessoes": sessoes}
+
+
 class Ponte(BaseHTTPRequestHandler):
     server_version = "ponte-hermes"
     sys_version = ""  # não anuncia a versão do Python para quem bater na porta
@@ -197,6 +243,24 @@ class Ponte(BaseHTTPRequestHandler):
         self._responder(404, {"erro": "rota desconhecida"})
 
     def do_POST(self):  # noqa: N802
+        if self.path == "/estado":
+            if not self._autorizado():
+                self._responder(401, {"erro": "não autorizado"})
+                return
+            try:
+                tamanho = int(self.headers.get("content-length", "0"))
+                corpo = json.loads(self.rfile.read(tamanho).decode("utf-8")) if tamanho else {}
+            except (ValueError, UnicodeDecodeError):
+                self._responder(400, {"erro": "corpo inválido"})
+                return
+            perfis = corpo.get("perfis")
+            if not isinstance(perfis, list) or not perfis:
+                self._responder(400, {"erro": "informe a lista de perfis"})
+                return
+            validos = [p for p in perfis[:100] if isinstance(p, str) and PERFIL_VALIDO.match(p)]
+            self._responder(200, {"estados": [estado_do_perfil(p) for p in validos]})
+            return
+
         if self.path in ("/provisionar", "/desprovisionar"):
             self._provisionamento()
             return
@@ -228,6 +292,22 @@ class Ponte(BaseHTTPRequestHandler):
         mensagem = str(corpo.get("mensagem") or "").strip()
         sessao = str(corpo.get("sessao") or "").strip() or None
 
+        # As ferramentas são opcionais: sem elas o agente responde só com o que já sabe.
+        ferramentas = corpo.get("ferramentas")
+        if ferramentas is not None:
+            if not isinstance(ferramentas, dict):
+                self._responder(400, {"erro": "ferramentas inválidas"})
+                return
+            url_ferramentas = str(ferramentas.get("url") or "")
+            # Só HTTPS: a credencial da pergunta viaja neste endereço, e em texto limpo ela
+            # entregaria a quem estiver no caminho o direito de consultar aquele escritório.
+            if not url_ferramentas.startswith("https://"):
+                self._responder(400, {"erro": "a url das ferramentas precisa ser https"})
+                return
+            if not str(ferramentas.get("credencial") or ""):
+                self._responder(400, {"erro": "credencial das ferramentas ausente"})
+                return
+
         if not PERFIL_VALIDO.match(perfil):
             self._responder(400, {"erro": "perfil inválido"})
             return
@@ -239,11 +319,14 @@ class Ponte(BaseHTTPRequestHandler):
             return
 
         # O conteúdo da pergunta NÃO entra no registro: são dados de cliente.
-        log.info("pergunta para %s (%d caracteres, %s)", perfil, len(mensagem),
-                 "continuando" if sessao else "nova conversa")
+        # Nem a pergunta nem a credencial entram no registro: uma é dado de cliente, a outra abre
+        # a consulta ao escritório. Fica o tamanho, o perfil, e se há ferramentas — o suficiente
+        # para investigar, longe de virar uma segunda cópia do que passou por aqui.
+        log.info("pergunta para %s (%d caracteres, %s, ferramentas: %s)", perfil, len(mensagem),
+                 "continuando" if sessao else "nova conversa", "sim" if ferramentas else "nao")
 
         try:
-            resposta, nova_sessao = executar_hermes(perfil, mensagem, sessao)
+            resposta, nova_sessao = executar_hermes(perfil, mensagem, sessao, ferramentas)
         except PerfilAusente as erro:
             log.warning("perfil ausente: %s", erro)
             self._responder(404, {"erro": "perfil não provisionado"})

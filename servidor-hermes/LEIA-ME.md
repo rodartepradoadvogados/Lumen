@@ -128,6 +128,7 @@ Hermes, e a caixa continua respondendo pelo Claude, como hoje. Não há passo in
 | `GET /perfis` | a lista de escritórios provisionados |
 | `POST /provisionar` com `{slug, officeId, nome}` | cria o perfil do escritório |
 | `POST /desprovisionar` com `{slug}` | remove o perfil |
+| `POST /estado` com `{perfis: [...]}` | se cada perfil existe, quanto ocupa, quantas conversas |
 | slug fora do formato, `officeId` fora do formato, nome vazio | `400` |
 
 Quatro decisões que valem explicação:
@@ -149,6 +150,51 @@ sem elas o assistente só funcionaria para os escritórios que já existiam.
 **O registro guarda o tamanho da pergunta, nunca o conteúdo.** São dados de cliente de escritório
 de advocacia passando por aqui. `journalctl -u ponte-hermes` mostra quem perguntou para qual perfil
 e quando — o suficiente para investigar um problema, sem virar uma segunda cópia das conversas.
+
+---
+
+## As ferramentas: como o agente consulta os dados do escritório
+
+O agente **não tem o banco do Lúmen**, e não deve ter. Quando precisa de um número, ele roda o
+programa `lumen-consultar.py`, que pergunta ao Lúmen e devolve a resposta.
+
+O que faz isso funcionar são duas variáveis que a ponte põe no ambiente **de cada execução**:
+
+```
+LUMEN_FERRAMENTAS_URL          onde perguntar
+LUMEN_FERRAMENTAS_CREDENCIAL   a credencial DAQUELA pergunta
+```
+
+**A credencial é da pergunta, não do escritório.** Ela carrega quem perguntou e o que essa pessoa
+pode ver, vale cinco minutos, e morre com o processo. Um token fixo por escritório seria mais
+simples e estaria errado: bastaria alguém sem acesso ao financeiro pedir ao agente "quanto entrou
+este mês" para contornar a regra pela porta dos fundos.
+
+Quem decide o que responder é o **Lúmen**, do outro lado. O agente não tem opinião sobre permissão
+— e é justamente isso que torna a regra confiável.
+
+### Instalar
+
+```bash
+curl -fsSL -o /opt/lumen/servidor-hermes/lumen-consultar.py \
+  https://raw.githubusercontent.com/rodartepradoadvogados/Lumen/main/servidor-hermes/lumen-consultar.py
+chmod 755 /opt/lumen/servidor-hermes/lumen-consultar.py
+ln -sf /opt/lumen/servidor-hermes/lumen-consultar.py /usr/local/bin/lumen-consultar
+```
+
+Depois disso, o perfil do Hermes precisa **saber que essa ferramenta existe** — é instrução no
+prompt dele, não configuração da ponte. Algo como:
+
+> Para qualquer pergunta sobre processos, publicações, agenda, atendimentos, clientes ou
+> financeiro do escritório, rode `lumen-consultar` no terminal. Sem argumentos ele lista o que é
+> possível consultar. Nunca invente números: se a consulta não trouxer, diga que não encontrou.
+> Se a resposta for uma recusa de acesso, isso é regra do escritório — não tente outro caminho.
+
+### Conferir
+
+```bash
+lumen-consultar          # fora de uma pergunta do Lúmen, deve dizer que não há credencial
+```
 
 ---
 
