@@ -120,6 +120,8 @@ def main():
     if not argumentos or argumentos[0] in ("-h", "--help"):
         catalogo = pedir("GET", None)
         print("Ferramentas disponíveis nesta pergunta:\n")
+        if catalogo.get("comoMostrar"):
+            print("  " + catalogo["comoMostrar"] + "\n")
         for f in catalogo.get("ferramentas", []):
             print(f"  {f['nome']}  ({f['modulo']})")
             if f.get("descricao"):
@@ -139,6 +141,13 @@ def main():
 
     resposta = pedir("POST", {"ferramenta": nome, "entrada": entrada})
     print(resposta.get("resultado", ""))
+
+    # A instrução de como MOSTRAR o resultado vem junto do resultado, de propósito: instrução que
+    # mora só no prompt do perfil se perde quando o perfil é recriado, e aí o agente volta a
+    # devolver número de processo solto em vez de link clicável.
+    instrucao = resposta.get("instrucao")
+    if instrucao:
+        print("\n[como mostrar] " + instrucao)
 
 
 if __name__ == "__main__":
