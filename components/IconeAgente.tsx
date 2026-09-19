@@ -12,6 +12,11 @@ import { useId } from "react";
 // exposição a marca e a direito autoral, então o desenho carrega a IDEIA — o pequeno ajudante de
 // uma lente só — sem nenhum traço emprestado.
 //
+// O CABELO ENTROU DEPOIS, quando o assistente ganhou nome de mulher. Ele é uma melena que passa do
+// queixo, e não um penteado desenhado: aos 16 pixels nenhum fio se distingue, e o que faz a figura
+// ser lida como cabelo é a SILHUETA — mais larga que a cabeça e mais comprida que ela. Um penteado
+// com detalhe viraria borrão na aba do navegador, que é onde este ícone vive menor.
+//
 // O CORPO É `currentColor` E OS SULCOS SÃO BURACOS. Assim o ícone acompanha a cor de onde está
 // (bronze na aba ativa, branco sobre o grafite do botão flutuante) sem uma variante por lugar, e
 // a lente e as linhas de escuta mostram o fundo de trás em vez de uma cor fixa que brigaria com
@@ -43,6 +48,13 @@ export default function IconeAgente({
         <rect x="17" y="31" width="14" height="2" rx="1" fill="black" />
         <rect x="17" y="35" width="9" height="2" rx="1" fill="black" />
       </mask>
+      {/* O cabelo vai ATRÁS, e é o que dá a silhueta: emoldura a testa e desce pelos lados até
+          abaixo do queixo. Mesma cor do rosto de propósito — separar por cor exigiria uma segunda
+          cor que brigaria com metade dos oito temas. */}
+      <path
+        d="M7 23a17 17 0 0 1 34 0v18a2 2 0 0 1-2 2h-3V25a11 11 0 0 0-11-11h-2a11 11 0 0 0-11 11v18H9a2 2 0 0 1-2-2z"
+        fill="currentColor"
+      />
       <path
         d="M12 21a12 12 0 0 1 24 0v14a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3z"
         fill="currentColor"

@@ -41,7 +41,7 @@ const items = [
   //
   // Bronze (--guia-ativa) e não bordô: bordô é a cor de AÇÃO da casa, e já está no "+" central
   // ao lado. Dois quadrados bordô na mesma barra disputariam a atenção um com o outro.
-  { href: null, label: "Agent", Icon: null, badge: null, agente: true },
+  { href: null, label: "Antonella", Icon: null, badge: null, agente: true },
 ];
 
 export default function MobileBottomNav({
@@ -87,7 +87,7 @@ export default function MobileBottomNav({
               type="button"
               onClick={() => setAssistenteOpen(true)}
               className="flex-1 flex flex-col items-center justify-center gap-0.5"
-              aria-label="Abrir o Lúmen Agent"
+              aria-label="Abrir a Antonella"
             >
               <span className="flex items-center justify-center h-8 w-8 rounded-full border border-guia-ativa">
                 {/* A lente sai em bordô dentro do círculo bronze: é o único ponto da barra onde

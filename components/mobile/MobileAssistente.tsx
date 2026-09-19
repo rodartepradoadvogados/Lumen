@@ -181,7 +181,7 @@ export default function MobileAssistente({
       }`}
       aria-hidden={!aberto}
       role="dialog"
-      aria-label="Lúmen Agent"
+      aria-label="Antonella, assistente do escritório"
     >
       <header className="shrink-0 flex items-center gap-3 px-3 h-14 bg-sf-superficie border-b border-regua pt-[env(safe-area-inset-top)]">
         <button
@@ -193,7 +193,7 @@ export default function MobileAssistente({
           <ArrowLeft size={20} />
         </button>
         <div className="min-w-0">
-          <div className="text-corpo font-semibold text-tx leading-tight">Lúmen Agent</div>
+          <div className="text-corpo font-semibold text-tx leading-tight">Antonella</div>
           <div className="text-etiqueta text-tx-3 leading-tight">
             {enviando ? "consultando o escritório…" : "assistente do escritório"}
           </div>

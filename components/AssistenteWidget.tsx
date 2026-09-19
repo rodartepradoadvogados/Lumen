@@ -28,8 +28,46 @@ type ChatMessage = {
 // as respostas apareceriam trocadas entre elas.
 const CHAVE_SESSAO = "lumen:assistente:sessao";
 
+// ============================================================================
+// O TAMANHO DA CAIXA, ARRASTÁVEL.
+//
+// Uma resposta com tabela de cinco colunas não cabe em 448px, e quem está lendo uma lista de
+// processos quer a caixa maior — mas só às vezes. Fixar um tamanho maior atrapalharia quem usa a
+// caixa para perguntas de dez segundos, que é o uso mais comum.
+//
+// OS LIMITES FICAM NO CSS, e não só no JavaScript: `max-w-[75vw]` e `max-h-[80vh]` são a trava de
+// verdade. O cálculo do arrasto também limita, mas se ele errar — numa rotação de tela, num
+// navegador que reporte a janela de outro jeito — quem segura é o navegador, e a caixa não some
+// para fora da tela.
+//
+// O tamanho fica no `localStorage`, e não no `sessionStorage` como o id da conversa: aqui a
+// preferência É para durar entre sessões, e duas abas escreverem a mesma preferência é o
+// comportamento certo, não um defeito.
+// ============================================================================
+const CHAVE_TAMANHO = "lumen:assistente:tamanho";
+const LARGURA_PADRAO = 448; // = max-w-md, o tamanho de sempre
+const MINIMO = { largura: 320, altura: 320 };
+
+function tetos() {
+  return {
+    largura: Math.round(window.innerWidth * 0.75),
+    altura: Math.round(window.innerHeight * 0.8),
+  };
+}
+
+function entreLimites(largura: number, altura: number) {
+  const teto = tetos();
+  return {
+    largura: Math.max(MINIMO.largura, Math.min(teto.largura, Math.round(largura))),
+    altura: Math.max(MINIMO.altura, Math.min(teto.altura, Math.round(altura))),
+  };
+}
+
 export default function AssistenteWidget({ userName }: { userName: string }) {
   const [open, setOpen] = useState(false);
+  const [tamanho, setTamanho] = useState<{ largura: number; altura: number } | null>(null);
+  const painelRef = useRef<HTMLDivElement>(null);
+  const arrasto = useRef<{ x: number; y: number; largura: number; altura: number } | null>(null);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [mensagens, setMensagens] = useState<ChatMessage[]>([
@@ -139,6 +177,73 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
     }
   }
 
+  // Retoma o tamanho escolhido. Acessor protegido: em aba anônima ou com dados do site
+  // bloqueados ele lança, e aí a caixa simplesmente abre no tamanho padrão.
+  useEffect(() => {
+    try {
+      const guardado = window.localStorage.getItem(CHAVE_TAMANHO);
+      if (!guardado) return;
+      const { largura, altura } = JSON.parse(guardado) as { largura: number; altura: number };
+      if (Number.isFinite(largura) && Number.isFinite(altura)) setTamanho(entreLimites(largura, altura));
+    } catch {
+      // Sem armazenamento, o tamanho padrão.
+    }
+  }, []);
+
+  function guardarTamanho(novo: { largura: number; altura: number }) {
+    setTamanho(novo);
+    try {
+      window.localStorage.setItem(CHAVE_TAMANHO, JSON.stringify(novo));
+    } catch {
+      // A caixa continua no tamanho escolhido nesta sessão; só não é lembrada depois.
+    }
+  }
+
+  // A alça fica no canto SUPERIOR ESQUERDO porque a caixa está presa embaixo à direita: arrastar
+  // para a esquerda e para cima é o gesto que a faz crescer, e é o único canto livre.
+  function aoPegar(e: React.PointerEvent<HTMLButtonElement>) {
+    const caixa = painelRef.current?.getBoundingClientRect();
+    if (!caixa) return;
+    arrasto.current = { x: e.clientX, y: e.clientY, largura: caixa.width, altura: caixa.height };
+    // Captura o ponteiro: sem isto, arrastar rápido para fora da alça larga o arrasto no meio.
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function aoArrastar(e: React.PointerEvent<HTMLButtonElement>) {
+    const a = arrasto.current;
+    if (!a) return;
+    // Invertido: o ponteiro indo para a esquerda (delta negativo) AUMENTA a largura.
+    setTamanho(entreLimites(a.largura + (a.x - e.clientX), a.altura + (a.y - e.clientY)));
+  }
+
+  function aoSoltar(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!arrasto.current) return;
+    arrasto.current = null;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    const caixa = painelRef.current?.getBoundingClientRect();
+    if (caixa) guardarTamanho(entreLimites(caixa.width, caixa.height));
+  }
+
+  // Arrasto é gesto de mouse. Sem as setas, quem navega por teclado não tem como redimensionar —
+  // e o passo de 32px é grande o bastante para chegar a qualquer tamanho sem cansar.
+  function aoTeclarNaAlca(e: React.KeyboardEvent<HTMLButtonElement>) {
+    const passo = 32;
+    const atual = tamanho ?? {
+      largura: painelRef.current?.getBoundingClientRect().width ?? LARGURA_PADRAO,
+      altura: painelRef.current?.getBoundingClientRect().height ?? 0,
+    };
+    const mapa: Record<string, [number, number]> = {
+      ArrowLeft: [passo, 0],
+      ArrowRight: [-passo, 0],
+      ArrowUp: [0, passo],
+      ArrowDown: [0, -passo],
+    };
+    const d = mapa[e.key];
+    if (!d) return;
+    e.preventDefault();
+    guardarTamanho(entreLimites(atual.largura + d[0], atual.altura + d[1]));
+  }
+
   return (
     <>
       <button
@@ -146,9 +251,9 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
         onClick={() => setOpen((v) => !v)}
         // Botão só de ícone: sem nome acessível ele é anunciado como "botão" e ninguém que use
         // leitor de tela descobre o que ele abre. O `data-tip` é só visual.
-        aria-label={open ? "Fechar o Lúmen Agent" : "Abrir o Lúmen Agent"}
+        aria-label={open ? "Fechar a Antonella" : "Abrir a Antonella"}
         aria-expanded={open}
-        data-tip="Lúmen Agent"
+        data-tip="Antonella"
         style={{ right: rightOffsetPx }}
         // Grafite fixo nos dois temas + acento ouro, de propósito: mesmo par de cores da marca
         // (LumenMark), não um botão de ação comum — ver DESIGN-SYSTEM.md §15.
@@ -164,15 +269,46 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
           // ela começava 24px FORA da tela pela esquerda e o texto ficava cortado. Agora ela se
           // prende às duas margens no celular, e só a partir de 640px volta a flutuar à direita,
           // deslocada pelo painel de anotações quando ele está aberto.
-          style={{ "--deslocamento-assistente": `${rightOffsetPx}px` } as React.CSSProperties}
-          className="fixed bottom-20 left-3 right-3 w-auto max-h-[70vh] h-[calc(100vh-7rem)] sm:left-auto sm:right-[var(--deslocamento-assistente)] sm:w-full sm:max-w-md sm:h-[70vh] shadow-pop bg-sf z-40 flex flex-col overflow-hidden border border-regua transition-[right] duration-200"
+          ref={painelRef}
+          style={
+            {
+              "--deslocamento-assistente": `${rightOffsetPx}px`,
+              "--larg-assistente": tamanho ? `${tamanho.largura}px` : `${LARGURA_PADRAO}px`,
+              "--alt-assistente": tamanho ? `${tamanho.altura}px` : "70vh",
+            } as React.CSSProperties
+          }
+          // No celular a caixa continua presa às duas margens; o tamanho arrastável só vale a
+          // partir de 640px, onde há de fato espaço para escolher. Os TETOS moram aqui, em CSS:
+          // se o cálculo do arrasto errar, quem segura é o navegador e a caixa não some da tela.
+          className="fixed bottom-20 left-3 right-3 w-auto max-h-[70vh] h-[calc(100vh-7rem)] sm:left-auto sm:right-[var(--deslocamento-assistente)] sm:w-[var(--larg-assistente)] sm:max-w-[75vw] sm:h-[var(--alt-assistente)] sm:max-h-[80vh] shadow-pop bg-sf z-40 flex flex-col overflow-hidden border border-regua transition-[right] duration-200"
         >
+          {/* A alça. Só no computador: no celular a caixa ocupa a largura toda e não há o que
+              escolher. `touch-none` impede que o arrasto vire rolagem da página em telas
+              sensíveis ao toque. */}
+          <button
+            type="button"
+            onPointerDown={aoPegar}
+            onPointerMove={aoArrastar}
+            onPointerUp={aoSoltar}
+            onPointerCancel={aoSoltar}
+            onKeyDown={aoTeclarNaAlca}
+            onDoubleClick={() => guardarTamanho(entreLimites(LARGURA_PADRAO, window.innerHeight * 0.7))}
+            aria-label="Redimensionar a conversa. Use as setas do teclado, ou arraste."
+            title="Arraste para redimensionar · duplo clique volta ao tamanho padrão"
+            // A alça fica sobre a barra bg-grafite-800 do cabeçalho, que é fixa nos dois temas.
+            // eslint-disable-next-line no-restricted-syntax -- branco contra grafite fixo
+            className="hidden sm:block absolute left-0 top-0 z-10 h-6 w-6 cursor-nwse-resize touch-none text-white/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-rail-marca"
+          >
+            <svg viewBox="0 0 24 24" className="h-full w-full p-1.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M4 12V4h8M4 4l7 7" />
+            </svg>
+          </button>
           {/* Grafite fixo nos dois temas — mesmo tratamento do botão flutuante acima. */}
           <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-grafite-800 text-white">
             <div className="flex items-center gap-2">
               {/* P0-5: text-marca-tx sobre bg-grafite-800 reprova WCAG AA (2,15:1). */}
               <IconeAgente size={20} acento="var(--rail-marca)" />
-              <span className="font-medium text-sm">Lúmen Agent</span>
+              <span className="font-medium text-sm">Antonella</span>
             </div>
             <button
               type="button"
