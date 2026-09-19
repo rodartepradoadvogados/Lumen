@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Database, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Database, Send } from "lucide-react";
+import IconeAgente from "@/components/IconeAgente";
 import { renderizarMarkdownSimples } from "@/lib/markdownSimples";
 
 // ============================================================================
@@ -197,7 +198,7 @@ export default function MobileAssistente({
             {enviando ? "consultando o escritório…" : "assistente do escritório"}
           </div>
         </div>
-        <Sparkles size={18} className="ml-auto text-guia-ativa" aria-hidden="true" />
+        <IconeAgente size={22} className="ml-auto text-tx-2" />
       </header>
 
       <div ref={rolagemRef} className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">

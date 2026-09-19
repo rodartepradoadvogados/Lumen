@@ -52,6 +52,71 @@ export type AssistantTool = {
 // juntas tornam impossível confundir uma com a outra.
 // ============================================================================
 
+// ============================================================================
+// AMOSTRA NÃO É UNIVERSO — e dizer o total não bastou.
+//
+// Perguntaram ao agente: "liste as contas a pagar e a receber ainda de setembro de 2026". Ele
+// respondeu, com toda a calma: "não há dados — o sistema só retorna lançamentos de jan a mar/2026".
+//
+// Estava errado, e o erro não era dele. A consulta não tinha filtro de data e devolvia os 20
+// vencimentos MAIS ANTIGOS. Ele recebeu janeiro a março, viu que setembro não estava ali, e
+// concluiu que setembro não existe. `truncado: true` estava na resposta e não impediu nada: um
+// booleano não diz o que NÃO fazer com ele.
+//
+// Duas correções, e as duas importam:
+//
+// 1. A consulta financeira passa a aceitar período (`de`/`ate`). Perguntou de setembro, filtra
+//    setembro — e aí a resposta é sobre setembro, não sobre uma amostra que começa em janeiro.
+// 2. TODA consulta truncada passa a carregar um aviso em português dizendo, com todas as letras,
+//    que a lista é uma amostra e que dela NÃO se conclui ausência. É instrução, não bandeira.
+//
+// Concluir ausência a partir de uma amostra é o erro mais caro que este agente pode cometer:
+// "não há conta a pagar em setembro" faz o escritório não pagar a conta.
+// ============================================================================
+
+const AVISO_AMOSTRA =
+  "ATENÇÃO: esta lista é uma AMOSTRA e não o conjunto inteiro (veja `total` e `mostrados`). " +
+  "NÃO conclua que algo não existe por não estar nela — o que você procura pode estar entre os " +
+  "itens que ficaram de fora. Para responder sobre um período ou filtro específico, refaça a " +
+  "consulta com os parâmetros adequados em vez de garimpar esta lista.";
+
+/** Junta ao resultado o aviso, mas só quando ele é verdade: sem truncamento, ele só faria ruído. */
+function comAviso<T extends { truncado: boolean }>(dados: T): T & { aviso?: string } {
+  return dados.truncado ? { ...dados, aviso: AVISO_AMOSTRA } : dados;
+}
+
+/**
+ * Lê uma data vinda do agente. Aceita "2026-09" (o mês inteiro) e "2026-09-01".
+ *
+ * `fim = true` empurra para o FIM do período: "2026-09" vira 30/09 às 23:59:59, e não 01/09 às
+ * zero hora — senão "de 2026-09 até 2026-09" devolveria um intervalo de um instante só, e a
+ * resposta seria "nada em setembro" por um motivo novo.
+ */
+export function lerData(valor: string | undefined, fim: boolean): Date | undefined {
+  if (!valor) return undefined;
+  const mes = valor.match(/^(\d{4})-(\d{2})$/);
+  if (mes) {
+    const ano = Number(mes[1]);
+    const m = Number(mes[2]) - 1;
+    // `2026-13` casa com a expressão e o JavaScript o aceita CALADO, rolando para janeiro de
+    // 2027. Um período que ninguém pediu, devolvendo vazio com cara de resposta, é pior que
+    // filtro nenhum — então mês fora de 1..12 não é data.
+    if (m < 0 || m > 11) return undefined;
+    return fim ? new Date(ano, m + 1, 0, 23, 59, 59, 999) : new Date(ano, m, 1, 0, 0, 0, 0);
+  }
+  const dia = valor.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dia) {
+    const [ano, m, d] = [Number(dia[1]), Number(dia[2]) - 1, Number(dia[3])];
+    if (m < 0 || m > 11 || d < 1 || d > 31) return undefined;
+    const data = fim ? new Date(ano, m, d, 23, 59, 59, 999) : new Date(ano, m, d, 0, 0, 0, 0);
+    // A mesma rolagem silenciosa do mês, agora no dia: `2026-02-30` vira 2 de março. Conferir o
+    // que a data VIROU contra o que foi pedido é o único jeito de pegar isso.
+    if (data.getMonth() !== m || data.getDate() !== d) return undefined;
+    return data;
+  }
+  return undefined;
+}
+
 function truncate(text: string, max: number): string {
   if (!text) return "";
   return text.length > max ? `${text.slice(0, max)}…` : text;
@@ -140,12 +205,12 @@ async function executarConsultarProcessos(input: ToolInput, officeId: string): P
             observacao: `A matéria "${area}" foi conferida sobre os ${cases.length} processos mais recentes, não sobre todos os ${totalNoBanco}.`,
             processos: resumo,
           }
-        : {
+        : comAviso({
             total: totalNoBanco,
             mostrados: resumo.length,
             truncado: totalNoBanco > resumo.length,
             processos: resumo,
-          },
+          }),
     );
   } catch (error) {
     console.error("[assistantTools] erro em consultar_processos:", error);
@@ -197,12 +262,12 @@ async function executarConsultarPublicacoes(input: ToolInput, officeId: string, 
       triageStatus: p.triageStatus,
     }));
 
-    return JSON.stringify({
+    return JSON.stringify(comAviso({
       total: totalNoBanco,
       mostrados: resumo.length,
       truncado: totalNoBanco > resumo.length,
       publicacoes: resumo,
-    });
+    }));
   } catch (error) {
     console.error("[assistantTools] erro em consultar_publicacoes:", error);
     return "Não foi possível consultar as publicações agora. Tente novamente em instantes.";
@@ -249,12 +314,12 @@ async function executarConsultarAgenda(input: ToolInput, officeId: string): Prom
       responsavel: t.responsible?.name ?? null,
     }));
 
-    return JSON.stringify({
+    return JSON.stringify(comAviso({
       total: totalNoBanco,
       mostrados: resumo.length,
       truncado: totalNoBanco > resumo.length,
       agenda: resumo,
-    });
+    }));
   } catch (error) {
     console.error("[assistantTools] erro em consultar_agenda:", error);
     return "Não foi possível consultar a agenda agora. Tente novamente em instantes.";
@@ -296,12 +361,12 @@ async function executarConsultarAtendimento(input: ToolInput, officeId: string):
       responsavel: a.responsible?.name ?? null,
     }));
 
-    return JSON.stringify({
+    return JSON.stringify(comAviso({
       total: totalNoBanco,
       mostrados: resumo.length,
       truncado: totalNoBanco > resumo.length,
       atendimentos: resumo,
-    });
+    }));
   } catch (error) {
     console.error("[assistantTools] erro em consultar_atendimento:", error);
     return "Não foi possível consultar o atendimento agora. Tente novamente em instantes.";
@@ -339,12 +404,12 @@ async function executarBuscarCliente(input: ToolInput, officeId: string): Promis
       quantidadeProcessos: c._count.cases,
     }));
 
-    return JSON.stringify({
+    return JSON.stringify(comAviso({
       total: totalNoBanco,
       mostrados: resumo.length,
       truncado: totalNoBanco > resumo.length,
       clientes: resumo,
-    });
+    }));
   } catch (error) {
     console.error("[assistantTools] erro em buscar_cliente:", error);
     return "Não foi possível buscar o cliente agora. Tente novamente em instantes.";
@@ -362,7 +427,18 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
       tipoRecebido === "receber" || tipoRecebido === "ambos" ? tipoRecebido : "pagar";
     const apenasPendente = bool(input, "apenasPendente");
 
+    // O PERÍODO. Sem ele, a pergunta "e setembro?" recebia os vencimentos mais antigos do
+    // escritório e virava "setembro não existe".
+    const de = lerData(str(input, "de"), false);
+    const ate = lerData(str(input, "ate"), true);
+    const porVencimento = de || ate ? { dueDate: { ...(de ? { gte: de } : {}), ...(ate ? { lte: ate } : {}) } } : {};
+
     const resultado: Record<string, unknown> = {};
+    // Ecoa o período de volta. O agente precisa poder dizer "em setembro de 2026 não há conta" em
+    // vez de "não há conta" — a segunda frase é falsa, e é a que assusta quem lê.
+    resultado.periodo = de || ate
+      ? { de: de ? de.toISOString().slice(0, 10) : null, ate: ate ? ate.toISOString().slice(0, 10) : null }
+      : "todo o histórico";
 
     // status: mesmo quando "apenasPendente" é false (traz todos os status), A_APURAR é excluído
     // explicitamente da consulta — é só uma ESTIMATIVA de honorário percentual sem valor real
@@ -371,6 +447,7 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
       const filtroPayable = {
         officeId,
         status: apenasPendente ? "PENDENTE" : { not: "A_APURAR" },
+        ...porVencimento,
       };
 
       // A SOMA É DO UNIVERSO, NÃO DA AMOSTRA. Somar só os 20 mostrados daria um valor errado com
@@ -391,7 +468,7 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
         }),
       ]);
 
-      resultado.contasAPagar = {
+      resultado.contasAPagar = comAviso({
         total: totalPayable,
         mostrados: payables.length,
         truncado: totalPayable > payables.length,
@@ -407,13 +484,14 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
           status: p.status,
           categoria: p.category?.name ?? null,
         })),
-      };
+      });
     }
 
     if (tipo === "receber" || tipo === "ambos") {
       const filtroReceivable = {
         officeId,
         status: apenasPendente ? "PENDENTE" : { not: "A_APURAR" },
+        ...porVencimento,
       };
 
       // A SOMA É DO UNIVERSO, NÃO DA AMOSTRA. Somar só os 20 mostrados daria um valor errado com
@@ -434,7 +512,7 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
         }),
       ]);
 
-      resultado.contasAReceber = {
+      resultado.contasAReceber = comAviso({
         total: totalReceivable,
         mostrados: receivables.length,
         truncado: totalReceivable > receivables.length,
@@ -450,7 +528,7 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
           status: r.status,
           categoria: r.category?.name ?? null,
         })),
-      };
+      });
     }
 
     return JSON.stringify(resultado);
@@ -559,12 +637,20 @@ export const assistantTools: AssistantTool[] = [
     spec: {
       name: "consultar_financeiro",
       description:
-        "Busca contas a pagar e/ou a receber do escritório, com totais e lista resumida. Só deve ser usada se o usuário tiver acesso ao módulo Financeiro. Use quando perguntarem sobre valores a pagar/receber, contas pendentes ou totais financeiros.",
+        "Busca contas a pagar e/ou a receber do escritório, com totais e lista resumida. Só deve ser usada se o usuário tiver acesso ao módulo Financeiro. Use quando perguntarem sobre valores a pagar/receber, contas pendentes ou totais financeiros. SEMPRE informe `de` e `ate` quando a pergunta mencionar um período (um mês, um trimestre, \"este ano\"): sem eles a resposta cobre todo o histórico e a lista mostrada começa pelos vencimentos mais antigos.",
       input_schema: {
         type: "object",
         properties: {
           tipo: { type: "string", enum: ["pagar", "receber", "ambos"], description: "Qual tipo de conta consultar." },
           apenasPendente: { type: "boolean", description: "Se true, retorna apenas contas com status PENDENTE." },
+          de: {
+            type: "string",
+            description: 'Início do período de VENCIMENTO. Aceita "2026-09" (o mês inteiro) ou "2026-09-01".',
+          },
+          ate: {
+            type: "string",
+            description: 'Fim do período de VENCIMENTO. Aceita "2026-09" (até o último dia do mês) ou "2026-09-30".',
+          },
         },
         required: ["tipo"],
       },
