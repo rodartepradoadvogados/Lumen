@@ -303,6 +303,31 @@ export async function setFinanceAccess(id: string, financeAccess: boolean): Prom
   return {};
 }
 
+/**
+ * Quem entra no rodízio de leads do WhatsApp.
+ *
+ * DIFERENTE de setFinanceAccess em dois pontos, e os dois de propósito:
+ *
+ *   - SÓCIO PODE SER MARCADO. Sócio é advogado do escritório, e a fila de casos triados é de
+ *     advogados (ver lib/filaDeTransferencia.ts: PAPEIS_ADVOGADO inclui "sócio"). Num escritório de
+ *     dois sócios e nenhum empregado — que é o caso do escritório onde isto nasceu — bloquear o
+ *     sócio deixaria a fila permanentemente vazia e nenhum lead chegaria a ninguém.
+ *   - A MARCA NASCE DESLIGADA e não é um direito, é uma escala. Ninguém entra no rodízio por
+ *     omissão: receber lead fora de hora, sem ter combinado, é o tipo de coisa que faz uma equipe
+ *     perder a confiança no sistema todo.
+ */
+export async function setRecebeTransferencia(id: string, recebeTransferencia: boolean): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas administradores definem quem recebe transferências." };
+  const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!user) return { error: "Usuário não encontrado." };
+  if (recebeTransferencia && !user.active) return { error: "Pessoa inativa não pode receber transferências." };
+  await prisma.user.update({ where: { id }, data: { recebeTransferencia } });
+  revalidatePath("/configuracoes");
+  revalidatePath("/atendimento");
+  return {};
+}
+
 export async function setUserCredentials(id: string, username: string, password: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Apenas administradores podem definir credenciais de acesso." };

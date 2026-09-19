@@ -677,7 +677,7 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && secao === "equipe" && (
       <Card>
-        <CardHeader title="Equipe (usuários)" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais de acesso e conceda/revogue acesso ao Financeiro`} />
+        <CardHeader title="Equipe (usuários)" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais, conceda acesso ao Financeiro e escolha quem entra no rodízio de leads do WhatsApp`} />
         <div className="divide-y divide-regua">
           {users.map((u) => (
             <UserRow key={u.id} user={u} canManage={isAdmin} />
