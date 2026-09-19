@@ -299,20 +299,28 @@ model ModulePrice {
 // ============ EQUIPE ============
 
 model User {
-  id            String   @id @default(cuid())
-  name          String
-  email         String   @unique
-  username      String?
-  passwordHash  String?
-  role          String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
-  oab           String?
-  phone         String?
-  phoneDdi      String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
-  color         String   @default("#0f1f3d") // cor de identificação em cards/agenda
-  isAdmin       Boolean  @default(false) // sócios/donos do escritório: aprovam exclusões, gerenciam equipe e acesso ao financeiro
-  financeAccess Boolean  @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  id           String  @id @default(cuid())
+  name         String
+  email        String  @unique
+  username     String?
+  passwordHash String?
+  role         String  @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
+  oab          String?
+  phone        String?
+  phoneDdi     String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
+  color        String  @default("#0f1f3d") // cor de identificação em cards/agenda
+  isAdmin      Boolean @default(false) // sócios/donos do escritório: aprovam exclusões, gerenciam equipe e acesso ao financeiro
+
+  // RECEBE LEAD TRANSFERIDO PELA ATENDENTE DE IA. Nasce DESLIGADO para todo mundo, inclusive para
+  // quem já estava cadastrado: ligar sozinho mandaria conversa de cliente para o telefone de
+  // alguém que não pediu isso. Quem liga é o administrador, pessoa por pessoa.
+  //
+  // A POSIÇÃO NA FILA É `createdAt`: ordem de cadastro, como o dono definiu — quem entra depois
+  // vai para o fim, sem ninguém ter que renumerar nada.
+  recebeTransferencia Boolean  @default(false)
+  financeAccess       Boolean  @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
 
   // Dono(a) da PLATAFORMA Lúmen (Jairo e Rodrigo) — nada a ver com isAdmin (que é por
   // escritório). Só quem tem isPlatformOwner=true enxerga e acessa /painel-mestre, e só esse
@@ -1910,6 +1918,17 @@ model WhatsappConfig {
   expedienteDias   String @default("1,2,3,4,5")
   expedienteInicio String @default("08:00")
   expedienteFim    String @default("18:00")
+
+  // O FUSO, e ele não é detalhe. O servidor roda em UTC; "08:00" sem fuso são 05:00 em Goiânia.
+  // Sem isto, o relógio da transferência correria de madrugada e ficaria parado de dia — e o
+  // sintoma ("o lead da manhã não foi repassado") não apontaria para cá de jeito nenhum.
+  // O Brasil tem quatro fusos, então o padrão é o de Brasília e cada escritório ajusta o seu.
+  fusoHorario String @default("America/Sao_Paulo")
+
+  // ONDE A FILA PAROU. Rodízio precisa lembrar de quem foi o último; sem isto, toda transferência
+  // voltaria ao primeiro da lista e o rodízio viraria cascata.
+  ultimoAdvogadoId String?
+  ultimaRecepcaoId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

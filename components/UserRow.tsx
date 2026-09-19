@@ -8,7 +8,18 @@ import { adminGenerateResetLink } from "@/lib/actions/auth";
 import { Badge } from "@/components/ui";
 import PhoneInput from "@/components/PhoneInput";
 
-const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
+const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista/Secretária", "Marketing", "Contador"];
+
+/**
+ * As opções do seletor, garantindo que o papel JÁ GRAVADO da pessoa esteja entre elas.
+ *
+ * "Recepcionista" virou "Recepcionista/Secretária", e quem estava cadastrado antes continua com o
+ * valor antigo no banco. Sem isto, o seletor abriria mostrando "Advogado" para a recepcionista —
+ * e bastaria alguém salvar o formulário sem reparar para a pessoa virar advogada de verdade.
+ */
+function opcoesDePapel(papelAtual: string): string[] {
+  return ROLE_OPTIONS.includes(papelAtual) ? ROLE_OPTIONS : [papelAtual, ...ROLE_OPTIONS];
+}
 
 type User = {
   id: string;
@@ -144,7 +155,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           <input name="name" defaultValue={user.name} required placeholder="Nome" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
           <input name="email" type="email" defaultValue={user.email} required placeholder="E-mail" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
           <select name="role" defaultValue={user.role} className="cfg-input bg-sf border border-regua text-tx">
-            {ROLE_OPTIONS.map((r) => (
+            {opcoesDePapel(user.role).map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
