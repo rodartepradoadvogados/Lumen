@@ -26,10 +26,11 @@ import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersMana
 import BankAccountsManager from "@/components/BankAccountsManager";
 import HolidaysManager from "@/components/HolidaysManager";
 import InstallAppButton from "@/components/InstallAppButton";
-import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell } from "lucide-react";
+import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell, Bot } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
+import AtendentePainel, { type CampanhaNaLista } from "@/components/atendente/AtendentePainel";
 import ModulesManager from "@/components/ModulesManager";
 import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
 import OfficeBillingSummary from "@/components/OfficeBillingSummary";
@@ -97,6 +98,9 @@ const SECOES = [
   { key: "geral", label: "Geral", requires: "none" },
   { key: "workflows", label: "Workflows", requires: "admin" },
   { key: "blog", label: "Blog Jurídico", requires: "admin" },
+  // Atendente de IA: só aparece para quem tem o módulo WhatsApp, porque é o módulo que paga por
+  // ele — e uma aba que existe só para dizer "contrate" é propaganda dentro da configuração.
+  { key: "atendente", label: "Atendente", requires: "admin" },
   // Fase 3 (Asaas) — autoatendimento: qualquer admin do próprio escritório vê a PRÓPRIA
   // cobrança (ciclo, forma de pagamento, Pix/QR pendente, histórico de faturas). Nada aqui
   // exige ser platform owner — quem configura isso é o Painel Mestre (aba "Cobrança &
@@ -110,6 +114,7 @@ const SECAO_ICONS = {
   geral: SlidersHorizontal,
   workflows: Workflow,
   blog: Newspaper,
+  atendente: Bot,
   cobranca: CreditCard,
 } as const;
 
@@ -150,6 +155,8 @@ export default async function ConfiguracoesPage({
     blogPublishedRaw,
     photosRaw,
     modules,
+    atendente,
+    campanhasRaw,
     blogAccess,
     office,
     ownBilling,
@@ -178,6 +185,30 @@ export default async function ConfiguracoesPage({
       prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
       prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
       getOfficeModules(officeId),
+      // O atendente e as campanhas: só admin vê a aba, mas a consulta é barata e roda junto das
+      // outras — condicionar faria a página ter dois caminhos para o mesmo estado.
+      prisma.whatsappConfig.findUnique({
+        where: { officeId },
+        select: {
+          agenteNome: true,
+          agenteInstrucoes: true,
+          agenteAtivo: true,
+          agenteTodos: true,
+          agenteNumeros: true,
+          expedienteDias: true,
+          expedienteInicio: true,
+          expedienteFim: true,
+        },
+      }),
+      prisma.campanha.findMany({
+        where: { officeId },
+        orderBy: { createdAt: "desc" },
+        include: {
+          perguntas: { select: { texto: true }, orderBy: { ordem: "asc" } },
+          documentos: { select: { nome: true, paraQue: true, obrigatorio: true }, orderBy: { ordem: "asc" } },
+          _count: { select: { atendimentos: true } },
+        },
+      }),
       hasBlogAccess(officeId),
       prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, timbradoUrl: true, timbradoNomeArquivo: true, timbradoFormato: true, drivePastaMae: true, drivePrefixo: true } }),
       getOwnOfficeBilling(),
@@ -212,8 +243,33 @@ export default async function ConfiguracoesPage({
   });
 
   const requestedSecao = searchParams.secao || "geral";
+  // O formato da tela é o mesmo do formulário, para editar não precisar traduzir nada: o item da
+  // lista É o rascunho que abre no wizard.
+  const campanhas: CampanhaNaLista[] = campanhasRaw.map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    ativa: c.ativa,
+    inicioEm: c.inicioEm ? c.inicioEm.toISOString().slice(0, 10) : null,
+    fimEm: c.fimEm ? c.fimEm.toISOString().slice(0, 10) : null,
+    sourceUrl: c.sourceUrl ?? "",
+    textoDoClique: c.textoDoClique ?? "",
+    rede: c.rede ?? "INSTAGRAM",
+    area: c.area,
+    sobre: c.sobre,
+    foraDoEscopo: c.foraDoEscopo,
+    primeiraMensagem: c.primeiraMensagem,
+    tetoDeMensagens: c.tetoDeMensagens,
+    perguntas: c.perguntas.map((x) => ({ texto: x.texto })),
+    documentos: c.documentos.map((x) => ({ nome: x.nome, paraQue: x.paraQue ?? "", obrigatorio: x.obrigatorio })),
+    mensagemDeTransferencia: c.mensagemDeTransferencia,
+    destino: c.destino,
+    motivosDeRecusa: c.motivosDeRecusa,
+    leads: c._count.atendimentos,
+  }));
+
   const availableSecoes = SECOES.filter((s) => {
     const allowed = s.requires === "none" ? true : isAdmin;
+    if (s.key === "atendente") return allowed && modules.whatsapp;
     return allowed && (s.key !== "blog" || blogAccess);
   });
   const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
@@ -716,6 +772,31 @@ export default async function ConfiguracoesPage({
         <HolidaysManager holidays={holidays} />
       </Card>
       </>
+      )}
+
+      {isAdmin && secao === "atendente" && (
+        <Card>
+          <CardHeader
+            title="Atendente de IA no WhatsApp"
+            subtitle="Como a atendente conversa com quem escreve para o escritório, e o roteiro de cada campanha"
+          />
+          <div className="p-5">
+            <AtendentePainel
+              temWhatsapp={Boolean(atendente)}
+              geral={{
+                agenteNome: atendente?.agenteNome ?? "",
+                agenteInstrucoes: atendente?.agenteInstrucoes ?? "",
+                agenteAtivo: atendente?.agenteAtivo ?? false,
+                agenteTodos: atendente?.agenteTodos ?? false,
+                agenteNumeros: atendente?.agenteNumeros ?? "",
+                expedienteDias: atendente?.expedienteDias ?? "1,2,3,4,5",
+                expedienteInicio: atendente?.expedienteInicio ?? "08:00",
+                expedienteFim: atendente?.expedienteFim ?? "18:00",
+              }}
+              campanhas={campanhas}
+            />
+          </div>
+        </Card>
       )}
 
       {isAdmin && secao === "workflows" && (

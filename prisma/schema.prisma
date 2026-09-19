@@ -1902,6 +1902,15 @@ model WhatsappConfig {
   // pela tela — é o que torna o módulo vendável sem alguém entrar por SSH a cada cliente novo.
   agenteInstrucoes String?
 
+  // O EXPEDIENTE. O relógio de 15 minutos da transferência só corre dentro dele — sem isso, um
+  // lead que escreve à meia-noite faz a fila inteira rodar antes de alguém acordar, e a pendência
+  // que deveria chamar atenção chega já velha.
+  // Dias: "1,2,3,4,5" (1 = segunda). Horas em "HH:MM". Enquanto o escritório não preencher, vale
+  // o padrão seg–sex 8h–18h, que é o que a maioria pratica.
+  expedienteDias   String @default("1,2,3,4,5")
+  expedienteInicio String @default("08:00")
+  expedienteFim    String @default("18:00")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
