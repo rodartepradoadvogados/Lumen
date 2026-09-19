@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { renderizarMarkdownSimples } from "@/lib/markdownSimples";
 import { Sparkles, X, Send } from "lucide-react";
 import clsx from "clsx";
 import { useAnotacoesOptional } from "@/components/anotacoes/AnotacoesContext";
@@ -136,8 +137,13 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
 
       {open && (
         <div
-          style={{ right: rightOffsetPx }}
-          className="fixed bottom-20 w-full max-w-md h-[70vh] shadow-pop bg-sf z-40 flex flex-col overflow-hidden border border-regua transition-[right] duration-200"
+          // O DESLOCAMENTO VIRA VARIÁVEL, e não `right` direto, porque estilo em linha não tem
+          // consulta de mídia: no celular a caixa era `w-full` (100vw) com `right: 24px`, então
+          // ela começava 24px FORA da tela pela esquerda e o texto ficava cortado. Agora ela se
+          // prende às duas margens no celular, e só a partir de 640px volta a flutuar à direita,
+          // deslocada pelo painel de anotações quando ele está aberto.
+          style={{ "--deslocamento-assistente": `${rightOffsetPx}px` } as React.CSSProperties}
+          className="fixed bottom-20 left-3 right-3 w-auto max-h-[70vh] h-[calc(100vh-7rem)] sm:left-auto sm:right-[var(--deslocamento-assistente)] sm:w-full sm:max-w-md sm:h-[70vh] shadow-pop bg-sf z-40 flex flex-col overflow-hidden border border-regua transition-[right] duration-200"
         >
           {/* Grafite fixo nos dois temas — mesmo tratamento do botão flutuante acima. */}
           <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-grafite-800 text-white">
@@ -160,13 +166,22 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
               <div key={i} className={clsx("flex", m.role === "user" ? "justify-end" : "justify-start")}>
                 <div
                   className={clsx(
-                    "max-w-[85%] px-3 py-2 text-sm whitespace-pre-wrap break-words",
+                    "max-w-[85%] px-3 py-2 text-sm break-words",
+                    m.role !== "assistant" && "whitespace-pre-wrap",
                     m.role === "user" && "bg-acao text-acao-tx",
                     m.role === "assistant" && "bg-sf border border-regua text-tx shadow-card",
                     m.role === "error" && "bg-urgente-bg border border-urgente text-urgente",
                   )}
                 >
-                  {m.text}
+                  {/* O agente responde em markdown simples (`**112 processos**`). Sem
+                      renderizar, os asteriscos aparecem crus — foi o que apareceu na tela do
+                      advogado no primeiro uso real. `whitespace-pre-wrap` sai só do balão do
+                      agente: dentro dele quem cuida das quebras é o renderizador. */}
+                  {m.role === "assistant" ? (
+                    <div className="assistente-md">{renderizarMarkdownSimples(m.text)}</div>
+                  ) : (
+                    m.text
+                  )}
                 </div>
               </div>
             ))}
@@ -184,7 +199,7 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Pergunte sobre processos, agenda, clientes..."
+              placeholder="Pergunte sobre o escritório…"
               rows={1}
               className="flex-1 resize-none border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx max-h-28"
             />
