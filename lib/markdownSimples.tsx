@@ -55,8 +55,12 @@ function comInline(texto: string, chave: string): ReactNode[] {
     if (link) {
       const href = linkSeguro(link[2]);
       if (!href) return link[1];
+      // Link para dentro do próprio Lúmen (`/processos/abc`) navega na mesma aba. Abrir uma aba
+      // nova para ir de uma tela do sistema a outra é comportamento de link externo, e deixa o
+      // navegador do advogado cheio de abas do mesmo sistema ao fim do dia.
+      const interno = href.startsWith("/") && !href.startsWith("//");
       return (
-        <a key={k} href={href} target="_blank" rel="noopener noreferrer">
+        <a key={k} href={href} {...(interno ? {} : { target: "_blank", rel: "noopener noreferrer" })}>
           {link[1]}
         </a>
       );
@@ -67,7 +71,20 @@ function comInline(texto: string, chave: string): ReactNode[] {
 
 type Bloco =
   | { tipo: "p" | "h2" | "h3" | "citacao"; linhas: string[] }
-  | { tipo: "lista"; ordenada: boolean; itens: string[] };
+  | { tipo: "lista"; ordenada: boolean; itens: string[] }
+  | { tipo: "tabela"; celulas: string[][] };
+
+// Uma linha de tabela em markdown: `| a | b |`. A borda da esquerda é obrigatória aqui de
+// propósito — sem ela, qualquer frase que contenha uma barra vertical viraria tabela.
+const LINHA_DE_TABELA = /^\|.*\|?\s*$/;
+// A linha de separação (`|---|:--:|`) não é dado: é a marca de que a linha de cima é o cabeçalho.
+const SEPARADOR_DE_TABELA = /^\|[\s:|-]+\|?\s*$/;
+
+// `| a | b |` → ["a", "b"]. As bordas viram células vazias no split e por isso são retiradas.
+function celulasDaLinha(linha: string): string[] {
+  const corpo = linha.replace(/^\|/, "").replace(/\|\s*$/, "");
+  return corpo.split("|").map((c) => c.trim());
+}
 
 // Agrupa as linhas em blocos. Linha em branco fecha o bloco corrente — que é exatamente o que o
 // `split(/\n+/)` antigo fazia, só que agora sabendo o que cada bloco é.
@@ -85,6 +102,23 @@ function emBlocos(bruto: string): Bloco[] {
       fecha();
       continue;
     }
+    // TABELA. O agente responde em tabela sempre que a pergunta tem mais de uma coluna de
+    // resposta ("processos com publicação nos últimos 5 dias, com data e advogado"), e sem isto
+    // as linhas caíam todas dentro de um parágrafo só: a tela mostrava uma parede de barras
+    // verticais. Foi o que apareceu na primeira consulta real de verdade útil.
+    if (LINHA_DE_TABELA.test(linha) && linha.includes("|", 1)) {
+      if (SEPARADOR_DE_TABELA.test(linha)) {
+        // A separação só faz sentido logo depois do cabeçalho; solta, é lixo e some.
+        if (atual && atual.tipo === "tabela") continue;
+      }
+      if (!atual || atual.tipo !== "tabela") {
+        fecha();
+        atual = { tipo: "tabela", celulas: [] };
+      }
+      atual.celulas.push(celulasDaLinha(linha));
+      continue;
+    }
+
     const titulo3 = linha.match(/^###\s+(.*)$/);
     const titulo2 = linha.match(/^##\s+(.*)$/);
     const citacao = linha.match(/^>\s?(.*)$/);
@@ -126,6 +160,35 @@ function emBlocos(bruto: string): Bloco[] {
 export function renderizarMarkdownSimples(bruto: string): ReactNode[] {
   return emBlocos(bruto).map((bloco, i) => {
     const k = `b${i}`;
+    if (bloco.tipo === "tabela") {
+      const [cabecalho, ...corpo] = bloco.celulas;
+      if (!cabecalho) return null;
+      // A rolagem lateral fica NESTA caixa, e não na página: dentro de um balão de conversa de
+      // 320px, uma tabela de cinco colunas não cabe de jeito nenhum, e empurrar a página inteira
+      // para o lado seria trocar um problema por outro pior.
+      return (
+        <div key={k} className="md-tabela">
+          <table>
+            <thead>
+              <tr>
+                {cabecalho.map((c, j) => (
+                  <th key={`${k}-h${j}`}>{comInline(c, `${k}-h${j}`)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {corpo.map((linha, i2) => (
+                <tr key={`${k}-r${i2}`}>
+                  {cabecalho.map((_, j) => (
+                    <td key={`${k}-r${i2}c${j}`}>{comInline(linha[j] ?? "", `${k}-r${i2}c${j}`)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
     if (bloco.tipo === "lista") {
       const itens = bloco.itens.map((item, j) => <li key={`${k}-${j}`}>{comInline(item, `${k}-${j}`)}</li>);
       return bloco.ordenada ? <ol key={k}>{itens}</ol> : <ul key={k}>{itens}</ul>;

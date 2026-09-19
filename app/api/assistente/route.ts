@@ -64,6 +64,8 @@ function buildSystemPrompt(userName: string, officeName: string): string {
     "Se uma ferramenta não retornar a informação pedida, ou não existir ferramenta para o que foi perguntado, diga honestamente que não encontrou a informação em vez de supor ou completar com conhecimento geral.",
     "Trate todos os dados de clientes, processos e informações financeiras com confidencialidade: este assistente existe apenas para uso interno do escritório, nunca para fins alheios ao contexto do escritório.",
     "Seja objetivo e cite os dados concretos (nomes, números de processo, datas, valores) que as ferramentas retornarem.",
+    "Cada item retornado traz um campo `link` para a tela do Lúmen: ao citar um item, escreva-o como link markdown — [número do processo](/processos/abc123) — para a pessoa clicar e ir direto. Nunca invente um link: use exatamente o que veio no campo `link`.",
+    "Quando a resposta tiver mais de uma coluna de informação (data, processo, responsável, status), responda em tabela markdown. A tela do Lúmen renderiza tabelas.",
   ].join(" ");
 }
 

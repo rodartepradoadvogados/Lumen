@@ -28,6 +28,11 @@ export const maxDuration = 30;
 // a respeita: `assistantTools` são todas de consulta.
 // ============================================================================
 
+const COMO_MOSTRAR =
+  "Cada item traz um campo `link` para a tela do Lúmen. Ao citar um item, escreva-o como link " +
+  "markdown — [número do processo](/processos/abc123) — para a pessoa clicar e ir direto. Nunca " +
+  "invente um link: use exatamente o que veio no campo `link`.";
+
 function semAutorizacao(motivo: string) {
   return NextResponse.json({ erro: motivo }, { status: 401 });
 }
@@ -106,7 +111,11 @@ export async function POST(request: NextRequest) {
       detalhe: JSON.stringify(entrada),
     });
 
-    return NextResponse.json({ resultado });
+    // A INSTRUÇÃO VIAJA COM O DADO, e não só no prompt do perfil. Um prompt mora na máquina do
+    // agente e pode ser reescrito, esquecido ou trocado quando o perfil for recriado; isto chega
+    // junto de cada consulta, e por isso não se perde. É o que faz o agente devolver um processo
+    // clicável em vez de um número para o advogado copiar e procurar na busca.
+    return NextResponse.json({ resultado, instrucao: COMO_MOSTRAR });
   } catch (erro) {
     console.error(`[agente/ferramentas] falha em ${nome}:`, mensagemDeErro(erro));
     return NextResponse.json({ erro: "Não foi possível consultar agora." }, { status: 502 });
@@ -138,5 +147,6 @@ export async function GET(request: NextRequest) {
         descricao: t.spec.description,
         entrada: t.spec.input_schema,
       })),
+    comoMostrar: COMO_MOSTRAR,
   });
 }

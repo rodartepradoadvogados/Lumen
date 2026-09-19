@@ -71,6 +71,25 @@ function bool(input: ToolInput, key: string): boolean {
   return input[key] === true;
 }
 
+// ============================================================================
+// O LINK DE CADA RESULTADO.
+//
+// Pediram ao agente "liste os processos com publicação nos últimos 5 dias, com hiperlink para eu
+// clicar e abrir o processo". Ele respondeu, com razão: "o Lúmen não retorna hiperlinks". As
+// consultas devolviam o `id` do processo e mais nada — e o agente não tem como saber que a tela
+// dele mora em `/processos/<id>`, nem deve adivinhar.
+//
+// Agora cada item traz o seu `link`, e a resposta deixa de ser uma lista que o advogado tem que
+// copiar e procurar na busca. É a diferença entre ler sobre o processo e ir até ele.
+//
+// SEMPRE PARA ONDE DÁ PARA AGIR. Uma publicação vale mais apontando para o PROCESSO dela do que
+// para a lista de publicações: é lá que a pessoa vai decidir o que fazer. Sem processo vinculado,
+// sobra a lista — que ainda é melhor que nada.
+// ============================================================================
+function linkDoProcesso(caseId: string | null | undefined): string {
+  return caseId ? `/processos/${caseId}` : "/processos";
+}
+
 // ---------------------------------------------------------------------------
 // consultar_processos
 // ---------------------------------------------------------------------------
@@ -102,6 +121,7 @@ async function executarConsultarProcessos(input: ToolInput, officeId: string): P
 
     const resumo = filtered.slice(0, 20).map((c) => ({
       id: c.id,
+      link: linkDoProcesso(c.id),
       title: c.title,
       processNumber: c.processNumber,
       status: c.status,
@@ -167,6 +187,9 @@ async function executarConsultarPublicacoes(input: ToolInput, officeId: string, 
 
     const resumo = publicacoes.map((p) => ({
       kind: p.kind,
+      // Aponta para o PROCESSO da publicação, que é onde se age. Sem processo vinculado — o caso
+      // das intimações do PROJUDI que chegam soltas — sobra a lista de publicações.
+      link: p.caseId ? linkDoProcesso(p.caseId) : "/publicacoes",
       conteudo: truncate(p.content, 300),
       publishedAt: p.publishedAt,
       processo: p.case?.title ?? null,
@@ -217,6 +240,7 @@ async function executarConsultarAgenda(input: ToolInput, officeId: string): Prom
     ]);
 
     const resumo = tarefas.map((t) => ({
+      link: t.caseId ? linkDoProcesso(t.caseId) : "/agenda",
       title: t.title,
       type: t.type,
       dueDate: t.dueDate,

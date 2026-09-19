@@ -2055,3 +2055,70 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
   border-left: 2px solid var(--regua-forte);
   color: var(--tx-2);
 }
+
+/* TABELA DENTRO DO BALÃO DE CONVERSA.
+   O agente responde em tabela sempre que a resposta tem mais de uma coluna, e um balão de
+   conversa tem 320px no celular. A rolagem lateral fica NESTA caixa e não na página: empurrar a
+   página inteira para o lado seria trocar um problema por outro pior.
+   `-webkit-overflow-scrolling` mantém a rolagem com inércia no iOS, onde sem ela a tabela
+   "gruda" e parece travada. */
+.md-tabela {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+
+  /* SOMBRA QUE DIZ "TEM MAIS PARA O LADO".
+     Sem ela, um número de processo cortado na borda do balão parece defeito, e não tabela que
+     rola — e "texto cortado na tela" é exatamente a reclamação que a gente já ouviu antes.
+     A técnica é a clássica de duas camadas: as de `local` acompanham o conteúdo e apagam a
+     sombra quando não há mais nada daquele lado; as de `scroll` ficam presas na moldura. Ou
+     seja, a sombra aparece só quando de fato há conteúdo escondido.
+     `currentColor` em vez de cor fixa: funciona nos oito temas sem uma linha por tema. */
+  background:
+    linear-gradient(to right, var(--sf-superficie) 30%, transparent) left / 20px 100% no-repeat local,
+    linear-gradient(to left, var(--sf-superficie) 30%, transparent) right / 20px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, color-mix(in srgb, currentColor 20%, transparent), transparent)
+      left / 10px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, currentColor 20%, transparent), transparent)
+      right / 10px 100% no-repeat scroll;
+}
+.assistente-md .md-tabela table {
+  border-collapse: collapse;
+  font-size: 0.92em;
+  /* `auto` e não `100%`: numa tabela de cinco colunas dentro do balão, forçar a largura total
+     espreme as colunas e quebra número de processo no meio. Melhor deixar crescer e rolar. */
+  width: auto;
+  min-width: 100%;
+}
+.assistente-md .md-tabela th,
+.assistente-md .md-tabela td {
+  border: 1px solid var(--regua);
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.assistente-md .md-tabela th {
+  font-weight: 600;
+  background: var(--sf-apoio);
+}
+/* Números de processo e datas em colunas: alinhar os dígitos é o que torna a coluna legível. */
+.assistente-md .md-tabela td { font-variant-numeric: tabular-nums; }
+
+/* A mesma tabela no corpo de uma matéria do blog, onde há largura de sobra. */
+.artigo .md-tabela table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+.artigo .md-tabela th,
+.artigo .md-tabela td {
+  border: 1px solid var(--regua);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.artigo .md-tabela th {
+  font-weight: 600;
+  background: var(--sf-apoio);
+}
