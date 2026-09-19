@@ -216,7 +216,15 @@ type EnvelopeEvolution = {
     pushName?: string;
     message?: {
       conversation?: string;
-      extendedTextMessage?: { text?: string };
+      extendedTextMessage?: {
+        text?: string;
+        // A ORIGEM DO ANÚNCIO. Quem clica em "Enviar mensagem" num anúncio do Instagram ou do
+        // Facebook chega com este bloco na PRIMEIRA mensagem, e só nela. É o `sourceUrl` daqui
+        // que casa a conversa com a campanha cadastrada.
+        contextInfo?: {
+          externalAdReply?: { sourceUrl?: string; sourceId?: string; title?: string };
+        };
+      };
     };
   };
 };
@@ -245,12 +253,18 @@ export function parseEntradaEvolution(payload: unknown): IncomingMessage | null 
     const instancia = e.instance || "";
     if (!texto.trim() || !waMessageId || !instancia) return null;
 
+    const ad = e.data?.message?.extendedTextMessage?.contextInfo?.externalAdReply;
+
     return {
       fromNumber: jid.split("@")[0],
       waMessageId,
       text: texto,
       profileName: e.data?.pushName || undefined,
       phoneNumberId: instancia,
+      anuncio:
+        ad?.sourceUrl || ad?.sourceId
+          ? { sourceUrl: ad.sourceUrl, sourceId: ad.sourceId, titulo: ad.title }
+          : undefined,
     };
   } catch {
     return null;

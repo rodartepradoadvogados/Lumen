@@ -253,6 +253,7 @@ model Office {
 
   // Modelos salvos do Relatório Personalizado — ver model RelatorioModelo mais abaixo.
   relatorioModelos RelatorioModelo[]
+  campanhas        Campanha[]
 }
 
 // Catálogo de planos (Painel Mestre → Preços) — 5 linhas fixas (Standard/Silver/Gold/Diamond/Sob
@@ -1121,8 +1122,27 @@ model Attendance {
   // alguém torne a marcar a chave. O cliente que recebe resposta de gente e depois de máquina
   // percebe na hora com o que estava falando — e a confiança não volta.
   agenteSilenciadoEm DateTime?
-  notes              String?
-  createdAt          DateTime  @default(now())
+
+  // DE QUAL CAMPANHA VEIO. Gravado quando o atendimento nasce, porque só a primeira mensagem
+  // carrega a origem — depois dela não há mais de onde tirar.
+  campanhaId String?
+  campanha   Campanha? @relation(fields: [campanhaId], references: [id])
+
+  // O que o anúncio mandou junto, guardado cru. Serve para casar a campanha, e serve para
+  // descobrir depois por que uma conversa NÃO casou com nenhuma.
+  anuncioSourceUrl String?
+  anuncioSourceId  String?
+  anuncioTitulo    String?
+
+  // O prazo dos documentos obrigatórios. Quem escreve às onze da noite sem a negativa do plano em
+  // mãos não é lead desqualificado — é lead sem o papel naquele instante.
+  prazoDocumentosAte DateTime?
+
+  // Por que foi recusado, quando foi. Separado de propósito: "não tinha o documento agora" e
+  // "não quer pagar" não podem virar a mesma estatística, senão o número não diz nada.
+  motivoDeRecusa String?
+  notes          String?
+  createdAt      DateTime @default(now())
 
   // Funil comercial (CRM de captação) — eixo independente do status operacional acima
   stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO
@@ -1759,6 +1779,86 @@ model DropboxCredential {
 // escritório é o NÚMERO de telefone (phoneNumberId + accessToken), cadastrado aqui.
 // phoneNumberId é único globalmente (é a Meta quem atribui) — é ele que o webhook usa pra
 // descobrir a qual escritório uma mensagem recebida pertence (ver lib/whatsapp.ts).
+// ============ CAMPANHAS DE TRÁFEGO PAGO ============
+//
+// O escritório anuncia no Instagram/Facebook, a pessoa clica em "Enviar mensagem" e cai no
+// WhatsApp do escritório. A primeira mensagem dessa conversa carrega, no protocolo do WhatsApp,
+// de onde ela veio — e é esse dado que liga a conversa a esta campanha.
+//
+// SÓ A PRIMEIRA MENSAGEM traz essa origem. Por isso a campanha é gravada no ATENDIMENTO na hora
+// em que ele nasce, e não reconsultada a cada mensagem: a partir da segunda, não há mais de onde
+// tirar.
+//
+// POR QUE ISTO É UMA TABELA E NÃO UM CAMPO DE TEXTO. Porque cada campanha tem roteiro próprio,
+// documentos próprios e motivos de recusa próprios — e porque o escritório vai cadastrar várias,
+// e trocá-las sem chamar ninguém.
+model Campanha {
+  id String @id @default(cuid())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // 1 · Identificação
+  nome     String // nome interno, só o escritório vê
+  ativa    Boolean   @default(false) // nasce desligada: campanha meio preenchida não atende ninguém
+  inicioEm DateTime?
+  fimEm    DateTime?
+
+  // 2 · O gatilho. Os dois podem coexistir — o link identifica, o texto é o palpite de reserva.
+  sourceUrl     String? // o link de origem do anúncio, como chega no protocolo
+  textoDoClique String? // o texto que já vem escrito quando a pessoa clica
+  rede          String? // INSTAGRAM | FACEBOOK | OUTRA — só para o escritório se orientar
+
+  // 3 · O objeto
+  area         String
+  sobre        String // uma frase: do que esta campanha trata
+  foraDoEscopo String @default("FORMULARIO") // FORMULARIO | ACOLHE
+
+  // 4 · A conversa
+  primeiraMensagem String
+  tetoDeMensagens  Int    @default(12)
+
+  // 6 · O desfecho
+  mensagemDeTransferencia String
+  destino                 String @default("AUTOMATICO") // ADVOGADOS | RECEPCAO | AUTOMATICO
+
+  // 7 · Motivos de recusa. Lista livre: as opções prontas vivem no código (lib/campanhas.ts) e o
+  // escritório acrescenta as dele à mão — foi o que o dono pediu.
+  motivosDeRecusa String[] @default([])
+
+  perguntas    CampanhaPergunta[]
+  documentos   CampanhaDocumento[]
+  atendimentos Attendance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId, ativa])
+}
+
+model CampanhaPergunta {
+  id         String   @id @default(cuid())
+  campanhaId String
+  campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  ordem      Int
+  texto      String
+
+  @@index([campanhaId, ordem])
+}
+
+model CampanhaDocumento {
+  id          String   @id @default(cuid())
+  campanhaId  String
+  campanha    Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  ordem       Int
+  nome        String // o nome que o leigo entende, não o jurídico
+  paraQue     String? // para que serve — pedir sem explicar parece burocracia
+  // SEM ESTE, O LEAD NÃO AVANÇA. Tem 48h para mandar; passado o prazo, vai para o formulário.
+  obrigatorio Boolean  @default(false)
+
+  @@index([campanhaId, ordem])
+}
+
 model WhatsappConfig {
   id String @id @default(cuid())
 
