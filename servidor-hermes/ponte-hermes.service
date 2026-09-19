@@ -2,6 +2,12 @@
 Description=Ponte HTTP entre o Lumen e o Hermes
 After=network-online.target
 Wants=network-online.target
+# Sem teto de tentativas. O padrao do systemd desiste depois de algumas reinicializacoes seguidas
+# e marca a unidade como falha em definitivo — que e exatamente o oposto de 24/7 numa maquina que
+# ninguem vigia. (Esta chave mora no [Unit]: no [Service] ela e a forma antiga, e o systemd de
+# hoje a ignora com um aviso.) Se a ponte estiver quebrada de verdade, quem avisa e o painel do
+# Lumen, que mostra "ponte fora do ar" sem inventar estado.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -12,7 +18,10 @@ User=root
 # `systemctl show` para qualquer usuario da maquina.
 EnvironmentFile=/etc/lumen-hermes.env
 ExecStart=/usr/bin/python3 /opt/lumen/servidor-hermes/servidor.py
-Restart=on-failure
+# `always` e nao `on-failure`: o dono pediu 24/7, e `on-failure` NAO reinicia quando o processo
+# termina com codigo zero — um `serve_forever` que retorna sem erro, ou um encerramento vindo de
+# fora, deixaria a ponte parada e ninguem saberia ate alguem perguntar algo ao agente.
+Restart=always
 RestartSec=5
 
 # So escuta em 127.0.0.1 por padrao (HERMES_BIND). Quem faz TLS e atende a internet e o nginx.
