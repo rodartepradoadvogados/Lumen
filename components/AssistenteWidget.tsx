@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { renderizarMarkdownSimples } from "@/lib/markdownSimples";
-import { Sparkles, X, Send, Database } from "lucide-react";
+import { X, Send, Database } from "lucide-react";
+import IconeAgente from "@/components/IconeAgente";
 import clsx from "clsx";
 import { useAnotacoesOptional } from "@/components/anotacoes/AnotacoesContext";
 
@@ -153,7 +154,7 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
         // (LumenMark), não um botão de ação comum — ver DESIGN-SYSTEM.md §15.
         className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-grafite-800 text-rail-marca shadow-pop flex items-center justify-center hover:bg-grafite-700 transition-[right,background-color] duration-200"
       >
-        {open ? <X size={22} /> : <Sparkles size={22} />}
+        {open ? <X size={22} /> : <IconeAgente size={26} acento="var(--rail-marca)" />}
       </button>
 
       {open && (
@@ -170,7 +171,7 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
           <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-grafite-800 text-white">
             <div className="flex items-center gap-2">
               {/* P0-5: text-marca-tx sobre bg-grafite-800 reprova WCAG AA (2,15:1). */}
-              <Sparkles size={18} className="text-rail-marca" />
+              <IconeAgente size={20} acento="var(--rail-marca)" />
               <span className="font-medium text-sm">Lúmen Agent</span>
             </div>
             <button
@@ -224,7 +225,10 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
             {enviando && (
               <div className="flex justify-start">
                 <div className="max-w-[85%] px-3 py-2 text-sm bg-sf border border-regua text-tx-2 shadow-card">
-                  digitando...
+                  {/* "digitando" é o que um humano faz. Este aqui vai ao banco do escritório e
+                      pode levar dezenas de segundos — dizer o que ele está fazendo de verdade é o
+                      que torna a espera compreensível em vez de suspeita. */}
+                  consultando o escritório…
                 </div>
               </div>
             )}

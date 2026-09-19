@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Newspaper, Calendar, Plus, Briefcase, Sparkles } from "lucide-react";
+import { Newspaper, Calendar, Plus, Briefcase } from "lucide-react";
+import IconeAgente from "@/components/IconeAgente";
 import MobileNewEntitySheet from "@/components/mobile/MobileNewEntitySheet";
 import MobileAssistente from "@/components/mobile/MobileAssistente";
 import type { OfficeModules } from "@/lib/officeModules";
@@ -40,7 +41,7 @@ const items = [
   //
   // Bronze (--guia-ativa) e não bordô: bordô é a cor de AÇÃO da casa, e já está no "+" central
   // ao lado. Dois quadrados bordô na mesma barra disputariam a atenção um com o outro.
-  { href: null, label: "Agent", Icon: Sparkles, badge: null, agente: true },
+  { href: null, label: "Agent", Icon: null, badge: null, agente: true },
 ];
 
 export default function MobileBottomNav({
@@ -89,12 +90,20 @@ export default function MobileBottomNav({
               aria-label="Abrir o Lúmen Agent"
             >
               <span className="flex items-center justify-center h-8 w-8 rounded-full border border-guia-ativa">
-                <Icon size={17} className="text-guia-ativa" />
+                {/* A lente sai em bordô dentro do círculo bronze: é o único ponto da barra onde
+                    as duas cores da casa se encontram, e é o que faz o botão ser reconhecido
+                    antes de a pessoa ler "Agent". */}
+                <IconeAgente size={18} className="text-guia-ativa" acento="var(--acao)" />
               </span>
               <span className="text-corpo font-medium leading-none text-guia-ativa">{label}</span>
             </button>
           );
         }
+
+        // O botão do agente é o único item sem ícone da biblioteca (ele tem desenho próprio), e
+        // já saiu acima. Esta guarda existe para o compilador saber disso — e para uma aba nova
+        // que alguém acrescente sem ícone falhar aqui, calada, em vez de derrubar a barra toda.
+        if (!Icon) return null;
 
         return (
           <Link key={href} href={href as string} className="flex-1 flex flex-col items-center justify-center gap-0.5">
