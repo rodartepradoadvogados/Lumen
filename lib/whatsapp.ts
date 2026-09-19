@@ -1,9 +1,20 @@
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { enviarTexto as enviarTextoEvolution, FalhaDaEvolution } from "@/lib/whatsappEvolution";
 
 // ============================================================================
-// Integração WhatsApp — Cloud API OFICIAL da Meta (Graph API)
+// Integração WhatsApp — DOIS provedores, uma porta só para o resto do sistema.
+//
+// META (Cloud API oficial) é o padrão e continua sendo o caminho de quem consegue cadastrar o
+// número no Business Manager. EVOLUTION (WhatsApp Web, auto-hospedada) existe para quem não
+// consegue — ver lib/whatsappEvolution.ts, que também explica o risco dessa escolha.
+//
+// A diferença entre os dois mora em DOIS lugares só: o ramo de envio, aqui embaixo, e a rota que
+// recebe o webhook. Todo o resto — atendimento, CRM, auditoria, módulo pago, o agente — não sabe
+// nem precisa saber por onde a mensagem entrou.
+//
+// ── Cloud API OFICIAL da Meta (Graph API)
 //
 // App Meta / WABA / webhook / app secret / verify token são únicos para toda a
 // plataforma (variáveis de ambiente globais) — é o mesmo App Meta compartilhado
@@ -74,6 +85,24 @@ export async function sendWhatsappText(officeId: string, toE164: string, body: s
   const config = await prisma.whatsappConfig.findUnique({ where: { officeId } });
   if (!config) {
     return { ok: false, error: "WhatsApp não configurado para este escritório." };
+  }
+
+  // O caminho da Evolution (WhatsApp Web) sai aqui. Do lado de fora desta função nada muda: quem
+  // chama continua pedindo "manda este texto para este número neste escritório".
+  if (config.provider === "EVOLUTION") {
+    if (!config.baseUrl || !config.apiKey) {
+      return { ok: false, error: "A conexão da Evolution está incompleta (endereço ou chave)." };
+    }
+    try {
+      const waMessageId = await enviarTextoEvolution(
+        { baseUrl: config.baseUrl, apiKey: config.apiKey, instancia: config.phoneNumberId },
+        toE164,
+        body,
+      );
+      return { ok: true, waMessageId };
+    } catch (erro) {
+      return { ok: false, error: erro instanceof FalhaDaEvolution ? erro.motivo : "falha ao enviar pela Evolution" };
+    }
   }
 
   const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${config.phoneNumberId}/messages`;
