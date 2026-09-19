@@ -318,6 +318,14 @@ model User {
   // A POSIÇÃO NA FILA É `createdAt`: ordem de cadastro, como o dono definiu — quem entra depois
   // vai para o fim, sem ninguém ter que renumerar nada.
   recebeTransferencia Boolean  @default(false)
+
+  // Quando esta pessoa recebeu, pela última vez, a frase automática explicando que o número do
+  // atendimento não conversa com o escritório (ver lib/avisoDeLead.ts: FRASE_AO_COLEGA). Existe
+  // porque o aviso de lead chega pelo MESMO número por onde os clientes falam, e responder a um
+  // aviso é o primeiro reflexo de qualquer pessoa — sem esta marca, ou o robô explica a mesma
+  // coisa a cada mensagem, ou cala para sempre e quem escrever daqui a seis meses conclui que o
+  // número quebrou.
+  avisoAutomaticoEm DateTime?
   financeAccess       Boolean  @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
   active              Boolean  @default(true)
   createdAt           DateTime @default(now())

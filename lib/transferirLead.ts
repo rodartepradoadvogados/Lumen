@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 import { paraQuemVai, type PessoaDaFila, type TipoDeFila, type GatilhoDaTransferencia } from "@/lib/filaDeTransferencia";
+import { avisarAdvogadoDoLead } from "@/lib/avisarAdvogado";
 
 // ============================================================================
 // EXECUTAR A TRANSFERÊNCIA.
@@ -19,7 +20,7 @@ import { paraQuemVai, type PessoaDaFila, type TipoDeFila, type GatilhoDaTransfer
 // ============================================================================
 
 export type ResultadoDaTransferencia =
-  | { ok: true; paraId: string; paraNome: string; fila: TipoDeFila }
+  | { ok: true; paraId: string; paraNome: string; fila: TipoDeFila; aviso: string }
   | { ok: false; motivo: string };
 
 export async function transferirLead(
@@ -98,11 +99,18 @@ export async function transferirLead(
       }),
     ]);
 
+    // O AVISO VEM DEPOIS DA ATRIBUIÇÃO, e depende dela: avisar alguém de um lead que ainda não é
+    // dele produziria o advogado abrindo uma conversa que a tela mostra como de outra pessoa.
+    // `avisarAdvogadoDoLead` nunca lança, e o resultado entra no motivo só para aparecer no
+    // registro — um aviso que falhou não desfaz a transferência. O lead TEM dono; o que falta é
+    // ele ter sido chamado, e para isso existe o relógio.
+    const aviso = await avisarAdvogadoDoLead(attendanceId, pessoa.id, gatilho);
+
     revalidatePath(`/atendimento/${attendanceId}`);
     revalidatePath("/atendimento");
     revalidatePath("/atendimento/funil");
 
-    return { ok: true, paraId: pessoa.id, paraNome: pessoa.nome, fila };
+    return { ok: true, paraId: pessoa.id, paraNome: pessoa.nome, fila, aviso: aviso.motivo };
   } catch (erro) {
     // Nunca lança: quem chama está no meio de responder a um cliente, e uma falha aqui não pode
     // fazer a resposta deixar de sair. A conversa fica sem dono e alguém vê pela tela.

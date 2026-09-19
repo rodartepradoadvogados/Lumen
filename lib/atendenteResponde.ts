@@ -227,7 +227,7 @@ export async function atendenteResponde(
     if (gatilho) {
       const r = await transferirLead(attendanceId, gatilho);
       sobreATransferencia = r.ok
-        ? ` · transferido para ${r.paraNome} (${r.fila.toLowerCase()}, motivo ${gatilho})`
+        ? ` · transferido para ${r.paraNome} (${r.fila.toLowerCase()}, motivo ${gatilho}) · ${r.aviso}`
         : ` · NÃO transferido: ${r.motivo}`;
     }
 

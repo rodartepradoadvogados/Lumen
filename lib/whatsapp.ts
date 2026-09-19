@@ -1,8 +1,10 @@
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { enviarTexto as enviarTextoEvolution, FalhaDaEvolution } from "@/lib/whatsappEvolution";
+import { enviarTexto as enviarTextoEvolution, FalhaDaEvolution, mesmoNumero } from "@/lib/whatsappEvolution";
 import { casarCampanha } from "@/lib/campanhas";
+import { composePhoneWithDdi } from "@/lib/documentoEnvios";
+import { deveExplicarAoColega, FRASE_AO_COLEGA } from "@/lib/avisoDeLead";
 
 // ============================================================================
 // Integração WhatsApp — DOIS provedores, uma porta só para o resto do sistema.
@@ -269,6 +271,52 @@ export function parseIncoming(payload: unknown): IncomingMessage | null {
 // Ingestão de mensagem de entrada → Atendimento
 // ---------------------------------------------------------------------------
 
+// ============================================================================
+// QUANDO É ALGUÉM DO ESCRITÓRIO QUE ESCREVE PARA O NÚMERO DO ATENDIMENTO.
+//
+// O aviso de lead sai por este mesmo número — o mesmo por onde os clientes falam. Responder a um
+// aviso é o primeiro reflexo de qualquer pessoa, e sem esta trava o "ok, já vou" do advogado
+// viraria um LEAD no funil, com o nome dele, e o atendente de IA começaria a triá-lo como
+// cliente. As duas coisas são constrangedoras, e as duas alguém tem de desfazer à mão.
+//
+// Sai UMA frase, e depois silêncio — com uma folga de 24h, porque silêncio para sempre faria
+// quem escrevesse de novo daqui a seis meses concluir que o número quebrou.
+// ============================================================================
+async function ehMensagemDaEquipe(officeId: string, deNumero: string): Promise<boolean> {
+  try {
+    const equipe = await prisma.user.findMany({
+      where: { officeId, active: true, phone: { not: null } },
+      select: { id: true, phone: true, phoneDdi: true, avisoAutomaticoEm: true },
+    });
+
+    const colega = equipe.find((u) => mesmoNumero(composePhoneWithDdi(u.phoneDdi, u.phone || ""), deNumero));
+    if (!colega) return false;
+
+    const agora = new Date();
+    if (!deveExplicarAoColega(colega.avisoAutomaticoEm, agora)) return true;
+
+    // A marca é gravada ANTES do envio, e o `where` repete o valor lido. Duas mensagens seguidas
+    // do mesmo colega chegam em dois pedidos que correm ao mesmo tempo; gravar depois faria os
+    // dois passarem pela condição e a frase sair em dobro — que é exatamente o que ela evita.
+    const marcou = await prisma.user.updateMany({
+      where: { id: colega.id, avisoAutomaticoEm: colega.avisoAutomaticoEm },
+      data: { avisoAutomaticoEm: agora },
+    });
+    if (marcou.count === 0) return true;
+
+    const envio = await sendWhatsappText(officeId, deNumero, FRASE_AO_COLEGA);
+    if (!envio.ok) console.error(`[whatsapp] falha ao explicar ao colega: ${envio.error || "erro"}`);
+    return true;
+  } catch (e) {
+    // EM CASO DE FALHA, A MENSAGEM SEGUE COMO LEAD. É a menos ruim das duas: tratar a dúvida como
+    // "é da equipe" faria a mensagem de um CLIENTE de verdade sumir em silêncio numa oscilação do
+    // banco — ninguém saberia, e o cliente iria embora. O erro na outra direção cria um lead com
+    // o nome de um advogado, que qualquer pessoa vê na tela e arquiva em dois cliques.
+    console.error("[whatsapp] falha ao verificar se o número é da equipe:", e);
+    return false;
+  }
+}
+
 /**
  * Transforma uma mensagem de entrada do cliente em um WhatsappMessage vinculado
  * a um Atendimento (criando um novo Atendimento se não houver conversa aberta).
@@ -292,6 +340,11 @@ export async function ingestIncomingWhatsapp({
     console.error(`[whatsapp] mensagem recebida em phone_number_id ${phoneNumberId} sem escritório cadastrado — ignorada.`);
     return null;
   }
+
+  // QUEM ESCREVEU É DA CASA? Esta pergunta vem ANTES de o atendimento nascer, e mora aqui — e não
+  // nas rotas — porque são duas rotas (Meta e Evolution) chamando esta função, e um dia serão
+  // três. Trava que só existe numa das portas não é trava.
+  if (await ehMensagemDaEquipe(officeId, fromNumber)) return null;
 
   // Procura conversa aberta (não arquivada) para este telefone; a mais recente.
   let attendance = await prisma.attendance.findFirst({
