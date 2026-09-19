@@ -59,7 +59,7 @@ export default async function EquipePage() {
               <option value="Sócio">Sócio</option>
               <option value="Estagiário">Estagiário</option>
               <option value="Financeiro">Financeiro</option>
-              <option value="Recepcionista">Recepcionista</option>
+              <option value="Recepcionista/Secretária">Recepcionista/Secretária</option>
               <option value="Marketing">Marketing</option>
               <option value="Contador">Contador</option>
             </select>

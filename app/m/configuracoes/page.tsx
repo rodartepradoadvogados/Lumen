@@ -45,7 +45,8 @@ import {
 export const dynamic = "force-dynamic";
 
 const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
-const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
+const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista/Secretária", "Marketing", "Contador"];
+
 
 const MODULE_LABELS: Record<keyof OfficeModules, string> = {
   financeiro: "Financeiro",

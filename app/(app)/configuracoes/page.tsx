@@ -127,7 +127,8 @@ const STORAGE_LABELS: Record<string, string> = {
 };
 
 const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
-const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
+const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista/Secretária", "Marketing", "Contador"];
+
 
 export default async function ConfiguracoesPage({
   searchParams,
