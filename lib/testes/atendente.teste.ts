@@ -1,5 +1,5 @@
 import { teste, igual, verdade, resumo } from "./executar";
-import { deveResponder, montarPergunta, LIMITES_DUROS } from "@/lib/agenteAtendimento";
+import { deveResponder, montarPergunta, extrairTransferencia, LIMITES_DUROS } from "@/lib/agenteAtendimento";
 
 // ============================================================================
 // QUANDO O ATENDENTE FALA COM UM CLIENTE DE VERDADE.
@@ -118,6 +118,60 @@ teste("a conversa anterior entra identificada", () => {
   });
   verdade(p.includes("Maria: bom dia"), "a fala do cliente vem com o nome dele");
   verdade(p.includes("Bia: bom dia, como posso ajudar?"), "a fala do escritório vem com o nome do atendente");
+});
+
+// ── A marca da transferência ─────────────────────────────────────────────────────────────────
+//
+// O agente termina a mensagem com `[[TRANSFERIR:MOTIVO]]` e o Lúmen retira a marca antes de
+// enviar. Vazar isso para o WhatsApp de um cliente é constrangimento puro — e é o tipo de coisa
+// que ninguém nota até acontecer com um lead de verdade.
+
+teste("a marca é retirada e o motivo é lido", () => {
+  const r = extrairTransferencia("Obrigada! Vou passar para o advogado.\n[[TRANSFERIR:ROTEIRO]]");
+  igual(r.gatilho, "ROTEIRO");
+  igual(r.texto, "Obrigada! Vou passar para o advogado.");
+});
+
+teste("a marca sai de qualquer lugar da mensagem, não só do fim", () => {
+  // O agente às vezes a põe no meio. Se só o fim fosse tratado, a marca iria para o cliente.
+  const r = extrairTransferencia("Entendi. [[TRANSFERIR:RISCO]] Um advogado vai te retornar.");
+  igual(r.gatilho, "RISCO");
+  verdade(!r.texto.includes("TRANSFERIR"), `a marca vazou: ${r.texto}`);
+  verdade(!r.texto.includes("[["), "não pode sobrar colchete");
+});
+
+teste("marca repetida some inteira", () => {
+  const r = extrairTransferencia("a [[TRANSFERIR:TETO]] b [[TRANSFERIR:TETO]] c");
+  verdade(!r.texto.includes("TRANSFERIR"), `sobrou: ${r.texto}`);
+  igual(r.gatilho, "TETO");
+});
+
+teste("sem marca, não há transferência", () => {
+  const r = extrairTransferencia("Me conta o que aconteceu?");
+  igual(r.gatilho, null);
+  igual(r.texto, "Me conta o que aconteceu?");
+});
+
+teste("motivo desconhecido NÃO transfere, mas a marca some mesmo assim", () => {
+  // Transferir com motivo que ninguém reconhece manda o lead para uma fila escolhida por acaso.
+  // Mas deixar a marca na tela do cliente seria pior ainda.
+  const r = extrairTransferencia("tudo bem [[TRANSFERIR:QUALQUER_COISA]]");
+  igual(r.gatilho, null, "não reconhece o motivo: ");
+  verdade(!r.texto.includes("TRANSFERIR"), "e ainda assim limpa: ");
+});
+
+teste("a marca tolera espaço e minúscula, como o agente vai escrever", () => {
+  for (const m of ["[[TRANSFERIR:PEDIDO]]", "[[ transferir : pedido ]]", "[[Transferir:Pedido]]"]) {
+    igual(extrairTransferencia(`oi ${m}`).gatilho, "PEDIDO", `${m}: `);
+  }
+});
+
+teste("o pedido explica ao agente os cinco motivos", () => {
+  const p = montarPergunta(BASE);
+  for (const g of ["RISCO", "PEDIDO", "ROTEIRO", "FORA_DO_ESCOPO", "TETO"]) {
+    verdade(p.includes(`[[TRANSFERIR:${g}]]`), `faltou explicar ${g}`);
+  }
+  verdade(p.includes("NÃO escolhe a pessoa"), "tem que dizer que ele não escolhe o destinatário");
 });
 
 void resumo("atendente");
