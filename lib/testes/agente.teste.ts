@@ -28,17 +28,58 @@ const PUBLICO = "lumen-agente-ferramentas";
 // ── A credencial carrega a permissão, e só ela ───────────────────────────────────────────────
 
 teste("quem tem acesso ao financeiro atravessa com ele", async () => {
-  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: true, sessionId: "s1" });
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: true, admin: true, sessionId: "s1" });
   const p = await lerCredencial(t);
-  igual(p, { officeId: "esc1", userId: "u1", financeiro: true, sessionId: "s1" });
+  igual(p, { officeId: "esc1", userId: "u1", financeiro: true, admin: true, sessionId: "s1" });
 });
 
 teste("quem NÃO tem acesso ao financeiro não o adquire no caminho", async () => {
-  const t = await emitirCredencial({ officeId: "esc1", userId: "u2", financeiro: false });
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u2", financeiro: false, admin: false });
   const p = await lerCredencial(t);
   verdade(p, "a credencial deveria ser válida");
   igual(p!.financeiro, false, "financeiro: ");
+  igual(p!.admin, false, "admin: ");
   igual(p!.sessionId, undefined, "sessionId: ");
+});
+
+teste("acesso ao financeiro NÃO arrasta a condição de sócio junto", async () => {
+  // O caso que a regra dos dois níveis existe para cobrir: quem paga as contas do escritório tem
+  // financeiro, e não pode ter indicador. Se os dois campos viajassem colados, bastaria o acesso
+  // ao financeiro para saber a margem de lucro da sociedade.
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u9", financeiro: true, admin: false });
+  const p = await lerCredencial(t);
+  igual(p!.financeiro, true, "financeiro: ");
+  igual(p!.admin, false, "admin: ");
+});
+
+teste("credencial antiga, sem o campo de sócio, não vira sócio", async () => {
+  // Durante os cinco minutos seguintes a um deploy, credenciais emitidas pela versão anterior
+  // ainda valem — e elas não têm o campo `a`. `undefined` TEM de virar falso: o erro na outra
+  // direção entregaria indicador de escritório a quem não é sócio, em silêncio.
+  const t = await new SignJWT({ o: "esc1", u: "u1", f: true, s: "" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setAudience(PUBLICO)
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(CHAVE);
+  const p = await lerCredencial(t);
+  verdade(p, "a credencial antiga deveria continuar legível");
+  igual(p!.financeiro, true, "financeiro: ");
+  igual(p!.admin, false, "admin: ");
+});
+
+teste("um 'a' que não seja exatamente `true` não vale sociedade", async () => {
+  for (const valor of ["true", 1, "1", {}, [], "sim"]) {
+    const t = await new SignJWT({ o: "esc1", u: "u3", f: true, a: valor, s: "" })
+      .setProtectedHeader({ alg: "HS256" })
+      .setAudience(PUBLICO)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(CHAVE);
+    const p = await lerCredencial(t);
+    verdade(p, `a credencial com a=${JSON.stringify(valor)} deveria ser legível`);
+    igual(p!.admin, false, `a=${JSON.stringify(valor)} deveria NÃO valer sociedade: `);
+  }
 });
 
 teste("um 'f' que não seja exatamente `true` não vale acesso", async () => {
@@ -82,7 +123,7 @@ teste("credencial vencida não abre nada", async () => {
 });
 
 teste("credencial adulterada não abre nada", async () => {
-  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: false });
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: false, admin: false });
   const [cabeca, carga, assinatura] = t.split(".");
   // Troca a carga por uma que concede o financeiro, mantendo a assinatura antiga.
   const outraCarga = Buffer.from(
@@ -113,7 +154,7 @@ teste("um cookie de sessão NÃO serve como credencial de ferramenta", async () 
 });
 
 teste("uma credencial de ferramenta NÃO serve como cookie de sessão", async () => {
-  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: true });
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: true, admin: true });
   igual(await verifySession(t), null);
 });
 

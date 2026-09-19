@@ -148,6 +148,7 @@ export async function POST(request: NextRequest) {
         officeId: user.officeId,
         userId: user.id,
         financeiro: Boolean(user.isAdmin || user.financeAccess),
+        admin: Boolean(user.isAdmin),
         sessionId: sessaoId,
       });
 

@@ -30,6 +30,7 @@ const ROTULOS: Record<string, string> = {
   consultar_atendimento: "atendimentos",
   buscar_cliente: "clientes",
   consultar_financeiro: "financeiro",
+  consultar_indicadores: "indicadores do escritório",
 };
 
 // O Hermes se registra como "ferramenta" para a auditoria saber quem respondeu, mas ele é o
