@@ -110,6 +110,56 @@ Redeploy, e pronto: a caixa de conversa do portal passa a ser respondida pelo He
 **Enquanto essas duas variáveis não existirem, nada acontece** — o Lúmen nem tenta falar com o
 Hermes, e a caixa continua respondendo pelo Claude, como hoje. Não há passo intermediário quebrado.
 
+### 6. Deixar a ponte de pé 24 horas por dia
+
+O `Restart=always` da unidade reinicia a ponte quando o processo **morre**. Ele não tem como saber
+que um processo **vivo** parou de atender — uma chamada presa, um socket que não fecha. Para quem
+pergunta ao agente, os dois casos são a mesma coisa: não responde.
+
+O vigia cobre o segundo caso. De dois em dois minutos ele pergunta `/saude`; se não vier resposta
+em dez segundos, manda reiniciar a ponte.
+
+Um comando de cada vez. Depois de cada um, confira o que está escrito em **"deve aparecer"** antes
+de rodar o seguinte.
+
+**6a.** Copie os dois arquivos novos (`ponte-hermes-vigia.service` e `ponte-hermes-vigia.timer`)
+para `/etc/systemd/system/`, do mesmo jeito que você copiou os outros.
+
+**6b.** Atualize também a unidade da ponte, que mudou de `Restart=on-failure` para
+`Restart=always` — copie `ponte-hermes.service` por cima do que está em `/etc/systemd/system/`.
+
+**6c.**
+
+```bash
+systemctl daemon-reload && systemctl restart ponte-hermes && systemctl enable --now ponte-hermes-vigia.timer
+```
+
+*Deve aparecer:* uma linha começando com `Created symlink`. Se não aparecer nada, também está
+certo — quer dizer que o vigia já estava ligado.
+
+**6d.** Confira que o vigia está agendado:
+
+```bash
+systemctl list-timers ponte-hermes-vigia --no-pager
+```
+
+*Deve aparecer:* uma linha com `ponte-hermes-vigia.timer` e um horário em `NEXT`, dentro dos
+próximos dois minutos.
+
+**6e.** Prove que ele funciona. Derrube a ponte de propósito e espere dois minutos:
+
+```bash
+systemctl stop ponte-hermes && sleep 150 && systemctl is-active ponte-hermes
+```
+
+*Deve aparecer:* `active`. Ou seja: você derrubou, e a máquina levantou sozinha. Se aparecer
+`inactive`, o vigia não está funcionando — mande `journalctl -u ponte-hermes-vigia -n 20` e o
+resultado diz o porquê.
+
+O vigia fica marcado como *failed* toda vez que encontra a ponte caída. **Isso é de propósito**: é
+o único rastro que conta, depois, que houve uma queda e quando. `systemctl status
+ponte-hermes-vigia` mostra a última.
+
 ---
 
 ## O que este serviço faz, e o que ele recusa
@@ -201,9 +251,10 @@ lumen-consultar          # fora de uma pergunta do Lúmen, deve dizer que não h
 ## Manutenção
 
 ```bash
-systemctl status ponte-hermes      # está de pé?
-journalctl -u ponte-hermes -n 50   # o que aconteceu
-systemctl restart ponte-hermes     # depois de mudar /etc/lumen-hermes.env
+systemctl status ponte-hermes         # está de pé?
+journalctl -u ponte-hermes -n 50      # o que aconteceu
+systemctl restart ponte-hermes        # depois de mudar /etc/lumen-hermes.env
+journalctl -u ponte-hermes-vigia -n 20  # quantas vezes ela caiu, e quando
 ```
 
 **Trocar o segredo:** gere um novo, grave no `/etc/lumen-hermes.env`, reinicie o serviço e

@@ -1,0 +1,27 @@
+[Unit]
+Description=Confere se a ponte do Hermes ainda responde, e a reinicia se nao responder
+After=ponte-hermes.service
+
+[Service]
+Type=oneshot
+# O QUE ISTO RESOLVE, E QUE O Restart= NAO RESOLVE.
+#
+# O systemd reinicia um processo que MORRE. Ele nao tem como saber que um processo VIVO parou de
+# atender — uma chamada presa, um socket que nao fecha, um recurso esgotado. Para quem pergunta
+# ao agente, os dois casos sao a mesma coisa: nao responde. Entao a pergunta certa nao e "o
+# processo existe?", e sim "ele ainda responde?".
+#
+# /saude nao pede segredo de proposito (ver servidor.py): e o unico endereco que existe para esta
+# pergunta, e exigir credencial dele so criaria mais uma coisa para quebrar.
+#
+# --max-time 10: a resposta de /saude e imediata; dez segundos ja e folga larga. Sem teto, um
+# socket preso prenderia tambem o vigia, e o vigia viraria mais um processo travado.
+ExecStart=/usr/bin/curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8787/saude
+# So roda se a linha acima falhar. `--no-block` de proposito: o vigia pede a reinicializacao e sai
+# na hora, em vez de ficar esperando por um servico enquanto ele mesmo ainda esta terminando —
+# esperar ali e o caminho conhecido para dois servicos ficarem um aguardando o outro.
+#
+# O proprio vigia fica marcado como "failed" quando a ponte nao respondeu. E de proposito: e o
+# unico rastro que diz, depois, que houve uma queda — `systemctl status ponte-hermes-vigia` e
+# `journalctl -u ponte-hermes-vigia` contam quantas vezes e quando.
+ExecStopPost=/bin/sh -c 'test "$EXIT_STATUS" = "0" || (echo "a ponte nao respondeu; reiniciando" && systemctl restart --no-block ponte-hermes)'
