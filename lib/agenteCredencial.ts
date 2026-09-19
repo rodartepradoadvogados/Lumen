@@ -32,6 +32,15 @@ export type PermissaoDaPergunta = {
   userId: string;
   /** Se esta pessoa pode ver o financeiro do escritório. Decidido aqui, nunca pelo agente. */
   financeiro: boolean;
+  /**
+   * Se esta pessoa é sócia do escritório.
+   *
+   * Separado de `financeiro` porque dentro do financeiro há DOIS níveis (ver
+   * lib/nivelFinanceiro.ts): o registro — contas, vencimentos, saldo — que quem tem acesso vê; e
+   * o indicador — faturamento, lucro, margem, projeção — que só sócio vê. Sem este campo, quem
+   * paga as contas do escritório saberia também a margem de lucro dele.
+   */
+  admin: boolean;
   sessionId?: string;
 };
 
@@ -45,7 +54,7 @@ export type PermissaoDaPergunta = {
  * campo, `verifySession` a rejeita, como deve.
  */
 export async function emitirCredencial(p: PermissaoDaPergunta): Promise<string> {
-  return new SignJWT({ o: p.officeId, u: p.userId, f: p.financeiro, s: p.sessionId ?? "" })
+  return new SignJWT({ o: p.officeId, u: p.userId, f: p.financeiro, a: p.admin, s: p.sessionId ?? "" })
     .setProtectedHeader({ alg: "HS256" })
     .setAudience(PUBLICO)
     .setIssuedAt()
@@ -64,6 +73,11 @@ export async function lerCredencial(token: string): Promise<PermissaoDaPergunta 
       officeId,
       userId,
       financeiro: payload.f === true,
+      // `=== true` e não coerção: uma credencial antiga (emitida antes deste campo existir) não
+      // tem `a`, e `undefined` tem de virar FALSO. O erro na outra direção daria indicador de
+      // escritório a quem não é sócio, em silêncio, durante a janela de cinco minutos em que
+      // credenciais antigas ainda valem depois de um deploy.
+      admin: payload.a === true,
       sessionId: typeof payload.s === "string" && payload.s ? payload.s : undefined,
     };
   } catch {

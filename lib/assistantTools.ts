@@ -1,5 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import type { NivelFinanceiro } from "@/lib/nivelFinanceiro";
+import { calcularDre, periodoAnterior, variacaoPercentual } from "@/lib/dreCalculo";
+import { inicioDoMesEmBrasilia, inicioDoProximoMesEmBrasilia, dataDeBrasilia, lerPeriodoEmBrasilia } from "@/lib/horaDeBrasilia";
 import { valorLiquido } from "@/lib/financeCalc";
 import { caseMatchesMateria } from "@/lib/caseMaterias";
 
@@ -32,6 +35,17 @@ export type ToolInput = Record<string, unknown>;
 
 export type AssistantTool = {
   modulo: AssistantToolModule;
+  /**
+   * Dentro do financeiro há DOIS níveis (ver lib/nivelFinanceiro.ts): registro — o que está
+   * lançado — e indicador — o que é produzido a partir do que está lançado. Registro é de quem
+   * tem acesso ao financeiro; indicador é só de sócio.
+   *
+   * Ausente em ferramenta que não é do financeiro, onde a distinção não existe. A porta que
+   * aplica isso é app/api/agente/ferramentas/route.ts, e é lá que tem de continuar: uma regra de
+   * acesso conferida no lugar onde o dado é produzido, e não onde ele é pedido, mais cedo ou mais
+   * tarde é contornada por um caminho novo que esqueceu de conferir.
+   */
+  nivel?: NivelFinanceiro;
   spec: Anthropic.Tool;
   executar: (input: ToolInput, ctx: { userId: string; officeId: string }) => Promise<string>;
 };
@@ -539,6 +553,126 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
 }
 
 // ---------------------------------------------------------------------------
+// consultar_indicadores (financeiro, nível INDICADOR — só sócio)
+// ---------------------------------------------------------------------------
+
+/**
+ * O período do indicador: o mês corrente NO ESCRITÓRIO, quando não disserem outro.
+ *
+ * O mês é calculado no fuso de Brasília, e não em UTC, porque "faturamento do mês" perguntado no
+ * dia 1º às oito da manhã não pode responder pelo mês anterior só porque, em UTC, ainda era o
+ * outro dia. O fim é EXCLUSIVO — é a convenção de lib/caixaMovimentos.ts, e misturar as duas
+ * convenções faria o último dia do mês entrar duas vezes ou nenhuma.
+ */
+export function periodoDoIndicador(de: string | undefined, ate: string | undefined, agora: Date): { de: Date; ate: Date } {
+  const inicio = lerPeriodoEmBrasilia(de);
+  const fim = lerPeriodoEmBrasilia(ate);
+
+  // Informar só uma das pontas quer dizer "este mês/dia", e não "daqui em diante": "daqui em
+  // diante" transformaria a pergunta "como foi março?" numa resposta sobre março até hoje, com
+  // cara de resposta sobre março. Errado e convincente é a pior combinação num número de dinheiro.
+  if (inicio && fim) return { de: inicio.de, ate: fim.ate };
+  if (inicio) return inicio;
+  if (fim) return fim;
+  return { de: inicioDoMesEmBrasilia(agora), ate: inicioDoProximoMesEmBrasilia(agora) };
+}
+
+/**
+ * Com o que comparar.
+ *
+ * Quando o período é um MÊS DE CALENDÁRIO inteiro, a comparação é com o mês de calendário
+ * anterior. Fora disso, cai no período de mesma duração encostado antes (lib/dreCalculo.ts).
+ *
+ * A diferença não é cosmética. `periodoAnterior` compara setembro (30 dias) com "os 30 dias antes
+ * de setembro", que começam em 2 de agosto — então agosto entra faltando um dia e o número sai
+ * menor. Quem lê "mês anterior" numa reunião de sócios entende MÊS ANTERIOR, e decide em cima de
+ * uma queda que não existiu.
+ */
+export function periodoDeComparacao(periodo: { de: Date; ate: Date }, fuso?: string): { de: Date; ate: Date } {
+  const ehMesInteiro =
+    inicioDoMesEmBrasilia(periodo.de, fuso).getTime() === periodo.de.getTime() &&
+    inicioDoProximoMesEmBrasilia(periodo.de, fuso).getTime() === periodo.ate.getTime();
+  if (!ehMesInteiro) return periodoAnterior(periodo);
+  // Um milissegundo antes do começo do mês é o último instante do mês anterior.
+  return { de: inicioDoMesEmBrasilia(new Date(periodo.de.getTime() - 1), fuso), ate: periodo.de };
+}
+
+function arredondar(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+async function executarConsultarIndicadores(input: ToolInput, officeId: string): Promise<string> {
+  try {
+    const agora = new Date();
+    const periodo = periodoDoIndicador(str(input, "de"), str(input, "ate"), agora);
+    const anterior = periodoDeComparacao(periodo);
+
+    const [atual, passado, recebidos, vencidos] = await Promise.all([
+      calcularDre(officeId, periodo),
+      calcularDre(officeId, anterior),
+      // TICKET MÉDIO sai daqui, e não da DRE: ele precisa da QUANTIDADE de recebimentos, e a DRE
+      // só devolve somas. `paidDate` dentro do período é o recorte certo — recebimento é quando
+      // o dinheiro entrou, não quando a conta foi criada.
+      prisma.receivable.aggregate({
+        where: { officeId, status: "PAGO", paidDate: { gte: periodo.de, lt: periodo.ate } },
+        _sum: { paidAmount: true },
+        _count: true,
+      }),
+      // INADIMPLÊNCIA: vencida e ainda não paga, medida HOJE e não no fim do período. Uma conta
+      // que venceu em março e segue aberta é inadimplência agora, não um fato de março.
+      prisma.receivable.aggregate({
+        where: { officeId, status: { notIn: ["PAGO", "CANCELADO", "A_APURAR"] }, noDueDate: false, dueDate: { lt: agora } },
+        _sum: { amount: true },
+        _count: true,
+      }),
+    ]);
+
+    const faturamento = atual.totalReceitas;
+    const quantosRecebimentos = recebidos._count;
+    const somaRecebida = recebidos._sum.paidAmount ?? 0;
+
+    return JSON.stringify({
+      periodo: {
+        de: dataDeBrasilia(periodo.de),
+        // O fim é exclusivo por dentro; para quem lê, mostra-se o último dia que ENTRA.
+        ate: dataDeBrasilia(new Date(periodo.ate.getTime() - 1)),
+      },
+      faturamento: arredondar(faturamento),
+      despesas: arredondar(atual.totalDespesas),
+      lucro: arredondar(atual.resultado),
+      margemPercentual: faturamento > 0 ? arredondar((atual.resultado / faturamento) * 100) : null,
+      comparacaoComPeriodoAnterior: {
+        periodo: { de: dataDeBrasilia(anterior.de), ate: dataDeBrasilia(new Date(anterior.ate.getTime() - 1)) },
+        faturamento: arredondar(passado.totalReceitas),
+        lucro: arredondar(passado.resultado),
+        variacaoDoFaturamentoPercentual: variacaoPercentual(faturamento, passado.totalReceitas),
+        variacaoDoLucroPercentual: variacaoPercentual(atual.resultado, passado.resultado),
+      },
+      ticketMedio: {
+        recebimentos: quantosRecebimentos,
+        somaRecebida: arredondar(somaRecebida),
+        valor: quantosRecebimentos > 0 ? arredondar(somaRecebida / quantosRecebimentos) : null,
+      },
+      inadimplencia: {
+        // A palavra "hoje" está no nome porque o número é de hoje, e não do período consultado —
+        // sem isso o agente diria "a inadimplência de agosto foi X", que é outra coisa.
+        contasVencidasHoje: vencidos._count,
+        somaVencidaHoje: arredondar(vencidos._sum.amount ?? 0),
+      },
+      // O aviso viaja com o dado, e não só no prompt: quem lê o número precisa saber de onde ele
+      // vem, senão compara maçã com laranja na reunião de sócios.
+      comoEstesNumerosSaoApurados:
+        "Regime de CAIXA: faturamento e despesas são o que efetivamente entrou e saiu no período, " +
+        "não o que foi faturado ou contratado. Adiantamentos e reembolsos não entram como receita " +
+        "nem despesa (são transferência). A inadimplência é medida HOJE, não no fim do período.",
+    });
+  } catch (error) {
+    console.error("[assistantTools] erro em consultar_indicadores:", error);
+    return "Não foi possível apurar os indicadores agora. Tente novamente em instantes.";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Registro de ferramentas
 // ---------------------------------------------------------------------------
 
@@ -634,6 +768,9 @@ export const assistantTools: AssistantTool[] = [
   },
   {
     modulo: "financeiro",
+    // REGISTRO: soma o que já está lançado. Continua disponível a quem tem acesso ao financeiro —
+    // quem paga as contas precisa saber o que vence amanhã, ou não faz o trabalho.
+    nivel: "registro",
     spec: {
       name: "consultar_financeiro",
       description:
@@ -656,5 +793,34 @@ export const assistantTools: AssistantTool[] = [
       },
     },
     executar: (input, ctx) => executarConsultarFinanceiro(input, ctx.officeId),
+  },
+  {
+    modulo: "financeiro",
+    // INDICADOR: não está escrito em lugar nenhum — é produzido. Só sócio.
+    nivel: "indicador",
+    spec: {
+      name: "consultar_indicadores",
+      description:
+        "Indicadores financeiros do escritório no período: faturamento, despesas, lucro, margem, " +
+        "comparação com o período anterior, ticket médio e inadimplência. RESTRITA AOS SÓCIOS — " +
+        "quem tem acesso ao financeiro mas não é sócio recebe recusa, e isso é esperado, não é erro. " +
+        "Use para perguntas sobre desempenho, resultado, margem, quanto o escritório faturou ou se " +
+        "está crescendo. Para contas a pagar/receber e vencimentos, use consultar_financeiro.",
+      input_schema: {
+        type: "object",
+        properties: {
+          de: {
+            type: "string",
+            description: 'Início do período. Aceita "2026-09" (o mês inteiro) ou "2026-09-01". Sem nada, o mês corrente.',
+          },
+          ate: {
+            type: "string",
+            description: 'Fim do período, inclusive. Aceita "2026-09" (até o último dia do mês) ou "2026-09-30".',
+          },
+        },
+        required: [],
+      },
+    },
+    executar: (input, ctx) => executarConsultarIndicadores(input, ctx.officeId),
   },
 ];

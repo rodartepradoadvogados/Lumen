@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { lerCredencial } from "@/lib/agenteCredencial";
+import { lerCredencial, type PermissaoDaPergunta } from "@/lib/agenteCredencial";
+import { podeVerNivel, motivoDaRecusa, explicacaoDaRecusa } from "@/lib/nivelFinanceiro";
 import { assistantTools, AssistantTool, ToolInput } from "@/lib/assistantTools";
 import { registrarUso } from "@/lib/assistenteAuditoria";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
   const nome = typeof corpo.ferramenta === "string" ? corpo.ferramenta.trim() : "";
   if (!nome) {
     return NextResponse.json(
-      { erro: "Informe a ferramenta.", disponiveis: nomesDisponiveis(permissao.financeiro) },
+      { erro: "Informe a ferramenta.", disponiveis: nomesDisponiveis(permissao) },
       { status: 400 },
     );
   }
@@ -68,26 +69,32 @@ export async function POST(request: NextRequest) {
   const ferramenta = assistantTools.find((t) => t.spec.name === nome);
   if (!ferramenta) {
     return NextResponse.json(
-      { erro: `Ferramenta "${nome}" não existe.`, disponiveis: nomesDisponiveis(permissao.financeiro) },
+      { erro: `Ferramenta "${nome}" não existe.`, disponiveis: nomesDisponiveis(permissao) },
       { status: 404 },
     );
   }
 
   // A REGRA INEXORÁVEL, aplicada aqui e não antes: mesmo que o agente peça, mesmo que a pergunta
-  // seja habilidosa, sem acesso ao financeiro não sai número de financeiro.
-  if (ferramenta.modulo === "financeiro" && !permissao.financeiro) {
+  // seja habilidosa, sem acesso ao financeiro não sai número de financeiro. E dentro do
+  // financeiro, sem ser sócio não sai INDICADOR — faturamento, lucro, margem, projeção.
+  //
+  // O nível ausente é tratado como "indicador", o mais restrito. Uma ferramenta nova do
+  // financeiro que alguém esqueça de classificar nasce fechada, e não aberta: o esquecimento
+  // custa um chamado de suporte, e não um vazamento.
+  if (!liberada(ferramenta, permissao)) {
+    const nivel = ferramenta.nivel ?? "indicador";
     await registrarUso({
       officeId: permissao.officeId,
       userId: permissao.userId,
       sessionId: permissao.sessionId ?? null,
       acao: "FERRAMENTA",
       ferramenta: nome,
-      detalhe: "recusada: usuário sem acesso ao financeiro",
+      // O prefixo "recusada:" é o que lib/agenteProcedencia.ts usa para NÃO listar esta consulta
+      // como fonte da resposta, e o que lib/agenteUso.ts conta separadamente. Mexer nele quebra
+      // os dois em silêncio.
+      detalhe: `recusada: ${motivoDaRecusa(nivel, permissao) ?? "sem permissão"}`,
     });
-    return NextResponse.json(
-      { erro: "Esta pessoa não tem acesso ao financeiro do escritório." },
-      { status: 403 },
-    );
+    return NextResponse.json({ erro: explicacaoDaRecusa(nivel, permissao) }, { status: 403 });
   }
 
   const entrada: ToolInput =
@@ -122,12 +129,23 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * Esta pessoa pode usar esta ferramenta?
+ *
+ * UMA função, usada pelos TRÊS lugares que decidem: a execução, a lista de erro e o catálogo. Uma
+ * trava que só existe num deles não é uma trava — e o catálogo é o mais fácil de esquecer,
+ * porque ele não "executa" nada. Mas um catálogo que anuncia `consultar_indicadores` a quem não é
+ * sócio já contou metade: diz que existe um número de margem, e convida a tentar.
+ */
+function liberada(ferramenta: AssistantTool, permissao: PermissaoDaPergunta): boolean {
+  if (ferramenta.modulo !== "financeiro") return true;
+  return podeVerNivel(ferramenta.nivel ?? "indicador", permissao);
+}
+
 // A lista do que este pedido pode usar. Serve ao agente para se orientar — e serve a quem lê um
 // erro, para entender por que a ferramenta pedida não estava ali.
-function nomesDisponiveis(financeiro: boolean): string[] {
-  return assistantTools
-    .filter((t: AssistantTool) => t.modulo !== "financeiro" || financeiro)
-    .map((t) => t.spec.name);
+function nomesDisponiveis(permissao: PermissaoDaPergunta): string[] {
+  return assistantTools.filter((t: AssistantTool) => liberada(t, permissao)).map((t) => t.spec.name);
 }
 
 /** O catálogo, para o agente descobrir o que pode perguntar. Mesma credencial, mesma regra. */
@@ -140,7 +158,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     ferramentas: assistantTools
-      .filter((t) => t.modulo !== "financeiro" || permissao.financeiro)
+      .filter((t) => liberada(t, permissao))
       .map((t) => ({
         nome: t.spec.name,
         modulo: t.modulo,
