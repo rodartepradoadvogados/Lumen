@@ -1740,12 +1740,45 @@ model DropboxCredential {
 // phoneNumberId é único globalmente (é a Meta quem atribui) — é ele que o webhook usa pra
 // descobrir a qual escritório uma mensagem recebida pertence (ver lib/whatsapp.ts).
 model WhatsappConfig {
-  id            String   @id @default(cuid())
-  phoneNumberId String   @unique
+  id String @id @default(cuid())
+
+  // A CHAVE QUE LIGA UMA MENSAGEM AO ESCRITÓRIO. Na Cloud API da Meta é o phone_number_id; na
+  // Evolution é o NOME DA INSTÂNCIA. O nome do campo ficou o da Meta porque mudá-lo renomearia a
+  // coluna em produção sem necessidade — o que ele guarda é "o identificador do número naquele
+  // provedor", e é assim que resolveOfficeIdByPhoneNumberId o usa nos dois casos.
+  phoneNumberId String  @unique
   accessToken   String
   displayPhone  String? // só para exibição em Configurações (ex: "+55 62 99999-0000")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+
+  // META = Cloud API oficial. EVOLUTION = Evolution API (WhatsApp Web), auto-hospedada.
+  // O padrão é META para não mudar o comportamento de nenhuma configuração já existente.
+  provider String @default("META")
+
+  // Só para EVOLUTION: onde a instância vive, a chave da API e o segredo que ELA devolve no
+  // cabeçalho do webhook. Sem o segredo o webhook recusa tudo — mesma regra fail-closed do
+  // WHATSAPP_APP_SECRET da Meta: uma porta de entrada sem prova de origem é um jeito de injetar
+  // lead falso no CRM de um escritório.
+  baseUrl       String?
+  apiKey        String?
+  webhookSecret String?
+
+  // ── O AGENTE NO WHATSAPP ────────────────────────────────────────────────────────────────
+  // Desligado por padrão, e é de propósito: ligar isto faz o escritório responder cliente
+  // sozinho, e mensagem enviada não volta. Quem liga é gente, com um clique consciente.
+  agenteAtivo Boolean @default(false)
+
+  // `agenteTodos = false` + lista vazia = não responde a ninguém. Também de propósito: o estado
+  // inseguro ("responde todo mundo") nunca é o padrão nem o resultado de um campo esquecido.
+  agenteTodos   Boolean @default(false)
+  agenteNumeros String  @default("") // E.164 separados por vírgula
+
+  // O treinamento de nicho DESTE escritório (direito médico, previdenciário, trabalhista…).
+  // Mora aqui, e não no perfil do Hermes na máquina, para o escritório treinar o próprio agente
+  // pela tela — é o que torna o módulo vendável sem alguém entrar por SSH a cada cliente novo.
+  agenteInstrucoes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   officeId String @unique
   office   Office @relation(fields: [officeId], references: [id])
