@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
+import { usoPorEscritorio } from "@/lib/agenteUso";
 import {
   hermesConfigurado,
   perfilDoEscritorio,
@@ -69,6 +70,12 @@ export async function GET(request: NextRequest) {
 
     const perfis = offices.map((o) => perfilDoEscritorio(o.slug));
 
+    // O USO vem do banco do Lúmen, não da ponte. Ele não depende de o servidor do Hermes estar
+    // de pé, nem de ninguém ter configurado nada: o registro de auditoria já grava cada pergunta
+    // desde o primeiro dia. Por isso esta parte da tela responde mesmo quando a ponte não
+    // responde — e é a que diz se o produto está sendo usado.
+    const uso = await usoPorEscritorio(offices.map((o) => o.id));
+
     // Sem a ponte, a tela ainda serve: lista os escritórios e diz que o estado é desconhecido —
     // que é a verdade. É diferente de dizer "não provisionado", que seria uma afirmação falsa.
     let estados: Awaited<ReturnType<typeof estadoDosPerfis>> = [];
@@ -102,6 +109,7 @@ export async function GET(request: NextRequest) {
           status: estado ? (estado.existe ? "ready" : "not_provisioned") : "unknown",
           sessionCount: estado?.sessoes ?? 0,
           memorySizeKB: estado?.memoriaKB ?? 0,
+          uso: uso.get(office.id) ?? null,
         };
       }),
     });
