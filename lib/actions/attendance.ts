@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendWhatsappText } from "@/lib/whatsapp";
+import { silenciarAtendente, atendenteResponde } from "@/lib/atendenteResponde";
 import { sendEmailReply } from "@/lib/gmailSend";
 import { renameDriveFolder, moveDriveFile, getProcessosRootFolderId, getCasosRootFolderId } from "@/lib/storageProvider";
 import { naturezaOf } from "@/lib/caseNatureza";
@@ -359,6 +360,59 @@ export async function updateAttendanceCommercial(
   revalidatePath("/alertas");
 }
 
+// ===== O atendente de IA, nesta conversa =====
+
+/**
+ * Liga ou desliga o atendente NESTA conversa.
+ *
+ * Ligar vale da PRÓXIMA mensagem do cliente em diante — foi assim que o dono descreveu, e é o
+ * comportamento seguro: marcar a chave no meio de uma conversa não faz o atendente sair
+ * respondendo sozinho uma pergunta que alguém já pode estar redigindo. Para responder à última
+ * pergunta que ficou pendente, existe `responderUltimaPergunta`, que é um ato deliberado.
+ */
+export async function definirAtendenteResponde(
+  attendanceId: string,
+  responde: boolean,
+): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+
+  const atendimento = await prisma.attendance.findFirst({
+    where: { id: attendanceId, officeId: user.officeId },
+    select: { agenteSilenciadoEm: true },
+  });
+  if (!atendimento) return { error: "Atendimento não encontrado." };
+
+  // Religar depois que alguém assumiu não é permitido, e a recusa é explícita: uma chave que
+  // aceita ser ligada e depois não faz nada é pior que uma chave que diz não.
+  if (atendimento.agenteSilenciadoEm && responde) {
+    return {
+      error: "Uma pessoa do escritório já respondeu nesta conversa — o atendente não volta a falar aqui.",
+    };
+  }
+
+  await prisma.attendance.update({ where: { id: attendanceId }, data: { agenteResponde: responde } });
+  revalidatePath(`/atendimento/${attendanceId}`);
+  return {};
+}
+
+/** Faz o atendente responder AGORA à última mensagem do cliente, mesmo com a chave desligada. */
+export async function responderUltimaPergunta(attendanceId: string): Promise<{ error?: string; motivo?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+
+  const existe = await prisma.attendance.findFirst({
+    where: { id: attendanceId, officeId: user.officeId },
+    select: { id: true },
+  });
+  if (!existe) return { error: "Atendimento não encontrado." };
+
+  const r = await atendenteResponde(attendanceId, { forcar: true });
+  if (!r.respondeu) return { error: `O atendente não respondeu: ${r.motivo}.` };
+  revalidatePath(`/atendimento/${attendanceId}`);
+  return { motivo: r.motivo };
+}
+
 // ===== WhatsApp: responder ao cliente pelo número oficial da Meta =====
 
 export async function replyWhatsapp(attendanceId: string, body: string): Promise<{ error?: string }> {
@@ -376,6 +430,11 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
   if (!result.ok) {
     return { error: result.error || "Não foi possível enviar a mensagem." };
   }
+
+  // UMA PESSOA ASSUMIU: o atendente de IA cala nesta conversa, para sempre. Vem antes de gravar
+  // a mensagem de propósito — se a gravação falhar, é melhor o atendente estar calado a mais do
+  // que a menos.
+  await silenciarAtendente(attendanceId, user.officeId);
 
   await prisma.whatsappMessage.create({
     data: {

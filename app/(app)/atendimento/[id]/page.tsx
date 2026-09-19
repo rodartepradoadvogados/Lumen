@@ -12,6 +12,7 @@ import AttendanceCommercialForm from "@/components/AttendanceCommercialForm";
 import AttendancePendenciasPanel from "@/components/AttendancePendenciasPanel";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
+import AtendenteIaControle from "@/components/AtendenteIaControle";
 import EmailReplyPanel from "@/components/EmailReplyPanel";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import EditAttendanceSubject from "@/components/EditAttendanceSubject";
@@ -46,6 +47,16 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   if (!a) notFound();
 
   const whatsappConfigured = await isWhatsappConfigured(viewer.officeId);
+
+  // O nome do atendente é do ESCRITÓRIO, não do Lúmen: para o cliente, quem atende é o escritório,
+  // e um atendente chamado "Lúmen" entregaria que há um sistema de terceiro no meio da conversa.
+  const nomeDoAtendente =
+    (
+      await prisma.whatsappConfig.findUnique({
+        where: { officeId: viewer.officeId },
+        select: { agenteNome: true },
+      })
+    )?.agenteNome?.trim() || "O atendente";
   const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
 
   const [users, columns, storageConnected] = await Promise.all([
@@ -223,7 +234,22 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 )}
 
                 {a.waPhone && whatsappConfigured ? (
-                  <WhatsappReplyBox attendanceId={a.id} />
+                  <>
+                    {/* A chave do atendente fica ACIMA da caixa de resposta: quem está lendo a
+                        conversa é quem sabe se aquele lead pode ser atendido por máquina, e a
+                        decisão tem que estar onde ela é tomada. */}
+                    <AtendenteIaControle
+                      attendanceId={a.id}
+                      responde={a.agenteResponde}
+                      silenciado={Boolean(a.agenteSilenciadoEm)}
+                      ultimaEhDoCliente={
+                        a.whatsappMessages.length > 0 &&
+                        a.whatsappMessages[a.whatsappMessages.length - 1].direction === "IN"
+                      }
+                      nomeDoAtendente={nomeDoAtendente}
+                    />
+                    <WhatsappReplyBox attendanceId={a.id} />
+                  </>
                 ) : (
                   <p className="mt-3 text-xs text-tx-3">
                     {a.waPhone ? "Canal WhatsApp não configurado." : "Este atendimento não tem WhatsApp vinculado."}

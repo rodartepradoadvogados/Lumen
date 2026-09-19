@@ -3,8 +3,11 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { ingestIncomingWhatsapp } from "@/lib/whatsapp";
 import { parseEntradaEvolution } from "@/lib/whatsappEvolution";
+import { atendenteResponde } from "@/lib/atendenteResponde";
 
 export const dynamic = "force-dynamic";
+// O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido.
+export const maxDuration = 120;
 
 // ============================================================================
 // A PORTA DE ENTRADA DA EVOLUTION.
@@ -61,7 +64,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await ingestIncomingWhatsapp(entrada);
+    const attendanceId = await ingestIncomingWhatsapp(entrada);
+    // O atendente responde DENTRO deste pedido, e não depois: a Evolution não reenvia por
+    // demora, e uma resposta que sai dois minutos atrasada, para um cliente esperando no
+    // WhatsApp, já não é resposta. Ele nunca lança — falha vira motivo registrado, e a mensagem
+    // fica lá esperando uma pessoa.
+    if (attendanceId) await atendenteResponde(attendanceId);
   } catch (e) {
     // NUNCA devolver erro: a Evolution reenviaria em laço. Registra e confirma o recebimento.
     console.error("[whatsapp evolution] erro ao processar mensagem:", e);

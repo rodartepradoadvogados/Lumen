@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 import { getVerifyToken, verifySignature, parseIncoming, ingestIncomingWhatsapp } from "@/lib/whatsapp";
+import { atendenteResponde } from "@/lib/atendenteResponde";
 
 export const dynamic = "force-dynamic";
+// O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido.
+export const maxDuration = 120;
 
 // Handshake de verificação do webhook (a Meta chama uma vez ao configurar).
 export async function GET(req: NextRequest) {
@@ -36,7 +39,8 @@ export async function POST(req: NextRequest) {
     const incoming = parseIncoming(payload);
     // Sem mensagem de texto processável (ex.: status de entrega) → apenas ack.
     if (incoming) {
-      await ingestIncomingWhatsapp(incoming);
+      const attendanceId = await ingestIncomingWhatsapp(incoming);
+      if (attendanceId) await atendenteResponde(attendanceId);
     }
   } catch (e) {
     // NUNCA deixa a Meta reenviar infinitamente por erro interno: registra e ack 200.

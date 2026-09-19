@@ -1095,7 +1095,7 @@ model Mention {
 // ============ ATENDIMENTO (setor de atendimento / triagem) ============
 
 model Attendance {
-  id              String   @id @default(cuid())
+  id              String  @id @default(cuid())
   clientName      String
   contact         String? // legado: telefone/e-mail juntos em texto livre (formulários antigos, mantido sem migração destrutiva)
   contactPhone    String? // telefone do contato, separado do e-mail (clientEmail abaixo)
@@ -1103,10 +1103,26 @@ model Attendance {
   subject         String
   area            String? // matéria
   description     String? // descrição detalhada do que precisa
-  channel         String   @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
-  status          String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO | RASCUNHO
-  notes           String?
-  createdAt       DateTime @default(now())
+  channel         String  @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
+  status          String  @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO | RASCUNHO
+
+  // ── O ATENDENTE DE IA, NESTA CONVERSA ───────────────────────────────────────────────────────
+  //
+  // A chave é POR CONVERSA, e não só por escritório, porque foi assim que o dono descreveu: o
+  // atendente responde onde está marcado para responder. Marcar no meio de uma conversa passa a
+  // valer da próxima pergunta em diante — e há um botão à parte para responder à última pergunta
+  // que ficou sem resposta, quando é isso que se quer.
+  //
+  // `false` é o padrão, e é de propósito: uma conversa nova com cliente de verdade não começa
+  // sendo respondida por máquina sem alguém ter decidido isso.
+  agenteResponde Boolean @default(false)
+
+  // QUANDO UM HUMANO ASSUMIU. A partir daqui o atendente não fala mais NESTA conversa, nem que
+  // alguém torne a marcar a chave. O cliente que recebe resposta de gente e depois de máquina
+  // percebe na hora com o que estava falando — e a confiança não volta.
+  agenteSilenciadoEm DateTime?
+  notes              String?
+  createdAt          DateTime  @default(now())
 
   // Funil comercial (CRM de captação) — eixo independente do status operacional acima
   stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO
@@ -1228,6 +1244,10 @@ model WhatsappMessage {
   attendanceId String
   attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
   direction    String // "IN" (do cliente) | "OUT" (do escritório)
+  // Quem escreveu a mensagem de saída: o atendente de IA ou uma pessoa. É o que permite marcar a
+  // conversa com "respondido pelo atendente" na tela, e é o que faz a regra do silêncio funcionar
+  // — a resposta da máquina não pode calar a própria máquina.
+  porAgente    Boolean    @default(false)
   body         String
   waMessageId  String?    @unique // id da mensagem na Meta (dedupe)
   status       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
@@ -1771,6 +1791,11 @@ model WhatsappConfig {
   // inseguro ("responde todo mundo") nunca é o padrão nem o resultado de um campo esquecido.
   agenteTodos   Boolean @default(false)
   agenteNumeros String  @default("") // E.164 separados por vírgula
+
+  // COMO O ATENDENTE SE CHAMA para o cliente do escritório. Cada escritório dá o seu: atender
+  // como "Lúmen" entregaria que há um sistema de terceiro no meio da conversa, e o cliente está
+  // falando com o escritório, não com o nosso produto.
+  agenteNome String?
 
   // O treinamento de nicho DESTE escritório (direito médico, previdenciário, trabalhista…).
   // Mora aqui, e não no perfil do Hermes na máquina, para o escritório treinar o próprio agente
