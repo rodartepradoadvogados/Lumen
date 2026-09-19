@@ -1,0 +1,112 @@
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { mensagemDeErro } from "@/lib/mensagemDeErro";
+import { paraQuemVai, type PessoaDaFila, type TipoDeFila, type GatilhoDaTransferencia } from "@/lib/filaDeTransferencia";
+
+// ============================================================================
+// EXECUTAR A TRANSFERÊNCIA.
+//
+// A decisão de PARA QUEM já foi tomada em lib/filaDeTransferencia.ts, que é função pura e testada.
+// Aqui só se busca o estado, se aplica e se registra.
+//
+// O CURSOR AVANÇA JUNTO COM A ATRIBUIÇÃO, na mesma transação. Se ele avançasse depois, uma falha
+// no meio deixaria a mesma pessoa recebendo o próximo lead também — e o rodízio viraria cascata
+// sem ninguém perceber, que é o defeito mais difícil de enxergar deste sistema inteiro.
+//
+// TRANSFERIR É IDEMPOTENTE por conversa: `transferidoEm` só é gravado uma vez. O agente pode
+// repetir a marca na mensagem seguinte (e vai repetir, se a conversa continuar), e isso não pode
+// fazer o lead pular de advogado em advogado a cada frase.
+// ============================================================================
+
+export type ResultadoDaTransferencia =
+  | { ok: true; paraId: string; paraNome: string; fila: TipoDeFila }
+  | { ok: false; motivo: string };
+
+export async function transferirLead(
+  attendanceId: string,
+  gatilho: GatilhoDaTransferencia,
+): Promise<ResultadoDaTransferencia> {
+  try {
+    const atendimento = await prisma.attendance.findUnique({
+      where: { id: attendanceId },
+      select: {
+        id: true,
+        officeId: true,
+        transferidoEm: true,
+        campanha: { select: { destino: true } },
+        office: {
+          select: {
+            whatsappConfig: { select: { ultimoAdvogadoId: true, ultimaRecepcaoId: true } },
+          },
+        },
+      },
+    });
+    if (!atendimento) return { ok: false, motivo: "atendimento não encontrado" };
+    if (atendimento.transferidoEm) return { ok: false, motivo: "esta conversa já foi transferida" };
+
+    const pessoas: PessoaDaFila[] = (
+      await prisma.user.findMany({
+        where: { officeId: atendimento.officeId },
+        select: { id: true, name: true, role: true, active: true, recebeTransferencia: true, createdAt: true },
+      })
+    ).map((u) => ({
+      id: u.id,
+      nome: u.name,
+      papel: u.role,
+      ativo: u.active,
+      recebeTransferencia: u.recebeTransferencia,
+      criadoEm: u.createdAt,
+    }));
+
+    // "AUTOMATICO" na campanha significa "siga a regra da casa" — por isso vira nulo aqui, e não
+    // um terceiro tipo de fila.
+    const destinoDaCampanha = atendimento.campanha?.destino;
+    const preferida: TipoDeFila | null =
+      destinoDaCampanha === "ADVOGADOS" || destinoDaCampanha === "RECEPCAO" ? destinoDaCampanha : null;
+
+    const cfg = atendimento.office.whatsappConfig;
+    const escolha = paraQuemVai(
+      pessoas,
+      gatilho,
+      {
+        ultimoAdvogadoId: cfg?.ultimoAdvogadoId ?? null,
+        ultimaRecepcaoId: cfg?.ultimaRecepcaoId ?? null,
+      },
+      preferida,
+    );
+
+    if (!escolha.pessoa) return { ok: false, motivo: escolha.motivo };
+
+    const pessoa = escolha.pessoa;
+    const fila = escolha.fila;
+
+    await prisma.$transaction([
+      prisma.attendance.update({
+        where: { id: attendanceId },
+        data: {
+          responsibleId: pessoa.id,
+          transferidoEm: new Date(),
+          transferidoPor: gatilho,
+          // O atendimento sai de NOVO: alguém tem dono agora. A ETAPA DO FUNIL não é tocada — é
+          // a pessoa quem move o funil, como o dono determinou.
+          status: "EM_TRIAGEM",
+        },
+      }),
+      prisma.whatsappConfig.update({
+        where: { officeId: atendimento.officeId },
+        data: fila === "ADVOGADOS" ? { ultimoAdvogadoId: pessoa.id } : { ultimaRecepcaoId: pessoa.id },
+      }),
+    ]);
+
+    revalidatePath(`/atendimento/${attendanceId}`);
+    revalidatePath("/atendimento");
+    revalidatePath("/atendimento/funil");
+
+    return { ok: true, paraId: pessoa.id, paraNome: pessoa.nome, fila };
+  } catch (erro) {
+    // Nunca lança: quem chama está no meio de responder a um cliente, e uma falha aqui não pode
+    // fazer a resposta deixar de sair. A conversa fica sem dono e alguém vê pela tela.
+    console.error("[transferência] falhou:", mensagemDeErro(erro));
+    return { ok: false, motivo: "falha ao transferir" };
+  }
+}

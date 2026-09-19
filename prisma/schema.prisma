@@ -1149,8 +1149,15 @@ model Attendance {
   // Por que foi recusado, quando foi. Separado de propósito: "não tinha o documento agora" e
   // "não quer pagar" não podem virar a mesma estatística, senão o número não diz nada.
   motivoDeRecusa String?
+
+  // QUANDO E POR QUE FOI TRANSFERIDO. `transferidoPor` guarda o gatilho (RISCO, PEDIDO, ROTEIRO,
+  // FORA_DO_ESCOPO, TETO) — é o que permite saber, daqui a um mês, se os leads estão chegando ao
+  // advogado por triagem concluída ou por terem estourado o teto de mensagens. As duas coisas
+  // pedem providências opostas.
+  transferidoEm  DateTime?
+  transferidoPor String?
   notes          String?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
   // Funil comercial (CRM de captação) — eixo independente do status operacional acima
   stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO

@@ -110,6 +110,44 @@ export const TAREFAS = [
  * assunto é um só; despejar as doze áreas do padrão ali convidaria a Ana a conversar sobre o que
  * a campanha não quer — que é exatamente o que o dono pediu para evitar.
  */
+// ============================================================================
+// COMO O AGENTE PEDE A TRANSFERÊNCIA.
+//
+// Ele termina a mensagem com uma marca numa linha só — `[[TRANSFERIR:RISCO]]` — e o Lúmen a
+// retira antes de mandar para o cliente. O cliente nunca vê a marca.
+//
+// POR QUE UMA MARCA, E NÃO ADIVINHAR PELO TEXTO. Procurar "vou passar para o advogado" na resposta
+// seria adivinhação: a frase muda com o treinamento do escritório, muda de campanha para campanha,
+// e um dia alguém escreve "não vou passar para o advogado ainda" e o sistema transfere.
+//
+// O AGENTE NÃO ESCOLHE PARA QUEM VAI — escolhe só o MOTIVO. Quem traduz motivo em fila é o
+// sistema (lib/filaDeTransferencia.ts), porque agente que escolhe destinatário acaba escolhendo
+// sempre o mesmo.
+// ============================================================================
+
+const GATILHOS = ["RISCO", "PEDIDO", "ROTEIRO", "FORA_DO_ESCOPO", "TETO"] as const;
+export type GatilhoLido = (typeof GATILHOS)[number];
+
+const MARCA = /\[\[\s*TRANSFERIR\s*:\s*([A-Z_]+)\s*\]\]/i;
+
+/**
+ * Separa a marca do texto que vai ao cliente.
+ *
+ * A marca é retirada de qualquer lugar da mensagem, e não só do fim: o agente às vezes a põe no
+ * meio, e uma marca vazada para o WhatsApp do cliente é constrangimento puro.
+ *
+ * Motivo desconhecido vira `null` em vez de transferir por precaução: transferir com motivo que
+ * ninguém reconhece manda o lead para uma fila escolhida por acaso.
+ */
+export function extrairTransferencia(resposta: string): { texto: string; gatilho: GatilhoLido | null } {
+  const achou = resposta.match(MARCA);
+  const texto = resposta.replace(new RegExp(MARCA, "gi"), "").replace(/\n{3,}/g, "\n\n").trim();
+  if (!achou) return { texto, gatilho: null };
+  const bruto = achou[1].toUpperCase();
+  const gatilho = (GATILHOS as readonly string[]).includes(bruto) ? (bruto as GatilhoLido) : null;
+  return { texto, gatilho };
+}
+
 export function montarPergunta(entrada: {
   nomeDoAtendente: string;
   nomeDoEscritorio: string;
@@ -125,6 +163,17 @@ export function montarPergunta(entrada: {
   partes.push(...regrasDoPadrao(entrada.nomeDoAtendente, entrada.nomeDoEscritorio));
 
   partes.push("\nO QUE VOCÊ FAZ:", ...TAREFAS.map((t) => `- ${t}`));
+
+  // A marca vai depois das tarefas e antes dos limites: é procedimento, não permissão.
+  partes.push(
+    "\nQUANDO PASSAR O CASO ADIANTE: termine a sua mensagem com uma linha contendo apenas a marca abaixo, escolhendo UM motivo. O sistema retira essa linha antes de enviar — o cliente nunca a vê.",
+    "  [[TRANSFERIR:RISCO]] — a pessoa insistiu em prazo, valor, resultado ou qualquer coisa que você não pode responder",
+    "  [[TRANSFERIR:PEDIDO]] — a pessoa pediu para falar com um advogado",
+    "  [[TRANSFERIR:ROTEIRO]] — você terminou a triagem e reuniu o que era preciso",
+    "  [[TRANSFERIR:FORA_DO_ESCOPO]] — o assunto não é o desta conversa",
+    "  [[TRANSFERIR:TETO]] — a conversa já se alongou demais sem concluir",
+    "Escolha o motivo com honestidade: ele decide quem recebe o caso. Você NÃO escolhe a pessoa, e não deve prometer um nome.",
+  );
 
   // Os limites entram depois das tarefas e ANTES de qualquer texto de escritório ou de campanha.
   partes.push("\nO QUE VOCÊ NUNCA FAZ (regra do escritório, sem exceção):", ...LIMITES_DUROS.map((t) => `- ${t}`));

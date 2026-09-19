@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { deveResponder, montarPergunta } from "@/lib/agenteAtendimento";
+import { deveResponder, montarPergunta, extrairTransferencia } from "@/lib/agenteAtendimento";
+import { transferirLead } from "@/lib/transferirLead";
 import { perguntarAoHermes, hermesConfigurado, FalhaDoHermes } from "@/lib/hermesPonte";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
@@ -189,6 +190,11 @@ export async function atendenteResponde(
       return { respondeu: false, motivo: `agente indisponível: ${motivo}` };
     }
 
+    // A MARCA SAI ANTES DE QUALQUER COISA. Ela é combinada entre nós e o agente; vazar
+    // "[[TRANSFERIR:RISCO]]" para o WhatsApp de um cliente é constrangimento puro.
+    const { texto, gatilho } = extrairTransferencia(resposta);
+    resposta = texto;
+
     if (!resposta) return { respondeu: false, motivo: "o agente devolveu resposta vazia" };
 
     const envio = await sendWhatsappText(atendimento.officeId, atendimento.waPhone, resposta);
@@ -213,9 +219,21 @@ export async function atendenteResponde(
       data: { waLastMessageAt: new Date() },
     });
 
+    // A TRANSFERÊNCIA VEM DEPOIS DO ENVIO, e é de propósito. A mensagem de despedida já saiu; se
+    // a fila falhar agora, o cliente ao menos foi despedido com educação e a conversa fica sem
+    // dono para alguém ver na tela. O contrário — transferir e a mensagem não sair — deixaria o
+    // advogado com um lead que não sabe que foi atendido.
+    let sobreATransferencia = "";
+    if (gatilho) {
+      const r = await transferirLead(attendanceId, gatilho);
+      sobreATransferencia = r.ok
+        ? ` · transferido para ${r.paraNome} (${r.fila.toLowerCase()}, motivo ${gatilho})`
+        : ` · NÃO transferido: ${r.motivo}`;
+    }
+
     revalidatePath(`/atendimento/${attendanceId}`);
     revalidatePath("/atendimento");
-    return { respondeu: true, motivo: "respondido pelo atendente" };
+    return { respondeu: true, motivo: `respondido pelo atendente${sobreATransferencia}` };
   } catch (erro) {
     // Nunca lança: ver a nota no topo.
     console.error("[atendente] falha inesperada:", mensagemDeErro(erro));
