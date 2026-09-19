@@ -14,6 +14,7 @@ import { cabeMaisUmaPergunta, registrarUso, TETO_POR_MINUTO } from "@/lib/assist
 import { sessaoDoHermes, gravarSessaoDoHermes } from "@/lib/assistenteSessoes";
 import { hermesConfigurado, perguntarAoHermes, FalhaDoHermes } from "@/lib/hermesPonte";
 import { emitirCredencial } from "@/lib/agenteCredencial";
+import { procedenciaGravada, rotulosDeProcedencia } from "@/lib/agenteProcedencia";
 import { getAppUrl } from "@/lib/appUrl";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
@@ -138,6 +139,10 @@ export async function POST(request: NextRequest) {
   // lado: é o que a tela mostra, o que a auditoria consulta, e o que sobra se um dia aquela
   // máquina for reinstalada.
   if (hermesConfigurado() && office?.slug) {
+    // Marco de tempo ANTES da pergunta: é o que separa o que foi consultado agora do que foi
+    // consultado na pergunta anterior da mesma conversa. Um segundo de folga porque o relógio do
+    // banco e o desta função não são o mesmo relógio.
+    const antesDaPergunta = new Date(Date.now() - 1000);
     try {
       // A permissão viaja com a pergunta. `temAcessoFinanceiro` é a MESMA regra que a tela usa —
       // administrador ou acesso expresso — e é decidida aqui, do lado de cá, nunca pelo agente.
@@ -168,7 +173,17 @@ export async function POST(request: NextRequest) {
         detalhe: "respondeu",
       });
 
-      return NextResponse.json({ resposta: resposta.resposta, sessaoId });
+      // A linha de procedência sai do registro de uso, não do texto do agente — ver
+      // lib/agenteProcedencia.ts. Se a leitura falhar, a resposta vai sem a linha: perder a
+      // procedência é ruim, perder a resposta por causa dela seria pior.
+      let procedencia: string[] = [];
+      try {
+        procedencia = await procedenciaGravada(user.id, sessaoId, antesDaPergunta);
+      } catch (erro) {
+        console.error("[assistente] não foi possível ler a procedência:", mensagemDeErro(erro));
+      }
+
+      return NextResponse.json({ resposta: resposta.resposta, sessaoId, procedencia });
     } catch (erro) {
       const motivo = erro instanceof FalhaDoHermes ? erro.motivo : mensagemDeErro(erro);
       console.error("[assistente] Hermes indisponível:", motivo);
@@ -217,6 +232,9 @@ export async function POST(request: NextRequest) {
   try {
     let rounds = 0;
     let respostaFinal = "";
+    // Na reserva a procedência não precisa de consulta ao banco: as chamadas acontecem aqui
+    // dentro, e o nome de cada uma passa por esta função.
+    const consultadas: string[] = [];
 
     while (true) {
       const response = await client.messages.create({
@@ -259,6 +277,9 @@ export async function POST(request: NextRequest) {
         const resultado = tool
           ? await tool.executar(entrada, { userId: user.id, officeId: user.officeId })
           : `Ferramenta "${toolUse.name}" não está disponível para este usuário.`;
+        // Só o que foi de fato executado. Uma ferramenta barrada por permissão não leu nada, e
+        // anunciá-la embaixo da resposta diria à pessoa o contrário do que a resposta diz.
+        if (tool) consultadas.push(toolUse.name);
 
         // Rastro de PROCEDÊNCIA: é esta linha que responde "de onde veio esse número". Sem ela, a
         // auditoria diria que houve uma pergunta e não diria o que foi consultado por baixo.
@@ -289,7 +310,12 @@ export async function POST(request: NextRequest) {
     await tocarSessao(sessaoId);
 
     // `historico` continua na resposta para o cliente antigo não quebrar; o novo usa `sessaoId`.
-    return NextResponse.json({ resposta: respostaFinal, sessaoId, historico: messages });
+    return NextResponse.json({
+      resposta: respostaFinal,
+      sessaoId,
+      procedencia: rotulosDeProcedencia(consultadas),
+      historico: messages,
+    });
   } catch (error) {
     console.error("[assistente] erro ao chamar a API da Anthropic:", error);
 

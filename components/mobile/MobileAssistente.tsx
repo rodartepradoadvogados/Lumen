@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Database, Send, Sparkles } from "lucide-react";
 import { renderizarMarkdownSimples } from "@/lib/markdownSimples";
 
 // ============================================================================
@@ -29,7 +29,15 @@ const SUGESTOES = [
   "atendimentos em aberto",
 ];
 
-type Mensagem = { role: "user" | "assistant" | "error"; text: string };
+// `procedencia` é o que foi consultado para montar AQUELA resposta — ver lib/agenteProcedencia.ts.
+// Ela vive na mensagem, e não na conversa, porque muda a cada pergunta. Ao retomar uma conversa
+// antiga ela não volta: não é gravada por mensagem, e inventá-la na releitura seria exatamente o
+// tipo de afirmação sem lastro que ela existe para evitar.
+type Mensagem = {
+  role: "user" | "assistant" | "error";
+  text: string;
+  procedencia?: string[];
+};
 
 export default function MobileAssistente({
   aberto,
@@ -131,7 +139,14 @@ export default function MobileAssistente({
         return;
       }
 
-      setMensagens((prev) => [...prev, { role: "assistant", text: data.resposta || "(sem resposta)" }]);
+      setMensagens((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: data.resposta || "(sem resposta)",
+          procedencia: Array.isArray(data.procedencia) ? data.procedencia : [],
+        },
+      ]);
       if (typeof data.sessaoId === "string" && data.sessaoId && data.sessaoId !== sessaoId) {
         setSessaoId(data.sessaoId);
         try {
@@ -156,7 +171,11 @@ export default function MobileAssistente({
     <div
       // `translate-y-full` quando fechado em vez de desmontar: preserva a conversa e o rascunho
       // entre aberturas, e a animação de subida vira uma só linha.
-      className={`fixed inset-0 z-50 flex flex-col bg-sf-fundo transition-transform duration-300 ease-out motion-reduce:transition-none ${
+      //
+      // Acima de z-50, que é o andar dos modais, por causa do convite para instalar o app: ele é
+      // `fixed z-50` e vinha depois no documento, então flutuava DENTRO da conversa em tela
+      // cheia. O convite é a coisa menos importante da tela; a conversa aberta é a mais.
+      className={`fixed inset-0 z-[60] flex flex-col bg-sf-fundo transition-transform duration-300 ease-out motion-reduce:transition-none ${
         aberto ? "translate-y-0" : "translate-y-full pointer-events-none"
       }`}
       aria-hidden={!aberto}
@@ -185,20 +204,32 @@ export default function MobileAssistente({
         {mensagens.map((m, i) => (
           <div
             key={i}
-            className={
-              m.role === "user"
-                ? "self-end max-w-[85%] bg-acao text-acao-tx px-3 py-2 text-corpo"
-                : m.role === "error"
-                  ? "self-start max-w-[85%] bg-urgente-bg border border-linha-urgente text-tx px-3 py-2 text-corpo"
-                  : "self-start max-w-[85%] bg-sf-superficie border border-regua text-tx px-3 py-2 text-corpo"
-            }
+            className={`flex flex-col gap-1 max-w-[85%] ${m.role === "user" ? "self-end items-end" : "self-start"}`}
           >
-            {m.role === "assistant" ? (
-              // O agente responde em markdown simples (`**112 processos**`). Sem isto os
-              // asteriscos aparecem crus na tela — foi o que aconteceu no primeiro uso real.
-              <div className="assistente-md">{renderizarMarkdownSimples(m.text)}</div>
-            ) : (
-              m.text
+            <div
+              className={
+                m.role === "user"
+                  ? "bg-acao text-acao-tx px-3 py-2 text-corpo"
+                  : m.role === "error"
+                    ? "bg-urgente-bg border border-linha-urgente text-tx px-3 py-2 text-corpo"
+                    : "bg-sf-superficie border border-regua text-tx px-3 py-2 text-corpo"
+              }
+            >
+              {m.role === "assistant" ? (
+                // O agente responde em markdown simples (`**112 processos**`). Sem isto os
+                // asteriscos aparecem crus na tela — foi o que aconteceu no primeiro uso real.
+                <div className="assistente-md">{renderizarMarkdownSimples(m.text)}</div>
+              ) : (
+                m.text
+              )}
+            </div>
+            {m.role === "assistant" && m.procedencia && m.procedencia.length > 0 && (
+              // A linha só aparece quando houve consulta de verdade. A ausência dela é informação:
+              // significa que o agente respondeu sem ler os dados do escritório.
+              <div className="flex items-center gap-1 text-etiqueta text-tx-3 px-1">
+                <Database size={12} aria-hidden="true" />
+                <span>consultado agora · {m.procedencia.join(" · ")}</span>
+              </div>
             )}
           </div>
         ))}

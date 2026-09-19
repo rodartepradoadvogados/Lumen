@@ -2,13 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { renderizarMarkdownSimples } from "@/lib/markdownSimples";
-import { Sparkles, X, Send } from "lucide-react";
+import { Sparkles, X, Send, Database } from "lucide-react";
 import clsx from "clsx";
 import { useAnotacoesOptional } from "@/components/anotacoes/AnotacoesContext";
 
 type ChatMessage = {
   role: "user" | "assistant" | "error";
   text: string;
+  // O que foi consultado para montar ESTA resposta — ver lib/agenteProcedencia.ts. Vive na
+  // mensagem porque muda a cada pergunta, e não volta ao retomar uma conversa antiga: não é
+  // gravada por mensagem, e reconstruí-la de memória seria justamente a afirmação sem lastro que
+  // esta linha existe para evitar.
+  procedencia?: string[];
 };
 
 // Formato mínimo compatível com Anthropic.MessageParam — o histórico completo
@@ -27,7 +32,12 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [mensagens, setMensagens] = useState<ChatMessage[]>([
-    { role: "assistant", text: `Olá, ${userName.split(" ")[0]}! Sou o assistente interno do escritório. Posso consultar processos, publicações, agenda, atendimento, clientes e (se você tiver acesso) o financeiro. Como posso ajudar?` },
+    // Mesma saudação do celular, palavra por palavra: é o mesmo agente, e duas saudações
+    // diferentes fazem parecer que são dois.
+    {
+      role: "assistant",
+      text: `Olá, ${userName.split(" ")[0]}. Posso consultar processos, publicações, agenda, atendimentos, clientes e — se você tiver acesso — o financeiro.`,
+    },
   ]);
   const [sessaoId, setSessaoId] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -94,7 +104,14 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
         return;
       }
 
-      setMensagens((prev) => [...prev, { role: "assistant", text: data.resposta || "(sem resposta)" }]);
+      setMensagens((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: data.resposta || "(sem resposta)",
+          procedencia: Array.isArray(data.procedencia) ? data.procedencia : [],
+        },
+      ]);
       if (typeof data.sessaoId === "string" && data.sessaoId && data.sessaoId !== sessaoId) {
         setSessaoId(data.sessaoId);
         try {
@@ -126,7 +143,11 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        data-tip="Assistente Lúmen"
+        // Botão só de ícone: sem nome acessível ele é anunciado como "botão" e ninguém que use
+        // leitor de tela descobre o que ele abre. O `data-tip` é só visual.
+        aria-label={open ? "Fechar o Lúmen Agent" : "Abrir o Lúmen Agent"}
+        aria-expanded={open}
+        data-tip="Lúmen Agent"
         style={{ right: rightOffsetPx }}
         // Grafite fixo nos dois temas + acento ouro, de propósito: mesmo par de cores da marca
         // (LumenMark), não um botão de ação comum — ver DESIGN-SYSTEM.md §15.
@@ -150,11 +171,12 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
             <div className="flex items-center gap-2">
               {/* P0-5: text-marca-tx sobre bg-grafite-800 reprova WCAG AA (2,15:1). */}
               <Sparkles size={18} className="text-rail-marca" />
-              <span className="font-medium text-sm">Assistente Lúmen</span>
+              <span className="font-medium text-sm">Lúmen Agent</span>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
+              aria-label="Fechar"
               className="p-1 rounded hover:bg-white/10 transition-colors"
             >
               <X size={18} />
@@ -163,7 +185,13 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-3 space-y-3 bg-sf-apoio">
             {mensagens.map((m, i) => (
-              <div key={i} className={clsx("flex", m.role === "user" ? "justify-end" : "justify-start")}>
+              <div
+                key={i}
+                className={clsx(
+                  "flex flex-col gap-1",
+                  m.role === "user" ? "items-end" : "items-start",
+                )}
+              >
                 <div
                   className={clsx(
                     "max-w-[85%] px-3 py-2 text-sm break-words",
@@ -183,6 +211,14 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
                     m.text
                   )}
                 </div>
+                {m.role === "assistant" && m.procedencia && m.procedencia.length > 0 && (
+                  // A linha só aparece quando houve consulta de verdade, e a ausência dela é
+                  // informação: significa que o agente respondeu sem ler os dados do escritório.
+                  <div className="flex items-center gap-1 px-1 text-etiqueta text-tx-3">
+                    <Database size={12} aria-hidden="true" />
+                    <span>consultado agora · {m.procedencia.join(" · ")}</span>
+                  </div>
+                )}
               </div>
             ))}
             {enviando && (
