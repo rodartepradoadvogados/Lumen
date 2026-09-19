@@ -260,15 +260,16 @@ export async function ingestIncomingWhatsapp({
   text,
   profileName,
   phoneNumberId,
-}: IncomingMessage): Promise<void> {
-  // Dedupe: reenvio da Meta não deve reprocessar.
+}: IncomingMessage): Promise<string | null> {
+  // Dedupe: reenvio da Meta não deve reprocessar. Devolve nulo também aqui: uma mensagem repetida
+  // não pode acionar o atendente de novo, senão o cliente recebe duas respostas iguais.
   const existing = await prisma.whatsappMessage.findUnique({ where: { waMessageId } });
-  if (existing) return;
+  if (existing) return null;
 
   const officeId = await resolveOfficeIdByPhoneNumberId(phoneNumberId);
   if (!officeId) {
     console.error(`[whatsapp] mensagem recebida em phone_number_id ${phoneNumberId} sem escritório cadastrado — ignorada.`);
-    return;
+    return null;
   }
 
   // Procura conversa aberta (não arquivada) para este telefone; a mais recente.
@@ -312,4 +313,9 @@ export async function ingestIncomingWhatsapp({
 
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${attendance.id}`);
+
+  // Devolve o atendimento para quem chamou poder acionar o atendente de IA. A decisão de
+  // responder NÃO é tomada aqui: guardar a mensagem e responder a ela são trabalhos diferentes,
+  // e o primeiro tem que acontecer mesmo quando o segundo falha.
+  return attendance.id;
 }
