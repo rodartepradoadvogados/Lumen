@@ -19,6 +19,7 @@
 // ============================================================================
 
 import { podeResponder } from "@/lib/whatsappEvolution";
+import { regrasDoPadrao, conhecimentoGeral } from "@/lib/atendimentoPadrao";
 
 export type RegraDoEscritorio = {
   moduloWhatsapp: boolean;
@@ -93,34 +94,53 @@ export const TAREFAS = [
   "Dizer o que acontece em seguida: que o advogado responsável vai analisar e retomar o contato.",
 ];
 
+/**
+ * O pedido que vai ao agente, em TRÊS CAMADAS, e a ordem entre elas é regra e não estilo:
+ *
+ *   1. os LIMITES DUROS, aqui deste arquivo — não fecha contrato, não dá solução, não promete
+ *      resultado. Entram SEMPRE, inclusive com tudo o mais vazio.
+ *   2. o PADRÃO LÚMEN (lib/atendimentoPadrao.ts) — tom, identidade, honorários, o que pedir.
+ *   3. o que o ESCRITÓRIO escreveu, e depois a CAMPANHA, se a conversa veio de uma.
+ *
+ * A camada de cima acrescenta e especializa. Nunca revoga — e há uma frase dizendo isso ao
+ * agente, porque sem ela um texto de escritório entusiasmado ("prometa que resolvemos!")
+ * concorreria com o limite duro em pé de igualdade.
+ *
+ * A CAMPANHA SUBSTITUI O CONHECIMENTO GERAL, não o soma. Numa conversa vinda de anúncio o
+ * assunto é um só; despejar as doze áreas do padrão ali convidaria a Ana a conversar sobre o que
+ * a campanha não quer — que é exatamente o que o dono pediu para evitar.
+ */
 export function montarPergunta(entrada: {
   nomeDoAtendente: string;
   nomeDoEscritorio: string;
   instrucoesDoEscritorio: string | null;
+  /** O roteiro da campanha, quando a conversa veio de um anúncio. */
+  campanha?: string | null;
   nomeDoCliente: string;
   historico: { de: "cliente" | "escritorio"; texto: string }[];
   mensagem: string;
 }): string {
   const partes: string[] = [];
 
-  partes.push(
-    `Você é ${entrada.nomeDoAtendente}, do escritório ${entrada.nomeDoEscritorio}, atendendo pelo WhatsApp.`,
-    "Responda em português do Brasil, em no máximo 4 linhas, sem listas numeradas e sem markdown — é uma conversa de WhatsApp.",
-  );
+  partes.push(...regrasDoPadrao(entrada.nomeDoAtendente, entrada.nomeDoEscritorio));
 
   partes.push("\nO QUE VOCÊ FAZ:", ...TAREFAS.map((t) => `- ${t}`));
 
-  // Os limites entram DEPOIS das tarefas e ANTES do treinamento do escritório: o que o escritório
-  // escreve pode ampliar o tom, jamais afrouxar a regra. E entram sempre, mesmo com o campo de
-  // treinamento vazio.
+  // Os limites entram depois das tarefas e ANTES de qualquer texto de escritório ou de campanha.
   partes.push("\nO QUE VOCÊ NUNCA FAZ (regra do escritório, sem exceção):", ...LIMITES_DUROS.map((t) => `- ${t}`));
 
+  if (entrada.campanha?.trim()) {
+    partes.push("\nESTA CONVERSA VEIO DE UM ANÚNCIO, e o assunto dela é só este:", entrada.campanha.trim());
+  } else {
+    partes.push("", ...conhecimentoGeral());
+  }
+
   if (entrada.instrucoesDoEscritorio?.trim()) {
-    partes.push(
-      "\nCOMO ESTE ESCRITÓRIO ATENDE (escrito por ele):",
-      entrada.instrucoesDoEscritorio.trim(),
-      "\nSe algo acima conflitar com 'O QUE VOCÊ NUNCA FAZ', vale o 'NUNCA'.",
-    );
+    partes.push("\nO QUE ESTE ESCRITÓRIO ACRESCENTA:", entrada.instrucoesDoEscritorio.trim());
+  }
+
+  if (entrada.campanha?.trim() || entrada.instrucoesDoEscritorio?.trim()) {
+    partes.push("\nSe algo acima conflitar com 'O QUE VOCÊ NUNCA FAZ', vale o 'NUNCA'.");
   }
 
   if (entrada.historico.length > 0) {
