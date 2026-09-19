@@ -432,6 +432,22 @@ input[type="radio"] {
   55% { background-color: var(--concluido); opacity: 1; }
   100% { background-color: var(--concluido); opacity: 0; }
 }
+/* A ENTRADA DE UMA ETAPA DO FORMULÁRIO DE CAMPANHA.
+   Desliza da direita e some ao mesmo tempo — é o gesto de "a próxima folha chegou", e ele importa
+   num formulário de sete etapas: sem movimento nenhum, trocar de etapa parece um erro de
+   carregamento, e a pessoa clica de novo.
+   Curta de propósito (180ms): quem está preenchendo dezesseis campos vai ver isto quatorze vezes,
+   e uma animação generosa na terceira já é uma animação irritante na décima.
+   `prefers-reduced-motion` desliga o movimento e mantém só o aparecer. */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in { animation: slideIn 180ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in { animation: fadeIn 180ms ease-out; }
+}
+
 .animate-slide-out-left { animation: slideOutLeft 1000ms ease-in forwards; }
 .animate-slide-out-down { animation: slideOutDown 1000ms ease-in forwards; }
 .animate-flash-wine-out { animation: flashWineOut 1000ms ease-in forwards; }
