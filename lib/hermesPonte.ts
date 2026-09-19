@@ -27,7 +27,11 @@ import { mensagemDeErro } from "@/lib/mensagemDeErro";
  * O serviço do outro lado corta em 110s e o nginx em 150s, então esta é a trava mais curta da
  * corrente — que é onde ela deve estar, para o erro vir com explicação em vez de um corte seco.
  */
-const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 90_000);
+// 105s, e o número não é arbitrário: a Vercel corta a função em 120s (maxDuration), e o servidor
+// da ponte, do outro lado, espera 110s pelo Hermes. Com 90s aqui, o Lúmen desistia enquanto a
+// ponte ainda estava trabalhando — quinze segundos de folga real jogados fora, e uma resposta que
+// já estava vindo virava erro.
+const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 105_000);
 
 /**
  * O nome do perfil do Hermes para um escritório.
@@ -112,7 +116,11 @@ async function chamar(
   } catch (erro) {
     if (erro instanceof FalhaDoHermes) throw erro;
     if (erro instanceof Error && erro.name === "AbortError") {
-      throw new FalhaDoHermes(`o Hermes não respondeu em ${Math.round((opcoes.esperaMs ?? ESPERA_MS) / 1000)}s`);
+      // DEMORA NÃO É QUEDA, e confundir as duas custou uma manhã: o dono passou o dia achando que
+      // a máquina caía, porque a tela dizia "indisponível" quando o agente só estava lento.
+      throw new FalhaDoHermes(
+        `DEMORA: o Hermes não respondeu em ${Math.round((opcoes.esperaMs ?? ESPERA_MS) / 1000)}s`,
+      );
     }
     throw new FalhaDoHermes(`não foi possível alcançar o Hermes: ${mensagemDeErro(erro)}`);
   } finally {
