@@ -25,7 +25,7 @@ import CopyButton from "@/components/CopyButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
 import StorageProviderPicker from "@/components/StorageProviderPicker";
 import NomeacaoDriveForm from "@/components/NomeacaoDriveForm";
-import WhatsappConfigForm from "@/components/WhatsappConfigForm";
+import ConexaoWhatsapp from "@/components/whatsapp/ConexaoWhatsapp";
 import JusbrasilEmailsManager from "@/components/JusbrasilEmailsManager";
 import MigrarPastaMaeButton from "@/components/MigrarPastaMaeButton";
 import MigrarPastasLegadasButton from "@/components/MigrarPastasLegadasButton";
@@ -508,15 +508,31 @@ export default async function ConexoesPage({
         {
           id: "WHATSAPP",
           nome: "WhatsApp",
-          descricao: "Envia e recebe mensagens de clientes pela Cloud API da Meta.",
+          descricao: "Envia e recebe mensagens de clientes — pela Cloud API da Meta ou lendo um QR code, para o número que a Meta não aceita.",
           estado: whatsappConfig ? "ok" : "off",
-          estadoTexto: whatsappConfig ? "ativo" : "não configurado",
+          // "CONFIGURADO", e não "ativo". O Lúmen sabe que existe um endereço e uma chave
+          // guardados; ele NÃO sabe, sem ir ao servidor a cada carregamento desta página, se há
+          // um celular conectado do outro lado. Dizer "ativo" ao lado de "Nenhum número conectado
+          // ainda" era o cartão se contradizendo na mesma linha — e quem lê acredita no rótulo,
+          // não na frase. Quem sabe o estado de verdade é a tela do QR, que pergunta ao servidor.
+          estadoTexto: whatsappConfig ? "configurado" : "não configurado",
           // Documento 04 pede o estado "aviso" com os dias restantes até o token expirar — o
           // schema (WhatsappConfig) não guarda validade de token nenhuma hoje, então esse terceiro
           // estado fica pendente de uma coluna nova (fora do escopo desta PR — mudança de schema
           // tem PR própria).
           contexto: whatsappConfig?.displayPhone ? `Número: ${whatsappConfig.displayPhone}` : "Nenhum número conectado ainda.",
-          extra: <WhatsappConfigForm connected={Boolean(whatsappConfig)} displayPhone={whatsappConfig?.displayPhone ?? null} />,
+          // SÓ CAMPO SEGURO ATRAVESSA. `whatsappConfig` é a linha inteira, e ela guarda
+          // accessToken, apiKey e webhookSecret — passar o objeto por conveniência mandaria os
+          // três para dentro do HTML servido ao navegador. Por isso cada prop é nomeada à mão.
+          extra: (
+            <ConexaoWhatsapp
+              providerAtual={whatsappConfig?.provider ?? null}
+              metaConectado={whatsappConfig?.provider !== "EVOLUTION" && Boolean(whatsappConfig)}
+              evolutionConfigurado={whatsappConfig?.provider === "EVOLUTION" && Boolean(whatsappConfig.baseUrl)}
+              displayPhone={whatsappConfig?.displayPhone ?? null}
+              endereco={whatsappConfig?.baseUrl ?? null}
+            />
+          ),
         },
       ],
     },
