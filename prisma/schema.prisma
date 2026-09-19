@@ -1164,6 +1164,26 @@ model Attendance {
   // pedem providências opostas.
   transferidoEm  DateTime?
   transferidoPor String?
+
+  // ── O RELÓGIO DE QUINZE MINUTOS ────────────────────────────────────────────────────────────
+  //
+  // `prazoDeRespostaAte` é o instante em que o dono da vez perde a vez — quinze minutos DE
+  // EXPEDIENTE depois de a conversa ter chegado a ele (ver lib/filaDeTransferencia.ts:
+  // somarMinutosDeExpediente). O prazo é GRAVADO, e não recalculado a cada leitura: a conta é uma
+  // caminhada para a frente, muito mais simples de escrever e de provar do que medir um intervalo
+  // de expediente entre duas datas quaisquer — e mudar o expediente amanhã não reescreve o prazo
+  // dos leads de hoje. Nulo quando o relógio parou (alguém respondeu) ou nunca começou.
+  prazoDeRespostaAte DateTime?
+
+  // Quem JÁ TEVE A VEZ neste lead, por id, separado por vírgula. Guardar a lista (e não um
+  // contador de voltas) é o que impede o lead de voltar à mesma pessoa quando alguém entra ou sai
+  // da fila no meio do caminho — é aí que um contador erra, porque o tamanho da fila mudou embaixo
+  // dele.
+  filaJaTentou String?
+
+  // A VOLTA FECHOU e ninguém atendeu. Carimbado uma vez só, e é o que faz o repasse parar de
+  // tentar: sem ele o cron giraria o mesmo lead para sempre, avisando todo mundo a cada rodada.
+  semRespostaEm DateTime?
   notes          String?
   createdAt      DateTime  @default(now())
 

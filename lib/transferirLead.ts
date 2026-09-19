@@ -1,7 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
-import { paraQuemVai, type PessoaDaFila, type TipoDeFila, type GatilhoDaTransferencia } from "@/lib/filaDeTransferencia";
+import {
+  paraQuemVai,
+  somarMinutosDeExpediente,
+  anotarTentativa,
+  MINUTOS_PARA_RESPONDER,
+  type PessoaDaFila,
+  type TipoDeFila,
+  type GatilhoDaTransferencia,
+} from "@/lib/filaDeTransferencia";
 import { avisarAdvogadoDoLead } from "@/lib/avisarAdvogado";
 
 // ============================================================================
@@ -34,10 +42,20 @@ export async function transferirLead(
         id: true,
         officeId: true,
         transferidoEm: true,
+        filaJaTentou: true,
         campanha: { select: { destino: true } },
         office: {
           select: {
-            whatsappConfig: { select: { ultimoAdvogadoId: true, ultimaRecepcaoId: true } },
+            whatsappConfig: {
+              select: {
+                ultimoAdvogadoId: true,
+                ultimaRecepcaoId: true,
+                expedienteDias: true,
+                expedienteInicio: true,
+                expedienteFim: true,
+                fusoHorario: true,
+              },
+            },
           },
         },
       },
@@ -81,13 +99,31 @@ export async function transferirLead(
     const pessoa = escolha.pessoa;
     const fila = escolha.fila;
 
+    const agora = new Date();
+    // O RELÓGIO COMEÇA A CONTAR AQUI, e conta em minutos de EXPEDIENTE: transferido às 18h55 de
+    // uma sexta, o prazo não vence às 19h10 — vence quinze minutos depois de a porta abrir na
+    // segunda. Fosse relógio de parede, o rodízio giraria inteiro durante a madrugada e o lead
+    // chegaria na segunda já esgotado, tendo passado por todos sem ninguém ter tido chance de ver.
+    const prazo = somarMinutosDeExpediente(
+      {
+        dias: cfg?.expedienteDias ?? "1,2,3,4,5",
+        inicio: cfg?.expedienteInicio ?? "08:00",
+        fim: cfg?.expedienteFim ?? "18:00",
+        fuso: cfg?.fusoHorario ?? "America/Sao_Paulo",
+      },
+      agora,
+      MINUTOS_PARA_RESPONDER,
+    );
+
     await prisma.$transaction([
       prisma.attendance.update({
         where: { id: attendanceId },
         data: {
           responsibleId: pessoa.id,
-          transferidoEm: new Date(),
+          transferidoEm: agora,
           transferidoPor: gatilho,
+          prazoDeRespostaAte: prazo,
+          filaJaTentou: anotarTentativa(atendimento.filaJaTentou, pessoa.id),
           // O atendimento sai de NOVO: alguém tem dono agora. A ETAPA DO FUNIL não é tocada — é
           // a pessoa quem move o funil, como o dono determinou.
           status: "EM_TRIAGEM",

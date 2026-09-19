@@ -2,8 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound, Link2, Copy, Check } from "lucide-react";
-import { updateUser, toggleUserActive, deleteUser, setFinanceAccess, setUserCredentials } from "@/lib/actions/settings";
+import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound, Link2, Copy, Check, PhoneIncoming, PhoneOff } from "lucide-react";
+import {
+  updateUser,
+  toggleUserActive,
+  deleteUser,
+  setFinanceAccess,
+  setRecebeTransferencia,
+  setUserCredentials,
+} from "@/lib/actions/settings";
 import { adminGenerateResetLink } from "@/lib/actions/auth";
 import { Badge } from "@/components/ui";
 import PhoneInput from "@/components/PhoneInput";
@@ -34,6 +41,7 @@ type User = {
   active: boolean;
   isAdmin: boolean;
   financeAccess: boolean;
+  recebeTransferencia: boolean;
 };
 
 export default function UserRow({ user, canManage }: { user: User; canManage: boolean }) {
@@ -124,6 +132,15 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
     setError(null);
     startTransition(async () => {
       const result = await setFinanceAccess(user.id, !user.financeAccess);
+      if (result.error) setError(result.error);
+      router.refresh();
+    });
+  }
+
+  function handleToggleTransferencia() {
+    setError(null);
+    startTransition(async () => {
+      const result = await setRecebeTransferencia(user.id, !user.recebeTransferencia);
       if (result.error) setError(result.error);
       router.refresh();
     });
@@ -317,6 +334,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
       <Badge color={user.active ? "green" : "slate"}>{user.active ? "Ativo" : "Inativo"}</Badge>
       {user.isAdmin && <Badge color="gold">Admin</Badge>}
       {!user.isAdmin && user.financeAccess && <Badge color="green">Financeiro</Badge>}
+      {user.recebeTransferencia && <Badge color="blue">Recebe leads</Badge>}
       {credSuccess && <Badge color="green">Acesso definido</Badge>}
       {canManage && (
         <button
@@ -340,6 +358,26 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
       {canManage && (
         <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
           <Pencil size={14} />
+        </button>
+      )}
+      {/* O RODÍZIO DE LEADS fica fora do bloco "!user.isAdmin" abaixo, e não por descuido: sócio é
+          advogado do escritório e a fila de caso triado é de advogados. Num escritório de dois
+          sócios e nenhum empregado, esconder este botão do sócio deixaria a fila vazia para sempre
+          e nenhum lead do WhatsApp chegaria a ninguém — sem nenhuma mensagem de erro dizendo por
+          quê. É diferente de Financeiro/inativar/excluir, que continuam bloqueados entre sócios
+          porque são irreversíveis ou travam o acesso de outro administrador. */}
+      {canManage && (
+        <button
+          onClick={handleToggleTransferencia}
+          disabled={pending}
+          data-tip={user.recebeTransferencia ? "Tirar do rodízio de leads do WhatsApp" : "Incluir no rodízio de leads do WhatsApp"}
+          className={`p-1.5 transition-colors disabled:opacity-40 rounded-md ${
+            user.recebeTransferencia
+              ? "text-marca-tx hover:text-aviso hover:bg-aviso-bg"
+              : "text-tx-3 hover:text-marca-tx hover:bg-marca-bg"
+          }`}
+        >
+          {user.recebeTransferencia ? <PhoneIncoming size={14} /> : <PhoneOff size={14} />}
         </button>
       )}
       {canManage && !user.isAdmin && (
