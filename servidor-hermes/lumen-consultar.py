@@ -78,10 +78,27 @@ def pedir(metodo: str, corpo: dict | None):
         with urllib.request.urlopen(req, timeout=ESPERA_S) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
+        bruto = ""
         try:
-            detalhe = json.loads(e.read().decode("utf-8"))
+            bruto = e.read().decode("utf-8", "replace")
+            detalhe = json.loads(bruto)
         except Exception:  # noqa: BLE001
             detalhe = {}
+
+        # A Vercel também responde 401, e por outro motivo: quando o endereço aponta para um
+        # deploy protegido por login, ela barra ANTES de o Lúmen ver o pedido. Confundir os dois
+        # manda quem procura o defeito para o lado errado — foi o que aconteceu na primeira vez
+        # que este programa rodou de verdade.
+        if isinstance(detalhe, dict) and "protection" in detalhe:
+            erro(
+                "O endereço configurado aponta para um deploy PROTEGIDO da Vercel, e o pedido nem "
+                "chegou ao Lúmen.\nQuem cuida do sistema precisa apontar APP_URL para o endereço "
+                "público.\nNão é problema de credencial nem de permissão.",
+                6,
+            )
+        if not detalhe and "vercel" in bruto.lower():
+            erro("O endereço configurado não é a API do Lúmen: veio uma página, não uma resposta.", 6)
+
         mensagem = detalhe.get("erro") or f"o Lúmen respondeu {e.code}"
         if e.code == 403:
             # Vale explicar, porque é a recusa que o agente mais vai encontrar — e ele precisa
