@@ -130,4 +130,51 @@ teste("o que NÃO pode virar atendimento não vira", () => {
   igual(parseEntradaEvolution("nada disso"), null, "lixo: ");
 });
 
+// ── A origem do anúncio ──────────────────────────────────────────────────────────────────────
+//
+// Quem clica em "Enviar mensagem" num anúncio do Instagram chega com este bloco na PRIMEIRA
+// mensagem, e só nela. É o `sourceUrl` daqui que liga a conversa à campanha cadastrada — perder
+// isso na leitura do webhook faria toda conversa de tráfego pago virar conversa natural, e o
+// sintoma seria "a campanha não funciona", sem pista de por quê.
+
+function doAnuncio(comContexto: boolean) {
+  const extendedTextMessage: Record<string, unknown> = {
+    text: "Olá, vi o anúncio sobre negativa de plano de saúde",
+  };
+  if (comContexto) {
+    extendedTextMessage.contextInfo = {
+      externalAdReply: {
+        sourceUrl: "https://rodarteprado.com.br/plano-negou?fbclid=IwAR123",
+        sourceId: "120210000000000",
+        title: "Plano negou sua cirurgia?",
+      },
+    };
+  }
+  return {
+    event: "messages.upsert",
+    instance: "lumen-rodarte-prado",
+    data: {
+      key: { remoteJid: "5562999998888@s.whatsapp.net", fromMe: false, id: "AD1" },
+      pushName: "Maria",
+      message: { extendedTextMessage },
+    },
+  };
+}
+
+teste("a origem do anúncio é lida da primeira mensagem", () => {
+  const r = parseEntradaEvolution(doAnuncio(true));
+  igual(r?.anuncio, {
+    sourceUrl: "https://rodarteprado.com.br/plano-negou?fbclid=IwAR123",
+    sourceId: "120210000000000",
+    titulo: "Plano negou sua cirurgia?",
+  });
+  igual(r?.text, "Olá, vi o anúncio sobre negativa de plano de saúde", "o texto não pode se perder: ");
+});
+
+teste("mensagem sem anúncio não inventa origem", () => {
+  const r = parseEntradaEvolution(doAnuncio(false));
+  igual(r?.anuncio, undefined, "sem contexto de anúncio: ");
+  igual(r?.text, "Olá, vi o anúncio sobre negativa de plano de saúde", "e o texto continua lá: ");
+});
+
 void resumo("whatsapp");

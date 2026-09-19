@@ -19,6 +19,54 @@ import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 const QUANTAS_MENSAGENS_DE_CONTEXTO = 10;
 
+type CampanhaDoAtendimento = {
+  sobre: string;
+  primeiraMensagem: string;
+  tetoDeMensagens: number;
+  mensagemDeTransferencia: string;
+  motivosDeRecusa: string[];
+  perguntas: { texto: string }[];
+  documentos: { nome: string; paraQue: string | null; obrigatorio: boolean }[];
+};
+
+/**
+ * Monta o roteiro da campanha no texto que o agente lê.
+ *
+ * Os documentos OBRIGATÓRIOS são marcados como tais aqui, e não só no banco: sem isso o agente
+ * trataria todos igual, e o documento obrigatório existe justamente para ser diferente — é ele
+ * que decide se o lead avança ou vai para o formulário.
+ */
+function textoDaCampanha(c: CampanhaDoAtendimento | null): string | null {
+  if (!c) return null;
+  const partes: string[] = [c.sobre];
+
+  if (c.primeiraMensagem?.trim()) {
+    partes.push(`\nSe esta for a sua primeira resposta na conversa, comece assim: "${c.primeiraMensagem.trim()}"`);
+  }
+  if (c.perguntas.length > 0) {
+    partes.push("\nAS PERGUNTAS DESTA TRIAGEM, nesta ordem, uma por mensagem:");
+    c.perguntas.forEach((p, i) => partes.push(`${i + 1}. ${p.texto}`));
+  }
+  if (c.documentos.length > 0) {
+    partes.push("\nOS DOCUMENTOS A PEDIR, um de cada vez, dizendo para que serve cada um:");
+    for (const d of c.documentos) {
+      const marca = d.obrigatorio ? " [OBRIGATÓRIO — sem ele o caso não avança]" : "";
+      partes.push(`- ${d.nome}${d.paraQue ? ` (${d.paraQue})` : ""}${marca}`);
+    }
+  }
+  if (c.mensagemDeTransferencia?.trim()) {
+    partes.push(`\nAo encerrar e transferir, diga: "${c.mensagemDeTransferencia.trim()}"`);
+  }
+  if (c.motivosDeRecusa.length > 0) {
+    partes.push(
+      "\nSE APARECER QUALQUER UMA DESTAS SITUAÇÕES, encerre cordialmente em vez de seguir a triagem:",
+      ...c.motivosDeRecusa.map((m) => `- ${m}`),
+    );
+  }
+  partes.push(`\nNão passe de ${c.tetoDeMensagens} mensagens do cliente sem concluir: além disso, transfira.`);
+  return partes.join("\n");
+}
+
 export async function atendenteResponde(
   attendanceId: string,
   opcoes: { forcar?: boolean } = {},
@@ -34,6 +82,20 @@ export async function atendenteResponde(
         status: true,
         agenteResponde: true,
         agenteSilenciadoEm: true,
+        campanha: {
+          select: {
+            sobre: true,
+            primeiraMensagem: true,
+            tetoDeMensagens: true,
+            mensagemDeTransferencia: true,
+            motivosDeRecusa: true,
+            perguntas: { select: { texto: true }, orderBy: { ordem: "asc" } },
+            documentos: {
+              select: { nome: true, paraQue: true, obrigatorio: true },
+              orderBy: { ordem: "asc" },
+            },
+          },
+        },
         office: {
           select: {
             name: true,
@@ -105,6 +167,7 @@ export async function atendenteResponde(
       nomeDoAtendente: config.agenteNome?.trim() || "Atendimento",
       nomeDoEscritorio: atendimento.office.name,
       instrucoesDoEscritorio: config.agenteInstrucoes,
+      campanha: textoDaCampanha(atendimento.campanha),
       nomeDoCliente: atendimento.clientName,
       historico: emOrdem.slice(0, -1).map((m) => ({
         de: m.direction === "IN" ? ("cliente" as const) : ("escritorio" as const),

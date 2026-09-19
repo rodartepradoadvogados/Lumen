@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { enviarTexto as enviarTextoEvolution, FalhaDaEvolution } from "@/lib/whatsappEvolution";
+import { casarCampanha } from "@/lib/campanhas";
 
 // ============================================================================
 // Integração WhatsApp — DOIS provedores, uma porta só para o resto do sistema.
@@ -204,6 +205,12 @@ export type IncomingMessage = {
   text: string;
   profileName?: string;
   phoneNumberId: string;
+  /**
+   * De onde a conversa veio, quando veio de um anúncio. SÓ A PRIMEIRA MENSAGEM traz isto — nem a
+   * Meta nem o WhatsApp repetem a origem nas seguintes. Por isso ela é gravada no atendimento na
+   * hora em que ele nasce.
+   */
+  anuncio?: { sourceUrl?: string; sourceId?: string; titulo?: string };
 };
 
 // Forma parcial do payload de webhook da Meta que nos interessa.
@@ -212,7 +219,14 @@ type WebhookPayload = {
     changes?: {
       value?: {
         metadata?: { phone_number_id?: string };
-        messages?: { type?: string; from?: string; id?: string; text?: { body?: string } }[];
+        messages?: {
+          type?: string;
+          from?: string;
+          id?: string;
+          text?: { body?: string };
+          // Click-to-WhatsApp da Meta: a origem vem aqui, e só na primeira mensagem.
+          referral?: { source_url?: string; source_id?: string; headline?: string };
+        }[];
         contacts?: { profile?: { name?: string } }[];
       };
     }[];
@@ -239,7 +253,13 @@ export function parseIncoming(payload: unknown): IncomingMessage | null {
 
     const profileName: string | undefined = value?.contacts?.[0]?.profile?.name;
 
-    return { fromNumber, waMessageId, text, profileName, phoneNumberId };
+    const ref = message.referral;
+    const anuncio =
+      ref?.source_url || ref?.source_id
+        ? { sourceUrl: ref.source_url, sourceId: ref.source_id, titulo: ref.headline }
+        : undefined;
+
+    return { fromNumber, waMessageId, text, profileName, phoneNumberId, anuncio };
   } catch {
     return null;
   }
@@ -260,6 +280,7 @@ export async function ingestIncomingWhatsapp({
   text,
   profileName,
   phoneNumberId,
+  anuncio,
 }: IncomingMessage): Promise<string | null> {
   // Dedupe: reenvio da Meta não deve reprocessar. Devolve nulo também aqui: uma mensagem repetida
   // não pode acionar o atendente de novo, senão o cliente recebe duas respostas iguais.
@@ -279,6 +300,15 @@ export async function ingestIncomingWhatsapp({
   });
 
   if (!attendance) {
+    // A CAMPANHA É DECIDIDA AQUI, UMA VEZ SÓ. Conversa que já existe não é reavaliada: a origem
+    // do anúncio não volta nas mensagens seguintes, e reavaliar só criaria o risco de uma
+    // conversa trocar de roteiro no meio.
+    const campanhas = await prisma.campanha.findMany({
+      where: { officeId, ativa: true },
+      select: { id: true, ativa: true, inicioEm: true, fimEm: true, sourceUrl: true, textoDoClique: true, createdAt: true },
+    });
+    const casamento = casarCampanha(campanhas, { sourceUrl: anuncio?.sourceUrl, texto: text }, new Date());
+
     attendance = await prisma.attendance.create({
       data: {
         officeId,
@@ -290,6 +320,12 @@ export async function ingestIncomingWhatsapp({
         leadSource: "WHATSAPP",
         waPhone: fromNumber,
         stageChangedAt: new Date(),
+        campanhaId: casamento?.campanhaId ?? null,
+        // A origem crua fica guardada mesmo sem casar com campanha nenhuma: é o que permite
+        // descobrir, depois, POR QUE uma conversa vinda de anúncio não casou.
+        anuncioSourceUrl: anuncio?.sourceUrl ?? null,
+        anuncioSourceId: anuncio?.sourceId ?? null,
+        anuncioTitulo: anuncio?.titulo ?? null,
       },
     });
   }
