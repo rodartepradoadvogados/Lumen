@@ -16,6 +16,7 @@ import { hermesConfigurado, perguntarAoHermes, FalhaDoHermes } from "@/lib/herme
 import { emitirCredencial } from "@/lib/agenteCredencial";
 import { procedenciaGravada, rotulosDeProcedencia } from "@/lib/agenteProcedencia";
 import { getAppUrl } from "@/lib/appUrl";
+import { montarPerguntaInterna, regrasDaAntonella } from "@/lib/antonella";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 export const dynamic = "force-dynamic";
@@ -57,16 +58,11 @@ function isAssistantConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
+// O MESMO TEXTO DOS DOIS LADOS. O Hermes recebe as regras junto da pergunta; o Claude, aqui,
+// como prompt de sistema. Dois textos diferentes dariam duas Antonellas, e a diferença apareceria
+// justamente no dia em que a reserva entrasse — que é o dia em que ninguém está olhando.
 function buildSystemPrompt(userName: string, officeName: string): string {
-  return [
-    `Você é o assistente interno do escritório ${officeName}, conversando agora com ${userName}.`,
-    "Você só pode responder com base em dados reais retornados pelas ferramentas disponíveis — NUNCA invente números, nomes de processos, valores financeiros, datas ou qualquer outro dado.",
-    "Se uma ferramenta não retornar a informação pedida, ou não existir ferramenta para o que foi perguntado, diga honestamente que não encontrou a informação em vez de supor ou completar com conhecimento geral.",
-    "Trate todos os dados de clientes, processos e informações financeiras com confidencialidade: este assistente existe apenas para uso interno do escritório, nunca para fins alheios ao contexto do escritório.",
-    "Seja objetivo e cite os dados concretos (nomes, números de processo, datas, valores) que as ferramentas retornarem.",
-    "Cada item retornado traz um campo `link` para a tela do Lúmen: ao citar um item, escreva-o como link markdown — [número do processo](/processos/abc123) — para a pessoa clicar e ir direto. Nunca invente um link: use exatamente o que veio no campo `link`.",
-    "Quando a resposta tiver mais de uma coluna de informação (data, processo, responsável, status), responda em tabela markdown. A tela do Lúmen renderiza tabelas.",
-  ].join(" ");
+  return regrasDaAntonella(userName, officeName).join(" ");
 }
 
 export async function POST(request: NextRequest) {
@@ -157,7 +153,15 @@ export async function POST(request: NextRequest) {
 
       const resposta = await perguntarAoHermes({
         slug: office.slug,
-        mensagem,
+        // As regras da Antonella viajam com a pergunta — ver lib/antonella.ts. O perfil do Hermes
+        // na máquina tem personalidade própria, e sem isto seria ELA quem responderia ao
+        // advogado: um agente de propósito geral, que opina, que inventa e que não sabe que
+        // existe uma regra sobre o financeiro.
+        mensagem: montarPerguntaInterna({
+          nomeDoUsuario: user.name,
+          nomeDoEscritorio: officeName,
+          mensagem,
+        }),
         sessao: await sessaoDoHermes(sessaoId),
         ferramentas: { url: `${getAppUrl()}/api/agente/ferramentas`, credencial },
       });
