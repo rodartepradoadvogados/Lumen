@@ -206,8 +206,17 @@ export async function POST(request: NextRequest) {
       });
 
       if (!isAssistantConfigured()) {
+        // A PESSOA PRECISA SABER QUAL DOS DOIS É. "Indisponível" mandou o dono investigar a
+        // máquina por uma manhã inteira quando o problema era o agente estar lento — e lento e
+        // fora do ar pedem providências opostas: uma é esperar ou trocar o modelo, a outra é
+        // levantar o serviço.
+        const demorou = motivo.startsWith("DEMORA");
         return NextResponse.json(
-          { error: "O assistente do escritório está indisponível no momento. Tente novamente em instantes." },
+          {
+            error: demorou
+              ? "O agente demorou mais do que o limite para responder. Ele continua no ar — a pergunta é que levou tempo demais. Tente de novo, ou peça algo mais simples."
+              : "Não foi possível alcançar o agente do escritório agora. Tente novamente em instantes.",
+          },
           { status: 503 },
         );
       }
