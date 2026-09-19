@@ -1,9 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, AlertCircle, Trash2, Activity, Database, X } from "lucide-react";
+import { RefreshCw, AlertCircle, Trash2, Activity, X } from "lucide-react";
 import { LumenPanel, LumenPanelHeader, LumenBadge } from "@/components/painelMestre/LumenUi";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
+
+type UsoDoAgente = {
+  perguntas7d: number;
+  perguntas30d: number;
+  consultas7d: number;
+  recusasFinanceiro7d: number;
+  recusasTeto7d: number;
+  pessoas7d: number;
+  ultimaEm: string | null;
+};
 
 type HermesProfile = {
   office: {
@@ -11,11 +21,13 @@ type HermesProfile = {
     slug: string;
     name: string;
     status: string;
+    isInternal?: boolean;
   };
   profile: string;
   status: string;
   sessionCount: number;
   memorySizeKB: number;
+  uso: UsoDoAgente | null;
 };
 
 type HermesStatus = {
@@ -121,9 +133,9 @@ export default function HermesAdminClient() {
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-tx">Hermes Agent — Painel de Controle</h1>
+          <h1 className="text-2xl font-bold text-tx">Lúmen Agent — Painel de Controle</h1>
           <p className="text-sm text-tx-2 mt-1">
-            Gerenciamento dos perfis do Hermes por escritório
+            Quanto cada escritório usa o agente, e em que estado está o perfil dele
           </p>
         </div>
         <button
@@ -148,7 +160,7 @@ export default function HermesAdminClient() {
 
       <LumenPanel>
         <LumenPanelHeader
-          title="Perfis do Hermes por Escritório"
+          title="Lúmen Agent por escritório"
           subtitle={`${profiles.length} escritório(s) monitorado(s)`}
         />
         <div className="overflow-x-auto">
@@ -158,6 +170,7 @@ export default function HermesAdminClient() {
                 <th className="p-3 font-medium">Escritório</th>
                 <th className="p-3 font-medium">Perfil</th>
                 <th className="p-3 font-medium">Status</th>
+                <th className="p-3 font-medium">Uso (7 dias)</th>
                 <th className="p-3 font-medium">Sessões</th>
                 <th className="p-3 font-medium">Memória</th>
                 <th className="p-3 font-medium">Ações</th>
@@ -166,13 +179,13 @@ export default function HermesAdminClient() {
             <tbody className="divide-y divide-regua">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-tx-2">
+                  <td colSpan={7} className="p-6 text-center text-tx-2">
                     Carregando...
                   </td>
                 </tr>
               ) : profiles.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-tx-2">
+                  <td colSpan={7} className="p-6 text-center text-tx-2">
                     Nenhum escritório encontrado
                   </td>
                 </tr>
@@ -185,12 +198,43 @@ export default function HermesAdminClient() {
                       <LumenBadge variant={p.office.status === "ATIVA" ? "success" : "warning"}>
                         {p.office.status}
                       </LumenBadge>
+                      {p.office.isInternal && (
+                        <span className="ml-1 text-xs text-tx-3">interno</span>
+                      )}
                     </td>
                     <td className="p-3 font-mono text-xs text-tx-2">{p.profile}</td>
                     <td className="p-3">
                       <LumenBadge variant={statusColors[p.status as keyof typeof statusColors] || "default"}>
                         {p.status === "ready" ? "Pronto" : p.status === "not_provisioned" ? "Não provisionado" : p.status}
                       </LumenBadge>
+                    </td>
+                    <td className="p-3">
+                      {p.uso ? (
+                        <div className="leading-tight">
+                          <div className="text-tx tabular-nums">
+                            {p.uso.perguntas7d} pergunta{p.uso.perguntas7d === 1 ? "" : "s"}
+                            {p.uso.pessoas7d > 0 && (
+                              <span className="text-tx-2"> · {p.uso.pessoas7d} pessoa{p.uso.pessoas7d === 1 ? "" : "s"}</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-tx-2 tabular-nums">
+                            {p.uso.consultas7d} consulta{p.uso.consultas7d === 1 ? "" : "s"} aos dados
+                            <span className="text-tx-3"> · {p.uso.perguntas30d} em 30 dias</span>
+                          </div>
+                          {p.uso.recusasFinanceiro7d > 0 && (
+                            <div className="text-xs text-aviso tabular-nums">
+                              {p.uso.recusasFinanceiro7d} recusa{p.uso.recusasFinanceiro7d === 1 ? "" : "s"} · sem acesso ao financeiro
+                            </div>
+                          )}
+                          {p.uso.recusasTeto7d > 0 && (
+                            <div className="text-xs text-urgente tabular-nums">
+                              {p.uso.recusasTeto7d} recusa{p.uso.recusasTeto7d === 1 ? "" : "s"} · teto por minuto
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-tx-3">sem uso registrado</span>
+                      )}
                     </td>
                     <td className="p-3 text-tx">{p.sessionCount}</td>
                     <td className="p-3 text-tx-2">{p.memorySizeKB} KB</td>
@@ -213,14 +257,6 @@ export default function HermesAdminClient() {
                               title="Health check"
                             >
                               <RefreshCw size={16} />
-                            </button>
-                            <button
-                              onClick={() => runAction(p.office.slug, "clear_memory")}
-                              disabled={actionLoading === p.office.slug}
-                              className="p-1.5 hover:bg-sf-apoio rounded text-tx-2 transition-colors"
-                              title="Limpar memória"
-                            >
-                              <Database size={16} />
                             </button>
                           </>
                         )}
