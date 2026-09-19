@@ -36,6 +36,22 @@ export type AssistantTool = {
   executar: (input: ToolInput, ctx: { userId: string; officeId: string }) => Promise<string>;
 };
 
+// ============================================================================
+// UM AVISO QUE CUSTOU CARO
+//
+// Toda consulta aqui traz no máximo 20 registros — e até 19/09/2026 todas elas devolviam
+// `total: resumo.length`, ou seja, o tamanho da PÁGINA, não o total de verdade. Perguntaram ao
+// assistente "quantos processos eu tenho?" num escritório com mais de cem, e ele respondeu "20",
+// com toda a confiança do mundo.
+//
+// Um assistente que erra um número e avisa é inconveniente. Um que erra e afirma é pior que não
+// ter assistente, porque o advogado age sobre o número.
+//
+// Então a regra desta casa: quem mostra uma amostra CONTA o universo. `total` é a contagem real no
+// banco; `mostrados` é quanto veio na amostra; `truncado` diz se sobrou coisa de fora. As três
+// juntas tornam impossível confundir uma com a outra.
+// ============================================================================
+
 function truncate(text: string, max: number): string {
   if (!text) return "";
   return text.length > max ? `${text.slice(0, max)}…` : text;
@@ -67,16 +83,21 @@ async function executarConsultarProcessos(input: ToolInput, officeId: string): P
 
     // Prisma não faz "contains" case-insensitive em coluna String[] (Case.materias) — busca um
     // lote maior de candidatos (só client/status, indexáveis) e filtra por matéria em memória.
-    const cases = await prisma.case.findMany({
-      where: {
-        officeId,
-        client: cliente ? { name: { contains: cliente, mode: "insensitive" } } : undefined,
-        status: status || undefined,
-      },
-      include: { client: true, responsible: true },
-      orderBy: { updatedAt: "desc" },
-      take: area ? 100 : 20,
-    });
+    const filtro = {
+      officeId,
+      client: cliente ? { name: { contains: cliente, mode: "insensitive" as const } } : undefined,
+      status: status || undefined,
+    };
+
+    const [totalNoBanco, cases] = await Promise.all([
+      prisma.case.count({ where: filtro }),
+      prisma.case.findMany({
+        where: filtro,
+        include: { client: true, responsible: true },
+        orderBy: { updatedAt: "desc" },
+        take: area ? 100 : 20,
+      }),
+    ]);
     const filtered = area ? cases.filter((c) => caseMatchesMateria(c.materias, c.area, area)) : cases;
 
     const resumo = filtered.slice(0, 20).map((c) => ({
@@ -89,7 +110,23 @@ async function executarConsultarProcessos(input: ToolInput, officeId: string): P
       responsavel: c.responsible?.name ?? null,
     }));
 
-    return JSON.stringify({ total: resumo.length, processos: resumo });
+    // Com filtro de matéria o total exato não existe em SQL: a matéria é comparada em memória
+    // sobre uma amostra (ver a nota acima do findMany). Dizer isso é melhor que chutar um número.
+    return JSON.stringify(
+      area
+        ? {
+            totalNoEscritorio: totalNoBanco,
+            mostrados: resumo.length,
+            observacao: `A matéria "${area}" foi conferida sobre os ${cases.length} processos mais recentes, não sobre todos os ${totalNoBanco}.`,
+            processos: resumo,
+          }
+        : {
+            total: totalNoBanco,
+            mostrados: resumo.length,
+            truncado: totalNoBanco > resumo.length,
+            processos: resumo,
+          },
+    );
   } catch (error) {
     console.error("[assistantTools] erro em consultar_processos:", error);
     return "Não foi possível consultar os processos agora. Tente novamente em instantes.";
@@ -111,17 +148,22 @@ async function executarConsultarPublicacoes(input: ToolInput, officeId: string, 
 
     // "Não lida" é por usuário — reflete a visão de quem está perguntando ao assistente, não
     // um estado único compartilhado pelo escritório inteiro (ver PublicationRead no schema).
-    const publicacoes = await prisma.publication.findMany({
-      where: {
-        officeId,
-        publishedAt: { gte: desde },
-        reads: apenasNaoLidas ? { none: { userId } } : undefined,
-        lawyerTag: lawyerTag ? { contains: lawyerTag, mode: "insensitive" } : undefined,
-      },
-      include: { case: true },
-      orderBy: { publishedAt: "desc" },
-      take: 20,
-    });
+    const filtro = {
+      officeId,
+      publishedAt: { gte: desde },
+      reads: apenasNaoLidas ? { none: { userId } } : undefined,
+      lawyerTag: lawyerTag ? { contains: lawyerTag, mode: "insensitive" as const } : undefined,
+    };
+
+    const [totalNoBanco, publicacoes] = await Promise.all([
+      prisma.publication.count({ where: filtro }),
+      prisma.publication.findMany({
+        where: filtro,
+        include: { case: true },
+        orderBy: { publishedAt: "desc" },
+        take: 20,
+      }),
+    ]);
 
     const resumo = publicacoes.map((p) => ({
       kind: p.kind,
@@ -132,7 +174,12 @@ async function executarConsultarPublicacoes(input: ToolInput, officeId: string, 
       triageStatus: p.triageStatus,
     }));
 
-    return JSON.stringify({ total: resumo.length, publicacoes: resumo });
+    return JSON.stringify({
+      total: totalNoBanco,
+      mostrados: resumo.length,
+      truncado: totalNoBanco > resumo.length,
+      publicacoes: resumo,
+    });
   } catch (error) {
     console.error("[assistantTools] erro em consultar_publicacoes:", error);
     return "Não foi possível consultar as publicações agora. Tente novamente em instantes.";
@@ -152,17 +199,22 @@ async function executarConsultarAgenda(input: ToolInput, officeId: string): Prom
     const ate = new Date();
     ate.setDate(ate.getDate() + Math.max(1, diasAFrente));
 
-    const tarefas = await prisma.task.findMany({
-      where: {
-        officeId,
-        dueDate: { gte: agora, lte: ate },
-        status: { notIn: ["CONCLUIDO", "CANCELADO"] },
-        responsible: responsavel ? { name: { contains: responsavel, mode: "insensitive" } } : undefined,
-      },
-      include: { case: true, responsible: true },
-      orderBy: { dueDate: "asc" },
-      take: 20,
-    });
+    const filtro = {
+      officeId,
+      dueDate: { gte: agora, lte: ate },
+      status: { notIn: ["CONCLUIDO", "CANCELADO"] },
+      responsible: responsavel ? { name: { contains: responsavel, mode: "insensitive" as const } } : undefined,
+    };
+
+    const [totalNoBanco, tarefas] = await Promise.all([
+      prisma.task.count({ where: filtro }),
+      prisma.task.findMany({
+        where: filtro,
+        include: { case: true, responsible: true },
+        orderBy: { dueDate: "asc" },
+        take: 20,
+      }),
+    ]);
 
     const resumo = tarefas.map((t) => ({
       title: t.title,
@@ -173,7 +225,12 @@ async function executarConsultarAgenda(input: ToolInput, officeId: string): Prom
       responsavel: t.responsible?.name ?? null,
     }));
 
-    return JSON.stringify({ total: resumo.length, agenda: resumo });
+    return JSON.stringify({
+      total: totalNoBanco,
+      mostrados: resumo.length,
+      truncado: totalNoBanco > resumo.length,
+      agenda: resumo,
+    });
   } catch (error) {
     console.error("[assistantTools] erro em consultar_agenda:", error);
     return "Não foi possível consultar a agenda agora. Tente novamente em instantes.";
@@ -190,16 +247,21 @@ async function executarConsultarAtendimento(input: ToolInput, officeId: string):
     const estagio = str(input, "estagio");
 
     // RASCUNHO só entra na busca se explicitamente pedido via `status`; por padrão fica de fora.
-    const atendimentos = await prisma.attendance.findMany({
-      where: {
-        officeId,
-        status: status ? status : { not: "RASCUNHO" },
-        stage: estagio || undefined,
-      },
-      include: { responsible: true },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    });
+    const filtro = {
+      officeId,
+      status: status ? status : { not: "RASCUNHO" },
+      stage: estagio || undefined,
+    };
+
+    const [totalNoBanco, atendimentos] = await Promise.all([
+      prisma.attendance.count({ where: filtro }),
+      prisma.attendance.findMany({
+        where: filtro,
+        include: { responsible: true },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+    ]);
 
     const resumo = atendimentos.map((a) => ({
       clientName: a.clientName,
@@ -210,7 +272,12 @@ async function executarConsultarAtendimento(input: ToolInput, officeId: string):
       responsavel: a.responsible?.name ?? null,
     }));
 
-    return JSON.stringify({ total: resumo.length, atendimentos: resumo });
+    return JSON.stringify({
+      total: totalNoBanco,
+      mostrados: resumo.length,
+      truncado: totalNoBanco > resumo.length,
+      atendimentos: resumo,
+    });
   } catch (error) {
     console.error("[assistantTools] erro em consultar_atendimento:", error);
     return "Não foi possível consultar o atendimento agora. Tente novamente em instantes.";
@@ -228,11 +295,16 @@ async function executarBuscarCliente(input: ToolInput, officeId: string): Promis
       return "Informe o nome do cliente a ser buscado.";
     }
 
-    const clientes = await prisma.client.findMany({
-      where: { officeId, name: { contains: nome, mode: "insensitive" } },
-      include: { _count: { select: { cases: true } } },
-      take: 20,
-    });
+    const filtro = { officeId, name: { contains: nome, mode: "insensitive" as const } };
+
+    const [totalNoBanco, clientes] = await Promise.all([
+      prisma.client.count({ where: filtro }),
+      prisma.client.findMany({
+        where: filtro,
+        include: { _count: { select: { cases: true } } },
+        take: 20,
+      }),
+    ]);
 
     const resumo = clientes.map((c) => ({
       name: c.name,
@@ -243,7 +315,12 @@ async function executarBuscarCliente(input: ToolInput, officeId: string): Promis
       quantidadeProcessos: c._count.cases,
     }));
 
-    return JSON.stringify({ total: resumo.length, clientes: resumo });
+    return JSON.stringify({
+      total: totalNoBanco,
+      mostrados: resumo.length,
+      truncado: totalNoBanco > resumo.length,
+      clientes: resumo,
+    });
   } catch (error) {
     console.error("[assistantTools] erro em buscar_cliente:", error);
     return "Não foi possível buscar o cliente agora. Tente novamente em instantes.";
@@ -267,15 +344,38 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
     // explicitamente da consulta — é só uma ESTIMATIVA de honorário percentual sem valor real
     // ainda, o assistente não pode informar isso como "a receber" de verdade ao usuário.
     if (tipo === "pagar" || tipo === "ambos") {
-      const payables = await prisma.payable.findMany({
-        where: { officeId, status: apenasPendente ? "PENDENTE" : { not: "A_APURAR" } },
-        include: { category: true },
-        orderBy: { dueDate: "asc" },
-        take: 20,
-      });
+      const filtroPayable = {
+        officeId,
+        status: apenasPendente ? "PENDENTE" : { not: "A_APURAR" },
+      };
+
+      // A SOMA É DO UNIVERSO, NÃO DA AMOSTRA. Somar só os 20 mostrados daria um valor errado com
+      // cara de certo — e aqui é dinheiro: o advogado decide em cima desse número. Como
+      // `valorLiquido` é amount menos desconto mais acréscimo, a soma real sai de uma agregação,
+      // sem precisar trazer todas as linhas para a memória.
+      const [totalPayable, somaPayable, payables] = await Promise.all([
+        prisma.payable.count({ where: filtroPayable }),
+        prisma.payable.aggregate({
+          where: filtroPayable,
+          _sum: { amount: true, discount: true, surcharge: true },
+        }),
+        prisma.payable.findMany({
+          where: filtroPayable,
+          include: { category: true },
+          orderBy: { dueDate: "asc" },
+          take: 20,
+        }),
+      ]);
+
       resultado.contasAPagar = {
-        total: payables.length,
-        somaValores: payables.reduce((acc, p) => acc + valorLiquido(p.amount, p.discount, p.surcharge), 0),
+        total: totalPayable,
+        mostrados: payables.length,
+        truncado: totalPayable > payables.length,
+        somaValores: valorLiquido(
+          somaPayable._sum.amount ?? 0,
+          somaPayable._sum.discount ?? 0,
+          somaPayable._sum.surcharge ?? 0,
+        ),
         lista: payables.map((p) => ({
           description: p.description,
           amount: valorLiquido(p.amount, p.discount, p.surcharge),
@@ -287,15 +387,38 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
     }
 
     if (tipo === "receber" || tipo === "ambos") {
-      const receivables = await prisma.receivable.findMany({
-        where: { officeId, status: apenasPendente ? "PENDENTE" : { not: "A_APURAR" } },
-        include: { category: true },
-        orderBy: { dueDate: "asc" },
-        take: 20,
-      });
+      const filtroReceivable = {
+        officeId,
+        status: apenasPendente ? "PENDENTE" : { not: "A_APURAR" },
+      };
+
+      // A SOMA É DO UNIVERSO, NÃO DA AMOSTRA. Somar só os 20 mostrados daria um valor errado com
+      // cara de certo — e aqui é dinheiro: o advogado decide em cima desse número. Como
+      // `valorLiquido` é amount menos desconto mais acréscimo, a soma real sai de uma agregação,
+      // sem precisar trazer todas as linhas para a memória.
+      const [totalReceivable, somaReceivable, receivables] = await Promise.all([
+        prisma.receivable.count({ where: filtroReceivable }),
+        prisma.receivable.aggregate({
+          where: filtroReceivable,
+          _sum: { amount: true, discount: true, surcharge: true },
+        }),
+        prisma.receivable.findMany({
+          where: filtroReceivable,
+          include: { category: true },
+          orderBy: { dueDate: "asc" },
+          take: 20,
+        }),
+      ]);
+
       resultado.contasAReceber = {
-        total: receivables.length,
-        somaValores: receivables.reduce((acc, r) => acc + valorLiquido(r.amount, r.discount, r.surcharge), 0),
+        total: totalReceivable,
+        mostrados: receivables.length,
+        truncado: totalReceivable > receivables.length,
+        somaValores: valorLiquido(
+          somaReceivable._sum.amount ?? 0,
+          somaReceivable._sum.discount ?? 0,
+          somaReceivable._sum.surcharge ?? 0,
+        ),
         lista: receivables.map((r) => ({
           description: r.description,
           amount: valorLiquido(r.amount, r.discount, r.surcharge),
