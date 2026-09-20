@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
+import { Card, Badge, EmptyState } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { Plus, Search } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
@@ -155,7 +156,9 @@ export default async function MobileAtendimento({
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-corpo text-tx-2">{formatDate(a.createdAt)}</p>
+                  {/* createdAt é instante — formatDate() lia sem fuso e virava um dia errado
+                      perto da meia-noite. */}
+                  <p className="text-corpo text-tx-2">{dataDeBrasilia(a.createdAt)}</p>
                   {a.responsible && <p className="text-corpo text-tx-2 mt-0.5">{a.responsible.name}</p>}
                 </div>
               </Link>

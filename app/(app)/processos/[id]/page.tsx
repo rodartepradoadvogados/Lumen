@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { authorDisplayName } from "@/lib/authorDisplay";
 import { sanitizeExternalUrl } from "@/lib/urlSafety";
 import NewTaskModal from "@/components/NewTaskModal";
@@ -610,7 +611,9 @@ export default async function CaseDetailPage({
                   </div>
                 )}
                 <Field label="Data da distribuição" value={c.distributedAt ? formatDate(c.distributedAt) : undefined} />
-                <Field label="Criado no Lúmen" value={formatDate(c.createdAt)} />
+                {/* distributedAt (acima) é dia de calendário — nasce de <input type="date">.
+                    createdAt aqui é instante — precisa de dataDeBrasilia(). */}
+                <Field label="Criado no Lúmen" value={dataDeBrasilia(c.createdAt)} />
                 {c.assuntos.filter(Boolean).length > 0 && <Field label="Assuntos" value={c.assuntos.filter(Boolean).join(", ")} />}
               </Card>
             )}
@@ -729,7 +732,7 @@ export default async function CaseDetailPage({
                 <div>
                   <p className="text-sm">
                     <span className="font-semibold text-tx">{authorName}</span>{" "}
-                    <span className="text-etiqueta text-tx-2">{formatDate(cm.createdAt)}</span>
+                    <span className="text-etiqueta text-tx-2">{dataDeBrasilia(cm.createdAt)}</span>
                   </p>
                   <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                 </div>

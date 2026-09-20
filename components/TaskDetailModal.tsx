@@ -7,7 +7,6 @@ import { Check } from "lucide-react";
 import { getTaskDetail, updateTask, toggleTaskDone, TaskDetail } from "@/lib/actions/tasks";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import CommentBox from "@/components/CommentBox";
-import { formatDate } from "@/components/ui";
 import { typeMeta } from "@/components/AgendaView";
 import ModalShell from "@/components/ModalShell";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -262,7 +261,10 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                       <div className="min-w-0">
                         <p className="text-sm">
                           <span className="font-semibold text-tx">{cm.authorName}</span>{" "}
-                          <span className="text-etiqueta text-tx-3">{formatDate(cm.createdAt)}</span>
+                          {/* createdAt é instante (quando o comentário foi postado) — formatDate()
+                              não declara fuso e sai errado perto da meia-noite; dataDeBrasilia()
+                              força o fuso do escritório. */}
+                          <span className="text-etiqueta text-tx-3">{dataDeBrasilia(cm.createdAt)}</span>
                         </p>
                         <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                       </div>

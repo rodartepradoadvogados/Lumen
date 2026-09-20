@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { authorDisplayName } from "@/lib/authorDisplay";
 import { sanitizeExternalUrl } from "@/lib/urlSafety";
 import { Card, Badge, EmptyState, formatCurrency, formatDate, formatCalendarDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import MobileCommentForm from "@/components/mobile/MobileCommentForm";
 import MobileNewTaskForm from "@/components/mobile/MobileNewTaskForm";
 import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
@@ -562,7 +563,9 @@ export default async function MobileCaseDetail({
             </div>
           )}
           <Field label="Data da distribuição" value={c.distributedAt ? formatDate(c.distributedAt) : undefined} />
-          <Field label="Criado no Lúmen" value={formatDate(c.createdAt)} />
+          {/* distributedAt (acima) é dia de calendário — nasce de <input type="date">, formatDate()
+              lê certo. createdAt aqui é instante — precisa de dataDeBrasilia(). */}
+          <Field label="Criado no Lúmen" value={dataDeBrasilia(c.createdAt)} />
           {c.assuntos.filter(Boolean).length > 0 && <Field label="Assuntos" value={c.assuntos.filter(Boolean).join(", ")} />}
         </Card>
       )}
@@ -632,7 +635,7 @@ export default async function MobileCaseDetail({
                   <div className="min-w-0">
                     <p className="text-sm">
                       <span className="font-semibold text-tx">{authorName}</span>{" "}
-                      <span className="text-corpo text-tx-2">{formatDate(cm.createdAt)}</span>
+                      <span className="text-corpo text-tx-2">{dataDeBrasilia(cm.createdAt)}</span>
                     </p>
                     <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                   </div>

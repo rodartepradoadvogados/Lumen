@@ -156,3 +156,17 @@ export function lerPeriodoEmBrasilia(
 
   return null;
 }
+
+/**
+ * "09/2026" — mês e ano, no fuso do escritório.
+ *
+ * Existe porque a tela da Assessoria mostra "Desde MM/AAAA" e fazia isso com um
+ * `toLocaleDateString` sem fuso: um contrato aberto depois das 21h de Brasília aparecia no mês
+ * seguinte. É o mesmo defeito das datas completas, só que mais raro e por isso mais difícil de
+ * alguém notar — acontece três horas por dia, no último e no primeiro dia do mês.
+ */
+export function mesEAnoDeBrasilia(d: Date | string, fuso: string = FUSO_DO_ESCRITORIO): string {
+  const dia = diaDeBrasilia(d, fuso);
+  const [ano, mes] = dia.split("-");
+  return `${mes}/${ano}`;
+}

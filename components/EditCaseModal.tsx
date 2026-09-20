@@ -14,7 +14,7 @@ import CaseMateriaField from "@/components/processo/CaseMateriaField";
 import AssuntosField from "@/components/processo/AssuntosField";
 import InstanciaTribunalPanel, { type CaseInstanceHistoryEntry } from "@/components/processo/InstanciaTribunalPanel";
 import CaseLinkField from "@/components/processo/CaseLinkField";
-import { formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import MoneyInput from "@/components/MoneyInput";
 
 type CaseData = {
@@ -310,8 +310,10 @@ export default function EditCaseModal({
                   </div>
                   <div>
                     <label className="text-xs font-medium text-tx-2">Criado no Lúmen</label>
+                    {/* createdAt é instante — formatDate() lia sem fuso e virava um dia errado
+                        perto da meia-noite. */}
                     <p className="mt-1 px-3 py-2 text-sm text-tx-2">
-                      {caseData.createdAt ? formatDate(caseData.createdAt) : "—"}
+                      {caseData.createdAt ? dataDeBrasilia(caseData.createdAt) : "—"}
                     </p>
                   </div>
                 </div>

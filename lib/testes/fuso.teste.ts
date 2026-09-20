@@ -87,6 +87,61 @@ teste("nenhum instante é formatado como data sem dizer o fuso", () => {
   );
 });
 
+// ============================================================================
+// A SEGUNDA TRAVA: formatDate() COM UM INSTANTE DENTRO.
+//
+// formatDate() (components/ui.tsx) e formatCalendarDate() são DUAS FUNÇÕES DE PROPÓSITO
+// DIFERENTE, e o nome parecido é a armadilha. formatCalendarDate() força UTC de propósito, porque
+// dueDate/prazoFinal/date nascem de <input type="date"> como meia-noite UTC — e é ISSO que
+// formatDate() faz hoje (lê no fuso local, que em produção não é Brasília), então qualquer
+// instante (createdAt e companhia — "quando isso ACONTECEU", não um dia escolhido) que passa por
+// formatDate() sai com a hora certa só por acaso, e com o DIA ERRADO perto da meia-noite de
+// Brasília. A auditoria de 2026-09 encontrou e corrigiu ~40 desses; esta trava é para a próxima
+// tela nova, que vai reincidir do mesmo jeito que toLocaleTimeString() reincidia antes da trava
+// acima — alguém escreve `formatDate(x.createdAt)` porque compila, os dois campos são DateTime, e
+// a tela parece certa na hora de testar (de dia, longe da virada).
+//
+// A LISTA ABAIXO É POSITIVA (o que É instante), não "tudo que termina em At/Em" — essa regra mais
+// simples FOI TENTADA e tem falso positivo confirmado nesta base: nextContactAt (Attendance) e
+// paidAt (PlatformExpense) terminam em "At" e são DIA DE CALENDÁRIO, escolhidos num
+// <input type="date"> (ver AttendanceCommercialForm.tsx / PlatformExpenseModal.tsx); protocoladoEm
+// (ProtocoloLote) termina em "Em" e também é dia, não instante (ver lib/actions/protocolos.ts).
+// Um "paidAt" idêntico em TenantInvoice, por outro lado, É instante (carimbado com now() na baixa,
+// ver lib/actions/painelMestre.ts) — o MESMO NOME quer dizer coisas diferentes em dois models, e é
+// exatamente por isso que a lista é por confirmação, campo a campo, e não por padrão de texto no
+// nome. createdAt/updatedAt entram sempre: são os dois carimbos que o Prisma preenche sozinho
+// (@default(now())/@updatedAt) em praticamente todo model, e nenhum humano os edita.
+//
+// LIMITE CONHECIDO: isto olha o NOME do identificador na chamada. `formatDate(iso)` com `iso`
+// vindo de um `enviadoEm` três linhas acima (ver o formatEnviadoEm de
+// components/mobile/MobileCaseProtocolosTab.tsx, que por isso chama dataDeBrasilia por dentro, não
+// formatDate) escapa da varredura. Não tem como uma regex ler o tipo — isso pede um lint de
+// verdade (eslint-plugin com acesso ao TypeScript checker), fora do escopo desta trava.
+const SUFIXOS_DE_INSTANTE_CONFIRMADOS = [
+  "createdAt",
+  "updatedAt",
+  "completedAt", // Task — carimbado ao concluir, não escolhido
+  "publishedAt", // Publication — quando o diário publicou, não vencimento
+  "firstResponseAt", // Attendance — carimbado no primeiro contato
+  "escalatedAt", // CaseInstanceEscalation
+  "returnedAt", // CaseInstanceEscalation
+  "transferidoEm", // Attendance
+  "enviadoEm", // DocumentoEnvio
+  "expiresAt", // token OAuth (BtgConnection e afins)
+  "lastUsedAt", // ApiKey
+  "ultimoHitAt", // TermoVigilancia
+];
+
+teste("formatDate() nunca recebe um instante (createdAt e companhia são dia, não calendário)", () => {
+  const padrao = new RegExp(`formatDate\\(\\s*[\\w.?!]*\\.(?:${SUFIXOS_DE_INSTANTE_CONFIRMADOS.join("|")})\\b`);
+  const achados = varrer(padrao);
+  igual(
+    achados.length,
+    0,
+    `formatDate() recebeu um campo que é instante, não dia — troque por dataDeBrasilia()/dataEHoraDeBrasilia() de lib/horaDeBrasilia.ts:${listar(achados)}\n  `,
+  );
+});
+
 teste("a varredura está de fato lendo o projeto, e não uma pasta vazia", () => {
   // Sem esta conferência, um erro de caminho faria os dois testes acima passarem por não terem
   // olhado NADA — que é o jeito mais silencioso de uma trava deixar de travar.

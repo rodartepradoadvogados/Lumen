@@ -1,7 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, Card, Badge, formatDate, EmptyState } from "@/components/ui";
+import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import NewAttendanceModal from "@/components/NewAttendanceModal";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import Link from "next/link";
@@ -161,7 +162,9 @@ export default async function AtendimentoPage({
                   <p className="text-xs text-tx-3 mt-0.5">{a.subject}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-xs text-tx-3">{formatDate(a.createdAt)}</p>
+                  {/* createdAt é instante — formatDate() lia sem fuso e virava um dia errado
+                      perto da meia-noite. */}
+                  <p className="text-xs text-tx-3">{dataDeBrasilia(a.createdAt)}</p>
                   {a.responsible && <p className="text-xs text-tx-3 mt-0.5">{a.responsible.name}</p>}
                 </div>
                 <DeleteEntityButton

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import EditClientModal from "@/components/EditClientModal";
 import { valorLiquido } from "@/lib/financeCalc";
 import { ArrowLeft, Scale, FileText } from "lucide-react";
@@ -99,7 +100,9 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
           {field("Estado civil", client.maritalStatus)}
           {field("Profissão", client.profession)}
           {field("Endereço", client.address)}
-          {field("Cadastrado em", formatDate(client.createdAt))}
+          {/* createdAt é instante — formatDate() lia sem fuso e virava um dia errado perto da
+              meia-noite. */}
+          {field("Cadastrado em", dataDeBrasilia(client.createdAt))}
         </div>
         {client.notes && (
           <div className="px-5 pb-5">
@@ -185,7 +188,8 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge color={p.kind === "PUBLICACAO" ? "blue" : "gold"}>{p.kind === "PUBLICACAO" ? "Publicação" : "Andamento"}</Badge>
                     {p.reads.length === 0 && <Badge color="gold">Não lida</Badge>}
-                    <span className="text-xs text-tx-3">{formatDate(p.publishedAt)}</span>
+                    {/* publishedAt é instante — mesmo motivo do "Cadastrado em" acima. */}
+                    <span className="text-xs text-tx-3">{dataDeBrasilia(p.publishedAt)}</span>
                   </div>
                   {p.case && (
                     <Link href={`/processos/${p.case.id}`} className="text-xs font-medium text-marca-tx hover:underline mt-0.5 block">

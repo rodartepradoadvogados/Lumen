@@ -6,7 +6,7 @@ import { getUserHistory } from "@/lib/timesheet";
 import { PageHeader, Card, Badge, EmptyState, formatDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
-import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
 
@@ -294,7 +294,9 @@ export default async function ProdutividadePage({
                           <td className="py-1.5 pr-2">
                             <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
                           </td>
-                          <td className="py-1.5 pr-2 text-tx-2">{t.completedAt ? formatDate(t.completedAt) : "—"}</td>
+                          {/* completedAt é instante (quando a tarefa foi marcada concluída) —
+                              formatDate() lia sem fuso e virava um dia errado perto da meia-noite. */}
+                          <td className="py-1.5 pr-2 text-tx-2">{t.completedAt ? dataDeBrasilia(t.completedAt) : "—"}</td>
                           <td className="py-1.5 text-right font-semibold text-tx">{t.points}</td>
                         </tr>
                       ))}
