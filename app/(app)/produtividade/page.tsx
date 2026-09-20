@@ -6,6 +6,7 @@ import { getUserHistory } from "@/lib/timesheet";
 import { PageHeader, Card, Badge, EmptyState, formatDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
+import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
 
@@ -119,7 +120,7 @@ export default async function ProdutividadePage({
                   <Clock size={14} className="text-tx-3 shrink-0" />
                   <p className="text-sm text-tx flex-1">{formatDate(new Date(`${day.date}T00:00:00`))}</p>
                   <p className="text-xs text-tx-2 w-32 text-right">
-                    1º login {new Date(day.firstLogin).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    1º login {horaDeBrasilia(new Date(day.firstLogin))}
                   </p>
                   <p className="text-sm font-semibold text-tx w-24 text-right">{formatHMS(day.seconds)}</p>
                 </div>

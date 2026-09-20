@@ -8,6 +8,8 @@ import EndSupportAccessButton from "@/components/EndSupportAccessButton";
 import SupportAccessPolicyPicker from "@/components/SupportAccessPolicyPicker";
 import AccessRequestQueue from "@/components/AccessRequestQueue";
 import { ArrowLeft, ShieldCheck, ShieldAlert, Download, Monitor } from "lucide-react";
+import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
+import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
 
@@ -118,8 +120,8 @@ export default async function MobileAcessosPage() {
                 <strong>{activeSession.memberName}</strong> — {ACCESS_REASONS[activeSession.reasonCode as AccessReasonCode] ?? activeSession.reasonCode}
               </p>
               <p className="text-corpo text-tx-2 mt-0.5">
-                Entrou às {activeSession.startedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}, expira às{" "}
-                {activeSession.expiresAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                Entrou às {horaDeBrasilia(activeSession.startedAt)}, expira às{" "}
+                {horaDeBrasilia(activeSession.expiresAt)}
               </p>
             </div>
             <EndSupportAccessButton sessionId={activeSession.id} />
@@ -140,7 +142,7 @@ export default async function MobileAcessosPage() {
                     {ACCESS_ACTION_LABEL[entry.action] ?? entry.action}
                   </span>
                   <span className="text-corpo text-tx-2 shrink-0 whitespace-nowrap">
-                    {entry.createdAt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    {entry.createdAt.toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
                 <p className="text-corpo text-tx-2 mt-0.5">

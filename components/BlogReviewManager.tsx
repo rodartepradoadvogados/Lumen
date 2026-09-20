@@ -6,6 +6,7 @@ import { Pencil, X, Check, Ban } from "lucide-react";
 import { updateBlogPostDraft, publishBlogPost, rejectBlogPost } from "@/lib/actions/blog";
 import { Badge, EmptyState } from "@/components/ui";
 import PhotoPickerGrid, { type LibraryPhoto } from "@/components/PhotoPickerGrid";
+import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
 export type PendingPost = {
   id: string;
@@ -173,7 +174,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
             <h4 className="font-bold text-tx text-base">{title}</h4>
           )}
           <p className="text-etiqueta text-tx-3 mt-0.5">
-            Enviado pelo robô em {new Date(post.createdAt).toLocaleString("pt-BR")}
+            Enviado pelo robô em {new Date(post.createdAt).toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO })}
           </p>
         </div>
         <div className="flex items-center gap-1.5">

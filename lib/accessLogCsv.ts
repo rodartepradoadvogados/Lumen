@@ -1,5 +1,6 @@
 import type { OfficeAccessLogEntry } from "@/lib/supportAccess";
 import { ACCESS_ACTION_LABEL } from "@/lib/supportAccessConstants";
+import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
 // Montagem PURA do CSV do extrato de acessos (Fase C, comprovação nº 2). Separado da rota
 // (app/api/configuracoes/acessos/exportar/route.ts) pelo mesmo motivo de todo o resto deste
@@ -34,7 +35,7 @@ export function buildAccessLogCsv(input: {
   csv += csvRow(["Extrato de acessos da Lúmen"]);
   csv += csvRow([`Escritório: ${input.officeName}`]);
   csv += csvRow([`Período: ${periodo}`]);
-  csv += csvRow([`Gerado em: ${now.toLocaleString("pt-BR")}`]);
+  csv += csvRow([`Gerado em: ${now.toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO })}`]);
   csv += "\r\n";
 
   if (input.log.length === 0) {
@@ -47,7 +48,7 @@ export function buildAccessLogCsv(input: {
   csv += csvRow(["Data/hora", "Quem (equipe Lúmen)", "Ação", "Motivo", "Registro afetado", "Duração", "Fora do protocolo normal"]);
   for (const entry of input.log) {
     csv += csvRow([
-      entry.createdAt.toLocaleString("pt-BR"),
+      entry.createdAt.toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO }),
       entry.memberName,
       ACCESS_ACTION_LABEL[entry.action] ?? entry.action,
       entry.reasonLabel,

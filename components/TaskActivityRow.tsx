@@ -11,6 +11,7 @@ import { classificarPrazo, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/
 import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
 import { Check, MessageSquare } from "lucide-react";
 import clsx from "clsx";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 // Linha da aba Atividades do processo, em estilo "card Trello": clicar no título abre o mesmo
 // card de compromisso (TaskDetailModal) usado no resto do site — com a conversa em comentários
@@ -45,7 +46,7 @@ export default function TaskActivityRow({
   const urgencia = done ? "a-vencer" : classificarPrazo(task.dueDate);
   const doneTip =
     done && task.completedBy && task.completedAt
-      ? `Concluído por ${task.completedBy.name} em ${new Date(task.completedAt).toLocaleDateString("pt-BR")} às ${new Date(task.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+      ? `Concluído por ${task.completedBy.name} em ${dataDeBrasilia(new Date(task.completedAt))} às ${horaDeBrasilia(new Date(task.completedAt))}`
       : undefined;
 
   return (

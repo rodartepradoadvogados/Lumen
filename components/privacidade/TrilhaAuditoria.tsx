@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { listAuditEvents, exportarTrilha, type AuditEventRow } from "@/lib/actions/privacidade";
 import { Download } from "lucide-react";
+import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
 type Aba = "REVELACAO" | "EXPORTACAO" | "EXCLUSAO" | "SUPORTE";
 
@@ -117,7 +118,7 @@ export default function TrilhaAuditoria() {
                 </p>
                 {contexto(r) && <p className="text-corpo text-tx-2 mt-0.5">{contexto(r)}</p>}
               </div>
-              <span className="text-corpo text-tx-3 shrink-0 whitespace-nowrap">{new Date(r.createdAt).toLocaleString("pt-BR")}</span>
+              <span className="text-corpo text-tx-3 shrink-0 whitespace-nowrap">{new Date(r.createdAt).toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO })}</span>
             </div>
           ))}
         </div>

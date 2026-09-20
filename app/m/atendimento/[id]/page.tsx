@@ -11,6 +11,7 @@ import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList"
 import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import EditAttendanceSubject from "@/components/EditAttendanceSubject";
 import { ArrowLeft } from "lucide-react";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
 
@@ -143,8 +144,8 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
                       <p className={out ? "mt-1 text-corpo text-acao-tx text-right" : "mt-1 text-corpo text-tx-2"}>
-                        {formatDate(m.createdAt)}{" "}
-                        {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        {dataDeBrasilia(m.createdAt)}{" "}
+                        {horaDeBrasilia(m.createdAt)}
                         {out && m.status === "FAILED" ? " · falhou" : ""}
                       </p>
                     </div>
@@ -167,7 +168,7 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-tx truncate">{m.subject}</p>
                   <span className="shrink-0 text-corpo text-tx-2">
-                    {formatDate(m.createdAt)} {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    {dataDeBrasilia(m.createdAt)} {horaDeBrasilia(m.createdAt)}
                   </span>
                 </div>
                 <p className="mt-1 text-corpo text-tx-2">
