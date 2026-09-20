@@ -164,4 +164,60 @@ teste("quem desligou movimento continua vendo a bolinha — ela só para de pisc
   verdade(!reduzido.slice(0, 300).includes("display: none"), "a bolinha some em vez de só parar de piscar");
 });
 
+// ── O AJUDANTE DAS VARREDURAS ───────────────────────────────────────────────
+
+teste("corpoDaFuncao acha o corpo de função que DESESTRUTURA o parâmetro", () => {
+  // Defeito encontrado ao revisar a mídia do WhatsApp. A busca pelo fim da função parava no `}`
+  // que fecha a desestruturação do parâmetro — que também está na coluna do cabeçalho:
+  //
+  //     export async function ingestIncomingWhatsapp({
+  //       fromNumber, ...
+  //     }: IncomingMessage): Promise<...> {
+  //
+  // O trecho devolvido tinha 137 caracteres e nenhum corpo. Uma varredura que procurasse algo
+  // DENTRO da função acusava ausência do que existe; e uma escrita como "não pode conter X"
+  // passava VERDE com o defeito instalado — que é o modo de falhar que custa caro.
+  const fonte = [
+    "export async function comDesestruturacao({",
+    "  um,",
+    "  dois,",
+    "}: Tipo): Promise<void> {",
+    "  await fazerAlgo(um, dois);",
+    "}",
+    "",
+    "export function depois(): void {",
+    "  naoDeviaAparecer();",
+    "}",
+  ].join("\n");
+
+  const corpo = corpoDaFuncao(fonte, "comDesestruturacao");
+  verdade(corpo.includes("await fazerAlgo"), "o corpo da função desestruturada não foi encontrado");
+  verdade(!corpo.includes("naoDeviaAparecer"), "o trecho transbordou para a função seguinte");
+});
+
+teste("corpoDaFuncao não transborda em função ANINHADA", () => {
+  // O outro jeito de errar, e o primeiro que apareceu nesta sessão: procurar "a próxima função do
+  // arquivo" como fim do trecho. Numa função declarada DENTRO de outra, a próxima função de topo
+  // está lá embaixo, e o trecho leva junto tudo o que houver no meio — inclusive o JSX de um
+  // componente. Aí a varredura acha a palavra procurada no lugar errado e passa verde com o
+  // defeito instalado. Os dois casos juntos, este e o de cima, cobrem as duas formas de errar.
+  const fonte = [
+    "export function DeFora() {",
+    "  function interna() {",
+    "    somenteIsto();",
+    "  }",
+    "  return interna;",
+    "}",
+    "",
+    "export function OutraDeTopo() {",
+    "  naoDeviaAparecer();",
+    "}",
+  ].join("\n");
+
+  const corpo = corpoDaFuncao(fonte, "interna");
+  verdade(corpo.includes("somenteIsto"), "o corpo da função aninhada não foi encontrado");
+  verdade(!corpo.includes("naoDeviaAparecer"), "o trecho transbordou para a função de topo seguinte");
+  verdade(!corpo.includes("return interna"), "o trecho passou do fim da função aninhada");
+});
+
 resumo("Funil, Aguardando e a bolinha");

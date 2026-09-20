@@ -90,7 +90,20 @@ export function corpoDaFuncao(fonte: string, nome: string): string {
   // aconteceu com a mensagem de recusa do quadro do funil.
   const inicioDaLinha = fonte.lastIndexOf("\n", i) + 1;
   const indentacao = fonte.slice(inicioDaLinha, i);
-  const fechamento = new RegExp(`\\n${indentacao}\\}`);
+  // A CHAVE TEM DE SER A LINHA INTEIRA, e não só começar a linha. Sem isso, qualquer função que
+  // DESESTRUTURA o parâmetro devolvia só a lista de parâmetros: em
+  //
+  //     export async function ingestIncomingWhatsapp({
+  //       fromNumber,
+  //       ...
+  //     }: IncomingMessage): Promise<...> {
+  //
+  // o `}` que fecha a desestruturação também está na coluna do cabeçalho, e a busca parava ali.
+  // O trecho devolvido tinha 137 caracteres e nenhum corpo — então uma varredura que procurasse
+  // algo DENTRO da função acusava ausência do que existe, e pior, uma varredura escrita como
+  // "não pode conter X" passava VERDE com o defeito instalado. A linha de fechamento de verdade
+  // é só `}` (ou `};`); a da desestruturação sempre tem tipo ou parêntese depois.
+  const fechamento = new RegExp(`\\n${indentacao}\\}\\s*;?\\s*(?=\\n|$)`);
   const fim = fonte.slice(i).search(fechamento);
   if (fim >= 0) return codigoDe(fonte.slice(i, i + fim + 2 + indentacao.length));
 
