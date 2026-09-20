@@ -8,6 +8,8 @@ import EndSupportAccessButton from "@/components/EndSupportAccessButton";
 import SupportAccessPolicyPicker from "@/components/SupportAccessPolicyPicker";
 import AccessRequestQueue from "@/components/AccessRequestQueue";
 import { ShieldCheck, ShieldAlert, Eye, Download } from "lucide-react";
+import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
+import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
 
@@ -113,8 +115,8 @@ export default async function AcessosPage() {
                 <strong>{activeSession.memberName}</strong> — {ACCESS_REASONS[activeSession.reasonCode as AccessReasonCode] ?? activeSession.reasonCode}
               </p>
               <p className="text-xs text-tx-3 mt-0.5">
-                Entrou às {activeSession.startedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}, expira às{" "}
-                {activeSession.expiresAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                Entrou às {horaDeBrasilia(activeSession.startedAt)}, expira às{" "}
+                {horaDeBrasilia(activeSession.expiresAt)}
               </p>
             </div>
             <EndSupportAccessButton sessionId={activeSession.id} />
@@ -141,7 +143,7 @@ export default async function AcessosPage() {
               <tbody className="divide-y divide-regua">
                 {log.map((entry) => (
                   <tr key={entry.id} className="text-tx-2">
-                    <td className="px-5 py-2.5 whitespace-nowrap">{entry.createdAt.toLocaleString("pt-BR")}</td>
+                    <td className="px-5 py-2.5 whitespace-nowrap">{entry.createdAt.toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO })}</td>
                     <td className="px-5 py-2.5">{entry.memberName}</td>
                     <td className="px-5 py-2.5">
                       {entry.reasonLabel}

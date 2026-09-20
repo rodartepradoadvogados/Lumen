@@ -20,6 +20,7 @@ import { isStorageConnected } from "@/lib/storageProvider";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
 import { getCurrentUser } from "@/lib/currentUser";
 import { X } from "lucide-react";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
 
@@ -222,8 +223,8 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                           >
                             <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
                             <p className={out ? "mt-1 text-etiqueta text-acao-tx text-right" : "mt-1 text-etiqueta text-tx-3"}>
-                              {formatDate(m.createdAt)}{" "}
-                              {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              {dataDeBrasilia(m.createdAt)}{" "}
+                              {horaDeBrasilia(m.createdAt)}
                               {out && m.status === "FAILED" ? " · falhou" : ""}
                             </p>
                           </div>
@@ -275,7 +276,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold text-tx">{m.subject}</p>
                         <span className="shrink-0 text-etiqueta text-tx-3">
-                          {formatDate(m.createdAt)} {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          {dataDeBrasilia(m.createdAt)} {horaDeBrasilia(m.createdAt)}
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-tx-3">

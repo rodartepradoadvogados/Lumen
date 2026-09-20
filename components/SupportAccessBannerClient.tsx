@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldAlert, X } from "lucide-react";
 import { endSupportAccessAsOffice } from "@/lib/actions/supportAccess";
+import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
 
 function formatRemaining(ms: number): string {
   if (ms <= 0) return "0:00";
@@ -46,7 +47,7 @@ export default function SupportAccessBannerClient({
     return () => clearInterval(id);
   }, [expiresAt, router]);
 
-  const startedLabel = new Date(startedAtIso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const startedLabel = horaDeBrasilia(new Date(startedAtIso));
 
   return (
     // `bg-atencao` (vinho) opaco e legível nos dois temas — mesmo raciocínio em

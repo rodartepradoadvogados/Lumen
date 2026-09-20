@@ -14,6 +14,7 @@ import {
 import { adminGenerateResetLink } from "@/lib/actions/auth";
 import { Badge } from "@/components/ui";
 import PhoneInput from "@/components/PhoneInput";
+import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista/Secretária", "Marketing", "Contador"];
 
@@ -202,7 +203,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
 
   if (linkOpen) {
     const expiresLabel = linkResult
-      ? new Date(linkResult.expiresAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+      ? new Date(linkResult.expiresAt).toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
       : null;
     return (
       <div className="px-5 py-3 space-y-2 bg-sf-apoio">

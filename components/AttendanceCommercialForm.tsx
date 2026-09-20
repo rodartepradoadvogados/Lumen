@@ -7,6 +7,7 @@ import { formatCurrency, formatDate } from "@/components/ui";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { Pencil, CheckCircle2 } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 const leadSourceLabels: Record<string, string> = {
   INDICACAO: "Indicação",
@@ -95,13 +96,13 @@ export default function AttendanceCommercialForm({
         <div className="flex justify-between text-sm border-b border-regua pb-2">
           <span className="text-tx-2">Prazo de resposta ao lead</span>
           <span className={`font-medium text-right ${responseDeadlineOverdue ? "text-urgente" : "text-tx"}`}>
-            {responseDeadline ? `${formatDate(responseDeadline)} ${new Date(responseDeadline).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "—"}
+            {responseDeadline ? `${dataDeBrasilia(responseDeadline)} ${horaDeBrasilia(responseDeadline)}` : "—"}
           </span>
         </div>
         {firstResponseAt ? (
           <div className="flex items-center gap-1.5 text-xs text-concluido dark:text-concluido">
             <CheckCircle2 size={13} /> Respondido em {formatDate(firstResponseAt)}{" "}
-            {new Date(firstResponseAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            {horaDeBrasilia(new Date(firstResponseAt))}
           </div>
         ) : (
           <button

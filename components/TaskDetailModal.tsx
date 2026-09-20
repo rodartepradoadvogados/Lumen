@@ -11,12 +11,13 @@ import { formatDate } from "@/components/ui";
 import { typeMeta } from "@/components/AgendaView";
 import ModalShell from "@/components/ModalShell";
 import RichTextEditor from "@/components/RichTextEditor";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 // Rótulo discreto de auditoria (tooltip) exibido no botão de concluir/reabrir quando a
 // tarefa já está concluída — mesmo formato usado na Agenda (components/AgendaView.tsx).
 function completedLabel(name: string, completedAt: string): string {
   const d = new Date(completedAt);
-  return `Concluído por ${name} em ${d.toLocaleDateString("pt-BR")} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `Concluído por ${name} em ${dataDeBrasilia(d)} às ${horaDeBrasilia(d)}`;
 }
 
 // "Card do compromisso": mostra e permite editar uma tarefa/evento/audiência/perícia/prazo, com
