@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
-import { podeVerAtendimentos, filtroDoAtendimento, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
+import { podeVerAtendimentos, veTodoOAtendimento, filtroDoAtendimento, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
 import { TAMANHO_DO_TOKEN } from "@/lib/recusaDoLead";
 import { motivosDoEscritorio } from "@/lib/motivosDeRecusa";
 import { lerPeriodoEmBrasilia } from "@/lib/horaDeBrasilia";
@@ -145,4 +145,79 @@ export async function registrarAberturaDaCarta(token: string): Promise<void> {
     data: { abertaEm: new Date() },
   });
   await prisma.recusaDeAtendimento.updateMany({ where: { token }, data: { aberturas: { increment: 1 } } });
+}
+
+// ── A FILA DE RECUSADOS ─────────────────────────────────────────────────────
+//
+// Quem analisa é quem vê o escritório inteiro — sócio E recepção. O dono decidiu assim, contra a
+// minha recomendação de restringir a sócio, e a consequência veio junto: reverter uma recusa passa
+// a ter mais de um autor possível, então quem reverteu e quando ficam gravados.
+
+async function quemAnalisa(recusaId: string) {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { erro: "Sessão expirada. Faça login novamente." as const };
+  // `veTodoOAtendimento`, e não `podeVerAtendimentos`: a fila de recusados é do escritório inteiro,
+  // e quem só vê os próprios atendimentos não tem o que decidir sobre o lead de outra pessoa.
+  if (!veTodoOAtendimento(viewer)) return { erro: SEM_ACESSO_AO_ATENDIMENTO };
+  const recusa = await prisma.recusaDeAtendimento.findFirst({
+    where: { id: recusaId, officeId: viewer.officeId, estado: "EM_ANALISE" },
+    select: { id: true, attendanceId: true },
+  });
+  // Estado errado e recusa inexistente dão a mesma resposta: quem já foi arquivado ou revertido
+  // não está mais em análise, e a tela de quem clicou está velha de qualquer jeito.
+  if (!recusa) return { erro: "Esta recusa não está mais em análise." as const };
+  return { viewer, recusa };
+}
+
+/**
+ * Desfazer a recusa: o lead volta para a fila.
+ *
+ * O RELÓGIO NÃO RECOMEÇA. Um lead recuperado três dias depois com "volta para a fila em 15" seria
+ * alarme falso, e alarme falso ensina a ignorar alarme. O relógio existe para o lead que acabou de
+ * escrever; este aqui está voltando porque alguém reviu uma decisão, o que é outra coisa.
+ */
+export async function reverterRecusa(recusaId: string): Promise<{ erro?: string }> {
+  const r = await quemAnalisa(recusaId);
+  if ("erro" in r) return { erro: r.erro };
+
+  await prisma.$transaction([
+    prisma.recusaDeAtendimento.update({
+      where: { id: r.recusa.id },
+      data: { estado: "REVERTIDA", revertidaPorId: r.viewer.id, revertidaEm: new Date() },
+    }),
+    prisma.attendance.update({
+      where: { id: r.recusa.attendanceId },
+      // Volta para triagem, e NÃO para "novo": ele já passou por triagem uma vez, e devolvê-lo
+      // como novo apagaria o histórico de que alguém já olhou.
+      //
+      // `prazoDeRespostaAte: null` é o relógio parado — ver a nota acima.
+      data: { status: "EM_TRIAGEM", prazoDeRespostaAte: null },
+    }),
+  ]);
+  recarregar(r.recusa.attendanceId);
+  revalidatePath("/atendimento/funil");
+  return {};
+}
+
+/**
+ * Arquivar de vez: sai da fila de trabalho e vira histórico.
+ *
+ * A fila de recusados é uma fila de TRABALHO. Tudo que não exige decisão precisa sair dela, ou em
+ * seis meses ela é um cemitério que ninguém abre. O lead continua achável pela busca — arquivar
+ * não apaga nada.
+ */
+export async function arquivarRecusa(recusaId: string): Promise<{ erro?: string }> {
+  const r = await quemAnalisa(recusaId);
+  if ("erro" in r) return { erro: r.erro };
+
+  await prisma.$transaction([
+    prisma.recusaDeAtendimento.update({
+      where: { id: r.recusa.id },
+      data: { estado: "ARQUIVADA", arquivadaPorId: r.viewer.id, arquivadaEm: new Date() },
+    }),
+    prisma.attendance.update({ where: { id: r.recusa.attendanceId }, data: { status: "ARQUIVADO" } }),
+  ]);
+  recarregar(r.recusa.attendanceId);
+  revalidatePath("/atendimento/funil");
+  return {};
 }
