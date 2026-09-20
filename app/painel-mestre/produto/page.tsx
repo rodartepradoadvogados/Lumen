@@ -1,6 +1,7 @@
 import { requirePlatformAccess } from "@/lib/platformMember";
 import { prisma } from "@/lib/prisma";
 import { LumenPanel, LumenPanelHeader, LumenStat, LumenStatusDot } from "@/components/painelMestre/LumenUi";
+import MotivosPadraoPanel from "@/components/painelMestre/MotivosPadraoPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -47,10 +48,24 @@ export default async function ProdutoPage() {
 
   // Tabelas globais do robô Python (sem officeId — ver comentário no schema) — mesma fonte de
   // dados já lida em app/(app)/configuracoes/page.tsx, aqui só numa visão própria da Lúmen.
-  const [logs, processosMonitoradosCount] = await Promise.all([
+  const [logs, processosMonitoradosCount, padroes] = await Promise.all([
     prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 30 }),
     prisma.roboProcessoMonitorado.count(),
+    // Os motivos-padrão, com a contagem de quantos escritórios reescreveram cada um. Esse número
+    // é o termômetro do texto: um motivo que metade reescreve é um motivo mal escrito.
+    prisma.motivoDeRecusa.findMany({
+      where: { officeId: null },
+      select: { id: true, rotulo: true, descricao: true, desativado: true, _count: { select: { versoes: true } } },
+      orderBy: { ordem: "asc" },
+    }),
   ]);
+  const motivosPadrao = padroes.map((m) => ({
+    id: m.id,
+    rotulo: m.rotulo,
+    descricao: m.descricao,
+    desativado: m.desativado,
+    emUso: m._count.versoes,
+  }));
 
   const ultimoLogDatajud = logs.find((l) => l.fonte === "DATAJUD");
   const ultimoLogDjen = logs.find((l) => l.fonte === "DJEN");
@@ -63,6 +78,17 @@ export default async function ProdutoPage() {
           Saúde dos robôs de captura (DJEN e Datajud) — somente leitura
         </p>
       </div>
+
+      {/* O catálogo que todo escritório recebe. Fica no Produto, e não em nenhum escritório
+          específico, porque é decisão de produto: é o texto que a plataforma inteira usa para
+          recusar um lead. */}
+      <LumenPanel>
+        <LumenPanelHeader
+          title="Motivos de recusa — padrão da plataforma"
+          subtitle="A lista que todo escritório recebe, e que cada um pode ajustar para si"
+        />
+        <MotivosPadraoPanel motivos={motivosPadrao} />
+      </LumenPanel>
 
       <LumenPanel>
         <LumenPanelHeader title="Robôs de captura" subtitle="Última execução de cada fonte" />

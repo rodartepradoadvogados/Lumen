@@ -151,4 +151,25 @@ teste("a varredura está de fato lendo o projeto, e não uma pasta vazia", () =>
   verdade(comHora.length > 15, `só ${comHora.length} usos de horaDeBrasilia encontrados — a varredura não está lendo certo`);
 });
 
+teste("a linha do tempo da Assessoria diz, evento por evento, o que a data dele é", () => {
+  // A tela junta quatro origens na mesma lista: três instantes e um DIA (o honorário pago, que
+  // ninguém anota com hora). Formatar os quatro igual erra alguém sempre — ler no fuso estraga o
+  // pagamento (15/03 vira 14/03), não ler estraga os outros três (22h de terça vira quarta).
+  //
+  // O tipo já obriga cada evento novo a declarar o seu `quando` — quem esquecer não compila. O que
+  // esta varredura guarda é a CLASSIFICAÇÃO: trocar "dia" por "instante" no honorário compila
+  // igual e volta a errar a data do pagamento.
+  const fonte = readFileSync("components/assessoria/AssessoriaTimelineTab.tsx", "utf8");
+  const linhas = fonte.split("\n").filter((l) => l.includes("events.push({"));
+  igual(linhas.length, 4, "a linha do tempo deixou de ter quatro origens — reveja a classificação: ");
+
+  const doPagamento = linhas.find((l) => l.includes("pago"));
+  verdade(Boolean(doPagamento), "não achei o evento do honorário pago");
+  verdade(doPagamento!.includes('quando: "dia"'), "o honorário pago é DIA, não instante — ler no fuso anda um dia para trás");
+
+  for (const l of linhas.filter((x) => x !== doPagamento)) {
+    verdade(l.includes('quando: "instante"'), `evento com hora marcado como dia: ${l.trim().slice(0, 80)}`);
+  }
+});
+
 resumo("Trava do fuso");
