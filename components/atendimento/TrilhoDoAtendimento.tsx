@@ -19,9 +19,9 @@ import type { ContatoConhecido } from "@/lib/quemEEsteNumero";
 // precisamos?"). "Enviar ao lead" é obrigação do escritório, e mora à parte, porque a providência é
 // de quem está lendo.
 //
-// "TRANSFORMAR EM PROCESSO" É CONTORNADO, e é uma âncora para o formulário que segue abaixo, no
-// mesmo rolar. Contornado porque a tela tem UM botão cheio, o Enviar: transformar em processo é uma
-// decisão de minutos, responder ao cliente é de segundos, e o peso visual tem que dizer isso.
+// "TRANSFORMAR EM PROCESSO" É CONTORNADO, e leva à segunda guia, na divisória certa. Contornado
+// porque a tela tem UM botão cheio, o Enviar: transformar em processo é uma decisão de minutos,
+// responder ao cliente é de segundos, e o peso visual tem que dizer isso.
 // ============================================================================
 
 export type ItemDePendencia = {
@@ -141,13 +141,13 @@ export default function TrilhoDoAtendimento({
       <div className="shrink-0 border-t border-regua bg-sf-fundo px-5 pb-5 pt-4">
         {!jaConvertido && (
           <Link
-            href="#transformar"
+            href={`/atendimento/${attendanceId}?aba=ficha&bloco=processo`}
             className="mb-3 flex min-h-11 items-center justify-center border border-regua-forte bg-sf px-4 text-sm font-semibold text-tx-2 transition-colors hover:bg-sf-apoio hover:text-tx"
           >
             Transformar em processo
           </Link>
         )}
-        <p className="text-xs text-tx-3">Ficha completa, tarefas, anexos e anotações seguem abaixo, no mesmo rolar.</p>
+        <p className="text-xs text-tx-3">Honorário, pendências, e-mail, tarefas, anexos e anotações estão na guia “Ficha completa”.</p>
       </div>
     </div>
   );
