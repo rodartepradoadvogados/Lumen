@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAssessoriaDetail, retryAssessoriaDriveFolder } from "@/lib/actions/assessoria";
 import { prisma } from "@/lib/prisma";
+import { mesEAnoDeBrasilia } from "@/lib/horaDeBrasilia";
 import { Badge, formatCurrency } from "@/components/ui";
 import AssessoriaOverviewTab from "@/components/assessoria/AssessoriaOverviewTab";
 import AssessoriaDocumentosTab from "@/components/assessoria/AssessoriaDocumentosTab";
@@ -106,7 +107,11 @@ export default async function AssessoriaDetailPage({
             {assessoria.client.document && <span>CNPJ {assessoria.client.document}</span>}
             {assessoria.responsible && <><span className="opacity-40">·</span><span>Responsável: {assessoria.responsible.name}</span></>}
             <span className="opacity-40">·</span>
-            <span>Desde {new Date(assessoria.startDate).toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" })}</span>
+            {/* startDate é instante (@default(now()), não vem de campo de data em lugar nenhum do
+                código — conferido). Sem fuso, um contrato aberto depois das 21h de Brasília podia
+                aparecer no mês seguinte. A mesma correção foi feita nas outras duas telas que
+                mostram este campo. */}
+            <span>Desde {mesEAnoDeBrasilia(assessoria.startDate)}</span>
           </div>
         </div>
         <Badge color={statusColors[assessoria.status] || "slate"}>{statusLabels[assessoria.status] || assessoria.status}</Badge>

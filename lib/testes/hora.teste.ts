@@ -8,6 +8,7 @@ import {
   inicioDoProximoMesEmBrasilia,
   inicioDoDiaEmBrasilia,
   lerPeriodoEmBrasilia,
+  mesEAnoDeBrasilia,
 } from "@/lib/horaDeBrasilia";
 
 // ============================================================================
@@ -161,6 +162,15 @@ teste("ler um dia inválido devolve nulo em vez de rolar para o mês seguinte", 
 teste("um escritório em Manaus lê uma hora a menos, e o mês dele começa uma hora depois", () => {
   igual(horaDeBrasilia(utc(2026, 9, 19, 12), "America/Manaus"), "08:00");
   igual(inicioDoMesEmBrasilia(utc(2026, 9, 19, 12), "America/Manaus").toISOString(), "2026-09-01T04:00:00.000Z");
+});
+
+teste("mês e ano saem no fuso do escritório, não no do servidor", () => {
+  // O caso que o defeito produzia: um contrato aberto às 22h do dia 30 de setembro em Brasília já
+  // é 1º de outubro em UTC, e a tela dizia "Desde 10/2026" para algo de setembro. Acontece três
+  // horas por dia, na virada do mês — raro o bastante para ninguém ligar os pontos.
+  igual(mesEAnoDeBrasilia(new Date("2026-10-01T01:00:00Z")), "09/2026");
+  igual(mesEAnoDeBrasilia(new Date("2026-09-30T22:00:00-03:00")), "09/2026");
+  igual(mesEAnoDeBrasilia(new Date("2026-10-01T00:30:00-03:00")), "10/2026");
 });
 
 resumo("Hora de Brasília");
