@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { teste, igual, verdade, resumo, codigoDe } from "./executar";
+import { lerDecisaoDaAna, montarPergunta } from "@/lib/agenteAtendimento";
+import { eixoAutorizado } from "@/lib/recusaPelaAna";
 import {
   EIXOS,
   EIXOS_DE_RECUSA,
@@ -174,17 +176,22 @@ teste("os critérios saem na ordem em que o escritório os pôs", () => {
 
 // ── A VARREDURA ─────────────────────────────────────────────────────────────
 
-teste("nada aqui revoga os limites duros do agente", () => {
-  // Os limites duros (não fecha contrato, não dá solução, não promete resultado) entram no pedido
-  // ANTES de qualquer texto de escritório. Se um dia os parâmetros passarem na frente deles, um
-  // escritório entusiasmado poderia autorizar a Ana a dizer o que ela nunca pode dizer.
-  const agente = codigoDe(readFileSync("lib/agenteAtendimento.ts", "utf8"));
-  const posLimites = agente.indexOf("LIMITES_DUROS.map");
-  const posParametros = agente.indexOf("parametros");
-  verdade(posLimites > 0, "os limites duros sumiram do pedido");
-  if (posParametros > 0) {
-    verdade(posLimites < posParametros, "os parâmetros do escritório passaram na frente dos limites duros");
-  }
+teste("os limites duros entram no pedido mesmo sem parâmetro nenhum", () => {
+  // Não fecha contrato, não dá solução, não promete resultado: entram SEMPRE, inclusive com tudo
+  // o mais vazio. A ordem em relação aos parâmetros é conferida mais abaixo, no pedido de verdade
+  // — a primeira versão deste caso comparava POSIÇÕES NO ARQUIVO-FONTE, que é um proxy: bastou
+  // nascer uma função com a palavra "parametros" no topo do módulo para ele acusar um problema
+  // que não existia.
+  const pedido = montarPergunta({
+    nomeDoAtendente: "Ana",
+    nomeDoEscritorio: "Escritório",
+    instrucoesDoEscritorio: null,
+    nomeDoCliente: "Maria",
+    historico: [],
+    mensagem: "Bom dia",
+  });
+  verdade(pedido.includes("O QUE VOCÊ NUNCA FAZ"), "os limites duros sumiram do pedido");
+  verdade(pedido.includes("NUNCA promete resultado"), "a promessa de resultado deixou de ser proibida");
 });
 
 teste("ler os parâmetros NÃO cria linha no banco", () => {
@@ -236,6 +243,175 @@ teste("nenhum padrão da plataforma entra nos parâmetros", () => {
   verdade(/officeId String\n/.test(bloco) || /officeId String$/m.test(bloco.split("\n").find((l) => l.includes("officeId String")) || ""),
     "o critério passou a aceitar escritório nulo (padrão de fábrica)");
   verdade(!bloco.includes("officeId String?"), "o critério passou a aceitar escritório nulo (padrão de fábrica)");
+});
+
+// ── O QUE A ANA RESPONDE, E O QUE O SISTEMA FAZ COM ISSO ────────────────────
+
+teste("o recado interno da proposta NUNCA chega ao cliente", () => {
+  // O erro que não se pode cometer: o cliente ler "acho que não devemos pegar este caso". Por isso
+  // o corte é bruto — da marca em diante é tudo interno, mesmo que ela venha no meio da mensagem.
+  const d = lerDecisaoDaAna(
+    "Obrigada pelas informações, vou passar ao advogado responsável.\n[[PROPOR_RECUSA]]\nO relato não fecha e a pessoa já trocou de escritório duas vezes.",
+  );
+  igual(d.texto, "Obrigada pelas informações, vou passar ao advogado responsável.");
+  verdade(!d.texto.includes("trocou de escritório"), "o recado interno vazou para o cliente");
+  verdade(!d.texto.includes("PROPOR_RECUSA"), "a marca vazou para o cliente");
+  igual(d.proposta, "O relato não fecha e a pessoa já trocou de escritório duas vezes.");
+});
+
+teste("marca no meio corta a mensagem — nunca vaza o que vem depois", () => {
+  // Trocar texto do cliente por segurança é o lado certo do erro.
+  const d = lerDecisaoDaAna("Boa tarde. [[PROPOR_RECUSA]] caso fraco. Mais alguma coisa?");
+  verdade(!d.texto.includes("caso fraco"), "o recado interno vazou");
+  verdade(!d.texto.includes("Mais alguma coisa"), "o corte parou antes do fim do recado interno");
+  igual(d.texto, "Boa tarde.");
+});
+
+teste("proposta sem explicação não vira proposta muda", () => {
+  // Uma proposta em branco na tela do advogado é pior que nenhuma: ele não sabe se a Ana não
+  // explicou ou se o sistema perdeu o texto.
+  const d = lerDecisaoDaAna("Vou passar ao advogado.\n[[PROPOR_RECUSA]]");
+  igual(d.proposta, "(a atendente não explicou o motivo)");
+});
+
+teste("as três marcas de recusa são lidas, e só elas", () => {
+  igual(lerDecisaoDaAna("Tudo bem. [[RECUSAR:MATERIA]]").recusa, "MATERIA");
+  igual(lerDecisaoDaAna("Tudo bem. [[RECUSAR:COMARCA]]").recusa, "COMARCA");
+  igual(lerDecisaoDaAna("Tudo bem. [[RECUSAR:VALOR]]").recusa, "VALOR");
+  // Eixo inventado não recusa. Recusar por motivo que ninguém reconhece é recusar por acaso.
+  igual(lerDecisaoDaAna("Tudo bem. [[RECUSAR:DOCUMENTO]]").recusa, null);
+  igual(lerDecisaoDaAna("Tudo bem. [[RECUSAR:CASO_FRACO]]").recusa, null);
+  verdade(!lerDecisaoDaAna("Tudo bem. [[RECUSAR:MATERIA]]").texto.includes("RECUSAR"), "a marca vazou");
+});
+
+teste("a espera de documento é lida e não vaza", () => {
+  const d = lerDecisaoDaAna("Pode me mandar a carteira de trabalho? [[AGUARDAR_DOCUMENTO]]");
+  igual(d.aguardarDocumento, true);
+  igual(d.texto, "Pode me mandar a carteira de trabalho?");
+  igual(d.recusa, null);
+  igual(lerDecisaoDaAna("Obrigada!").aguardarDocumento, false);
+});
+
+teste("a transferência continua sendo lida junto das marcas novas", () => {
+  const d = lerDecisaoDaAna("Vou passar ao advogado.\n[[TRANSFERIR:PEDIDO]]");
+  igual(d.gatilho, "PEDIDO");
+  igual(d.texto, "Vou passar ao advogado.");
+});
+
+// ── A TRAVA ─────────────────────────────────────────────────────────────────
+
+teste("a Ana só encerra no eixo que o ESCRITÓRIO escreveu", () => {
+  // A marca é escrita por um modelo de linguagem, que escreve [[RECUSAR:MATERIA]] com a mesma
+  // facilidade com que escreve qualquer outra coisa. Se a marca bastasse, o escritório que
+  // escreveu "não faço criminal" acabaria recusando um divórcio porque a Ana achou o caso fraco.
+  const soMateria = com({ criterios: [criterio("MATERIA", "criminal")] });
+  igual(eixoAutorizado(soMateria, "MATERIA"), true);
+  igual(eixoAutorizado(soMateria, "COMARCA"), false);
+  igual(eixoAutorizado(soMateria, "VALOR"), false);
+
+  const soPiso = com({ valorMinimoDaCausa: 1_500_000 });
+  igual(eixoAutorizado(soPiso, "VALOR"), true);
+  igual(eixoAutorizado(soPiso, "MATERIA"), false);
+
+  // Escritório sem nada escrito não autoriza nenhum eixo — nem com a marca vindo perfeita.
+  for (const eixo of ["MATERIA", "COMARCA", "VALOR"] as const) {
+    igual(eixoAutorizado(vazio, eixo), false);
+  }
+  // E piso zero continua não sendo piso.
+  igual(eixoAutorizado(com({ valorMinimoDaCausa: 0 }), "VALOR"), false);
+
+  // EIXO QUE NÃO EXISTE NÃO AUTORIZA. O tipo impede isto no código de hoje, mas a trava é de
+  // execução: a resposta vem de um modelo de linguagem e passa por um banco, e um dia chega aqui
+  // uma palavra que ninguém previu. A última linha da função tem de ser "não" — se for "sim",
+  // qualquer eixo inventado passa a encerrar caso.
+  const cheio = com({ criterios: [criterio("MATERIA", "criminal"), criterio("COMARCA", "Manaus")], valorMinimoDaCausa: 1000 });
+  for (const inventado of ["DOCUMENTO", "CASO_FRACO", "", "materia"]) {
+    igual(eixoAutorizado(cheio, inventado as never), false, `eixo inventado autorizou: ${inventado} `);
+  }
+});
+
+teste("marca sem autorização vira PROPOSTA, e não silêncio", () => {
+  // Ignorar em silêncio esconderia o sinal de que algo está mal configurado: o escritório nunca
+  // saberia que a máquina anda querendo encerrar casos por critério que ele não escreveu.
+  const fonte = codigoDe(readFileSync("lib/atendenteResponde.ts", "utf8"));
+  const i = fonte.indexOf("if (recusa && !eixoAutorizado(parametros, recusa))");
+  verdade(i > 0, "a trava do eixo autorizado sumiu de atendenteResponde");
+  const bloco = fonte.slice(i, i + 400);
+  verdade(bloco.includes("proposta ="), "a marca não autorizada não vira proposta");
+  verdade(bloco.includes("recusa = null"), "a recusa não autorizada continua valendo");
+});
+
+teste("recusar e transferir ao mesmo tempo não acontece", () => {
+  // O caso recusado saiu das listas ativas e já está na fila de análise da Triagem. Transferir
+  // além disso poria o mesmo atendimento em dois lugares que dizem coisas diferentes.
+  const fonte = codigoDe(readFileSync("lib/atendenteResponde.ts", "utf8"));
+  const i = fonte.indexOf("await registrarRecusaDaAna(");
+  verdade(i > 0, "a recusa pela Ana sumiu");
+  verdade(fonte.slice(i, i + 400).includes("gatilho = null"), "o caso recusado continua sendo transferido");
+});
+
+teste("encerrar e esperar documento ao mesmo tempo não acontece", () => {
+  const fonte = codigoDe(readFileSync("lib/atendenteResponde.ts", "utf8"));
+  verdade(/if \(decisao.aguardarDocumento && !recusa\)/.test(fonte),
+    "a espera de documento passou a conviver com a recusa");
+});
+
+teste("a espera de documento NÃO mexe no status do atendimento", () => {
+  // É a regra inteira do quarto eixo: falta de papel é "ainda não", nunca "não".
+  const fonte = codigoDe(readFileSync("lib/recusaPelaAna.ts", "utf8"));
+  const i = fonte.indexOf("export async function registrarEsperaDeDocumento");
+  const corpo = fonte.slice(i);
+  verdade(i > 0, "a espera de documento sumiu");
+  verdade(!corpo.includes("status:"), "a espera de documento passou a mexer no status");
+  verdade(!corpo.includes("RECUSADO"), "a espera de documento passou a recusar");
+});
+
+teste("a recusa da Ana fica marcada como feita por máquina", () => {
+  // É o que permite, depois, medir se ela está recusando bem — e é o que a fila de recusados da
+  // Triagem mostra a quem vai revisar.
+  const fonte = codigoDe(readFileSync("lib/recusaPelaAna.ts", "utf8"));
+  verdade(fonte.includes("porAgente: true"), "a recusa da Ana não se identifica como da máquina");
+  verdade(!/recusadaPorId:/.test(fonte), "a recusa da máquina passou a ter autor humano");
+  verdade(fonte.includes('data: { status: "RECUSADO" }'), "o atendimento recusado não sai das listas ativas");
+  verdade(!fonte.includes('"ARQUIVADO"'), "recusado virou arquivado — decisão revista vira fim da linha");
+});
+
+teste("os parâmetros entram no pedido depois dos limites duros", () => {
+  // Um contorno que passasse na frente dos limites duros deixaria um escritório autorizar a Ana a
+  // dizer o que ela nunca pode dizer.
+  const pedido = montarPergunta({
+    nomeDoAtendente: "Ana",
+    nomeDoEscritorio: "Escritório",
+    instrucoesDoEscritorio: "Somos especialistas em direito médico.",
+    parametros: textoDosParametros(com({ criterios: [criterio("MATERIA", "criminal")] })),
+    nomeDoCliente: "Maria",
+    historico: [],
+    mensagem: "Bom dia",
+  });
+  const posLimites = pedido.indexOf("O QUE VOCÊ NUNCA FAZ");
+  const posParametros = pedido.indexOf("QUANDO ESTE ESCRITÓRIO NÃO PEGA O CASO");
+  verdade(posLimites > 0 && posParametros > 0, "uma das camadas sumiu do pedido");
+  verdade(posLimites < posParametros, "os parâmetros passaram na frente dos limites duros");
+  // E a frase que resolve conflito vem DEPOIS dos dois, valendo também para os parâmetros.
+  verdade(pedido.indexOf("vale o 'NUNCA'") > posParametros, "a frase de conflito não cobre os parâmetros");
+});
+
+teste("a proposta chega a uma pessoa — nas duas telas, e marcada como interna", () => {
+  // Uma proposta que o sistema grava e nenhuma tela mostra é pior do que nenhuma: o caso fica
+  // parado esperando uma decisão que ninguém sabe que precisa tomar. E ela tem de estar dita como
+  // NOTA INTERNA, senão alguém copia a frase para o WhatsApp achando que o cliente já a leu.
+  const aviso = codigoDe(readFileSync("components/atendimento/AvisoDaAna.tsx", "utf8"));
+  verdade(aviso.includes("propôs recusar"), "o aviso não diz o que a atendente quis fazer");
+  verdade(aviso.includes("O cliente não leu isto") || aviso.includes("cliente não leu"),
+    "o aviso não diz que a nota é interna");
+  verdade(aviso.includes("Isto não é recusa"), "a espera de documento não se diz não-recusa na tela");
+
+  for (const tela of ["app/(app)/atendimento/[id]/page.tsx", "app/m/atendimento/[id]/page.tsx"]) {
+    const fonte = codigoDe(readFileSync(tela, "utf8"));
+    verdade(/<AvisoDaAna\s/.test(fonte), `${tela} não mostra o que a atendente deixou`);
+    verdade(fonte.includes("propostaDeRecusa"), `${tela} não passa a proposta`);
+    verdade(fonte.includes("documentoAte"), `${tela} não passa a espera de documento`);
+  }
 });
 
 resumo("Parâmetros de recusa da Ana");

@@ -148,12 +148,79 @@ export function extrairTransferencia(resposta: string): { texto: string; gatilho
   return { texto, gatilho };
 }
 
+// ============================================================================
+// AS MARCAS DE DECISÃO — recusar, propor, esperar documento.
+//
+// Mesmo mecanismo da transferência, e pelo mesmo motivo: procurar a intenção no texto da resposta
+// seria adivinhação. A diferença é o preço do erro. Uma transferência errada manda o lead para a
+// pessoa errada; uma RECUSA errada diz a uma pessoa de verdade que o escritório não vai pegar o
+// caso dela.
+//
+// A MARCA DA PROPOSTA LEVA UM RECADO ATRÁS, e esse recado é interno: a Ana escreve, depois da
+// marca, por que acha que o escritório não deveria pegar o caso. Por isso a regra de corte aqui é
+// DELIBERADAMENTE BRUTA — da marca em diante, tudo é interno e nada vai para o cliente. Se a Ana
+// puser a marca no meio da mensagem, o cliente recebe menos texto do que ela escreveu; o contrário
+// (o cliente ler "acho que não devemos pegar este caso") é o erro que não se pode cometer.
+// ============================================================================
+
+const EIXOS_DE_RECUSA_LIDOS = ["MATERIA", "COMARCA", "VALOR"] as const;
+export type EixoRecusado = (typeof EIXOS_DE_RECUSA_LIDOS)[number];
+
+const MARCA_RECUSA = /\[\[\s*RECUSAR\s*:\s*([A-Z_]+)\s*\]\]/i;
+const MARCA_PROPOSTA = /\[\[\s*PROPOR_RECUSA\s*\]\]/i;
+const MARCA_DOCUMENTO = /\[\[\s*AGUARDAR_DOCUMENTO\s*\]\]/i;
+
+export type DecisaoDaAna = {
+  /** O que vai para o WhatsApp do cliente, já sem marca nenhuma. */
+  texto: string;
+  gatilho: GatilhoLido | null;
+  /** Ela quis encerrar. O sistema ainda confere se o escritório autorizou este eixo. */
+  recusa: EixoRecusado | null;
+  /** A frase interna que ela escreveu para o escritório. Nunca sai para o cliente. */
+  proposta: string | null;
+  aguardarDocumento: boolean;
+};
+
+export function lerDecisaoDaAna(resposta: string): DecisaoDaAna {
+  const bruto = resposta || "";
+
+  // DA PROPOSTA EM DIANTE É TUDO INTERNO. Corta primeiro, antes de qualquer outra leitura.
+  const achouProposta = bruto.match(MARCA_PROPOSTA);
+  const visivel = achouProposta ? bruto.slice(0, achouProposta.index) : bruto;
+  const proposta = achouProposta
+    ? bruto
+        .slice((achouProposta.index ?? 0) + achouProposta[0].length)
+        // Outra marca dentro do recado interno não é decisão, é texto — tira para não virar ruído.
+        .replace(new RegExp(MARCA_RECUSA, "gi"), "")
+        .replace(new RegExp(MARCA_DOCUMENTO, "gi"), "")
+        .replace(new RegExp(MARCA, "gi"), "")
+        .replace(/\s+/g, " ")
+        .trim() || "(a atendente não explicou o motivo)"
+    : null;
+
+  const achouRecusa = visivel.match(MARCA_RECUSA);
+  const eixoBruto = achouRecusa?.[1]?.toUpperCase();
+  const recusa = (EIXOS_DE_RECUSA_LIDOS as readonly string[]).includes(eixoBruto || "")
+    ? (eixoBruto as EixoRecusado)
+    : null;
+
+  const aguardarDocumento = MARCA_DOCUMENTO.test(visivel);
+
+  const { texto, gatilho } = extrairTransferencia(
+    visivel.replace(new RegExp(MARCA_RECUSA, "gi"), "").replace(new RegExp(MARCA_DOCUMENTO, "gi"), ""),
+  );
+
+  return { texto, gatilho, recusa, proposta, aguardarDocumento };
+}
+
 export function montarPergunta(entrada: {
   nomeDoAtendente: string;
   nomeDoEscritorio: string;
   instrucoesDoEscritorio: string | null;
   /** O roteiro da campanha, quando a conversa veio de um anúncio. */
   campanha?: string | null;
+  /** O contorno do escritório: quando ela pode encerrar, e a trava de que fora dali só propõe. */
+  parametros?: string | null;
   nomeDoCliente: string;
   historico: { de: "cliente" | "escritorio"; texto: string }[];
   mensagem: string;
@@ -188,7 +255,14 @@ export function montarPergunta(entrada: {
     partes.push("\nO QUE ESTE ESCRITÓRIO ACRESCENTA:", entrada.instrucoesDoEscritorio.trim());
   }
 
-  if (entrada.campanha?.trim() || entrada.instrucoesDoEscritorio?.trim()) {
+  // OS PARÂMETROS ENTRAM DEPOIS DOS LIMITES DUROS E DO TEXTO DO ESCRITÓRIO, e antes da frase que
+  // resolve conflito — para que a frase valha também para eles. Um contorno que passasse na frente
+  // dos limites duros deixaria um escritório autorizar a Ana a dizer o que ela nunca pode dizer.
+  if (entrada.parametros?.trim()) {
+    partes.push("\nQUANDO ESTE ESCRITÓRIO NÃO PEGA O CASO:", entrada.parametros.trim());
+  }
+
+  if (entrada.campanha?.trim() || entrada.instrucoesDoEscritorio?.trim() || entrada.parametros?.trim()) {
     partes.push("\nSe algo acima conflitar com 'O QUE VOCÊ NUNCA FAZ', vale o 'NUNCA'.");
   }
 

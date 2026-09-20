@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { Card } from "@/components/ui";
 import MobileAttendanceStatusSelect from "@/components/mobile/MobileAttendanceStatusSelect";
 import FunnelStageSelect from "@/components/FunnelStageSelect";
+import AvisoDaAna from "@/components/atendimento/AvisoDaAna";
 import MobileConvertAttendanceForm from "@/components/mobile/MobileConvertAttendanceForm";
 import MobileCaseAttachmentsTab from "@/components/mobile/MobileCaseAttachmentsTab";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
@@ -148,6 +149,17 @@ export default async function MobileAttendanceDetail({
           <div className="mt-0.5">
             <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
           </div>
+        </div>
+
+        {/* Mesma coisa que no computador, e é de propósito: quem lê o caso no celular tem de ver a
+            proposta de recusa, senão ela só existe para metade da equipe. */}
+        <div className="mt-2">
+          <AvisoDaAna
+            proposta={a.propostaDeRecusa}
+            propostaEm={a.propostaDeRecusaEm}
+            documentoAte={a.documentoAte}
+            documentoPendente={a.documentoPendente}
+          />
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-2">

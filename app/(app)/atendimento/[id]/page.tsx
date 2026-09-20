@@ -8,6 +8,7 @@ import DeleteEntityButton from "@/components/DeleteEntityButton";
 import ConvertAttendanceForm from "@/components/ConvertAttendanceForm";
 import AttendanceStatusSelect from "@/components/AttendanceStatusSelect";
 import FunnelStageSelect from "@/components/FunnelStageSelect";
+import AvisoDaAna from "@/components/atendimento/AvisoDaAna";
 import AttendanceCommercialForm from "@/components/AttendanceCommercialForm";
 import AttendancePendenciasPanel from "@/components/AttendancePendenciasPanel";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
@@ -224,6 +225,19 @@ export default async function AttendanceDetailPage({
               </div>
               <div className="mt-1">
                 <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
+              </div>
+
+              {/* O que a atendente deixou para uma pessoa decidir. Fica no cabeçalho, e não numa
+                  guia, porque uma proposta de recusa escondida atrás de um clique é uma proposta
+                  que ninguém lê — e o caso segue parado esperando uma decisão que ninguém sabe
+                  que existe. */}
+              <div className="mt-2">
+                <AvisoDaAna
+                  proposta={a.propostaDeRecusa}
+                  propostaEm={a.propostaDeRecusaEm}
+                  documentoAte={a.documentoAte}
+                  documentoPendente={a.documentoPendente}
+                />
               </div>
               <p className="mt-1.5 text-xs text-tx-2">
                 {telefoneDoContato && <span>{telefoneLegivel(telefoneDoContato)}</span>}
