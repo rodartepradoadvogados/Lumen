@@ -19,12 +19,16 @@ import {
   ERRO_TRANSCRICAO_NAO_CONFIGURADA,
   type ConfigDeTranscricao,
 } from "@/lib/transcricaoDeAudio";
+import { ORCAMENTO_TRANSCRICAO_MS } from "@/lib/orcamentoDoPedido";
 
-// Um áudio de voz do WhatsApp não passa de poucos minutos (o próprio app limita a gravação); 60s de
-// folga para o upload + a transcrição de verdade é generoso sem travar o webhook indefinidamente se
-// o serviço configurado ficar mudo. Bem mais curto que o teto do Hermes (ver lib/hermesPonte.ts) —
-// que é a chamada mais lenta desta corrente, e é onde o corte deve doer primeiro.
-const ESPERA_MS = 60_000;
+// A fatia de tempo que a chamada de transcrição pode consumir é IMPORTADA de
+// lib/orcamentoDoPedido.ts, não um número solto de novo — é o mesmo valor que o orçamento do
+// pedido inteiro (webhook → mídia → transcrição → Hermes) usa pra calcular quanto sobra pro
+// Hermes depois. Subir este número sem olhar pro resto do orçamento não é mais possível "sem
+// querer": é a MESMA constante, e lib/testes/transcricaoDeAudio.teste.ts trava a aritmética do
+// conjunto (ver a nota extensa em lib/orcamentoDoPedido.ts sobre o bug que isto conserta — 105s
+// do Hermes mais até 60s daqui somavam mais que os 120s da própria função).
+const ESPERA_MS = ORCAMENTO_TRANSCRICAO_MS;
 
 function configDoAmbiente(): ConfigDeTranscricao | null {
   return lerConfigDeTranscricao({

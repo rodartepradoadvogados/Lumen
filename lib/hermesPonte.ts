@@ -31,7 +31,12 @@ import { mensagemDeErro } from "@/lib/mensagemDeErro";
 // da ponte, do outro lado, espera 110s pelo Hermes. Com 90s aqui, o Lúmen desistia enquanto a
 // ponte ainda estava trabalhando — quinze segundos de folga real jogados fora, e uma resposta que
 // já estava vindo virava erro.
-const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 105_000);
+//
+// EXPORTADA (só a partir da revisão que achou o orçamento de tempo furado, ver
+// lib/orcamentoDoPedido.ts) para `esperaParaHermes` usar este mesmo número como TETO — o Hermes
+// nunca espera MAIS do que já esperava antes, mesmo quando sobra orçamento de pedido de sobra
+// (ex.: mensagem de texto, sem mídia nem transcrição pela frente).
+export const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 105_000);
 
 /**
  * O nome do perfil do Hermes para um escritório.
@@ -189,6 +194,13 @@ export async function perguntarAoHermes(dados: {
    * vazaria para um estagiário que soubesse formular a pergunta.
    */
   ferramentas?: { url: string; credencial: string };
+  /**
+   * Quanto esperar por ESTA pergunta, substituindo o padrão (`ESPERA_MS`) — usado pelo webhook do
+   * WhatsApp para nunca esperar mais do que sobrou do orçamento do PEDIDO inteiro (ver
+   * lib/orcamentoDoPedido.ts:esperaParaHermes). `undefined` mantém o padrão de sempre — é o que os
+   * outros dois chamadores (app/api/admin/hermes, app/api/assistente) continuam fazendo.
+   */
+  esperaMs?: number;
 }): Promise<RespostaHermes> {
   const corpo = (await chamar("/chat", {
     corpo: {
@@ -198,6 +210,7 @@ export async function perguntarAoHermes(dados: {
       sessao: dados.sessao || undefined,
       ferramentas: dados.ferramentas,
     },
+    esperaMs: dados.esperaMs,
   })) as { resposta?: unknown; sessao?: unknown };
 
   const texto = typeof corpo.resposta === "string" ? corpo.resposta.trim() : "";

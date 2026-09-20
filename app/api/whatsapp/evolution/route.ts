@@ -4,9 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { ingestIncomingWhatsapp } from "@/lib/whatsapp";
 import { parseEntradaEvolution } from "@/lib/whatsappEvolution";
 import { atendenteResponde } from "@/lib/atendenteResponde";
+import { confirmarRecebimentoDeAudio } from "@/lib/confirmacaoDeAudio";
+import { dispararTranscricaoAssincrona } from "@/lib/transcricaoAssincrona";
 
 export const dynamic = "force-dynamic";
-// O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido.
+// O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido — isto
+// continua valendo para mensagem de TEXTO. Para ÁUDIO não vale mais: a transcrição e a resposta de
+// verdade rodam FORA deste pedido (ver app/api/transcricao/processar/route.ts), exatamente porque
+// as duas juntas (Hermes + transcrição) somavam mais que este teto — ver lib/orcamentoDoPedido.ts.
 export const maxDuration = 120;
 
 // ============================================================================
@@ -68,8 +73,15 @@ export async function POST(req: NextRequest) {
     // O atendente responde DENTRO deste pedido, e não depois: a Evolution não reenvia por
     // demora, e uma resposta que sai dois minutos atrasada, para um cliente esperando no
     // WhatsApp, já não é resposta. Ele nunca lança — falha vira motivo registrado, e a mensagem
-    // fica lá esperando uma pessoa.
-    if (attendanceId) await atendenteResponde(attendanceId);
+    // fica lá esperando uma pessoa. ÁUDIO é a exceção — ver app/api/whatsapp/route.ts.
+    if (attendanceId) {
+      if (entrada.midia?.tipo === "AUD") {
+        await confirmarRecebimentoDeAudio(attendanceId);
+        dispararTranscricaoAssincrona(entrada.waMessageId);
+      } else {
+        await atendenteResponde(attendanceId);
+      }
+    }
   } catch (e) {
     // NUNCA devolver erro: a Evolution reenviaria em laço. Registra e confirma o recebimento.
     console.error("[whatsapp evolution] erro ao processar mensagem:", e);

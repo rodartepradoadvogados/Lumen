@@ -286,12 +286,56 @@ teste("o upload da mídia recebida nunca pode derrubar o webhook", () => {
   );
 });
 
-teste("processarMidiaRecebida se recusa a chamar a Meta sem o id da mídia", () => {
+// A partir da revisão que introduziu o orçamento de tempo (lib/orcamentoDoPedido.ts), o download
+// deixou de acontecer DENTRO de processarMidiaRecebida — foi extraído pra baixarMidiaDoWhatsapp,
+// chamada UMA VEZ SÓ em ingestIncomingWhatsapp (antes, a mídia de áudio era baixada duas vezes:
+// uma pro Drive, outra pra transcrição — caro em banda e, principalmente, em TEMPO, que é escasso
+// dentro do `maxDuration` da rota). A trava abaixo migrou junto, pro mesmo lugar.
+teste("baixarMidiaDoWhatsapp se recusa a chamar a Meta sem o id da mídia", () => {
+  const fn = corpoDaFuncao(whatsappFonte, "baixarMidiaDoWhatsapp");
+  verdade(fn.length > 0, "baixarMidiaDoWhatsapp não existe mais, ou mudou de assinatura");
+  verdade(
+    /if\s*\(!midia\.mediaId\)\s*return null;/.test(fn),
+    "sem essa trava, baixarMidiaMeta seria chamado com mediaId indefinido — sem id não há mídia nenhuma pra baixar",
+  );
+  verdade(
+    /if\s*\(!config\.baseUrl \|\| !config\.apiKey \|\| !midia\.evolution\)\s*return null;/.test(fn),
+    "sem essa trava, baixarMidiaEvolution seria chamado com config incompleto",
+  );
+});
+
+teste("processarMidiaRecebida não baixa nada — recebe o buffer já pronto, de fora", () => {
+  // Rede de segurança contra a REGRESSÃO que motivou a extração: se alguém reintroduzir um
+  // download aqui dentro, o áudio volta a ser baixado duas vezes.
   const proc = corpoDaFuncao(whatsappFonte, "processarMidiaRecebida");
   verdade(proc.length > 0, "processarMidiaRecebida não existe mais, ou mudou de assinatura");
   verdade(
-    /if\s*\(!midia\.mediaId\)\s*return;/.test(proc),
-    "sem essa trava, baixarMidiaMeta seria chamado com mediaId indefinido — sem id não há mídia nenhuma pra baixar",
+    !/await baixarMidia(Meta|Evolution)\(/.test(proc),
+    "processarMidiaRecebida voltou a baixar mídia sozinha — o download deveria vir de fora, já pronto",
+  );
+});
+
+teste("MUTAÇÃO-ALVO: o áudio é baixado UMA VEZ SÓ — o mesmo buffer sobe pro Drive, e a transcrição lê o Drive depois", () => {
+  // A transcrição de verdade não roda mais aqui (ver lib/transcricaoAssincrona.ts) — ela lê o
+  // áudio do DRIVE depois, fora deste pedido. Então "baixado uma vez só" hoje significa:
+  // ingestIncomingWhatsapp chama baixarMidiaDoWhatsapp (Meta/Evolution) EXATAMENTE uma vez, e o
+  // resultado do upload (que é o que a transcrição vai reler) sai do MESMO `baixado`.
+  const inicio = whatsappFonte.indexOf("export async function ingestIncomingWhatsapp(");
+  const fim = whatsappFonte.indexOf("async function processarMidiaRecebida(", inicio);
+  verdade(inicio >= 0 && fim > inicio, "os marcadores de fatiamento do ingest não foram achados");
+  const ingest = codigoDe(whatsappFonte.slice(inicio, fim));
+
+  verdade(
+    (ingest.match(/baixarMidiaDoWhatsapp\(/g) || []).length === 1,
+    "ingestIncomingWhatsapp chama baixarMidiaDoWhatsapp mais de uma vez (ou nenhuma) — o download deixou de ser único",
+  );
+  verdade(
+    ingest.includes("processarMidiaRecebida(officeId, attendance.id, attendance.subject, waMessageId, midia, recebidoEm, baixado)"),
+    "processarMidiaRecebida parou de receber o `baixado` compartilhado",
+  );
+  verdade(
+    ingest.includes("storageProvider: uploadInfo?.storageProvider ?? null") && ingest.includes("storageFileId: uploadInfo?.storageFileId ?? null"),
+    "o registro de transcrição parou de guardar onde o Drive salvou o MESMO arquivo — a transcrição assíncrona não teria de onde ler depois",
   );
 });
 

@@ -14,6 +14,7 @@
     { "path": "/api/cron/expirar-acessos", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/comunicados-outbox", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/comunicados-varredura", "schedule": "0 */3 * * *" },
-    { "path": "/api/cron/leads-sem-resposta", "schedule": "*/5 * * * *" }
+    { "path": "/api/cron/leads-sem-resposta", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/transcricoes-pendentes", "schedule": "*/5 * * * *" }
   ]
 }

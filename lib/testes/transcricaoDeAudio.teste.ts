@@ -6,6 +6,7 @@ import {
   lerRespostaDeTranscricao,
   textoParaAgente,
   rotuloDeTranscricaoNaTela,
+  rotuloDeTranscricaoNasConfiguracoes,
   ERRO_TRANSCRICAO_NAO_CONFIGURADA,
   MODELO_PADRAO_DE_TRANSCRICAO,
 } from "@/lib/transcricaoDeAudio";
@@ -104,6 +105,19 @@ teste("MUTAÇÃO-ALVO: com a transcrição FALHOU (ou PENDENTE), a Ana NUNCA fin
   }
 });
 
+teste("MUTAÇÃO-ALVO: PRONTA com texto VAZIO não é conteúdo — a Ana NUNCA acredita ter ouvido silêncio", () => {
+  // ACHADO NA REVISÃO: mutar `t.status === "PRONTA" && t.texto && t.texto.trim()` para só
+  // `t.status === "PRONTA"` passava verde antes deste teste existir. Um serviço de transcrição
+  // real devolve `text: ""` para áudio inaudível/silencioso — não é hipótese de laboratório, é o
+  // comportamento documentado de serviços OpenAI-compatíveis diante de áudio sem fala.
+  for (const texto of ["", "   ", null]) {
+    const r = textoParaAgente({ body: "[áudio]", transcricao: { status: "PRONTA", texto, erro: null } });
+    verdade(r !== "[áudio transcrito] ", `PRONTA com texto "${texto}" virou conteúdo vazio marcado como transcrito: "${r}"`);
+    verdade(!r.startsWith("[áudio transcrito]"), `PRONTA sem texto de verdade não pode carregar a marca de sucesso: "${r}"`);
+    verdade(r.toLowerCase().includes("não"), `sem texto de verdade, a Ana precisa dizer que NÃO ouviu: "${r}"`);
+  }
+});
+
 teste("rotuloDeTranscricaoNaTela: null quando não há transcrição (mídia comum, ou áudio de antes desta entrega)", () => {
   igual(rotuloDeTranscricaoNaTela(null), null);
   igual(rotuloDeTranscricaoNaTela(undefined), null);
@@ -119,6 +133,18 @@ teste("rotuloDeTranscricaoNaTela: os TRÊS estados honestos que o pedido exige",
     rotuloDeTranscricaoNaTela({ status: "FALHOU", texto: null, erro: "timeout qualquer" }),
     { texto: "Não foi possível transcrever este áudio", ehConteudo: false },
   );
+});
+
+teste("MUTAÇÃO-ALVO: na TELA, PRONTA com texto VAZIO também não vira citação — nunca mostra aspas em volta do nada", () => {
+  // Mesma armadilha do teste de textoParaAgente acima, do lado da tela: se rotuloDeTranscricaoNaTela
+  // perdesse o `&& t.texto && t.texto.trim()`, a bolha mostraria uma citação vazia (`"" `) como se
+  // fosse uma transcrição de verdade, em vez de dizer que não deu pra transcrever.
+  for (const texto of ["", "   ", null]) {
+    const r = rotuloDeTranscricaoNaTela({ status: "PRONTA", texto, erro: null });
+    verdade(r !== null, "PRONTA sem texto real ainda precisa mostrar ALGUMA coisa na tela, não sumir");
+    igual(r?.ehConteudo, false, `PRONTA com texto "${texto}" foi tratado como conteúdo de verdade`);
+    verdade(r?.texto !== "", "a tela mostraria uma citação vazia");
+  }
 });
 
 teste("MUTAÇÃO-ALVO: 'transcrição não configurada' é reconhecida por IGUALDADE do motivo, não por prefixo/substring", () => {
@@ -277,20 +303,25 @@ teste("MUTAÇÃO-ALVO: o header de autenticação da chamada de transcrição us
   verdade(!/console\.(log|error|warn)\([^)]*config\.token/.test(corpo), "o token está sendo impresso em log");
 });
 
-teste("processarMidiaRecebida (Drive, F5) continua intacta — a transcrição não pode ter mexido nela", () => {
-  // Rede de segurança contra um refactor que junte os dois downloads (do Drive e da transcrição)
-  // sem querer e acabe removendo a trava original — ver o comentário de transcreverAudioDaMensagem
-  // em lib/whatsapp.ts sobre por que os dois downloads continuam SEPARADOS de propósito.
-  const proc = corpoDaFuncao(whatsappFonte, "processarMidiaRecebida");
-  verdade(proc.length > 0, "processarMidiaRecebida sumiu ou mudou de assinatura");
-  verdade(/if\s*\(!midia\.mediaId\)\s*return;/.test(proc), "a trava de mediaId ausente sumiu de processarMidiaRecebida");
-});
-
-teste("MUTAÇÃO-ALVO: transcreverAudioDaMensagem (o novo download, exclusivo do áudio) tem a mesma trava fail-closed da Meta", () => {
-  const fn = corpoDaFuncao(whatsappFonte, "transcreverAudioDaMensagem");
-  verdade(fn.length > 0, "transcreverAudioDaMensagem não existe mais, ou mudou de assinatura");
-  verdade(/if\s*\(!midia\.mediaId\)\s*return;/.test(fn), "sem mediaId, baixarMidiaMeta seria chamado com id indefinido");
-  verdade(/if\s*\(!config\.baseUrl \|\| !config\.apiKey \|\| !midia\.evolution\)\s*return;/.test(fn), "a trava da Evolution sumiu");
+// NOTA (revisão 2 — a transcrição saiu do webhook, ver lib/orcamentoDoPedido.ts e
+// lib/transcricaoAssincrona.ts): ingestIncomingWhatsapp não transcreve mais nada. Ele só grava o
+// registro PENDENTE, com a referência de onde o áudio ficou guardado no Drive — o processamento
+// de verdade (baixar do Drive, transcrever, responder) mora em lib/transcricaoAssincrona.ts,
+// disparado fora deste pedido. As travas fail-closed do DOWNLOAD (mediaId ausente, config
+// incompleto da Evolution) moram em baixarMidiaDoWhatsapp, testadas em
+// lib/testes/whatsappMidia.teste.ts.
+teste("MUTAÇÃO-ALVO: o registro de transcrição nasce ligado ao ID DA MENSAGEM NO BANCO (cuid), não ao waMessageId do provedor", () => {
+  // TranscricaoDeAudio.whatsappMessageId aponta para WhatsappMessage.id (a chave primária), não
+  // para o identificador que a Meta/Evolution deu à mensagem — os dois são strings parecidas, e
+  // trocar um pelo outro faria lib/transcricaoAssincrona.ts nunca achar a linha certa (ou pior,
+  // ligar a transcrição a NENHUMA mensagem, porque whatsappMessageId é a chave estrangeira).
+  const inicio = whatsappFonte.indexOf("export async function ingestIncomingWhatsapp(");
+  const fim = whatsappFonte.indexOf("async function processarMidiaRecebida(", inicio);
+  const ingest = codigoDe(whatsappFonte.slice(inicio, fim));
+  verdade(
+    /whatsappMessageId:\s*novaMensagem\.id,/.test(ingest),
+    "o registro de transcrição parou de usar novaMensagem.id (o id de verdade da mensagem no banco)",
+  );
 });
 
 teste("MUTAÇÃO-ALVO: a transcrição de áudio roda dentro do `if (midia)` do ingest, nunca fora do bloco de mídia", () => {
@@ -316,28 +347,26 @@ teste("MUTAÇÃO-ALVO: a transcrição de áudio roda dentro do `if (midia)` do 
   verdade(indentAud > indentMidia, "a checagem de tipo de áudio não está mais aninhada dentro do bloco `if (midia)`");
 });
 
-teste("MUTAÇÃO-ALVO: a falha ao transcrever é logada (nunca silenciosa) e nunca derruba o webhook (tem `.catch`)", () => {
+teste("MUTAÇÃO-ALVO: a falha ao CRIAR o registro de transcrição é logada (nunca silenciosa) e nunca derruba o webhook (tem `.catch`)", () => {
   const inicio = whatsappFonte.indexOf("export async function ingestIncomingWhatsapp(");
   const fim = whatsappFonte.indexOf("async function processarMidiaRecebida(", inicio);
   const ingest = codigoDe(whatsappFonte.slice(inicio, fim));
   verdade(
-    /transcreverAudioDaMensagem\([^)]*\)\s*\.catch\(/.test(ingest),
-    "a chamada de transcreverAudioDaMensagem perdeu o `.catch()` — uma falha de rede vai derrubar o webhook",
+    /prisma\.transcricaoDeAudio\s*\.create\(\{[\s\S]*?\}\)\s*\.catch\(/.test(ingest),
+    "a criação do registro de transcrição perdeu o `.catch()` — uma falha de banco vai derrubar o webhook",
   );
 });
 
-teste("MUTAÇÃO-ALVO: a transcrição é ligada ao ID DA MENSAGEM NO BANCO (cuid), não ao waMessageId do provedor", () => {
-  // TranscricaoDeAudio.whatsappMessageId aponta para WhatsappMessage.id (a chave primária), não
-  // para o identificador que a Meta/Evolution deu à mensagem — os dois são strings parecidas, e
-  // trocar um pelo outro faria o `upsert` de lib/transcricao.ts nunca achar a linha certa (ou
-  // pior, ligar a transcrição a NENHUMA mensagem, porque whatsappMessageId é a chave estrangeira).
+teste("MUTAÇÃO-ALVO: sem cópia durável no Drive, o registro nasce sem storageProvider/storageFileId (não inventa um id)", () => {
+  // Se o upload pro Drive falhar, `uploadInfo` é null — o registro de transcrição TEM que nascer
+  // com storageProvider/storageFileId nulos, e não com um valor qualquer, porque
+  // lib/transcricaoAssincrona.ts usa exatamente esses dois campos pra saber se há de onde ler o
+  // áudio depois.
   const inicio = whatsappFonte.indexOf("export async function ingestIncomingWhatsapp(");
   const fim = whatsappFonte.indexOf("async function processarMidiaRecebida(", inicio);
   const ingest = codigoDe(whatsappFonte.slice(inicio, fim));
-  verdade(
-    /transcreverAudioDaMensagem\(officeId, novaMensagem\.id, midia\)/.test(ingest),
-    "transcreverAudioDaMensagem parou de receber novaMensagem.id (o id de verdade da mensagem no banco)",
-  );
+  verdade(ingest.includes("storageProvider: uploadInfo?.storageProvider ?? null"), "storageProvider parou de vir de uploadInfo (com fallback null)");
+  verdade(ingest.includes("storageFileId: uploadInfo?.storageFileId ?? null"), "storageFileId parou de vir de uploadInfo (com fallback null)");
 });
 
 teste("MUTAÇÃO-ALVO: ao FALHAR, transcreverAudioRecebido grava FALHOU (nunca PRONTA com texto vazio/inventado)", () => {
@@ -401,6 +430,50 @@ teste("MUTAÇÃO-ALVO: a bolha do áudio mostra a transcrição visualmente DIST
     conversaFonte.toLowerCase().includes("o cliente nunca vê isto") || conversaFonte.toLowerCase().includes("o cliente não vê"),
     "a tela parou de avisar, por escrito, que o cliente nunca vê a transcrição",
   );
+});
+
+// ── A indicação em Configurações ─────────────────────────────────────────────────────────────
+
+teste("rotuloDeTranscricaoNasConfiguracoes: diz o estado, e o áudio continua indo pro Drive mesmo sem transcrição", () => {
+  const semConfig = rotuloDeTranscricaoNasConfiguracoes(false, null);
+  verdade(semConfig.toLowerCase().includes("não configurada"), `devia dizer que não está configurada: "${semConfig}"`);
+  verdade(semConfig.toLowerCase().includes("drive"), `devia tranquilizar que o áudio continua indo pro Drive: "${semConfig}"`);
+
+  igual(rotuloDeTranscricaoNasConfiguracoes(true, "https://whisper.rodarteprado.com.br"), "Transcrição de áudio configurada (https://whisper.rodarteprado.com.br).");
+  igual(rotuloDeTranscricaoNasConfiguracoes(true, null), "Transcrição de áudio configurada.");
+});
+
+teste("MUTAÇÃO-ALVO: rotuloDeTranscricaoNasConfiguracoes nunca recebe nem devolve o token — só o endereço", () => {
+  // A função nem TEM um parâmetro de token — esta é a rede de segurança que prova isso: nenhuma
+  // das assinaturas de chamada usadas aqui passa nada que pareça um segredo, e a função só tem
+  // dois parâmetros (configurada, url).
+  igual(rotuloDeTranscricaoNasConfiguracoes.length, 2, "a função ganhou um parâmetro a mais — confira se não é o token");
+});
+
+teste("MUTAÇÃO-ALVO: a tela de Configurações mostra o estado da transcrição, e NUNCA referencia o token", () => {
+  const painelFonte = readFileSync("components/atendente/AtendentePainel.tsx", "utf8");
+  const paginaFonte = readFileSync("app/(app)/configuracoes/page.tsx", "utf8");
+
+  // A CHAMADA DE VERDADE, não só o import: `rotuloDeTranscricaoNasConfiguracoes(` com os dois
+  // argumentos — sem isto, a função podia estar só importada (ou importada e nunca usada) e o
+  // teste passaria mesmo com o bloco de JSX que a renderiza removido.
+  verdade(
+    /rotuloDeTranscricaoNasConfiguracoes\(transcricao\.configurada,\s*transcricao\.url\)/.test(codigoDe(painelFonte)),
+    "AtendentePainel parou de CHAMAR rotuloDeTranscricaoNasConfiguracoes — a linha pode ter sido removida do JSX mesmo com o import ainda presente",
+  );
+  verdade(paginaFonte.includes("transcricaoConfigurada()"), "a página de Configurações parou de calcular se a transcrição está configurada");
+
+  // NUNCA o token, em lugar nenhum desta fiação — nem por engano, nem "só pra depurar". Checa a
+  // variável de ambiente em si (não a palavra "token" solta, que aparece legitimamente em
+  // comentário explicando a regra — ver a nota sobre comentário de várias linhas escapando
+  // codigoDe em lib/testes/executar.ts) e o formato de prop que carregaria o valor (`token:`).
+  for (const [nome, fonte] of [
+    ["components/atendente/AtendentePainel.tsx", painelFonte],
+    ["app/(app)/configuracoes/page.tsx", paginaFonte],
+  ] as const) {
+    verdade(!fonte.includes("TRANSCRICAO_TOKEN"), `${nome} referencia TRANSCRICAO_TOKEN — o token nunca pode chegar a esta tela`);
+    verdade(!/\btoken\s*[:=]/i.test(codigoDe(fonte)), `${nome} tem uma prop/variável chamada "token" — confira à mão se não é o segredo vazando`);
+  }
 });
 
 void resumo("transcrição de áudio do WhatsApp");

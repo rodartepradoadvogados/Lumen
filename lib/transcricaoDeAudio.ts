@@ -42,6 +42,15 @@ export const ERRO_TRANSCRICAO_NAO_CONFIGURADA =
   "a transcrição de áudio não está configurada (faltam TRANSCRICAO_URL e/ou TRANSCRICAO_TOKEN)";
 
 /**
+ * O MOTIVO fixo gravado quando o áudio não tem uma cópia durável para ler (o upload pro Drive
+ * falhou, ou o registro é de antes de o campo existir) — a transcrição roda de forma ASSÍNCRONA,
+ * lendo o arquivo do Drive (não da Meta/Evolution outra vez, cuja URL já expirou a essa altura),
+ * então sem essa cópia não há de onde transcrever. Ver lib/transcricaoAssincrona.ts.
+ */
+export const ERRO_ARQUIVO_INDISPONIVEL =
+  "o áudio não pôde ser recuperado do armazenamento do escritório para ser transcrito";
+
+/**
  * Lê a configuração da transcrição a partir de valores JÁ RESOLVIDOS (não de `process.env`
  * diretamente) — de propósito, para caber num teste de mesa sem precisar simular variável de
  * ambiente global, que vaza de um teste para o outro na mesma execução do processo.
@@ -153,4 +162,21 @@ export function rotuloDeTranscricaoNaTela(t: TranscricaoDaMensagem): RotuloDeTra
     return { texto: "Transcrição não configurada", ehConteudo: false };
   }
   return { texto: "Não foi possível transcrever este áudio", ehConteudo: false };
+}
+
+// ============================================================================
+// O QUE CONFIGURAÇÕES MOSTRA.
+// ============================================================================
+
+/**
+ * A linha discreta em Configurações → Atendente, dizendo se a transcrição está configurada — hoje
+ * só dava pra saber isso olhando a bolha de um áudio já recebido. NUNCA inclui o token nem parte
+ * dele: só o estado e, quando configurada, o endereço (que já não é segredo — é só onde o
+ * escritório aponta o serviço, o segredo de verdade é o token, que fica só na env var).
+ */
+export function rotuloDeTranscricaoNasConfiguracoes(configurada: boolean, url?: string | null): string {
+  if (!configurada) {
+    return "Transcrição de áudio não configurada — o áudio continua sendo guardado no Drive normalmente, só não é transcrito.";
+  }
+  return url ? `Transcrição de áudio configurada (${url}).` : "Transcrição de áudio configurada.";
 }

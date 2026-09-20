@@ -10,10 +10,11 @@ import {
   registrarEsperaDeDocumento,
 } from "@/lib/recusaPelaAna";
 import { transferirLead } from "@/lib/transferirLead";
-import { perguntarAoHermes, hermesConfigurado, FalhaDoHermes } from "@/lib/hermesPonte";
+import { perguntarAoHermes, hermesConfigurado, FalhaDoHermes, ESPERA_MS as ESPERA_PADRAO_DO_HERMES_MS } from "@/lib/hermesPonte";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 import { textoParaAgente } from "@/lib/transcricaoDeAudio";
+import { esperaParaHermes } from "@/lib/orcamentoDoPedido";
 
 // ============================================================================
 // O ATENDENTE RESPONDE (ou explica por que não).
@@ -79,7 +80,18 @@ function textoDaCampanha(c: CampanhaDoAtendimento | null): string | null {
 
 export async function atendenteResponde(
   attendanceId: string,
-  opcoes: { forcar?: boolean } = {},
+  opcoes: {
+    forcar?: boolean;
+    /**
+     * Quanto sobrou do orçamento de tempo do PEDIDO que chamou esta função (ver
+     * lib/orcamentoDoPedido.ts) — só as rotas de webhook (app/api/whatsapp/route.ts e
+     * .../evolution/route.ts) passam isto, porque só elas correm contra um `maxDuration` que
+     * também cobre o download da mídia e a transcrição do áudio, feitos ANTES desta chamada.
+     * `undefined` (o botão manual "Responder à última pergunta", em lib/actions/attendance.ts)
+     * mantém o comportamento de sempre: o Hermes espera o padrão de ESPERA_PADRAO_DO_HERMES_MS.
+     */
+    orcamentoRestanteMs?: number;
+  } = {},
 ): Promise<{ respondeu: boolean; motivo: string }> {
   try {
     const atendimento = await prisma.attendance.findUnique({
@@ -201,7 +213,14 @@ export async function atendenteResponde(
       // SEM FERRAMENTAS. O atendente do WhatsApp fala com CLIENTE, e cliente não pode puxar dado
       // do escritório — nem o dele próprio, porque quem escreve naquele número ainda não foi
       // identificado. As ferramentas são do agente interno, que fala com quem fez login.
-      const r = await perguntarAoHermes({ slug: atendimento.office.slug, mensagem: pergunta });
+      //
+      // O TEMPO QUE SOBROU, E NÃO MAIS QUE ISSO. `esperaParaHermes` nunca deixa o Hermes esperar
+      // mais do que o padrão de sempre (ESPERA_PADRAO_DO_HERMES_MS) — só MENOS, quando o download
+      // da mídia e a transcrição do áudio já consumiram parte do orçamento do pedido inteiro. Ver
+      // lib/orcamentoDoPedido.ts para o motivo (o bug que isto conserta: 105s do Hermes + até 60s
+      // da transcrição somavam mais que os 120s da própria função).
+      const esperaMs = esperaParaHermes(opcoes.orcamentoRestanteMs, ESPERA_PADRAO_DO_HERMES_MS);
+      const r = await perguntarAoHermes({ slug: atendimento.office.slug, mensagem: pergunta, esperaMs });
       resposta = (r.resposta || "").trim();
     } catch (erro) {
       const motivo = erro instanceof FalhaDoHermes ? erro.motivo : mensagemDeErro(erro);

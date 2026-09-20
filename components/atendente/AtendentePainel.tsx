@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Megaphone, Pencil, Power, Trash2 } from "lucide-react";
+import { AlertCircle, Megaphone, Mic, Pencil, Power, Trash2 } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
 import CampanhaWizard from "@/components/atendente/CampanhaWizard";
 import {
@@ -11,6 +11,7 @@ import {
   salvarAtendimentoGeral,
   type DadosDaCampanha,
 } from "@/lib/actions/campanhas";
+import { rotuloDeTranscricaoNasConfiguracoes } from "@/lib/transcricaoDeAudio";
 
 // ============================================================================
 // A ABA "ATENDENTE" — o atendimento geral e as campanhas do escritório.
@@ -32,6 +33,7 @@ export default function AtendentePainel({
   temWhatsapp,
   geral,
   campanhas,
+  transcricao,
 }: {
   temWhatsapp: boolean;
   geral: {
@@ -45,6 +47,8 @@ export default function AtendentePainel({
     expedienteFim: string;
   };
   campanhas: CampanhaNaLista[];
+  /** Se a transcrição de áudio (TRANSCRICAO_URL/TOKEN) está configurada — ver lib/transcricao.ts. */
+  transcricao: { configurada: boolean; url: string | null };
 }) {
   const router = useRouter();
   const [g, setG] = useState(geral);
@@ -112,6 +116,13 @@ export default function AtendentePainel({
           O que a atendente faz quando a conversa <strong>não</strong> veio de campanha. O tom, os limites e o que
           pedir em cada tipo de demanda já vêm prontos do Lúmen e valem para todos os escritórios — aqui você
           acrescenta o que é seu.
+        </p>
+
+        {/* Discreta de propósito: hoje só dava pra saber isto olhando a bolha de um áudio já
+            recebido. Nunca mostra o token — só o estado e, quando configurada, o endereço. */}
+        <p className="flex items-center gap-1.5 text-etiqueta text-tx-3">
+          <Mic size={13} className="shrink-0" aria-hidden="true" />
+          {rotuloDeTranscricaoNasConfiguracoes(transcricao.configurada, transcricao.url)}
         </p>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
