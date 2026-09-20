@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Card, Badge, ConclusionChip, formatDate, formatCalendarDate, EmptyState, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
+import { Card, Badge, ConclusionChip, formatCalendarDate, EmptyState, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import NewTaskModal from "@/components/NewTaskModal";
 import AttachmentList from "@/components/AttachmentList";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
@@ -48,7 +48,30 @@ const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-
 // primeiro o que é urgente, depois o que é completo.
 // ============================================================================
 
-export default async function AttendanceDetailPage({ params }: { params: { id: string } }) {
+const ABAS = ["conversa", "ficha"] as const;
+type Aba = (typeof ABAS)[number];
+
+// A segunda aba não é uma tela: é uma gaveta com sete divisórias. Cada uma é uma coisa que se
+// resolve de vez em quando e que, empilhada abaixo da conversa, obrigava a rolar meia tela para
+// achar. O seletor troca a divisória sem sair do atendimento.
+const BLOCOS = [
+  { chave: "honorario", rotulo: "Honorário e prazos" },
+  { chave: "pendencias", rotulo: "Pendências" },
+  { chave: "processo", rotulo: "Transformar em processo" },
+  { chave: "email", rotulo: "E-mail" },
+  { chave: "tarefas", rotulo: "Tarefas" },
+  { chave: "anexos", rotulo: "Anexos" },
+  { chave: "anotacoes", rotulo: "Anotações" },
+] as const;
+type Bloco = (typeof BLOCOS)[number]["chave"];
+
+export default async function AttendanceDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { aba?: string; bloco?: string };
+}) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
   // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
@@ -90,7 +113,6 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
         select: { agenteNome: true },
       })
     )?.agenteNome?.trim() || "O atendente";
-  const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
   const podeResponder = Boolean(a.waPhone) && whatsappConfigured;
 
   const [users, columns, storageConnected] = await Promise.all([
@@ -131,6 +153,13 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   }));
 
   const agora = new Date();
+
+  const aba: Aba = ABAS.includes(searchParams.aba as Aba) ? (searchParams.aba as Aba) : "conversa";
+  const bloco: Bloco = BLOCOS.some((b) => b.chave === searchParams.bloco)
+    ? (searchParams.bloco as Bloco)
+    : "honorario";
+  const guia = (destino: Aba, qual?: Bloco) =>
+    destino === "conversa" ? `/atendimento/${a.id}` : `/atendimento/${a.id}?aba=ficha&bloco=${qual ?? bloco}`;
 
   return (
     <>
@@ -187,13 +216,50 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
           </div>
         </div>
 
-        <div className="overflow-y-auto flex-1">
+        {/* ── AS DUAS GUIAS ────────────────────────────────────────────────
+            A conversa é a tela; o resto é ficha. Antes tudo vinha no mesmo rolar, e quem queria
+            lançar um honorário rolava por cima da conversa inteira para chegar lá — e quem queria
+            ler a conversa via, no canto do olho, sete blocos pedindo atenção. A guia separa as
+            duas intenções sem esconder nenhuma. */}
+        <div className="shrink-0 border-b-2 border-guia-ativa bg-sf px-6">
+          <div className="flex flex-wrap items-end gap-[3px]">
+            <Link
+              href={guia("conversa")}
+              replace
+              aria-current={aba === "conversa" ? "page" : undefined}
+              className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
+                aba === "conversa"
+                  ? "bg-guia-ativa text-rotulo border-guia-ativa"
+                  : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
+              }`}
+            >
+              <span className="mr-1.5 tabular-nums opacity-70">1</span>
+              Conversa
+            </Link>
+            <Link
+              href={guia("ficha")}
+              replace
+              aria-current={aba === "ficha" ? "page" : undefined}
+              className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
+                aba === "ficha"
+                  ? "bg-guia-ativa text-rotulo border-guia-ativa"
+                  : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
+              }`}
+            >
+              <span className="mr-1.5 tabular-nums opacity-70">2</span>
+              Ficha completa
+            </Link>
+          </div>
+        </div>
+
+        {aba === "conversa" && (
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
           {/* ── AS DUAS COLUNAS ──────────────────────────────────────────────
               Altura travada em telas grandes para que a caixa de resposta fique presa no pé da
               conversa, que é o que faz a tela ser usável sem rolar. Abaixo de `lg` as duas empilham
               e a conversa ganha um teto próprio — numa tela estreita, uma conversa de altura livre
               empurraria a caixa de resposta para fora do alcance. */}
-          <div className="flex flex-col lg:h-[620px] lg:flex-row">
+          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
             <div className="flex min-w-0 flex-1 flex-col border-b border-regua bg-sf-apoio lg:border-b-0 lg:border-r">
               <div
                 data-rolagem-da-conversa=""
@@ -253,8 +319,37 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
             </div>
           </div>
 
-          {/* ── A FICHA COMPLETA, NO MESMO ROLAR ───────────────────────────── */}
-          <div className="tela pt-6">
+        </div>
+        )}
+
+        {/* ── A FICHA COMPLETA, EM SETE DIVISÓRIAS ────────────────────────── */}
+        {aba === "ficha" && (
+        <div className="flex-1 overflow-y-auto">
+          <div className="tela pt-5">
+            <div className="mb-5 flex flex-wrap gap-1.5">
+              {BLOCOS.map((b) => (
+                <Link
+                  key={b.chave}
+                  href={guia("ficha", b.chave)}
+                  replace
+                  aria-current={bloco === b.chave ? "page" : undefined}
+                  /* A divisória escolhida NÃO usa o bordô. É a mesma regra que a guia do app já
+                     segue (ver components/mobile/GuiaMobile.tsx): bordô é a cor da AÇÃO, e gastá-la
+                     num estado de navegação tira dela o significado. E o bronze também não, porque
+                     ele já está em uso logo acima, na guia de primeiro nível — repetir faria os
+                     dois níveis parecerem o mesmo. Aqui a escolhida se distingue por peso e
+                     contraste, que é o que sobra e é o que basta. */
+                  className={`min-h-11 inline-flex items-center border px-3.5 text-xs transition-colors ${
+                    bloco === b.chave
+                      ? "border-regua-forte bg-sf-apoio font-bold text-tx"
+                      : "border-regua bg-sf font-semibold text-tx-2 hover:bg-sf-apoio hover:text-tx"
+                  }`}
+                >
+                  {b.rotulo}
+                </Link>
+              ))}
+            </div>
+
             {a.convertedCase && (
               <Card className="mb-5 p-5">
                 <div className="flex items-center justify-between gap-3 text-sm">
@@ -266,6 +361,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
               </Card>
             )}
 
+            {bloco === "honorario" && (
             <Card className="mb-5 p-5">
               <h4 className="mb-1 text-sm font-semibold text-tx">Honorário pretendido e prazo de resposta</h4>
               <p className="mb-3 text-xs italic text-tx-3">
@@ -283,7 +379,9 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 firstResponseAt={a.firstResponseAt ? a.firstResponseAt.toISOString() : null}
               />
             </Card>
+            )}
 
+            {bloco === "pendencias" && (
             <Card className="p-5 mb-5">
               <h4 className="text-sm font-semibold text-tx mb-1">Pendências</h4>
               <p className="text-xs italic text-tx-3 mb-3">
@@ -292,11 +390,10 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
               </p>
               <AttendancePendenciasPanel attendanceId={a.id} users={users} pendencias={serializedPendencias} />
             </Card>
+            )}
 
-            {!a.convertedCaseId && (
-              /* A âncora do botão contornado do trilho. O id vai num invólucro porque o Card não
-                 aceita id — e um botão que rola para lugar nenhum é pior que um botão a menos. */
-              <div id="transformar" className="mb-5 scroll-mt-4">
+            {bloco === "processo" && !a.convertedCaseId && (
+              <div className="mb-5">
               <Card className="p-5">
                 <h4 className="text-sm font-semibold text-tx mb-1">Transformar em Processo/Caso</h4>
                 <p className="text-xs italic text-tx-3 mb-3">
@@ -307,12 +404,13 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
               </div>
             )}
 
-            {!showWhatsapp && (
+            {bloco === "processo" && a.convertedCaseId && (
               <Card className="mb-5 p-5">
-                <p className="text-sm text-tx-3">Este atendimento não tem conversa de WhatsApp.</p>
+                <p className="text-sm text-tx-3">Este atendimento já virou processo — ver o vínculo acima.</p>
               </Card>
             )}
 
+            {bloco === "email" && (
             <Card className="p-5 mb-5">
               <div className="mb-3">
                 <h4 className="text-sm font-semibold text-tx">E-mail</h4>
@@ -347,7 +445,9 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
 
               <EmailReplyPanel attendanceId={a.id} clientEmail={a.clientEmail} />
             </Card>
+            )}
 
+            {bloco === "tarefas" && (
             <Card className="mb-5">
               <div className="flex items-start justify-between px-5 py-3 border-b border-regua gap-2">
                 <div>
@@ -385,29 +485,37 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 </div>
               )}
             </Card>
+            )}
 
+            {bloco === "anexos" && (
             <Card className="p-5">
               <div className="flex items-start justify-between mb-3 gap-2">
                 <div>
                   <h4 className="text-sm font-semibold text-tx">Anexos</h4>
                   <p className="text-xs italic text-tx-3 mt-1.5">
-                    Documentos armazenados no Drive do escritório, vinculados a este atendimento. Abertos em {formatDate(a.createdAt)}.
+                    {/* createdAt é instante — formatDate() lia sem fuso e virava um dia errado
+                        perto da meia-noite. */}
+                    Documentos armazenados no Drive do escritório, vinculados a este atendimento. Abertos em {dataDeBrasilia(a.createdAt)}.
                   </p>
                 </div>
                 <GerarDocumentoButton attendanceId={a.id} />
               </div>
               <AttachmentList attachments={serializedAttachments} attendanceId={a.id} driveConnected={storageConnected} />
             </Card>
+            )}
 
-            <Card className="p-5 mt-5">
+            {bloco === "anotacoes" && (
+            <Card className="p-5">
               <h4 className="text-sm font-semibold text-tx mb-1">Anotações pessoais</h4>
               <p className="text-xs italic text-tx-3 mb-3">
                 Anotações que você criou vinculadas a este atendimento (painel Anotações, ícone na borda direita da tela) — visíveis só para você.
               </p>
               <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
             </Card>
+            )}
           </div>
         </div>
+        )}
       </div>
     </>
   );
