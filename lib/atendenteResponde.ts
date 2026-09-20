@@ -13,7 +13,7 @@ import { transferirLead } from "@/lib/transferirLead";
 import { perguntarAoHermes, hermesConfigurado, FalhaDoHermes, ESPERA_MS as ESPERA_PADRAO_DO_HERMES_MS } from "@/lib/hermesPonte";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
-import { textoParaAgente } from "@/lib/transcricaoDeAudio";
+import { textoParaAgente, mensagensReaisEUltima } from "@/lib/transcricaoDeAudio";
 import { esperaParaHermes } from "@/lib/orcamentoDoPedido";
 
 // ============================================================================
@@ -176,12 +176,19 @@ export async function atendenteResponde(
       take: QUANTAS_MENSAGENS_DE_CONTEXTO,
       // A transcrição (quando a mensagem é um áudio) entra junto: textoParaAgente decide o que
       // vai no lugar do rótulo cru "[áudio]" — ver lib/transcricaoDeAudio.ts.
-      select: { direction: true, body: true, transcricao: { select: { status: true, texto: true, erro: true } } },
+      select: {
+        direction: true,
+        body: true,
+        confirmacaoAutomaticaDeAudio: true,
+        transcricao: { select: { status: true, texto: true, erro: true } },
+      },
     });
-    const emOrdem = mensagens.reverse();
-    const ultima = emOrdem[emOrdem.length - 1];
+    // A CONFIRMAÇÃO AUTOMÁTICA DE ÁUDIO NÃO CONTA COMO CONVERSA — nem para o histórico que a Ana
+    // lê, nem para decidir se há pergunta pendente. Ver a nota extensa em
+    // lib/transcricaoDeAudio.ts:mensagensReaisEUltima sobre o defeito real que isto conserta.
+    const { reais: emOrdem, ultima } = mensagensReaisEUltima(mensagens.reverse());
 
-    // A última mensagem tem que ser DO CLIENTE. Se a última é do escritório, não há pergunta
+    // A última mensagem REAL tem que ser DO CLIENTE. Se a última é do escritório, não há pergunta
     // pendente — responder aqui seria o atendente falando sozinho.
     if (!ultima || ultima.direction !== "IN") {
       return { respondeu: false, motivo: "a última mensagem não é do cliente" };

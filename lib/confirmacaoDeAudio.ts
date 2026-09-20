@@ -84,6 +84,11 @@ export async function confirmarRecebimentoDeAudio(attendanceId: string): Promise
         attendanceId,
         direction: "OUT",
         porAgente: true,
+        // A MARCA QUE IMPEDE A ANA DE SE CALAR SOZINHA DEPOIS. Ver o comentário extenso no schema
+        // (WhatsappMessage.confirmacaoAutomaticaDeAudio): sem isto, esta própria mensagem vira "a
+        // última mensagem" quando processarTranscricaoAssincrona chama atendenteResponde de novo,
+        // e a trava "a última tem que ser do cliente" bloqueia a resposta de verdade para sempre.
+        confirmacaoAutomaticaDeAudio: true,
         body: CONFIRMACAO_DE_AUDIO,
         waMessageId: envio.waMessageId || null,
         status: "SENT",

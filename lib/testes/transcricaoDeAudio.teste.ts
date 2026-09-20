@@ -7,6 +7,7 @@ import {
   textoParaAgente,
   rotuloDeTranscricaoNaTela,
   rotuloDeTranscricaoNasConfiguracoes,
+  mensagensReaisEUltima,
   ERRO_TRANSCRICAO_NAO_CONFIGURADA,
   MODELO_PADRAO_DE_TRANSCRICAO,
 } from "@/lib/transcricaoDeAudio";
@@ -162,6 +163,62 @@ teste("MUTAÇÃO-ALVO: 'transcrição não configurada' é reconhecida por IGUAL
     { texto: "Não foi possível transcrever este áudio", ehConteudo: false },
     "motivo que CONTÉM o texto fixo mas não é EXATAMENTE ele não pode ser lido como 'não configurado': ",
   );
+});
+
+// ── 1.5. mensagensReaisEUltima — o defeito real achado em staging, PROVADO por execução ─────
+//
+// Estes quatro testes existem porque um relatório real (não teoria) mostrou que a confirmação
+// automática de áudio virava "a última mensagem" e calava a Ana para sempre. São chamadas de
+// verdade à função de produção, com dados de verdade e comparação de verdade (`igual`) — não
+// varredura de texto — exatamente para não repetir o defeito que a revisão encontrou: "nenhum dos
+// seus casos prova que a segunda mensagem SAI".
+
+type MsgTeste = { id: string; direction: string; confirmacaoAutomaticaDeAudio: boolean };
+const IN = (id: string): MsgTeste => ({ id, direction: "IN", confirmacaoAutomaticaDeAudio: false });
+const OUT_CONFIRMACAO = (id: string): MsgTeste => ({ id, direction: "OUT", confirmacaoAutomaticaDeAudio: true });
+const OUT_REAL = (id: string): MsgTeste => ({ id, direction: "OUT", confirmacaoAutomaticaDeAudio: false });
+
+teste("MUTAÇÃO-ALVO: CAMINHO FELIZ — áudio + confirmação automática: a ÚLTIMA de verdade é o áudio (IN), a segunda mensagem TEM como sair", () => {
+  // Isto é o que faltava: até este teste, nenhum caso provava que a resposta de verdade SAI depois
+  // da confirmação — só que ela não sai em vários cenários de bloqueio.
+  const { reais, ultima } = mensagensReaisEUltima([IN("audio"), OUT_CONFIRMACAO("confirmacao")]);
+  igual(reais.map((m) => m.id), ["audio"], "a confirmação automática vazou para as mensagens 'reais' — ela não é conversa");
+  verdade(ultima !== null, "a última mensagem de verdade sumiu — a checagem 'não ultima' bloquearia sem motivo");
+  igual(ultima?.id, "audio");
+  igual(ultima?.direction, "IN", "a última mensagem de verdade tem que ser do cliente — é isto que libera atendenteResponde a responder");
+});
+
+teste("MUTAÇÃO-ALVO: uma PESSOA respondeu no intervalo — a última de verdade é a dela (OUT), a segunda mensagem NÃO sai", () => {
+  const { reais, ultima } = mensagensReaisEUltima([IN("audio"), OUT_CONFIRMACAO("confirmacao"), OUT_REAL("pessoa")]);
+  igual(reais.map((m) => m.id), ["audio", "pessoa"]);
+  igual(ultima?.id, "pessoa");
+  igual(ultima?.direction, "OUT", "uma resposta humana no meio do caminho tem que continuar bloqueando — isto é defesa em profundidade: a guarda principal é o silêncio (agenteSilenciadoEm), verificado ANTES de chegar aqui");
+});
+
+teste("MUTAÇÃO-ALVO: o cliente mandou outra mensagem depois da confirmação — a última de verdade é a mensagem nova (IN), sem resposta duplicada por causa da confirmação", () => {
+  const { reais, ultima } = mensagensReaisEUltima([IN("audio"), OUT_CONFIRMACAO("confirmacao"), IN("nova-pergunta")]);
+  igual(reais.map((m) => m.id), ["audio", "nova-pergunta"]);
+  igual(ultima?.id, "nova-pergunta", "a Ana tem que responder à mensagem mais nova do cliente, não travar na confirmação nem voltar pro áudio");
+});
+
+teste("MUTAÇÃO-ALVO: a Ana já respondeu de VERDADE a este áudio — chamar de novo não manda a mesma resposta duas vezes", () => {
+  const { ultima } = mensagensReaisEUltima([IN("audio"), OUT_CONFIRMACAO("confirmacao"), OUT_REAL("resposta-de-verdade-da-ana")]);
+  igual(ultima?.id, "resposta-de-verdade-da-ana");
+  igual(ultima?.direction, "OUT", "a resposta de verdade já enviada tem que bloquear uma segunda chamada — sem isto, o cron de segurança rodando de novo mandaria a mesma resposta outra vez");
+});
+
+teste("mensagensReaisEUltima: sem mensagem nenhuma, ou só confirmações, devolve ultima=null (quem chama trata como 'não responde')", () => {
+  igual(mensagensReaisEUltima([]), { reais: [], ultima: null });
+  igual(mensagensReaisEUltima([OUT_CONFIRMACAO("c1"), OUT_CONFIRMACAO("c2")]), { reais: [], ultima: null });
+});
+
+teste("MUTAÇÃO-ALVO: mensagensReaisEUltima NÃO PODE filtrar por `direction` — furaria a trava para QUALQUER mensagem de saída, não só a confirmação", () => {
+  // A tentação de 'resolver' o defeito seria filtrar toda mensagem OUT (ou nunca checar OUT
+  // nenhuma) — isso desprotegeria os casos 2 e 4 acima (pessoa respondeu / Ana já respondeu),
+  // fazendo a Ana responder duas vezes ou atropelar um humano. Este teste prova, por execução,
+  // que só a confirmação automática (não qualquer OUT) é ignorada.
+  const { ultima } = mensagensReaisEUltima([IN("audio"), OUT_CONFIRMACAO("confirmacao"), OUT_REAL("pessoa-ou-ana")]);
+  verdade(ultima?.direction === "OUT", "uma mensagem OUT que NÃO é a confirmação automática sumiu da decisão — a trava contra falar sozinho ficaria furada para qualquer resposta de verdade, não só a confirmação");
 });
 
 // ── 2. A chamada de verdade, contra um servidor de mentira local ───────────────────────────
@@ -415,12 +472,31 @@ const conversaFonte = readFileSync("components/atendimento/Conversa.tsx", "utf8"
 teste("MUTAÇÃO-ALVO: atendenteResponde.ts busca a transcrição no banco E a usa para montar o histórico e a mensagem de agora", () => {
   const corpo = corpoDaFuncao(atendenteFonte, "atendenteResponde");
   verdade(corpo.length > 0, "atendenteResponde não existe mais, ou mudou de assinatura");
+  verdade(/direction:\s*true,/.test(corpo), "a consulta das mensagens parou de trazer `direction`");
   verdade(
-    /select:\s*\{\s*direction:\s*true,\s*body:\s*true,\s*transcricao:\s*\{\s*select:/.test(corpo),
+    /transcricao:\s*\{\s*select:/.test(corpo),
     "a consulta das mensagens parou de trazer a transcrição junto (select sem `transcricao`) — o histórico nunca vai vê-la",
   );
   verdade(/texto:\s*textoParaAgente\(m\)/.test(corpo), "o histórico (historico.map) parou de passar cada mensagem por textoParaAgente");
   verdade(/mensagem:\s*textoParaAgente\(ultima\)/.test(corpo), "a MENSAGEM DE AGORA parou de passar por textoParaAgente — se a ÚLTIMA mensagem for o áudio, a Ana perguntaria sem ter ouvido nada");
+});
+
+teste("MUTAÇÃO-ALVO: atendenteResponde.ts decide 'a última mensagem' através de mensagensReaisEUltima, não de novo inline", () => {
+  // Achado real (relatado, não teoria): a versão anterior decidia isso olhando a última linha
+  // crua da tabela — e a confirmação automática de áudio virava "a última mensagem", calando a
+  // Ana para sempre depois de prometer responder. Se este código voltar a decidir isso sozinho,
+  // sem passar pela função pura testada acima, o defeito original pode voltar sem que NENHUM
+  // teste desta função pegue — porque a lógica estaria duplicada, e só uma cópia é testada.
+  const corpo = corpoDaFuncao(atendenteFonte, "atendenteResponde");
+  verdade(corpo.length > 0, "atendenteResponde não existe mais, ou mudou de assinatura");
+  verdade(
+    /confirmacaoAutomaticaDeAudio:\s*true/.test(corpo),
+    "a consulta das mensagens parou de trazer `confirmacaoAutomaticaDeAudio` — mensagensReaisEUltima não teria como filtrar a confirmação",
+  );
+  verdade(
+    /\{\s*reais:\s*emOrdem,\s*ultima\s*\}\s*=\s*mensagensReaisEUltima\(/.test(corpo),
+    "atendenteResponde parou de chamar mensagensReaisEUltima para decidir a última mensagem — a checagem 'última tem que ser do cliente' pode ter voltado a olhar a última linha crua, contando a confirmação automática como conversa",
+  );
 });
 
 teste("MUTAÇÃO-ALVO: sendWhatsappText nunca é chamado com nada vindo de uma transcrição — só com o texto do Hermes", () => {

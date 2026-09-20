@@ -207,6 +207,19 @@ teste("MUTAÇÃO-ALVO: confirmarRecebimentoDeAudio NUNCA chama o Hermes — a fr
   verdade(corpo.includes("deveResponder("), "confirmarRecebimentoDeAudio parou de checar deveResponder — mandaria a confirmação mesmo com o atendente desligado/silenciado");
 });
 
+teste("MUTAÇÃO-ALVO: confirmarRecebimentoDeAudio marca a mensagem como confirmacaoAutomaticaDeAudio — senão ela vira 'a última mensagem' e cala a Ana para sempre", () => {
+  // Achado real (relatado, não teoria): sem esta marca no momento da gravação, a própria
+  // confirmação fixa passa a ser lida como "a última mensagem" por atendenteResponde
+  // (mensagensReaisEUltima, lib/transcricaoDeAudio.ts) quando ele roda de novo depois da
+  // transcrição — e a trava "a última tem que ser do cliente" bloqueia a resposta de verdade para
+  // sempre. A Ana promete responder e nunca responde.
+  const corpo = codigoDe(confirmacaoFonte);
+  verdade(
+    /confirmacaoAutomaticaDeAudio:\s*true/.test(corpo),
+    "confirmarRecebimentoDeAudio parou de marcar a mensagem como confirmacaoAutomaticaDeAudio — a resposta de verdade nunca mais sairia depois dela",
+  );
+});
+
 teste("MUTAÇÃO-ALVO: confirmarRecebimentoDeAudio RESPEITA o veredito de deveResponder — não só chama, obedece", () => {
   // A FALHA QUE ISTO PEGA: chamar deveResponder mas ignorar o resultado (não sair da função
   // quando ele diz "não") passaria no teste anterior — que só confere a CHAMADA — e mesmo assim

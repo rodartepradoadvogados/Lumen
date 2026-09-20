@@ -1337,6 +1337,15 @@ model WhatsappMessage {
   // conversa com "respondido pelo atendente" na tela, e é o que faz a regra do silêncio funcionar
   // — a resposta da máquina não pode calar a própria máquina.
   porAgente    Boolean    @default(false)
+  // TRUE só na frase fixa de "recebi seu áudio" (lib/confirmacaoDeAudio.ts). Achado real (não
+  // teórico — reproduzido e corrigido depois de um relatório): sem esta marca, a própria
+  // confirmação virava "a última mensagem", e a checagem "a última tem que ser do cliente" (mais
+  // abaixo, e em lib/atendenteResponde.ts) fechava a porta para a RESPOSTA DE VERDADE que viria
+  // depois da transcrição — a Ana prometia responder e nunca respondia. Esta marca deixa
+  // `atendenteResponde` ignorar a confirmação automática ao decidir se há uma pergunta pendente,
+  // sem abrir mão da trava para qualquer OUTRA mensagem de saída (inclusive uma resposta anterior
+  // de verdade da própria Ana, que continua bloqueando corretamente — só a confirmação some).
+  confirmacaoAutomaticaDeAudio Boolean @default(false)
   body         String
   waMessageId  String?    @unique // id da mensagem na Meta (dedupe)
   status       String     @default("RECEIVED") // RECEIVED | SENT | FAILED

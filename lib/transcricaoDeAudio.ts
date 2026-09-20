@@ -126,6 +126,51 @@ export function textoParaAgente(msg: MensagemComTranscricao): string {
 }
 
 // ============================================================================
+// QUAL É "A ÚLTIMA MENSAGEM DE VERDADE" — decisão pura, testada com execução real.
+//
+// ACHADO REAL (reproduzido no staging, não teoria): antes desta função existir, lib/atendente
+// Responde.ts decidia isso inline, olhando literalmente a última linha da tabela. Quando um áudio
+// chega, lib/confirmacaoDeAudio.ts grava a frase fixa como uma WhatsappMessage OUT normal — e essa
+// gravação passava a SER "a última mensagem". A trava "a última tem que ser do cliente" (que
+// existe para o atendente nunca falar sozinho) cumpria exatamente o que promete e fechava a porta
+// para a RESPOSTA DE VERDADE que vem depois da transcrição: a Ana prometia responder e nunca
+// respondia — pior do que não ter prometido nada.
+//
+// A CORREÇÃO NÃO É FURAR A TRAVA — é ensinar a ela que a confirmação automática não é conversa.
+// `confirmacaoAutomaticaDeAudio` (marcada só por lib/confirmacaoDeAudio.ts) fica de fora da lista
+// de mensagens "reais" abaixo. Qualquer OUTRA mensagem de saída — uma resposta de verdade anterior
+// da própria Ana, ou uma mensagem de uma PESSOA do escritório — continua contando normalmente e
+// bloqueando como sempre bloqueou. Uma pessoa que responde no meio do caminho não depende desta
+// função para calar a Ana: `replyWhatsapp` (lib/actions/attendance.ts) chama `silenciarAtendente`
+// ANTES de gravar a mensagem dela, e a checagem de `deveResponder` (antes de chegar aqui) já teria
+// barrado a chamada inteira — mas mesmo sem essa camada, esta função sozinha também bloqueia
+// diante de uma mensagem humana, por segurança em profundidade.
+//
+// PURA E EXTRAÍDA DE PROPÓSITO: o defeito que ela conserta nunca tinha um teste de EXECUÇÃO real
+// provando o caminho feliz ("a segunda mensagem sai") — só testes provando os jeitos de ELA NÃO
+// sair. Mutação não inventa o teste que não existe; então este teste passou a existir.
+// ============================================================================
+
+export type MensagemParaDecisaoDeUltima = {
+  direction: string; // "IN" (do cliente) | "OUT" (do escritório, agente ou pessoa)
+  confirmacaoAutomaticaDeAudio: boolean;
+};
+
+/**
+ * Devolve as mensagens REAIS (sem a confirmação automática de áudio), na mesma ordem recebida, e
+ * qual delas é "a última" para efeito de "há uma pergunta pendente do cliente?".
+ *
+ * `mensagensEmOrdem` tem que vir da mais antiga para a mais nova (mesma convenção do resto do
+ * arquivo que monta o histórico para o agente).
+ */
+export function mensagensReaisEUltima<T extends MensagemParaDecisaoDeUltima>(
+  mensagensEmOrdem: T[],
+): { reais: T[]; ultima: T | null } {
+  const reais = mensagensEmOrdem.filter((m) => !m.confirmacaoAutomaticaDeAudio);
+  return { reais, ultima: reais.length > 0 ? reais[reais.length - 1] : null };
+}
+
+// ============================================================================
 // O QUE A TELA MOSTRA.
 // ============================================================================
 
