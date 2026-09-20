@@ -13,6 +13,7 @@ import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/of
 import { getOfficeModules } from "@/lib/officeModules";
 import { normalizeForCompare } from "@/lib/textNormalize";
 import { createAttendancePendencias, type PendenciaInput } from "@/lib/actions/attendancePendencias";
+import { podeVerAtendimentos, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
 
 async function assertAttendanceRelationsInOffice(
   data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
@@ -51,9 +52,14 @@ type CreateAttendanceInput = {
   pendencias?: PendenciaInput[];
 };
 
+// A REGRA DO DONO, APLICADA EM TODA AÇÃO E NÃO SÓ NA TELA. Esconder o menu é decoração: uma
+// Server Action é um endereço HTTP, e quem souber o nome dela a chama sem passar por tela
+// nenhuma. Por isso a trava repete-se em cada função deste arquivo, logo depois de saber quem
+// está do outro lado e antes de qualquer consulta ao banco.
 export async function createAttendance(data: CreateAttendanceInput): Promise<{ id: string; newClientId?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
   if (!(await getOfficeModules(viewer.officeId)).atendimento) {
     throw new Error("O módulo Atendimento não está incluído no plano deste escritório.");
   }
@@ -129,6 +135,7 @@ export async function checkOpposingPartyConflict(
   if (q.length < 3) return [];
   const viewer = await getCurrentUser();
   if (!viewer) return [];
+  if (!podeVerAtendimentos(viewer)) return [];
   const target = normalizeForCompare(q);
 
   const [byParty, byLegacyField] = await Promise.all([
@@ -157,6 +164,7 @@ export async function checkOpposingPartyConflict(
 export async function markAttendanceResponded(attendanceId: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
   await prisma.attendance.updateMany({
     where: { id: attendanceId, officeId: viewer.officeId, firstResponseAt: null },
     data: { firstResponseAt: new Date() },
@@ -174,6 +182,7 @@ export async function saveAttendanceDraft(
 ): Promise<{ id: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
   if (!(await getOfficeModules(viewer.officeId)).atendimento) {
     throw new Error("O módulo Atendimento não está incluído no plano deste escritório.");
   }
@@ -220,6 +229,8 @@ export async function searchClients(
   if (!q) return [];
   const viewer = await getCurrentUser();
   if (!viewer) return [];
+  // Busca de cliente da janela de novo atendimento — lista vazia, que é o "não achei" dela.
+  if (!podeVerAtendimentos(viewer)) return [];
   const clients = await prisma.client.findMany({
     where: { name: { contains: q, mode: "insensitive" }, officeId: viewer.officeId },
     select: { id: true, name: true, phone: true, phoneDdi: true, email: true },
@@ -244,6 +255,7 @@ export async function updateClientQualification(
 ): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   await prisma.client.updateMany({
     where: { id: clientId, officeId: viewer.officeId },
@@ -268,6 +280,7 @@ export async function updateClientQualification(
 export async function updateAttendanceStatus(id: string, status: string) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
   await prisma.attendance.updateMany({ where: { id, officeId: viewer.officeId }, data: { status } });
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${id}`);
@@ -281,6 +294,7 @@ export async function updateAttendanceStatus(id: string, status: string) {
 export async function updateAttendanceSubject(id: string, subject: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
   const trimmed = subject.trim();
   if (!trimmed) return { error: "Preencha o assunto." };
 
@@ -300,6 +314,7 @@ export async function updateAttendanceSubject(id: string, subject: string): Prom
 export async function setAttendanceStage(id: string, stage: string, lostReason?: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
 
   // Motivo da perda passou a ser OBRIGATÓRIO (Fase 5) — é o que alimenta o relatório de captação.
   // Quem chama isto para PERDIDO precisa já ter coletado o motivo antes (ver
@@ -342,6 +357,7 @@ export async function updateAttendanceCommercial(
 ) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
   await prisma.attendance.updateMany({
     where: { id, officeId: viewer.officeId },
     data: {
@@ -376,6 +392,7 @@ export async function definirAtendenteResponde(
 ): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   const atendimento = await prisma.attendance.findFirst({
     where: { id: attendanceId, officeId: user.officeId },
@@ -400,6 +417,7 @@ export async function definirAtendenteResponde(
 export async function responderUltimaPergunta(attendanceId: string): Promise<{ error?: string; motivo?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   const existe = await prisma.attendance.findFirst({
     where: { id: attendanceId, officeId: user.officeId },
@@ -418,6 +436,7 @@ export async function responderUltimaPergunta(attendanceId: string): Promise<{ e
 export async function replyWhatsapp(attendanceId: string, body: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   const text = body.trim();
   if (!text) return { error: "Digite uma mensagem antes de enviar." };
@@ -466,6 +485,7 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
 export async function updateAttendanceClientEmail(attendanceId: string, clientEmail: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
   const email = clientEmail.trim();
   await prisma.attendance.updateMany({ where: { id: attendanceId, officeId: viewer.officeId }, data: { clientEmail: email || null } });
   revalidatePath(`/atendimento/${attendanceId}`);
@@ -475,6 +495,7 @@ export async function updateAttendanceClientEmail(attendanceId: string, clientEm
 export async function replyEmail(attendanceId: string, subject: string, body: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   const subjectText = subject.trim();
   const bodyText = body.trim();
@@ -530,6 +551,7 @@ export async function convertAttendanceToCase(
 ) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
 
   // Escopo por escritório logo na busca do atendimento: impede que alguém converta um
   // atendimento de OUTRO escritório só por conhecer/adivinhar o id.

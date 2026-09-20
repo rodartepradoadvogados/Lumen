@@ -8,6 +8,7 @@ import { Plus, Search } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,9 @@ export default async function MobileAtendimento({
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
+  // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
+  // `notFound` e não uma tela de "sem permissão": quem não pode ver não precisa saber que existe.
+  if (!podeVerAtendimentos(viewer)) notFound();
 
   const q = (searchParams.q || "").trim();
 

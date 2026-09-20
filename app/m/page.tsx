@@ -32,6 +32,7 @@ import {
   Building2,
   type LucideIcon,
 } from "lucide-react";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 // Ordem de urgência pra escolher os alertas da prévia da Início — mesma leitura de severidade
 // da Central de Alertas (DESIGN-SYSTEM.md §8), só usada aqui pra ordenar, não pra pintar nada
@@ -80,7 +81,7 @@ export default async function MobileHome() {
       : Promise.resolve([]),
     // Lista completa (não só a contagem) — alimenta tanto o número do atalho quanto a prévia
     // dos alertas mais urgentes logo abaixo, sem precisar de uma segunda consulta.
-    user ? getAlerts(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin) : Promise.resolve([]),
+    user ? getAlerts(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin, podeVerAtendimentos(user)) : Promise.resolve([]),
     user ? prisma.assessoria.count({ where: { status: "ATIVA", officeId: user.officeId } }) : Promise.resolve(0),
     user ? prisma.case.count({ where: { officeId: user.officeId, status: "ATIVO" } }) : Promise.resolve(0),
     // Divisão judicial/administrativo do atalho "Processos" abaixo — duas contagens leves a mais
@@ -100,6 +101,8 @@ export default async function MobileHome() {
 
   const firstName = user?.name.split(" ")[0] ?? "";
   const modules = user ? await getOfficeModules(user.officeId) : { financeiro: false, whatsapp: false, atendimento: false, assessoria: false };
+  // Administrador ou recepção. Sem isso, o cartão de Atendimento não existe nesta tela.
+  const podeAtendimento = podeVerAtendimentos(user);
   const showFinance = modules.financeiro && Boolean(user?.isAdmin || user?.financeAccess);
   const saldoMes = showFinance && user ? await getMonthlyNetFlow(user.officeId) : null;
   // Blog Jurídico não é um módulo contratável — é recurso da própria plataforma, hoje só do
@@ -136,7 +139,7 @@ export default async function MobileHome() {
             remodelação: bordô é a cor de AÇÃO em toda a Início, dourado sai dos cartões (só o
             item ativo da barra inferior continua dourado, por decisão à parte, ver
             components/mobile/MobileBottomNav.tsx). */}
-        <div className={modules.atendimento ? "grid grid-cols-2 gap-3" : ""}>
+        <div className={modules.atendimento && podeAtendimento ? "grid grid-cols-2 gap-3" : ""}>
           <HubCard
             title="Novo Compromisso"
             subtitle="Tarefa, prazo, audiência ou perícia"
@@ -149,7 +152,7 @@ export default async function MobileHome() {
               { href: "/m/agenda?novo=1&tipo=PERICIA", label: "Perícia", icon: Stethoscope },
             ]}
           />
-          {modules.atendimento && (
+          {modules.atendimento && podeAtendimento && (
             <Link href="/m/atendimento/novo" className="block h-full">
               <Card className="p-4 h-full">
                 <TileBadge icon={Phone} tone="bordo" />

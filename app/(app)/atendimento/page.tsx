@@ -5,10 +5,11 @@ import { PageHeader, Card, Badge, formatDate, EmptyState } from "@/components/ui
 import NewAttendanceModal from "@/components/NewAttendanceModal";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { Filter } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,9 @@ export default async function AtendimentoPage({
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
+  // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
+  // `notFound` e não uma tela de "sem permissão": quem não pode ver não precisa saber que existe.
+  if (!podeVerAtendimentos(viewer)) notFound();
 
   const q = (searchParams.q || "").trim();
   // officeId/status entram aqui em baseFilters (não só no `where` abaixo) de propósito:

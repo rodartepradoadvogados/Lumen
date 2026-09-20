@@ -5,6 +5,7 @@ import { Card } from "@/components/ui";
 import MobileInstallMenuItem from "@/components/mobile/MobileInstallMenuItem";
 import MobileLogoutButton from "@/components/mobile/MobileLogoutButton";
 import { Phone, DollarSign, BarChart, Settings, Lock, Briefcase, User, Users } from "lucide-react";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function MobileMais() {
     // components/mobile/MobileBottomNav.tsx) — o atalho aqui continua de propósito: quem já
     // está em Menu não precisa voltar pra Início pra achar Processo de novo.
     { href: "/m/processos", label: "Processos", Icon: Briefcase, show: true },
-    { href: "/m/atendimento", label: "Atendimento", Icon: Phone, show: modules.atendimento },
+    { href: "/m/atendimento", label: "Atendimento", Icon: Phone, show: modules.atendimento && podeVerAtendimentos(viewer) },
     { href: "/m/financeiro", label: "Financeiro", Icon: DollarSign, show: showFinance },
     { href: "/m/relatorios", label: "Relatórios", Icon: BarChart, show: true },
     // Busca + ligar/WhatsApp direto — nasceu da auditoria de navegação (2026-08): único gap com

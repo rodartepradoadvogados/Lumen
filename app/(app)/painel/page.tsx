@@ -22,6 +22,7 @@ import SettleButton from "@/components/SettleButton";
 import OverdueTaskRow from "@/components/OverdueTaskRow";
 import DayQueueRow, { type DayQueueItem } from "@/components/DayQueueRow";
 import Regua from "@/components/Regua";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ export default async function DashboardPage() {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
+  const podeAtendimento = podeVerAtendimentos(viewer);
 
   const [
     payablesSoon,
@@ -120,7 +122,7 @@ export default async function DashboardPage() {
     // app/m/layout.tsx). A tarja abaixo precisa dela para se declarar como o RECORTE que é, em
     // vez de ser um terceiro número solto na tela. Roda em paralelo com as outras consultas
     // desta tela, então não custa latência nova — só contagens indexadas.
-    getAlertsCount(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin)
+    getAlertsCount(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin, podeVerAtendimentos(viewer))
   ]);
 
   const totalReceivableSoon = receivablesSoon.reduce((s, r) => s + saldoEmAberto(r.amount, r.discount, r.surcharge, r.payments.reduce((a, x) => a + x.amount, 0)), 0);
@@ -485,6 +487,10 @@ export default async function DashboardPage() {
             </>
           )}
 
+          {/* O funil some inteiro para quem não pode abrir o Atendimento — inclusive a CONTAGEM.
+              Dizer "Funil — 3 hoje" a quem não pode ver os três já é contar metade: informa que
+              existem três pessoas novas procurando o escritório hoje. */}
+          {podeAtendimento && (
           <div className="bg-sf border-t-2 border-regua-forte p-5">
             <div className="flex items-center gap-2.5">
               <span className="h-[30px] w-[30px] rounded-lg flex items-center justify-center shrink-0 bg-sf-apoio text-tx-2">
@@ -504,6 +510,7 @@ export default async function DashboardPage() {
               Ver funil <ArrowRight size={13} strokeWidth={1.5} />
             </Link>
           </div>
+          )}
         </div>
       </div>
     </div>

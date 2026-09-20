@@ -66,13 +66,14 @@ export async function transferirLead(
     const pessoas: PessoaDaFila[] = (
       await prisma.user.findMany({
         where: { officeId: atendimento.officeId },
-        select: { id: true, name: true, role: true, active: true, recebeTransferencia: true, createdAt: true },
+        select: { id: true, name: true, role: true, active: true, isAdmin: true, recebeTransferencia: true, createdAt: true },
       })
     ).map((u) => ({
       id: u.id,
       nome: u.name,
       papel: u.role,
       ativo: u.active,
+      isAdmin: u.isAdmin,
       recebeTransferencia: u.recebeTransferencia,
       criadoEm: u.createdAt,
     }));

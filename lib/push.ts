@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
 import { getAlertsCount } from "@/lib/alerts";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 // ============================================================================
 // Notificações push (Web Push API) — igual ao padrão de lib/whatsapp.ts:
@@ -85,6 +86,8 @@ export async function sendPushIfEnabled(userId: string, officeId: string, type: 
     where: { id: userId, officeId },
     select: {
       isAdmin: true,
+      // Para saber se este usuário pode receber contagem de alerta de Atendimento.
+      role: true,
       financeAccess: true,
       notifyAndamentos: true,
       notifyPublicacoes: true,
@@ -100,7 +103,7 @@ export async function sendPushIfEnabled(userId: string, officeId: string, type: 
   // Só conta se `count` não veio explícito do chamador — uma consulta a mais por destinatário,
   // paga apenas quando o push de fato vai sair (checagens acima já retornaram cedo nos outros
   // casos).
-  const count = payload.count ?? (await getAlertsCount(officeId, Boolean(user.isAdmin || user.financeAccess), userId, user.isAdmin));
+  const count = payload.count ?? (await getAlertsCount(officeId, Boolean(user.isAdmin || user.financeAccess), userId, user.isAdmin, podeVerAtendimentos(user)));
   const body = JSON.stringify({ ...payload, count });
   let sent = 0;
   for (const sub of user.pushSubscriptions) {

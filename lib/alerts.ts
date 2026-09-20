@@ -137,7 +137,16 @@ export async function getAlerts(
   officeId: string,
   includeFinance: boolean = true,
   viewerId?: string,
-  includeDriveSync: boolean = false
+  includeDriveSync: boolean = false,
+  /**
+   * Alertas de ATENDIMENTO (follow-up atrasado, pendência vencida, lead sem resposta). Restritos
+   * a administrador e recepção, como a própria tela — ver lib/acessoAtendimento.ts.
+   *
+   * O padrão é FALSO, e não verdadeiro como os outros: quem esquecer de passar esconde o alerta
+   * em vez de mostrá-lo. Um alerta que escapa diz o nome de uma pessoa que procurou o escritório
+   * e o assunto dela — é o conteúdo da tela vazando pela porta lateral do sino.
+   */
+  includeAtendimento: boolean = false,
 ): Promise<AlertItem[]> {
   const now = new Date();
   // dueDate é data-calendário (meia-noite) — comparar contra `now` (timestamp com hora) marca
@@ -207,10 +216,12 @@ export async function getAlerts(
       includeFinance
         ? prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
         : Promise.resolve([]),
-      prisma.attendance.findMany({
-        where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
-        orderBy: { nextContactAt: "asc" },
-      }),
+      includeAtendimento
+        ? prisma.attendance.findMany({
+            where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
+            orderBy: { nextContactAt: "asc" },
+          })
+        : Promise.resolve([]),
       viewerId
         ? prisma.task.findMany({
             where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null },
@@ -250,23 +261,27 @@ export async function getAlerts(
           })
         : Promise.resolve([]),
       // Fase 5 — pendências do atendimento (SOLICITAR/ENVIAR) com prazo vencido e ainda abertas.
-      prisma.atendimentoPendencia.findMany({
-        where: { officeId, status: "PENDENTE", dueDate: { lt: now } },
-        include: { attendance: { select: { id: true, clientName: true } } },
-        orderBy: { dueDate: "asc" },
-      }),
+      includeAtendimento
+        ? prisma.atendimentoPendencia.findMany({
+            where: { officeId, status: "PENDENTE", dueDate: { lt: now } },
+            include: { attendance: { select: { id: true, clientName: true } } },
+            orderBy: { dueDate: "asc" },
+          })
+        : Promise.resolve([]),
       // Fase 5 — prazo de resposta ao lead estourado sem primeira resposta registrada. Exclui
       // atendimentos já encerrados (arquivado/rascunho/convertido) — não faz sentido cobrar
       // resposta de um lead que já não está mais em aberto.
-      prisma.attendance.findMany({
-        where: {
-          officeId,
-          responseDeadline: { lt: now },
-          firstResponseAt: null,
-          status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] },
-        },
-        orderBy: { responseDeadline: "asc" },
-      }),
+      includeAtendimento
+        ? prisma.attendance.findMany({
+            where: {
+              officeId,
+              responseDeadline: { lt: now },
+              firstResponseAt: null,
+              status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] },
+            },
+            orderBy: { responseDeadline: "asc" },
+          })
+        : Promise.resolve([]),
     ]);
 
   // Publicações recentes dos processos com parcela a apurar (Porta 1) — consulta separada porque
@@ -532,7 +547,16 @@ export async function getAlertsCount(
   officeId: string,
   includeFinance: boolean = true,
   viewerId?: string,
-  includeDriveSync: boolean = false
+  includeDriveSync: boolean = false,
+  /**
+   * Alertas de ATENDIMENTO (follow-up atrasado, pendência vencida, lead sem resposta). Restritos
+   * a administrador e recepção, como a própria tela — ver lib/acessoAtendimento.ts.
+   *
+   * O padrão é FALSO, e não verdadeiro como os outros: quem esquecer de passar esconde o alerta
+   * em vez de mostrá-lo. Um alerta que escapa diz o nome de uma pessoa que procurou o escritório
+   * e o assunto dela — é o conteúdo da tela vazando pela porta lateral do sino.
+   */
+  includeAtendimento: boolean = false,
 ): Promise<number> {
   const now = new Date();
   // Mesma correção de getAlerts acima — ver comentário lá.
@@ -585,9 +609,11 @@ export async function getAlertsCount(
     includeFinance
       ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
       : Promise.resolve(0),
-    prisma.attendance.count({
-      where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
-    }),
+    includeAtendimento
+      ? prisma.attendance.count({
+          where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
+        })
+      : Promise.resolve(0),
     viewerId
       ? prisma.task.count({ where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null } })
       : Promise.resolve(0),
@@ -606,10 +632,14 @@ export async function getAlertsCount(
     includeFinance
       ? prisma.receivable.findMany({ where: { officeId, status: "A_APURAR", caseId: { not: null } }, select: { id: true, createdAt: true, caseId: true } })
       : Promise.resolve([]),
-    prisma.atendimentoPendencia.count({ where: { officeId, status: "PENDENTE", dueDate: { lt: now } } }),
-    prisma.attendance.count({
-      where: { officeId, responseDeadline: { lt: now }, firstResponseAt: null, status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] } },
-    }),
+    includeAtendimento
+      ? prisma.atendimentoPendencia.count({ where: { officeId, status: "PENDENTE", dueDate: { lt: now } } })
+      : Promise.resolve(0),
+    includeAtendimento
+      ? prisma.attendance.count({
+          where: { officeId, responseDeadline: { lt: now }, firstResponseAt: null, status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] } },
+        })
+      : Promise.resolve(0),
   ]);
 
   // Mesma lógica de getAlerts() acima para as duas Portas de apuração do êxito, só contando em

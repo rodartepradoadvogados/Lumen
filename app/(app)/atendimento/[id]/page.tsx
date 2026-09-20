@@ -21,6 +21,7 @@ import { isWhatsappConfigured } from "@/lib/whatsapp";
 import { getCurrentUser } from "@/lib/currentUser";
 import { X } from "lucide-react";
 import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,9 @@ const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-
 export default async function AttendanceDetailPage({ params }: { params: { id: string } }) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
+  // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
+  // `notFound` e não uma tela de "sem permissão": quem não pode ver não precisa saber que existe.
+  if (!podeVerAtendimentos(viewer)) notFound();
 
   const a = await prisma.attendance.findFirst({
     where: { id: params.id, officeId: viewer.officeId },

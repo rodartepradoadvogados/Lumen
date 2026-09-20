@@ -18,10 +18,12 @@ import type { OfficeModules } from "@/lib/officeModules";
 export default function PageSectionTabs({
   section,
   hasFinanceAccess,
+  podeAtendimento = false,
   modules,
 }: {
   section: SectionKey | "painel" | null;
   hasFinanceAccess: boolean;
+  podeAtendimento?: boolean;
   modules: OfficeModules;
 }) {
   const pathname = usePathname();
@@ -54,7 +56,7 @@ export default function PageSectionTabs({
   // qualquer seção com um item só). Antes ela sumia, e o conteúdo da tela saltava 40px para
   // cima ao entrar no Painel e 40px para baixo ao sair — parte da mesma instabilidade que a
   // largura única resolve: o quadro da página não se mexe entre navegações.
-  const items = def ? visibleSectionItems(def, { hasFinanceAccess, modules }) : [];
+  const items = def ? visibleSectionItems(def, { hasFinanceAccess, modules, podeAtendimento }) : [];
   if (!def || items.length < 2) {
     return <div className="h-10 shrink-0 border-b-2 border-regua-forte bg-sf" aria-hidden="true" />;
   }
