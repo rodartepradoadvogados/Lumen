@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { telefoneLegivel } from "@/lib/quemEEsteNumero";
 import { pareceTelefone } from "@/lib/avisoDeLead";
+import { lerJaTentaram } from "@/lib/filaDeTransferencia";
 
 // ============================================================================
 // QUEM ESTÁ ESPERANDO RESPOSTA.
@@ -32,6 +33,10 @@ export type QuemEspera = {
   responsavel: string | null;
   /** Repassado a quem está olhando. Muda a cor da tarja, porque muda de quem é a obrigação. */
   meu: boolean;
+  /** O prazo gravado, em ISO — o chip do relógio conta a partir dele, no navegador. */
+  prazoISO: string | null;
+  /** Qual volta da fila este lead está dando: 1ª, 2ª, 3ª. Ver lerJaTentaram. */
+  voltaDaFila: number;
 };
 
 /** "11 min", "3h", "2d" — a espera em uma palavra, que é o que cabe na linha de uma lista. */
@@ -56,6 +61,21 @@ export function ordenarPorEspera(a: QuemEspera, b: QuemEspera): number {
   if (b.esperandoHa === null) return -1;
   if (a.esperandoHa !== b.esperandoHa) return b.esperandoHa - a.esperandoHa;
   return a.id.localeCompare(b.id);
+}
+
+/** "1ª vez na fila", "3ª vez na fila" — quantas voltas este lead já deu sem ninguém responder. */
+export function rotuloDaVolta(volta: number): string {
+  return `${Math.max(1, volta)}ª vez na fila`;
+}
+
+/**
+ * Com quem o lead está agora.
+ *
+ * Sem responsável NÃO é "ninguém": é a recepção, que é quem atende o que chega sem dono. Escrever
+ * "sem responsável" aqui faria a fila parecer abandonada quando ela está exatamente onde deveria.
+ */
+export function comQuemEsta(q: QuemEspera): string {
+  return q.responsavel || "Recepção";
 }
 
 /** Uma linha de contexto: de onde veio e de quem é. */
@@ -95,6 +115,8 @@ export async function quemEstaEsperando(
         clientName: true,
         waPhone: true,
         responsibleId: true,
+        prazoDeRespostaAte: true,
+        filaJaTentou: true,
         responsible: { select: { name: true } },
         campanha: { select: { nome: true } },
         // Só a última mensagem de cada conversa: é tudo o que a lista mostra, e trazer a conversa
@@ -119,6 +141,9 @@ export async function quemEstaEsperando(
       campanha: l.campanha?.nome ?? null,
       responsavel: l.responsible?.name ?? null,
       meu: l.responsibleId === viewerId,
+      prazoISO: l.prazoDeRespostaAte ? l.prazoDeRespostaAte.toISOString() : null,
+      // Quem já teve a vez, mais o dono atual. Um lead que ninguém pegou ainda está na 1ª volta.
+      voltaDaFila: lerJaTentaram(l.filaJaTentou).length + 1,
     };
   });
 
