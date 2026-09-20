@@ -22,6 +22,8 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { X } from "lucide-react";
 import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { filtroDoAtendimento, podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { identificarNumero } from "@/lib/identificarNumero";
+import QuemEEsteNumero from "@/components/atendimento/QuemEEsteNumero";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +57,9 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   if (!a) notFound();
 
   const whatsappConfigured = await isWhatsappConfigured(viewer.officeId);
+
+  // Quem é este número — cruzado com as quatro agendas do escritório (ver lib/identificarNumero.ts).
+  const { telefone: telefoneDoContato, contato: contatoConhecido } = await identificarNumero(viewer.officeId, a);
 
   // O nome do atendente é do ESCRITÓRIO, não do Lúmen: para o cliente, quem atende é o escritório,
   // e um atendente chamado "Lúmen" entregaria que há um sistema de terceiro no meio da conversa.
@@ -147,9 +152,15 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
               <Card className="p-5 space-y-3">
+                {/* QUEM É ESTE NÚMERO vem antes de tudo, e é o único bloco desta ficha que não é
+                    um par rótulo/valor: é a primeira coisa que quem vai responder precisa saber, e
+                    "Telefone: 62 9999-8888" numa linha de tabela não responde a pergunta. */}
+                <div className="pb-3 border-b border-regua">
+                  <h4 className="text-xs font-semibold text-tx-3 uppercase tracking-wide mb-2">Quem é este número</h4>
+                  <QuemEEsteNumero attendanceId={a.id} telefone={telefoneDoContato} contato={contatoConhecido} />
+                </div>
                 <Field label="Matéria" value={a.area} />
                 <Field label="Canal" value={channelLabels[a.channel]} />
-                <Field label="Telefone" value={a.contactPhone} />
                 {a.contact && <Field label="Contato (legado)" value={a.contact} />}
                 <Field label="Responsável pela triagem" value={a.responsible?.name} />
                 <Field label="Data" value={formatDate(a.createdAt)} />

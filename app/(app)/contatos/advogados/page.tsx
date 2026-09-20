@@ -7,15 +7,23 @@ import NewContactModal from "@/components/NewContactModal";
 import EditLawyerModal from "@/components/EditLawyerModal";
 import DeleteButton from "@/components/DeleteButton";
 import { deleteLawyer } from "@/lib/actions/contatos";
+import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdvogadosPage({ searchParams }: { searchParams: { side?: string } }) {
+export default async function AdvogadosPage({ searchParams }: { searchParams: { side?: string; q?: string } }) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
 
+  // `q` existe para que o nome do contato dentro de um atendimento seja um link que leva ao
+  // registro certo, e não a uma lista de trezentos advogados para procurar à mão.
+  const q = (searchParams.q || "").trim();
   const lawyers = await prisma.lawyer.findMany({
-    where: { side: searchParams.side || undefined, officeId: viewer.officeId },
+    where: {
+      side: searchParams.side || undefined,
+      officeId: viewer.officeId,
+      ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
+    },
     orderBy: { name: "asc" },
   });
 
@@ -26,10 +34,12 @@ export default async function AdvogadosPage({ searchParams }: { searchParams: { 
       </Link>
       <PageHeader title="Advogados" subtitle={`${lawyers.length} registro(s)`} action={<NewContactModal kind="lawyer" />} />
 
+      {q && <FiltradoPorNome q={q} href={searchParams.side ? `/contatos/advogados?side=${searchParams.side}` : "/contatos/advogados"} total={lawyers.length} />}
+
       <div className="flex gap-2 mb-4">
-        <FilterLink label="Todos" href="/contatos/advogados" active={!searchParams.side} />
-        <FilterLink label="Parceiros" href="/contatos/advogados?side=PARCEIRO" active={searchParams.side === "PARCEIRO"} />
-        <FilterLink label="Adversos" href="/contatos/advogados?side=ADVERSO" active={searchParams.side === "ADVERSO"} />
+        <FilterLink label="Todos" href={q ? `/contatos/advogados?q=${encodeURIComponent(q)}` : "/contatos/advogados"} active={!searchParams.side} />
+        <FilterLink label="Parceiros" href={`/contatos/advogados?side=PARCEIRO${q ? `&q=${encodeURIComponent(q)}` : ""}`} active={searchParams.side === "PARCEIRO"} />
+        <FilterLink label="Adversos" href={`/contatos/advogados?side=ADVERSO${q ? `&q=${encodeURIComponent(q)}` : ""}`} active={searchParams.side === "ADVERSO"} />
       </div>
 
       <Card>
