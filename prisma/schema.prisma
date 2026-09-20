@@ -254,6 +254,7 @@ model Office {
   // Modelos salvos do Relatório Personalizado — ver model RelatorioModelo mais abaixo.
   relatorioModelos RelatorioModelo[]
   campanhas        Campanha[]
+  motivosDeRecusa  MotivoDeRecusa[]
 }
 
 // Catálogo de planos (Painel Mestre → Preços) — 5 linhas fixas (Standard/Silver/Gold/Diamond/Sob
@@ -1835,6 +1836,49 @@ model DropboxCredential {
 // POR QUE ISTO É UMA TABELA E NÃO UM CAMPO DE TEXTO. Porque cada campanha tem roteiro próprio,
 // documentos próprios e motivos de recusa próprios — e porque o escritório vai cadastrar várias,
 // e trocá-las sem chamar ninguém.
+// ── O CATÁLOGO DE MOTIVOS DE RECUSA ───────────────────────────────────────────────────────────
+//
+// Dois andares numa tabela só. `officeId` nulo é motivo-padrão da Lúmen, cadastrado no Painel
+// Mestre; `officeId` preenchido é a camada daquele escritório.
+//
+// O ESCRITÓRIO NÃO GUARDA CÓPIA DO PADRÃO. Enquanto ele não editar, não existe linha dele nenhuma
+// — ele aponta para o padrão, e por isso recebe a correção quando a Lúmen arruma uma frase. A
+// linha da camada só nasce quando ele EDITA ou DESATIVA, e aí ela carrega `baseId`. A alternativa
+// que parece mais simples (copiar tudo na primeira seleção) faz o catálogo apodrecer em silêncio.
+//
+// DESATIVAR EM VEZ DE APAGAR, quando há padrão atrás: excluir e "voltar ao padrão" são a mesma
+// coisa vista de dois lados, e se a exclusão fosse definitiva o botão de voltar não teria para
+// onde voltar. O que o escritório criou sozinho (sem `baseId`) some de verdade quando ele exclui.
+//
+// A regra inteira, com os porquês e os testes, está em lib/motivosDeRecusa.ts.
+model MotivoDeRecusa {
+  id String @id @default(cuid())
+
+  // Nulo = padrão da plataforma (Painel Mestre). Preenchido = camada deste escritório.
+  officeId String?
+  office   Office? @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // Preenchido só na camada do escritório, quando ela é a versão dele de um padrão.
+  baseId String?
+  base   MotivoDeRecusa?  @relation("MotivoBase", fields: [baseId], references: [id], onDelete: Cascade)
+  versoes MotivoDeRecusa[] @relation("MotivoBase")
+
+  // A frase que vai para a carta que o lead lê. Uma frase, não um parágrafo.
+  rotulo    String
+  // Nota interna: quando usar este motivo. Nunca sai para o lead.
+  descricao String?
+
+  // Some das telas de quem desativou — da plataforma, para todos; do escritório, só para ele.
+  desativado Boolean @default(false)
+  ordem      Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId])
+  @@index([baseId])
+}
+
 model Campanha {
   id String @id @default(cuid())
 
