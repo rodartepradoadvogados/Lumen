@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { teste, igual, verdade, resumo } from "./executar";
+import { teste, igual, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
 import {
   montarCartaDeRecusa,
   primeiroNome,
@@ -141,19 +141,9 @@ teste("o link é impossível de adivinhar, e formato errado não passa", () => {
 const ACAO = readFileSync("lib/actions/recusaDoLead.ts", "utf8");
 const PAGINA = readFileSync("app/recusa/[token]/page.tsx", "utf8");
 
-/**
- * O código da página, sem os comentários.
- *
- * Pela terceira vez nesta rodada uma varredura encontrou, DENTRO DO COMENTÁRIO QUE EXPLICA A
- * TRAVA, exatamente o texto que ela procurava para acusar a falta dela. Aqui o comentário diz
- * "sem dangerouslySetInnerHTML em lugar nenhum" — e era isso que o teste achava.
- */
-const PAGINA_CODIGO = PAGINA.split("\n")
-  .filter((l) => {
-    const t = l.trim();
-    return !t.startsWith("//") && !t.startsWith("*") && !t.startsWith("/*");
-  })
-  .join("\n");
+// Sem os comentários: o comentário desta página diz "sem dangerouslySetInnerHTML em lugar nenhum",
+// e era isso que a varredura achava. Ver a nota em lib/testes/executar.ts.
+const PAGINA_CODIGO = codigoDe(PAGINA);
 
 teste("recusar exige motivo e congela o texto dele", () => {
   // O catálogo muda; a carta que o lead recebeu, não. Se a carta lesse o motivo pelo id na hora de
@@ -165,8 +155,8 @@ teste("recusar exige motivo e congela o texto dele", () => {
 
 teste("recusar não manda a carta sozinho", () => {
   // Gerar o link é parte de recusar; mandar é um segundo ato, de uma pessoa.
-  const i = ACAO.indexOf("export async function recusarLead(");
-  const corpo = ACAO.slice(i, ACAO.indexOf("export async function", i + 10));
+  const corpo = corpoDaFuncao(ACAO, "recusarLead");
+  verdade(corpo.length > 0, "recusarLead não existe");
   verdade(!corpo.includes("enviadaEm"), "recusarLead está carimbando o envio — ele não manda nada");
 });
 
@@ -199,6 +189,41 @@ teste("a carta é pública — o middleware não pode mandá-la para a propagand
   // GESTÃO · Começar". É pior do que um erro, porque parece que deu certo.
   const mw = readFileSync("middleware.ts", "utf8");
   verdade(mw.includes('pathname.startsWith("/recusa/")'), "a carta de recusa não está entre as rotas públicas");
+});
+
+// ── A FILA DE RECUSADOS ─────────────────────────────────────────────────────
+
+teste("trazer de volta NÃO reinicia o relógio de quinze minutos", () => {
+  // O relógio existe para o lead que acabou de escrever. Um lead recuperado três dias depois com
+  // "volta para a fila em 15" seria alarme falso — e alarme falso ensina a ignorar alarme.
+  const corpo = corpoDaFuncao(ACAO, "reverterRecusa");
+  verdade(corpo.length > 0, "reverterRecusa não existe");
+  verdade(corpo.includes("prazoDeRespostaAte: null"), "reverter está deixando o relógio correr");
+  // E volta para TRIAGEM, não para "novo": ele já passou por triagem uma vez.
+  verdade(corpo.includes('status: "EM_TRIAGEM"'), "o lead recuperado deveria voltar para triagem");
+});
+
+teste("quem analisa a fila é quem vê o escritório inteiro", () => {
+  // Decisão do dono contra a minha recomendação: sócio E recepção. A consequência que veio junto é
+  // que reverter passou a ter mais de um autor possível — então quem reverteu fica gravado.
+  const corpo = corpoDaFuncao(ACAO, "quemAnalisa");
+  verdade(corpo.length > 0, "quemAnalisa não existe");
+  verdade(corpo.includes("veTodoOAtendimento(viewer)"), "a fila de recusados aceita quem só vê os próprios atendimentos");
+  verdade(corpo.includes('estado: "EM_ANALISE"'), "aceita mexer em recusa já arquivada ou revertida");
+
+  for (const [nome, campo] of [["reverterRecusa", "revertidaPorId"], ["arquivarRecusa", "arquivadaPorId"]]) {
+    const c = corpoDaFuncao(ACAO, nome);
+    verdade(c.length > 0, `${nome} não existe`);
+    verdade(c.includes(`${campo}: r.viewer.id`), `${nome} não registra quem fez`);
+  }
+});
+
+teste("a fila de recusados só mostra quem espera decisão", () => {
+  const pagina = readFileSync("app/(app)/atendimento/funil/page.tsx", "utf8");
+  verdade(pagina.includes('estado: "EM_ANALISE"'), "a fila traria recusas arquivadas e revertidas");
+  // Arquivar tira da fila E do atendimento ativo — senão o lead encerrado voltaria a aparecer
+  // como atendimento aberto em outra tela.
+  verdade(corpoDaFuncao(ACAO, "arquivarRecusa").includes('data: { status: "ARQUIVADO" }'), "arquivar não encerra o atendimento");
 });
 
 resumo("Recusa do lead");
