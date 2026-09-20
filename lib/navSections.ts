@@ -32,6 +32,8 @@ export type SectionPanelItem = {
   href: string;
   label: string;
   adminOnly?: boolean;
+  /** Item do Atendimento: só administrador e recepção (ver lib/acessoAtendimento.ts). */
+  atendimentoOnly?: boolean;
   moduleKey?: keyof OfficeModules;
   subParam?: string;
   subDefaultValue?: string;
@@ -67,8 +69,8 @@ export const RAIL_SECTIONS: SectionDef[] = [
     icon: Inbox,
     items: [
       { href: "/publicacoes", label: "Publicações" },
-      { href: "/atendimento", label: "Atendimentos", moduleKey: "atendimento" },
-      { href: "/atendimento/funil", label: "Funil comercial", moduleKey: "atendimento" },
+      { href: "/atendimento", label: "Atendimentos", moduleKey: "atendimento", atendimentoOnly: true },
+      { href: "/atendimento/funil", label: "Funil comercial", moduleKey: "atendimento", atendimentoOnly: true },
       { href: "/contatos", label: "Contatos" },
     ],
   },
@@ -146,19 +148,28 @@ export const RAIL_SECTIONS: SectionDef[] = [
 
 // Financeiro (a SEÇÃO inteira) só aparece com acesso financeiro — mesmo critério de sempre
 // (isAdmin || financeAccess). Não há adminOnly/moduleKey nos outros 4: sempre visíveis.
-export function isSectionVisible(
-  section: SectionDef,
-  { hasFinanceAccess, modules }: { hasFinanceAccess: boolean; modules: OfficeModules }
-): boolean {
-  if (section.key === "financeiro") return hasFinanceAccess;
-  return section.items.some((item) => (!item.adminOnly || hasFinanceAccess) && (!item.moduleKey || modules[item.moduleKey]));
+export type ContextoDeVisibilidade = {
+  hasFinanceAccess: boolean;
+  modules: OfficeModules;
+  /** Administrador ou recepção — quem pode abrir o Atendimento. Ausente vale FALSO. */
+  podeAtendimento?: boolean;
+};
+
+function itemVisivel(item: SectionPanelItem, ctx: ContextoDeVisibilidade): boolean {
+  if (item.adminOnly && !ctx.hasFinanceAccess) return false;
+  if (item.moduleKey && !ctx.modules[item.moduleKey]) return false;
+  // Fechado por padrão: um contexto que esqueceu de informar esconde o item em vez de mostrá-lo.
+  if (item.atendimentoOnly && ctx.podeAtendimento !== true) return false;
+  return true;
 }
 
-export function visibleSectionItems(
-  section: SectionDef,
-  { hasFinanceAccess, modules }: { hasFinanceAccess: boolean; modules: OfficeModules }
-): SectionPanelItem[] {
-  return section.items.filter((item) => (!item.adminOnly || hasFinanceAccess) && (!item.moduleKey || modules[item.moduleKey]));
+export function isSectionVisible(section: SectionDef, ctx: ContextoDeVisibilidade): boolean {
+  if (section.key === "financeiro") return ctx.hasFinanceAccess;
+  return section.items.some((item) => itemVisivel(item, ctx));
+}
+
+export function visibleSectionItems(section: SectionDef, ctx: ContextoDeVisibilidade): SectionPanelItem[] {
+  return section.items.filter((item) => itemVisivel(item, ctx));
 }
 
 // Deriva a seção ativa a partir do pathname — não é estado próprio (ver README da proposta:

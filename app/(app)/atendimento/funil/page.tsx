@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Badge, formatCurrency } from "@/components/ui";
@@ -7,6 +7,7 @@ import FunnelStageSelect from "@/components/FunnelStageSelect";
 // stageLabels vem do módulo neutro, nunca do componente "use client" — ver lib/funil.ts.
 import { stageLabels } from "@/lib/funil";
 import { List } from "lucide-react";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,9 @@ function daysBetween(from: Date, to: Date) {
 export default async function FunilPage() {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
+  // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
+  // `notFound` e não uma tela de "sem permissão": quem não pode ver não precisa saber que existe.
+  if (!podeVerAtendimentos(viewer)) notFound();
 
   const attendances = await prisma.attendance.findMany({
     where: { status: { notIn: ["ARQUIVADO", "RASCUNHO"] }, officeId: viewer.officeId },

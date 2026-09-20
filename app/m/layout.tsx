@@ -16,6 +16,7 @@ import OfficeSuspendedNotice from "@/components/OfficeSuspendedNotice";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { getAlertsCount, getAgendaBadgeCount } from "@/lib/alerts";
 import { getOfficeModules } from "@/lib/officeModules";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ export default async function MobileLayout({ children }: { children: React.React
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
   const [totalAlerts, agendaBadgeCount, sessionSeconds, modules] = await Promise.all([
-    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
+    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin, podeVerAtendimentos(user)),
     // Compromissos que vencem HOJE (mesmo critério do reforço "Hoje" do Painel) — alimenta a
     // bolinha da aba "Agenda" na barra inferior (documento 08).
     getAgendaBadgeCount(user.officeId),

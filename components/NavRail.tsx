@@ -19,6 +19,7 @@ import type { OfficeModules } from "@/lib/officeModules";
 // de 1024px — documento 02 do handoff do redesenho Modernist.
 export default function NavRail({
   hasFinanceAccess = true,
+  podeAtendimento = false,
   unreadPublications = 0,
   agendaBadgeCount = 0,
   modules,
@@ -29,6 +30,8 @@ export default function NavRail({
   onOpenMobile,
 }: {
   hasFinanceAccess?: boolean;
+  /** Fechado por padrão: quem esquecer de passar esconde o Atendimento, e não o contrário. */
+  podeAtendimento?: boolean;
   unreadPublications?: number;
   agendaBadgeCount?: number;
   modules: OfficeModules;
@@ -68,7 +71,7 @@ export default function NavRail({
     router.push(href);
   }
 
-  const visibleSections = RAIL_SECTIONS.filter((s) => isSectionVisible(s, { hasFinanceAccess, modules }));
+  const visibleSections = RAIL_SECTIONS.filter((s) => isSectionVisible(s, { hasFinanceAccess, modules, podeAtendimento }));
   const currentSection = activeSection ?? sectionForPathname(pathname);
   const onConfiguracoes = pathname === "/configuracoes" || pathname?.startsWith("/configuracoes/");
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
 import { looseIncludes } from "@/lib/textNormalize";
 import { getCurrentUser } from "@/lib/currentUser";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export type SearchResult = {
   type: "Processos" | "Clientes" | "Tarefas" | "Atendimentos" | "Publicações";
@@ -144,7 +145,10 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
     });
   }
 
-  for (const a of attendances) {
+  // A BUSCA GLOBAL É A PORTA LATERAL MAIS FÁCIL DE ESQUECER. Quem não pode abrir o Atendimento
+  // também não pode encontrá-lo digitando um nome na barra de busca — e o resultado já traz o
+  // nome e o assunto da pessoa, que é o conteúdo da tela.
+  for (const a of podeVerAtendimentos(viewer) ? attendances : []) {
     results.push({
       type: "Atendimentos",
       id: a.id,

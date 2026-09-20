@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { getAlerts, getAlertsCount } from "@/lib/alerts";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 // Tipos de alerta sem nenhuma ação de "resolver" (ver lib/alerts.ts) ganham um botão "Lido" —
 // por usuário, igual PublicationRead: dispensar não afeta os outros advogados do escritório.
@@ -46,7 +47,7 @@ export async function getUnreadAlertsCount(): Promise<number> {
   const user = await getCurrentUser();
   if (!user) return 0;
   const hasFinanceAccess = Boolean(user.isAdmin || user.financeAccess);
-  return getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin);
+  return getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin, podeVerAtendimentos(user));
 }
 
 // PRÉVIA DA CENTRAL — alimenta o painel que desce do sino na barra de topo
@@ -77,7 +78,7 @@ export async function listarPreviaAlertas(): Promise<AlertaPrevia[]> {
   const user = await getCurrentUser();
   if (!user) return [];
   const hasFinanceAccess = Boolean(user.isAdmin || user.financeAccess);
-  const alertas = await getAlerts(user.officeId, hasFinanceAccess, user.id, user.isAdmin);
+  const alertas = await getAlerts(user.officeId, hasFinanceAccess, user.id, user.isAdmin, podeVerAtendimentos(user));
   return alertas.slice(0, 8).map((a) => ({
     id: a.id,
     kind: a.kind,

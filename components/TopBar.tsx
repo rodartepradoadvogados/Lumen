@@ -24,9 +24,11 @@ import type { OfficeModules } from "@/lib/officeModules";
 // implementa ainda).
 export default function TopBar({
   hasFinanceAccess,
+  podeAtendimento = false,
   modules,
 }: {
   hasFinanceAccess: boolean;
+  podeAtendimento?: boolean;
   modules: OfficeModules;
 }) {
   return (
@@ -35,7 +37,7 @@ export default function TopBar({
         <GuiasBar />
       </div>
       <div className="shrink-0">
-        <GlobalSearch hasFinanceAccess={hasFinanceAccess} modules={modules} />
+        <GlobalSearch hasFinanceAccess={hasFinanceAccess} modules={modules} podeAtendimento={podeAtendimento} />
       </div>
       <div className="shrink-0">
         <TopBarActions />

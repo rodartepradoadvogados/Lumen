@@ -2,6 +2,7 @@ import { getAlertsCount } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getCurrentSessionElapsedSeconds } from "@/lib/timesheet";
 import TopBarActionsContent from "@/components/TopBarActionsContent";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 // Cluster de ações (Peticionar/Novo/Timesheet/Painel Mestre/Alertas/avatar) renderizado direto
 // dentro da faixa única de topo (components/TopBar.tsx) — busca seus próprios dados
@@ -22,7 +23,7 @@ import TopBarActionsContent from "@/components/TopBarActionsContent";
 export default async function TopBarActions() {
   const user = await getCurrentUser();
   const hasFinanceAccess = Boolean(user?.isAdmin || user?.financeAccess);
-  const alertsCount = user ? await getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin) : 0;
+  const alertsCount = user ? await getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin, podeVerAtendimentos(user)) : 0;
   const initials = user
     ? user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
     : "??";
