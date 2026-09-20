@@ -130,10 +130,21 @@ teste("rotuloDeTranscricaoNaTela: os TRÊS estados honestos que o pedido exige",
     rotuloDeTranscricaoNaTela({ status: "PRONTA", texto: "bom dia", erro: null }),
     { texto: "bom dia", ehConteudo: true },
   );
+  // A falha vem COM O MOTIVO. "Não foi possível" sozinho é um beco sem saída: quem olha não sabe
+  // se o serviço caiu, se a chave está errada ou se o arquivo sumiu — e cada um pede uma
+  // providência diferente. Foi o que aconteceu na primeira falha real em produção.
   igual(
     rotuloDeTranscricaoNaTela({ status: "FALHOU", texto: null, erro: "timeout qualquer" }),
+    { texto: "Não foi possível transcrever este áudio — timeout qualquer", ehConteudo: false },
+  );
+  // Sem motivo guardado, a frase seca — e não um travessão solto no fim.
+  igual(
+    rotuloDeTranscricaoNaTela({ status: "FALHOU", texto: null, erro: null }),
     { texto: "Não foi possível transcrever este áudio", ehConteudo: false },
   );
+  // Motivo comprido é aparado: bolha de conversa não é lugar de despejar texto de erro inteiro.
+  const comprido = rotuloDeTranscricaoNaTela({ status: "FALHOU", texto: null, erro: "x".repeat(400) });
+  verdade((comprido?.texto.length ?? 0) < 220, `o motivo não foi aparado: ${comprido?.texto.length} caracteres`);
 });
 
 teste("MUTAÇÃO-ALVO: na TELA, PRONTA com texto VAZIO também não vira citação — nunca mostra aspas em volta do nada", () => {
@@ -158,11 +169,16 @@ teste("MUTAÇÃO-ALVO: 'transcrição não configurada' é reconhecida por IGUAL
   // NAO_CONFIGURADA)` em vez de igualdade exata (`===`), um motivo que CONTÉM o texto fixo como
   // PREFIXO de uma frase maior (mas não é exatamente ele) passaria como "não configurado" mesmo
   // sendo, por exemplo, um erro de rede que citou o motivo anterior num reprocessamento.
-  igual(
-    rotuloDeTranscricaoNaTela({ status: "FALHOU", texto: null, erro: `${ERRO_TRANSCRICAO_NAO_CONFIGURADA} (verificado novamente às 10h)` }),
-    { texto: "Não foi possível transcrever este áudio", ehConteudo: false },
-    "motivo que CONTÉM o texto fixo mas não é EXATAMENTE ele não pode ser lido como 'não configurado': ",
-  );
+  // A asserção é sobre NÃO ser lido como "não configurado" — e é assim, e não pela frase inteira,
+  // porque a frase genérica passou a carregar o motivo junto. Travar o texto completo aqui faria
+  // este caso quebrar por uma mudança de redação, escondendo a regra que ele existe para guardar.
+  const quaseIgual = rotuloDeTranscricaoNaTela({
+    status: "FALHOU", texto: null, erro: `${ERRO_TRANSCRICAO_NAO_CONFIGURADA} (verificado novamente às 10h)`,
+  });
+  verdade(quaseIgual?.texto !== "Transcrição não configurada",
+    "motivo que CONTÉM o texto fixo mas não é EXATAMENTE ele foi lido como 'não configurado'");
+  verdade(quaseIgual?.texto.startsWith("Não foi possível transcrever este áudio"),
+    "o motivo quase-igual deixou de cair no caso genérico");
 });
 
 // ── 1.5. mensagensReaisEUltima — o defeito real achado em staging, PROVADO por execução ─────
