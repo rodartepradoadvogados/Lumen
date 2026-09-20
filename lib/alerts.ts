@@ -82,8 +82,14 @@ export type AlertItem = {
 // (getAlerts), e as duas coisas são calculadas por caminhos separados neste arquivo. Toda vez que
 // um critério foi escrito duas vezes aqui, ele divergiu — o número dizia 6 e a gaveta mostrava 5,
 // e ninguém descobre isso olhando o código, só olhando a tela.
-/** Atendimento que já saiu de cena: não se cobra resposta de quem não está mais em aberto. */
-const FORA_DO_ATENDIMENTO = ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"];
+/**
+ * Atendimento que já saiu de cena: não se cobra resposta de quem não está mais em aberto.
+ *
+ * RECUSADO entra aqui porque um lead recusado não pode continuar tocando o sino. Ele não sumiu —
+ * está na fila de recusados, esperando uma segunda opinião —, mas cobrar resposta dele seria
+ * cobrar o contrário do que o escritório acabou de decidir.
+ */
+const FORA_DO_ATENDIMENTO = ["ARQUIVADO", "CONVERTIDO", "RASCUNHO", "RECUSADO"];
 
 export function whereLeadTransferido(officeId: string, recorte: { responsibleId?: string }) {
   return {
@@ -337,7 +343,7 @@ export async function getAlerts(
               ...recorteAtendimento,
               responseDeadline: { lt: now },
               firstResponseAt: null,
-              status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] },
+              status: { notIn: FORA_DO_ATENDIMENTO },
             },
             orderBy: { responseDeadline: "asc" },
           })

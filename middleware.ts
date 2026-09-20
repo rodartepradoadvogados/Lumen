@@ -23,6 +23,12 @@ export async function middleware(req: NextRequest) {
     pathname === "/redefinir-senha" ||
     pathname === "/blog" ||
     pathname.startsWith("/blog/") ||
+    // A carta de recusa. Precisa ser pública porque quem a lê é o lead, que nunca teve login — e
+    // sem esta linha o middleware mandava a carta para a homepage de marketing, com status 200,
+    // que é o pior defeito possível: a pessoa clica no link que o escritório mandou e vê
+    // propaganda de software. A página faz a própria checagem (token de 32 hexadecimais e recusa
+    // existente), e responde 404 igual para token inválido e inexistente.
+    pathname.startsWith("/recusa/") ||
     pathname.startsWith("/homepage/") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||

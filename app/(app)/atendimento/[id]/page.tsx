@@ -27,6 +27,10 @@ import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { filtroDoAtendimento, podeVerAtendimentos } from "@/lib/acessoAtendimento";
 import { identificarNumero } from "@/lib/identificarNumero";
 import { telefoneLegivel } from "@/lib/quemEEsteNumero";
+import RecusarLeadPainel from "@/components/atendimento/RecusarLeadPainel";
+import { motivosParaRecusar } from "@/lib/actions/recusaDoLead";
+import { getAppUrl } from "@/lib/appUrl";
+import type { EstadoDaRecusa } from "@/lib/recusaDoLead";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +96,9 @@ export default async function AttendanceDetailPage({
       whatsappMessages: { orderBy: { createdAt: "asc" } },
       emailMessages: { orderBy: { createdAt: "asc" } },
       pendencias: { include: { responsible: true }, orderBy: [{ status: "asc" }, { dueDate: "asc" }] },
+      // A recusa mais recente que ainda está de pé. Só uma: as anteriores (desfeitas ou
+      // arquivadas) são histórico, e histórico não vai para o topo da tela.
+      recusas: { where: { estado: { not: "REVERTIDA" } }, orderBy: { recusadaEm: "desc" }, take: 1, include: { recusadaPor: { select: { name: true } } } },
       // Anotações pessoais (painel global "Anotações") vinculadas a este Attendance — filtradas
       // por authorId, mesma regra de app/(app)/processos/[id]/page.tsx.
       anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },
@@ -153,6 +160,27 @@ export default async function AttendanceDetailPage({
   }));
 
   const agora = new Date();
+
+  // Os motivos só são buscados quando há chance de recusar — e o endereço do site é o que monta o
+  // link da carta, que é copiado e mandado à mão.
+  const recusaAtual = a.recusas[0] ?? null;
+  const motivosDeRecusa = recusaAtual || a.convertedCaseId ? [] : await motivosParaRecusar();
+  const enderecoDoSite = getAppUrl();
+  const recusaNaTela = recusaAtual
+    ? {
+        id: recusaAtual.id,
+        estado: recusaAtual.estado as EstadoDaRecusa,
+        motivoTexto: recusaAtual.motivoTexto,
+        observacao: recusaAtual.observacao,
+        token: recusaAtual.token,
+        enviadaEm: recusaAtual.enviadaEm ? recusaAtual.enviadaEm.toISOString() : null,
+        abertaEm: recusaAtual.abertaEm ? recusaAtual.abertaEm.toISOString() : null,
+        aberturas: recusaAtual.aberturas,
+        revisitaEm: recusaAtual.revisitaEm ? recusaAtual.revisitaEm.toISOString() : null,
+        recusadaPor: recusaAtual.recusadaPor?.name ?? null,
+        porAgente: recusaAtual.porAgente,
+      }
+    : null;
 
   const aba: Aba = ABAS.includes(searchParams.aba as Aba) ? (searchParams.aba as Aba) : "conversa";
   const bloco: Bloco = BLOCOS.some((b) => b.chave === searchParams.bloco)
@@ -390,6 +418,27 @@ export default async function AttendanceDetailPage({
               </p>
               <AttendancePendenciasPanel attendanceId={a.id} users={users} pendencias={serializedPendencias} />
             </Card>
+            )}
+
+            {/* RECUSAR MORA NA MESMA DIVISÓRIA DE TRANSFORMAR EM PROCESSO, e não numa própria: são
+                os dois desfechos possíveis do lead, e quem abre esta divisória está decidindo
+                entre eles. Separar em duas faria a pessoa ter de saber de antemão qual escolheria. */}
+            {bloco === "processo" && (
+              <div className="mb-5">
+                <Card className="p-5">
+                  <h4 className="mb-1 text-sm font-semibold text-tx">Recusar este lead</h4>
+                  <p className="mb-3 text-xs italic text-tx-3">
+                    Recusar não descarta: o lead sai das listas ativas, vai para a fila de recusados e pode voltar. A carta
+                    fica pronta para você mandar quando quiser.
+                  </p>
+                  <RecusarLeadPainel
+                    attendanceId={a.id}
+                    motivos={motivosDeRecusa}
+                    recusa={recusaNaTela}
+                    enderecoDoSite={enderecoDoSite}
+                  />
+                </Card>
+              </div>
             )}
 
             {bloco === "processo" && !a.convertedCaseId && (
