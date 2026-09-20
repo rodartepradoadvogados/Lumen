@@ -7,7 +7,7 @@ import FunnelStageSelect from "@/components/FunnelStageSelect";
 // stageLabels vem do módulo neutro, nunca do componente "use client" — ver lib/funil.ts.
 import { stageLabels } from "@/lib/funil";
 import { List } from "lucide-react";
-import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { veTodoOAtendimento } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,11 @@ export default async function FunilPage() {
   if (!viewer) redirect("/");
   // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
   // `notFound` e não uma tela de "sem permissão": quem não pode ver não precisa saber que existe.
-  if (!podeVerAtendimentos(viewer)) notFound();
+  // O FUNIL É DE QUEM ORGANIZA A CAPTAÇÃO, e não de quem atende um caso. Ele mostra o pipeline
+  // comercial do escritório inteiro — valor estimado, o que foi perdido e por quê. Recortá-lo por
+  // dono daria a um advogado uma "visão de funil" de três cartões, que não é funil nenhum;
+  // mostrá-lo inteiro entregaria a ele o comercial da casa. Então: só nível total.
+  if (!veTodoOAtendimento(viewer)) notFound();
 
   const attendances = await prisma.attendance.findMany({
     where: { status: { notIn: ["ARQUIVADO", "RASCUNHO"] }, officeId: viewer.officeId },

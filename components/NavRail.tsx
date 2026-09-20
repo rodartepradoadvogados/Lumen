@@ -20,6 +20,7 @@ import type { OfficeModules } from "@/lib/officeModules";
 export default function NavRail({
   hasFinanceAccess = true,
   podeAtendimento = false,
+  veTodoAtendimento = false,
   unreadPublications = 0,
   agendaBadgeCount = 0,
   modules,
@@ -32,6 +33,7 @@ export default function NavRail({
   hasFinanceAccess?: boolean;
   /** Fechado por padrão: quem esquecer de passar esconde o Atendimento, e não o contrário. */
   podeAtendimento?: boolean;
+  veTodoAtendimento?: boolean;
   unreadPublications?: number;
   agendaBadgeCount?: number;
   modules: OfficeModules;
@@ -71,7 +73,7 @@ export default function NavRail({
     router.push(href);
   }
 
-  const visibleSections = RAIL_SECTIONS.filter((s) => isSectionVisible(s, { hasFinanceAccess, modules, podeAtendimento }));
+  const visibleSections = RAIL_SECTIONS.filter((s) => isSectionVisible(s, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento }));
   const currentSection = activeSection ?? sectionForPathname(pathname);
   const onConfiguracoes = pathname === "/configuracoes" || pathname?.startsWith("/configuracoes/");
 

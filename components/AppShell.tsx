@@ -13,6 +13,7 @@ type AppShellProps = {
   sidebarProps: {
     hasFinanceAccess: boolean;
     podeAtendimento: boolean;
+    veTodoAtendimento: boolean;
     unreadPublications: number;
     agendaBadgeCount: number;
     modules: OfficeModules;
@@ -155,6 +156,7 @@ function ShellChrome({
             <NavRail
               hasFinanceAccess={sidebarProps.hasFinanceAccess}
               podeAtendimento={sidebarProps.podeAtendimento}
+              veTodoAtendimento={sidebarProps.veTodoAtendimento}
               unreadPublications={sidebarProps.unreadPublications}
               agendaBadgeCount={sidebarProps.agendaBadgeCount}
               modules={sidebarProps.modules}
@@ -168,7 +170,7 @@ function ShellChrome({
           <div className="flex-1 flex flex-col min-w-0 relative">
             {actingBanner}
             {topBar}
-            <PageSectionTabs section={section} hasFinanceAccess={sidebarProps.hasFinanceAccess} modules={sidebarProps.modules} podeAtendimento={sidebarProps.podeAtendimento} />
+            <PageSectionTabs section={section} hasFinanceAccess={sidebarProps.hasFinanceAccess} modules={sidebarProps.modules} podeAtendimento={sidebarProps.podeAtendimento} veTodoAtendimento={sidebarProps.veTodoAtendimento} />
 
             <main className={activeTabId === null ? "flex-1 overflow-y-auto scrollbar-thin" : "hidden"}>{children}</main>
             {tabs.map((tab) => (

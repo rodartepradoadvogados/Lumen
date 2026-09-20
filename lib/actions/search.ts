@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
 import { looseIncludes } from "@/lib/textNormalize";
 import { getCurrentUser } from "@/lib/currentUser";
-import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { podeVerAtendimentos, filtroDoAtendimento } from "@/lib/acessoAtendimento";
 
 export type SearchResult = {
   type: "Processos" | "Clientes" | "Tarefas" | "Atendimentos" | "Publicações";
@@ -21,6 +21,11 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   const viewer = await getCurrentUser();
   if (!viewer) return [];
   const officeId = viewer.officeId;
+  // O recorte do Atendimento entra nas DUAS consultas (a direta e a de candidatos da busca
+  // tolerante a acento). Filtrar só uma delas deixaria o lead do colega aparecer quando o nome
+  // fosse digitado com acento — que é justamente o caso que a segunda consulta existe para cobrir.
+  const recorteBusca = filtroDoAtendimento(viewer, viewer.id);
+  const veAtendimento = podeVerAtendimentos(viewer);
 
   const contains = { contains: q, mode: "insensitive" as const };
   // A busca por nº de processo ignora qualquer máscara (pontos, hífen, barra), e a busca por nome
@@ -54,7 +59,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
         orderBy: { dueDate: "desc" },
       }),
       prisma.attendance.findMany({
-        where: { officeId, OR: [{ clientName: contains }, { subject: contains }] },
+        where: { officeId, ...recorteBusca, OR: [{ clientName: contains }, { subject: contains }] },
         select: { id: true, clientName: true, subject: true },
         take: 3,
         orderBy: { createdAt: "desc" },
@@ -88,7 +93,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
           })
         : Promise.resolve([]),
       prisma.client.findMany({ where: { officeId }, select: { id: true, name: true, document: true, type: true }, take: 1000 }),
-      prisma.attendance.findMany({ where: { officeId }, select: { id: true, clientName: true, subject: true }, take: 1000 }),
+      prisma.attendance.findMany({ where: { officeId, ...recorteBusca }, select: { id: true, clientName: true, subject: true }, take: 1000 }),
     ]);
 
   for (const c of caseCandidates) {
@@ -145,10 +150,10 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
     });
   }
 
-  // A BUSCA GLOBAL É A PORTA LATERAL MAIS FÁCIL DE ESQUECER. Quem não pode abrir o Atendimento
-  // também não pode encontrá-lo digitando um nome na barra de busca — e o resultado já traz o
-  // nome e o assunto da pessoa, que é o conteúdo da tela.
-  for (const a of podeVerAtendimentos(viewer) ? attendances : []) {
+  // A BUSCA GLOBAL É A PORTA LATERAL MAIS FÁCIL DE ESQUECER: o resultado já traz o nome e o
+  // assunto da pessoa, que é o conteúdo da tela. O recorte é o MESMO da lista — quem só vê os
+  // próprios encontra só os próprios, e não recebe "nenhum resultado" para um lead que é dele.
+  for (const a of veAtendimento ? attendances : []) {
     results.push({
       type: "Atendimentos",
       id: a.id,

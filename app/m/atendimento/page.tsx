@@ -8,7 +8,7 @@ import { Plus, Search } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
-import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { filtroDoAtendimento, podeVerAtendimentos, veTodoOAtendimento } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +42,9 @@ export default async function MobileAtendimento({
   // `notFound` e não uma tela de "sem permissão": quem não pode ver não precisa saber que existe.
   if (!podeVerAtendimentos(viewer)) notFound();
 
+  // Mesmo motivo do site: a contagem é DELE, e o rótulo tem de dizer isso.
+  const soOsMeus = !veTodoOAtendimento(viewer);
+
   const q = (searchParams.q || "").trim();
 
   // Mesmo padrão de app/(app)/atendimento/page.tsx e app/m/processos/page.tsx: busca tolerante a
@@ -49,6 +52,8 @@ export default async function MobileAtendimento({
   // caixa, não acento).
   const baseFilters: Prisma.AttendanceWhereInput = {
     officeId: viewer.officeId,
+    // O recorte por dono vai na CONSULTA — ver a nota igual em app/(app)/atendimento/page.tsx.
+    ...filtroDoAtendimento(viewer, viewer.id),
     // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
     // na aba própria "Rascunhos" — mesma regra da lista desktop.
     status: searchParams.status || { not: "RASCUNHO" },
@@ -85,8 +90,10 @@ export default async function MobileAtendimento({
     <div className="p-4 space-y-4 animate-fade-in">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-tx">Atendimento</h1>
-          <p className="text-sm text-tx-2">{totalCount} registro(s)</p>
+          <h1 className="text-xl font-bold text-tx">{soOsMeus ? "Suas demandas" : "Atendimento"}</h1>
+          <p className="text-sm text-tx-2">
+            {totalCount} {soOsMeus ? "repassado(s) a você" : "registro(s)"}
+          </p>
         </div>
         <Link
           href="/m/atendimento/novo"

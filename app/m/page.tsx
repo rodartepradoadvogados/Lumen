@@ -32,7 +32,7 @@ import {
   Building2,
   type LucideIcon,
 } from "lucide-react";
-import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { podeVerAtendimentos, recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
 
 // Ordem de urgência pra escolher os alertas da prévia da Início — mesma leitura de severidade
 // da Central de Alertas (DESIGN-SYSTEM.md §8), só usada aqui pra ordenar, não pra pintar nada
@@ -81,7 +81,7 @@ export default async function MobileHome() {
       : Promise.resolve([]),
     // Lista completa (não só a contagem) — alimenta tanto o número do atalho quanto a prévia
     // dos alertas mais urgentes logo abaixo, sem precisar de uma segunda consulta.
-    user ? getAlerts(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin, podeVerAtendimentos(user)) : Promise.resolve([]),
+    user ? getAlerts(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id)) : Promise.resolve([]),
     user ? prisma.assessoria.count({ where: { status: "ATIVA", officeId: user.officeId } }) : Promise.resolve(0),
     user ? prisma.case.count({ where: { officeId: user.officeId, status: "ATIVO" } }) : Promise.resolve(0),
     // Divisão judicial/administrativo do atalho "Processos" abaixo — duas contagens leves a mais
@@ -102,6 +102,7 @@ export default async function MobileHome() {
   const firstName = user?.name.split(" ")[0] ?? "";
   const modules = user ? await getOfficeModules(user.officeId) : { financeiro: false, whatsapp: false, atendimento: false, assessoria: false };
   // Administrador ou recepção. Sem isso, o cartão de Atendimento não existe nesta tela.
+  // Aqui vale para os DOIS níveis: o advogado da escala abre a tela dele por este cartão.
   const podeAtendimento = podeVerAtendimentos(user);
   const showFinance = modules.financeiro && Boolean(user?.isAdmin || user?.financeAccess);
   const saldoMes = showFinance && user ? await getMonthlyNetFlow(user.officeId) : null;

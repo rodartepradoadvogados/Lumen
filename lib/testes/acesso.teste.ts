@@ -1,113 +1,146 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { teste, igual, verdade, resumo } from "./executar";
-import { podeVerAtendimentos, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
+import {
+  nivelDeAcessoAoAtendimento,
+  podeVerAtendimentos,
+  veTodoOAtendimento,
+  filtroDoAtendimento,
+  recorteDosAlertasDeAtendimento,
+} from "@/lib/acessoAtendimento";
 import { montarFila, type PessoaDaFila } from "@/lib/filaDeTransferencia";
 
 // ============================================================================
-// QUEM PODE VER O ATENDIMENTO.
+// OS TRÊS NÍVEIS DO ATENDIMENTO.
 //
-// A regra do dono: administrador e recepção, e mais ninguém. Atendimento não é lista de tarefas —
-// é a conversa crua de quem ainda não é cliente contando o problema antes de saber se contrata.
-// Tem doença, tem dívida, tem briga de família.
+//   TOTAL     administrador e recepção — lista inteira, funil, qualquer conversa.
+//   PRÓPRIOS  advogado NA ESCALA de demandas, sócio ou não — abre atendimento à mão e vê só o
+//             que foi repassado a ele. O Lúmen não é o caminho dele (recebe por WhatsApp e
+//             e-mail), é o registro.
+//   NENHUM    todo o resto.
 //
-// A MATRIZ INTEIRA É TESTADA, e a varredura no fim confere que nenhuma tela ou ação de
-// atendimento ficou sem a trava. Esconder o menu não é travar: uma Server Action é um endereço
-// HTTP, e quem souber o nome dela a chama sem passar por tela nenhuma.
+// A matriz inteira é testada. E o recorte por dono é testado COMO PEDAÇO DE CONSULTA, porque é
+// assim que ele é usado: filtrar depois de buscar já teria trazido para a memória do servidor a
+// conversa que aquela pessoa não pode ler.
 // ============================================================================
 
-const socio = { isAdmin: true, role: "Sócio" };
-const admin = { isAdmin: true, role: "Advogado" };
-const recepcao = { isAdmin: false, role: "Recepcionista/Secretária" };
-const recepcaoAntiga = { isAdmin: false, role: "Recepcionista" };
-const advogado = { isAdmin: false, role: "Advogado" };
-const estagiario = { isAdmin: false, role: "Estagiário" };
-const financeiro = { isAdmin: false, role: "Financeiro" };
+const socio = { isAdmin: true, role: "Sócio", recebeTransferencia: true };
+const adminSemEscala = { isAdmin: true, role: "Advogado", recebeTransferencia: false };
+const recepcao = { isAdmin: false, role: "Recepcionista/Secretária", recebeTransferencia: false };
+const recepcaoAntiga = { isAdmin: false, role: "Recepcionista", recebeTransferencia: false };
+const advogadoNaEscala = { isAdmin: false, role: "Advogado", recebeTransferencia: true };
+const advogadoForaDaEscala = { isAdmin: false, role: "Advogado", recebeTransferencia: false };
+const estagiarioNaEscala = { isAdmin: false, role: "Estagiário", recebeTransferencia: true };
+const financeiro = { isAdmin: false, role: "Financeiro", recebeTransferencia: false };
 
-// ── Quem entra ───────────────────────────────────────────────────────────────────────────────
+// ── Nível total ──────────────────────────────────────────────────────────────────────────────
 
-teste("administrador entra, qualquer que seja o papel dele", () => {
-  igual(podeVerAtendimentos(socio), true);
-  igual(podeVerAtendimentos(admin), true);
-  igual(podeVerAtendimentos({ isAdmin: true, role: "Contador" }), true);
+teste("administrador vê tudo, esteja ou não na escala", () => {
+  igual(nivelDeAcessoAoAtendimento(socio), "total");
+  igual(nivelDeAcessoAoAtendimento(adminSemEscala), "total");
+  igual(nivelDeAcessoAoAtendimento({ isAdmin: true, role: "Contador", recebeTransferencia: false }), "total");
 });
 
-teste("a recepção entra, no rótulo novo e no antigo", () => {
-  igual(podeVerAtendimentos(recepcao), true);
-  igual(podeVerAtendimentos(recepcaoAntiga), true);
-  igual(podeVerAtendimentos({ isAdmin: false, role: "Secretária" }), true);
-  // O rótulo mudou de "Recepcionista" para "Recepcionista/Secretária" e quem já estava cadastrado
-  // continua com o valor antigo no banco. Aceitar só o novo tiraria a recepção do ar num deploy.
-  igual(podeVerAtendimentos({ isAdmin: false, role: "recepcionista" }), true, "caixa não pode importar: ");
-  igual(podeVerAtendimentos({ isAdmin: false, role: "  Recepcionista/Secretária  " }), true, "espaço não pode importar: ");
+teste("a recepção vê tudo, no rótulo novo e no antigo", () => {
+  igual(nivelDeAcessoAoAtendimento(recepcao), "total");
+  igual(nivelDeAcessoAoAtendimento(recepcaoAntiga), "total");
+  igual(nivelDeAcessoAoAtendimento({ isAdmin: false, role: "secretária", recebeTransferencia: false }), "total");
+  igual(nivelDeAcessoAoAtendimento({ isAdmin: false, role: "  Recepcionista/Secretária  ", recebeTransferencia: false }), "total");
 });
 
-// ── Quem NÃO entra ───────────────────────────────────────────────────────────────────────────
+// ── Nível próprios ───────────────────────────────────────────────────────────────────────────
 
-teste("advogado que NÃO é administrador não entra — foi assim que o dono determinou", () => {
-  igual(podeVerAtendimentos(advogado), false);
-  igual(podeVerAtendimentos({ isAdmin: false, role: "Sócio" }), false);
+teste("advogado NA ESCALA vê os próprios, mesmo sem ser sócio", () => {
+  igual(nivelDeAcessoAoAtendimento(advogadoNaEscala), "proprios");
+  igual(nivelDeAcessoAoAtendimento({ isAdmin: false, role: "Sócio", recebeTransferencia: true }), "proprios");
 });
 
-teste("estagiário, financeiro e afins não entram", () => {
-  igual(podeVerAtendimentos(estagiario), false);
-  igual(podeVerAtendimentos(financeiro), false);
-  igual(podeVerAtendimentos({ isAdmin: false, role: "Marketing" }), false);
-  igual(podeVerAtendimentos({ isAdmin: false, role: "Contador" }), false);
+teste("advogado FORA da escala não vê nada", () => {
+  // A marca nasce desligada de propósito: advogado que não recebe lead não tem por que ler a
+  // conversa de ninguém.
+  igual(nivelDeAcessoAoAtendimento(advogadoForaDaEscala), "nenhum");
 });
 
-teste("papel desconhecido, vazio ou ausente NÃO entra", () => {
-  // Fechado por padrão: um `role` que ninguém reconhece é exatamente o caso em que não se deve
-  // adivinhar a favor do acesso.
-  igual(podeVerAtendimentos({ isAdmin: false, role: "Coordenador de Projetos" }), false);
-  igual(podeVerAtendimentos({ isAdmin: false, role: "" }), false);
-  igual(podeVerAtendimentos({ isAdmin: false, role: null }), false);
-  igual(podeVerAtendimentos({ isAdmin: false, role: undefined }), false);
-  igual(podeVerAtendimentos(null), false);
-  igual(podeVerAtendimentos(undefined), false);
+teste("estar na escala não basta: o papel tem de ser de advogado", () => {
+  igual(nivelDeAcessoAoAtendimento(estagiarioNaEscala), "nenhum");
+  igual(nivelDeAcessoAoAtendimento({ isAdmin: false, role: "Marketing", recebeTransferencia: true }), "nenhum");
 });
 
-teste("um isAdmin que não seja exatamente `true` não vale administrador", () => {
+// ── Nível nenhum ─────────────────────────────────────────────────────────────────────────────
+
+teste("papel desconhecido, vazio ou ausente não vê nada", () => {
+  igual(nivelDeAcessoAoAtendimento(financeiro), "nenhum");
+  igual(nivelDeAcessoAoAtendimento({ isAdmin: false, role: "Coordenador", recebeTransferencia: true }), "nenhum");
+  igual(nivelDeAcessoAoAtendimento({ isAdmin: false, role: "", recebeTransferencia: true }), "nenhum");
+  igual(nivelDeAcessoAoAtendimento({ isAdmin: false, role: null, recebeTransferencia: true }), "nenhum");
+  igual(nivelDeAcessoAoAtendimento(null), "nenhum");
+  igual(nivelDeAcessoAoAtendimento(undefined), "nenhum");
+});
+
+teste("valores quase-verdadeiros não valem acesso", () => {
   for (const valor of [1, "true", "sim", {}, []]) {
     igual(
-      podeVerAtendimentos({ isAdmin: valor as unknown as boolean, role: "Advogado" }),
-      false,
-      `isAdmin=${JSON.stringify(valor)} deveria NÃO dar acesso: `,
+      nivelDeAcessoAoAtendimento({ isAdmin: valor as unknown as boolean, role: "Contador", recebeTransferencia: false }),
+      "nenhum",
+      `isAdmin=${JSON.stringify(valor)}: `,
+    );
+    igual(
+      nivelDeAcessoAoAtendimento({ isAdmin: false, role: "Advogado", recebeTransferencia: valor as unknown as boolean }),
+      "nenhum",
+      `recebeTransferencia=${JSON.stringify(valor)}: `,
     );
   }
 });
 
-// ── A consequência na fila ───────────────────────────────────────────────────────────────────
+// ── O recorte da consulta ────────────────────────────────────────────────────────────────────
+
+teste("quem vê tudo não recorta nada", () => {
+  igual(filtroDoAtendimento(socio, "u1"), {});
+  igual(filtroDoAtendimento(recepcao, "u1"), {});
+});
+
+teste("quem vê os próprios recorta pelo responsável", () => {
+  igual(filtroDoAtendimento(advogadoNaEscala, "u1"), { responsibleId: "u1" });
+});
+
+teste("quem não vê nada recebe um filtro IMPOSSÍVEL, nunca um vazio", () => {
+  // Se alguém chamar esta função sem antes barrar o acesso, o resultado tem de ser lista vazia —
+  // nunca a lista inteira. Um `{}` aqui seria a falha mais silenciosa possível.
+  const f = filtroDoAtendimento(financeiro, "u1");
+  verdade(f.responsibleId !== undefined, "o filtro de quem não tem acesso veio vazio");
+  verdade(f.responsibleId !== "u1", "o filtro de quem não tem acesso devolveu os dele");
+});
+
+teste("o recorte dos alertas distingue 'nenhum' de 'todos'", () => {
+  igual(recorteDosAlertasDeAtendimento(socio, "u1"), {});
+  igual(recorteDosAlertasDeAtendimento(advogadoNaEscala, "u1"), { responsibleId: "u1" });
+  igual(recorteDosAlertasDeAtendimento(financeiro, "u1"), null);
+});
+
+// ── As três perguntas derivadas ──────────────────────────────────────────────────────────────
+
+teste("podeVer abre para dois níveis; veTodo abre só para um", () => {
+  igual([socio, recepcao, advogadoNaEscala, financeiro].map(podeVerAtendimentos), [true, true, true, false]);
+  igual([socio, recepcao, advogadoNaEscala, financeiro].map(veTodoOAtendimento), [true, true, false, false]);
+});
+
+// ── A fila voltou a aceitar advogado que não é sócio ─────────────────────────────────────────
 
 let n = 0;
 function pessoa(over: Partial<PessoaDaFila> = {}): PessoaDaFila {
   n += 1;
-  return {
-    id: `p${n}`,
-    nome: `Pessoa ${n}`,
-    papel: "Advogado",
-    ativo: true,
-    isAdmin: true,
-    recebeTransferencia: true,
-    criadoEm: new Date(2026, 0, n),
-    ...over,
-  };
+  return { id: `p${n}`, nome: `Pessoa ${n}`, papel: "Advogado", ativo: true, recebeTransferencia: true, criadoEm: new Date(2026, 0, n), ...over };
 }
 
-teste("advogado sem ser administrador sai da fila de advogados", () => {
-  // Se ficasse, receberia a conversa e bateria numa tela de acesso negado: o lead ficaria com
-  // dono e sem atendimento, e o relógio de quinze minutos giraria em falso até fechar a volta.
-  const fila = montarFila([pessoa({ id: "a" }), pessoa({ id: "b", isAdmin: false })], "ADVOGADOS");
-  igual(fila.map((p) => p.id), ["a"]);
+teste("advogado sem ser sócio CONTINUA na fila — ele recebe por WhatsApp e e-mail", () => {
+  const fila = montarFila([pessoa({ id: "a" }), pessoa({ id: "b" })], "ADVOGADOS");
+  igual(fila.map((p) => p.id), ["a", "b"]);
 });
 
-teste("a recepção NÃO precisa ser administradora para entrar na fila dela", () => {
-  const fila = montarFila([pessoa({ id: "r", papel: "Recepcionista/Secretária", isAdmin: false })], "RECEPCAO");
-  igual(fila.map((p) => p.id), ["r"]);
-});
-
-teste("a fila de advogados pode ficar vazia, e isso é melhor que entregar a quem não abre", () => {
-  igual(montarFila([pessoa({ id: "a", isAdmin: false }), pessoa({ id: "b", isAdmin: false })], "ADVOGADOS").length, 0);
+teste("e quem está na fila tem, no Lúmen, acesso ao que foi repassado a ele", () => {
+  // As duas regras têm de casar: estar na escala e ver os próprios são a MESMA condição vista de
+  // dois lados. Se divergirem, o lead chega a quem não consegue abri-lo.
+  igual(nivelDeAcessoAoAtendimento(advogadoNaEscala), "proprios");
 });
 
 // ── A varredura: nenhuma porta sem tranca ────────────────────────────────────────────────────
@@ -127,30 +160,37 @@ function arquivosDe(pasta: string): string[] {
   return achados;
 }
 
-teste("toda página de atendimento tem a trava", () => {
-  const paginas = [...arquivosDe("app")].filter((a) => a.includes("atendimento") && a.endsWith("page.tsx"));
-  verdade(paginas.length >= 6, `só ${paginas.length} páginas de atendimento encontradas — a varredura não está lendo certo`);
-  // Procura a CHAMADA, e não o nome da função: a linha de `import` sozinha satisfazia um teste
-  // que buscasse só "podeVerAtendimentos", e uma página que perdesse a trava continuaria
-  // passando com o import órfão em cima. Foi o que uma mutação mostrou.
-  const sem = paginas.filter((a) => !readFileSync(join(process.cwd(), a), "utf8").includes("if (!podeVerAtendimentos("));
+teste("toda página de atendimento tem a trava de nível", () => {
+  const paginas = arquivosDe("app").filter((a) => a.includes("atendimento") && a.endsWith("page.tsx"));
+  verdade(paginas.length >= 6, `só ${paginas.length} páginas encontradas — a varredura não está lendo certo`);
+  // Procura a CHAMADA, e não o nome: a linha de `import` sozinha satisfazia um teste que buscasse
+  // só o identificador, e uma página que perdesse a trava passaria com o import órfão em cima.
+  const sem = paginas.filter((a) => {
+    const t = readFileSync(join(process.cwd(), a), "utf8");
+    return !t.includes("if (!podeVerAtendimentos(") && !t.includes("if (!veTodoOAtendimento(");
+  });
   igual(sem, [], "páginas de atendimento SEM a trava: ");
 });
 
-teste("toda ação de atendimento tem a trava, logo depois de saber quem está do outro lado", () => {
-  const texto = readFileSync(join(process.cwd(), "lib/actions/attendance.ts"), "utf8").split("\n");
+teste("toda consulta de UM atendimento nas ações carrega o recorte por dono", () => {
+  const t = readFileSync(join(process.cwd(), "lib/actions/attendance.ts"), "utf8").split("\n");
   const sem: string[] = [];
-  texto.forEach((linha, i) => {
-    if (!/const (viewer|user) = await getCurrentUser\(\)/.test(linha)) return;
-    // A trava tem de estar nas cinco linhas seguintes: depois de saber quem é, antes de consultar.
-    if (!texto.slice(i, i + 5).join("\n").includes("if (!podeVerAtendimentos(")) sem.push(`linha ${i + 1}`);
+  t.forEach((linha, i) => {
+    // Linha que busca/atualiza um atendimento por id dentro do escritório.
+    if (!/where: \{ id(: attendanceId)?, officeId:/.test(linha)) return;
+    if (!linha.includes("filtroDoAtendimento")) sem.push(`linha ${i + 1}: ${linha.trim().slice(0, 70)}`);
   });
-  igual(sem, [], "ações de atendimento SEM a trava: ");
+  igual(sem, [], "consultas de atendimento SEM o recorte por dono: ");
 });
 
-teste("a frase da recusa é uma só, e não uma por tela", () => {
-  verdade(SEM_ACESSO_AO_ATENDIMENTO.includes("administradores"), "a frase não diz quem pode");
-  verdade(SEM_ACESSO_AO_ATENDIMENTO.includes("recepção"), "a frase não menciona a recepção");
+teste("toda ação de atendimento tem a trava de acesso", () => {
+  const t = readFileSync(join(process.cwd(), "lib/actions/attendance.ts"), "utf8").split("\n");
+  const sem: string[] = [];
+  t.forEach((linha, i) => {
+    if (!/const (viewer|user) = await getCurrentUser\(\)/.test(linha)) return;
+    if (!t.slice(i, i + 5).join("\n").includes("if (!podeVerAtendimentos(")) sem.push(`linha ${i + 1}`);
+  });
+  igual(sem, [], "ações de atendimento SEM a trava: ");
 });
 
 resumo("Acesso ao atendimento");
