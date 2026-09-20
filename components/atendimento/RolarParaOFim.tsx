@@ -20,7 +20,16 @@ export default function RolarParaOFim() {
   const ancora = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const caixa = ancora.current?.closest<HTMLElement>("[data-rolagem-da-conversa]");
-    if (caixa) caixa.scrollTop = caixa.scrollHeight;
+    if (!caixa) return;
+    // DUAS BATIDAS, e a segunda é a que resolve. No efeito de montagem a caixa ainda não tem a
+    // altura final — no telefone, a barra de abas e o compositor acabam de entrar no fluxo, e o
+    // `scrollHeight` lido aqui é menor do que o de meio segundo depois. Medido no navegador: a
+    // última mensagem ficava cortada pela metade. A batida do quadro seguinte lê a altura de
+    // verdade; a primeira existe para o caso normal, em que nada mais mexe.
+    const irAoFim = () => { caixa.scrollTop = caixa.scrollHeight; };
+    irAoFim();
+    const quadro = requestAnimationFrame(() => requestAnimationFrame(irAoFim));
+    return () => cancelAnimationFrame(quadro);
   }, []);
   return <div ref={ancora} aria-hidden="true" />;
 }
