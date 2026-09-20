@@ -1,4 +1,5 @@
-import { teste, igual, verdade, resumo } from "./executar";
+import { readFileSync } from "node:fs";
+import { teste, igual, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
 import {
   tipoMidiaWhatsapp,
   extensaoDoArquivo,
@@ -11,7 +12,7 @@ import { extrairMidiaEvolution, parseEntradaEvolution } from "@/lib/whatsappEvol
 // ============================================================================
 // F5 — MÍDIA DO WHATSAPP NO DRIVE.
 //
-// Três camadas testadas aqui, na mesma ordem em que o dado passa por elas:
+// Quatro camadas testadas aqui, na mesma ordem em que o dado passa por elas:
 //
 //   1. O NOME DO ARQUIVO (lib/driveNaming.ts) — puro, decide "AAAA_MM_DD_WHATSAPP_TIPO-resto.ext"
 //      a partir de MIME/nome original/id da mensagem. Nunca toca rede nem banco.
@@ -19,10 +20,14 @@ import { extrairMidiaEvolution, parseEntradaEvolution } from "@/lib/whatsappEvol
 //      pura: um objeto JSON entra, um descritor de mídia (ou null) sai.
 //   3. A LEITURA DO WEBHOOK DA EVOLUTION (lib/whatsappEvolution.ts:extrairMidiaEvolution/
 //      parseEntradaEvolution) — mesma forma, provedor diferente.
-//
-// O download de verdade (baixarMidiaMeta/baixarMidiaEvolution) e o upload pro Drive não entram
-// aqui: pedem rede/credencial de verdade, e o que neles decide algo (qual mídia, qual nome, qual
-// pasta) já está coberto pelas funções puras acima — só falta a chamada em si, que é IO puro.
+//   4. AS TRAVAS DO LADO DE IO (download/upload) — download e upload de verdade não têm como
+//      entrar num teste de mesa (pedem rede/credencial reais), mas a FORMA da chamada — "isto não
+//      pode lançar sem ser pego", "sem isto não dá pra baixar nada", "a Evolution precisa da chave
+//      inteira" — é uma decisão que custa caro errar e cabe em varredura de código-fonte (mesmo
+//      padrão de lib/testes/funil.teste.ts/parametros.teste.ts, via corpoDaFuncao). Achado numa
+//      auditoria externa a este PR: as primeiras 12 mutações desta suíte miravam só as camadas 1-3
+//      (puras) e deixavam o lado de IO sem nenhuma rede de proteção — 4 mutações no lado de IO
+//      passaram verdes antes desta seção existir.
 // ============================================================================
 
 // ── 1. O nome do arquivo ─────────────────────────────────────────────────────────────────────
@@ -84,6 +89,21 @@ teste("dois ids de mensagem diferentes (mesmo dia, mesmo tipo) não colidem no n
   const a = montarNomeArquivoWhatsapp({ ...base, waMessageId: "wamid.UM" });
   const b = montarNomeArquivoWhatsapp({ ...base, waMessageId: "wamid.DOIS" });
   verdade(a !== b, `dois áudios do mesmo dia ficaram com o mesmo nome: ${a}`);
+});
+
+teste("o dia do arquivo é o de BRASÍLIA, não o de UTC — perto da meia-noite os dois divergem", () => {
+  // "2026-09-21T02:30:00Z" é 20/09 às 23h30 em Brasília (UTC-3): ainda dia 20 pra quem mandou a
+  // mensagem, mas já dia 21 em UTC. Um teste com hora de meio-dia (como os de cima, de propósito
+  // simples) não distingue os dois fusos — só um instante depois das 21h de Brasília prova qual
+  // fuso o código está usando de verdade. Mesma classe de defeito que motivou a auditoria de
+  // formatDate deste projeto (ver f2adc85 no histórico).
+  const nome = montarNomeArquivoWhatsapp({
+    recebidoEm: "2026-09-21T02:30:00.000Z",
+    mimeType: "image/jpeg",
+    waMessageId: "wamid.FUSO",
+    nomeOriginal: null,
+  });
+  verdade(nome.startsWith("2026_09_20_WHATSAPP_IMG-"), `o dia saiu no fuso errado (UTC em vez de Brasília): ${nome}`);
 });
 
 teste("o rótulo da mídia na conversa nomeia o tipo, o nome original e a legenda", () => {
@@ -224,6 +244,65 @@ teste("parseEntradaEvolution lê um documento com legenda, e a legenda vira o te
   );
   igual(r?.text, "assinada");
   igual(r?.midia?.nomeOriginal, "procuracao.pdf");
+});
+
+// ── 4. As travas do lado de IO (varredura de código-fonte) ──────────────────────────────────
+//
+// As três de baixo não têm como virar teste de mesa (dependem de rede/credencial real) — o que dá
+// pra testar é a FORMA da chamada, com corpoDaFuncao (mesmo padrão de funil.teste.ts/
+// parametros.teste.ts). Duas armadilhas já morderam nesta suíte antes: âncora num MARCADOR
+// COMENTADO (codigoDe tira comentário — devolve -1 e a fatia engole o arquivo inteiro; por isso
+// nenhuma checagem abaixo procura um trecho que só existe em comentário) e ASSERÇÃO POR PREFIXO
+// (checar só "midia.waMessageId" passaria verde mesmo se a CHAVE do objeto mudasse de nome — por
+// isso cada checagem trava também o nome do campo, não só o valor).
+
+const whatsappFonte = readFileSync("lib/whatsapp.ts", "utf8");
+const evolutionFonte = readFileSync("lib/whatsappEvolution.ts", "utf8");
+
+// TERCEIRA ARMADILHA (achada nesta rodada, além das duas já conhecidas de codigoDe/corpoDaFuncao):
+// `corpoDaFuncao` acha o fim da função pela primeira "}" na MESMA coluna do cabeçalho — e
+// `ingestIncomingWhatsapp` desestrutura o parâmetro ({ fromNumber, ... }: IncomingMessage), cujo
+// "}" de fechamento também cai na coluna 0, ANTES do corpo de verdade começar. `corpoDaFuncao`
+// devolve só a lista de parâmetros, vazia de qualquer coisa que a função faça — e um `verdade`
+// sobre esse pedaço vazio falharia por um motivo que nada tem a ver com o que se quer provar. Por
+// isso esta função é fatiada à mão, do próprio cabeçalho até o cabeçalho da PRÓXIMA função (que
+// não desestrutura nada, e essa sim é segura com corpoDaFuncao — ver o teste seguinte).
+function corpoDeIngestIncomingWhatsapp(): string {
+  const inicio = whatsappFonte.indexOf("export async function ingestIncomingWhatsapp(");
+  const fim = whatsappFonte.indexOf("async function processarMidiaRecebida(", inicio);
+  verdade(inicio >= 0 && fim > inicio, "os dois marcadores de fatiamento não foram achados — a função mudou de lugar ou de nome");
+  return codigoDe(whatsappFonte.slice(inicio, fim));
+}
+
+teste("o upload da mídia recebida nunca pode derrubar o webhook", () => {
+  // A REGRA ESTÁ ESCRITA NO TOPO DE lib/atendenteResponde.ts: o webhook nunca pode lançar, porque
+  // a Meta/Evolution reenviaria a MESMA mensagem em loop e o cliente receberia a mesma resposta
+  // várias vezes. `processarMidiaRecebida` é IO puro (rede + Drive) — sem o `.catch()` aqui, uma
+  // falha de download/upload sobe até a rota e derruba o pedido inteiro.
+  const ingest = corpoDeIngestIncomingWhatsapp();
+  verdade(
+    /processarMidiaRecebida\([^)]*\)\s*\.catch\(/.test(ingest),
+    "a chamada de processarMidiaRecebida perdeu o .catch() — uma falha de Drive vai derrubar o webhook e causar reenvio em loop",
+  );
+});
+
+teste("processarMidiaRecebida se recusa a chamar a Meta sem o id da mídia", () => {
+  const proc = corpoDaFuncao(whatsappFonte, "processarMidiaRecebida");
+  verdade(proc.length > 0, "processarMidiaRecebida não existe mais, ou mudou de assinatura");
+  verdade(
+    /if\s*\(!midia\.mediaId\)\s*return;/.test(proc),
+    "sem essa trava, baixarMidiaMeta seria chamado com mediaId indefinido — sem id não há mídia nenhuma pra baixar",
+  );
+});
+
+teste("o pedido de download à Evolution leva a chave INTEIRA da mensagem, não só um pedaço dela", () => {
+  // A Evolution identifica a mídia pela chave da mensagem (remoteJid + id) — ver o comentário de
+  // baixarMidiaEvolution. Faltando qualquer um dos dois campos, a Evolution não acha a mídia (ou
+  // pior, acha a mídia ERRADA, de outra conversa com o mesmo id — remoteJid é o que desambigua).
+  const baixar = corpoDaFuncao(evolutionFonte, "baixarMidiaEvolution");
+  verdade(baixar.length > 0, "baixarMidiaEvolution não existe mais, ou mudou de assinatura");
+  verdade(baixar.includes("id: midia.waMessageId"), "o id da mensagem sumiu do pedido de download");
+  verdade(baixar.includes("remoteJid: midia.remoteJid"), "o remoteJid sumiu do pedido de download");
 });
 
 void resumo("whatsapp-midia (F5)");
