@@ -184,7 +184,13 @@ teste("a fila é buscada com o recorte por dono dentro da consulta", () => {
   const fonte = readFileSync("lib/esperaDoAtendimento.ts", "utf8");
   verdade(fonte.includes("...recorte,"), "o recorte por dono não entra no WHERE da fila");
   verdade(/const where = \{[^}]*officeId,/.test(fonte), "a fila não filtra por escritório");
-  verdade(fonte.includes('notIn: ["RASCUNHO"'), "rascunho não deveria contar como gente esperando");
+  // A lista de status fora da fila mora numa constante nomeada (FORA_DA_FILA) — o teste olha a
+  // constante, e não o `where`, porque é nela que a decisão está escrita.
+  const fora = /const FORA_DA_FILA = \[([^\]]*)\]/.exec(fonte)?.[1] ?? "";
+  for (const status of ["RASCUNHO", "CONVERTIDO", "ARQUIVADO", "RECUSADO"]) {
+    verdade(fora.includes(`"${status}"`), `${status} não deveria contar como gente esperando`);
+  }
+  verdade(fonte.includes("notIn: FORA_DA_FILA"), "a consulta da fila não usa a lista de status fora da fila");
 });
 
 teste("a tela inicial do app só consulta a fila para quem pode ver o Atendimento", () => {

@@ -229,7 +229,7 @@ export async function repassarLeadsSemResposta(): Promise<{
       semRespostaEm: null,
       // Humano já assumiu a conversa: o relógio não tem mais nada a fazer aqui.
       agenteSilenciadoEm: null,
-      status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] },
+      status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO", "RECUSADO"] },
     },
     orderBy: { prazoDeRespostaAte: "asc" },
     take: 200,

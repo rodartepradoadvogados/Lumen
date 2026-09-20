@@ -23,6 +23,16 @@ export * from "@/lib/rotulosDaEspera";
 // quarenta minutos.
 // ============================================================================
 
+/**
+ * Os status que NÃO são fila de espera.
+ *
+ * Rascunho é formulário pela metade. Convertido e arquivado já saíram de cena. E RECUSADO também:
+ * o lead recusado continua existindo e pode voltar, mas enquanto a recusa está de pé ninguém está
+ * esperando resposta dele — deixá-lo na fila faria a tela inicial do app cobrar uma resposta que
+ * o escritório já decidiu não dar.
+ */
+const FORA_DA_FILA = ["RASCUNHO", "CONVERTIDO", "ARQUIVADO", "RECUSADO"];
+
 // ── O LADO DE IO ────────────────────────────────────────────────────────────
 
 /**
@@ -44,7 +54,7 @@ export async function quemEstaEsperando(
   const where = {
     officeId,
     ...recorte,
-    status: { notIn: ["RASCUNHO", "CONVERTIDO", "ARQUIVADO"] },
+    status: { notIn: FORA_DA_FILA },
   };
 
   const [linhas, abertos] = await Promise.all([

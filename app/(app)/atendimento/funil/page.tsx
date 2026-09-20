@@ -52,7 +52,7 @@ export default async function FunilPage() {
   if (!veTodoOAtendimento(viewer)) notFound();
 
   const attendances = await prisma.attendance.findMany({
-    where: { status: { notIn: ["ARQUIVADO", "RASCUNHO"] }, officeId: viewer.officeId },
+    where: { status: { notIn: ["ARQUIVADO", "RASCUNHO", "RECUSADO"] }, officeId: viewer.officeId },
     include: { responsible: { select: { name: true } } },
     orderBy: [{ stageChangedAt: "desc" }, { createdAt: "desc" }],
   });

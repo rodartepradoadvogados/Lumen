@@ -255,6 +255,7 @@ model Office {
   relatorioModelos RelatorioModelo[]
   campanhas        Campanha[]
   motivosDeRecusa  MotivoDeRecusa[]
+  recusas          RecusaDeAtendimento[]
 }
 
 // Catálogo de planos (Painel Mestre → Preços) — 5 linhas fixas (Standard/Silver/Gold/Diamond/Sob
@@ -384,6 +385,9 @@ model User {
   mentions                    Mention[]
   publicationReads            PublicationRead[]
   attendances                 Attendance[]            @relation("AttendanceResponsible")
+  recusasQueFez               RecusaDeAtendimento[]  @relation("RecusaAutor")
+  recusasQueReverteu          RecusaDeAtendimento[]  @relation("RecusaRevisor")
+  recusasQueArquivou          RecusaDeAtendimento[]  @relation("RecusaArquivista")
   attachments                 Attachment[]
   documentTemplates           DocumentTemplate[]
   deletionRequested           DeletionRequest[]       @relation("DeletionRequestedBy")
@@ -1259,6 +1263,7 @@ model Attendance {
   emailMessages    EmailMessage[]
   driveSyncIssues  DriveSyncIssue[]
   pendencias       AtendimentoPendencia[]
+  recusas          RecusaDeAtendimento[]
   // Anotações pessoais (painel global "Anotações", chip "Atendimento") vinculadas a este
   // Attendance — model separado de Case, não confundir com o legado Case.type = "ATENDIMENTO".
   anotacoes        Anotacao[]
@@ -1877,6 +1882,73 @@ model MotivoDeRecusa {
 
   @@index([officeId])
   @@index([baseId])
+}
+
+// ── A RECUSA DE UM LEAD ───────────────────────────────────────────────────────────────────────
+//
+// Recusar não é descartar: o lead sai das listas ativas (Attendance.status = "RECUSADO"), continua
+// existindo e volta para a fila se alguém se convencer de que a recusa foi errada. Por isso cada
+// recusa é uma LINHA, e não um campo no atendimento — um lead pode ser recusado, recuperado e
+// recusado de novo, e o histórico disso é o que o escritório precisa ter para se defender.
+//
+// O MOTIVO É CONGELADO NO TEXTO. `motivoId` aponta para o catálogo, mas `motivoTexto` guarda a
+// frase como ela era no dia. O catálogo muda; a carta que o lead recebeu, não — e é a carta que
+// vale como prova.
+model RecusaDeAtendimento {
+  id String @id @default(cuid())
+
+  attendanceId String
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  motivoId    String?
+  motivoTexto String
+  // Nota interna de quem recusou. Nunca sai para o lead.
+  observacao  String?
+
+  // Quem decidiu. `porAgente` é a Ana recusando sozinha no caso óbvio (fora da matéria da
+  // campanha) — e é o que permite, depois, medir se ela está recusando bem.
+  recusadaPorId String?
+  recusadaPor   User?    @relation("RecusaAutor", fields: [recusadaPorId], references: [id])
+  porAgente     Boolean  @default(false)
+  recusadaEm    DateTime @default(now())
+
+  // ── A CARTA ──────────────────────────────────────────────────────────────────────────────
+  // O endereço público é único por recusa e impossível de adivinhar: um link sequencial deixaria
+  // qualquer um passear pelas recusas do escritório trocando um número.
+  token     String    @unique
+  // Quando UMA PESSOA mandou o link. Não é automático de propósito: a recusa é o momento mais
+  // delicado da relação, e é o único lugar onde a máquina mandando sozinha não economiza nada.
+  enviadaEm DateTime?
+  // A primeira vez que o lead abriu, e quantas vezes ao todo. É o que vale como prova de ciência
+  // — mais do que o envio, e sem exigir um clique de "li e entendi" que metade não daria.
+  abertaEm  DateTime?
+  aberturas Int       @default(0)
+
+  // ── O RADAR ──────────────────────────────────────────────────────────────────────────────
+  // A data opcional de voltar a olhar. "Não tinha a negativa em março" pede data; "não quer
+  // pagar" só pede memória.
+  revisitaEm DateTime?
+
+  // EM_ANALISE (na fila de recusados) | ARQUIVADA (virou histórico) | REVERTIDA (voltou à fila).
+  estado String @default("EM_ANALISE")
+
+  // Quem desfez ou arquivou, e quando. Registrado porque reverter uma recusa é decidir pegar um
+  // caso, e agora isso tem mais de um autor possível (sócio E recepção).
+  revertidaPorId String?
+  revertidaPor   User?     @relation("RecusaRevisor", fields: [revertidaPorId], references: [id])
+  revertidaEm    DateTime?
+  arquivadaPorId String?
+  arquivadaPor   User?     @relation("RecusaArquivista", fields: [arquivadaPorId], references: [id])
+  arquivadaEm    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId, estado])
+  @@index([attendanceId])
 }
 
 model Campanha {
