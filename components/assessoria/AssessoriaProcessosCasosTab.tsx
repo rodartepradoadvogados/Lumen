@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setCaseAssessoria, createParecer, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { processNumberIncludes } from "@/lib/processNumber";
-import { Badge, formatDate } from "@/components/ui";
+import { Badge } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { Plus, Search, ExternalLink, Link2, X, ChevronRight, ArrowRight } from "lucide-react";
 import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/DocumentoEnvios";
 import SecaoRecolhivel from "@/components/SecaoRecolhivel";
@@ -315,7 +316,9 @@ export default function AssessoriaProcessosCasosTab({
                       </div>
                       <div>
                         <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Atualizado em</p>
-                        <p className="text-corpo text-tx tabular-nums">{formatDate(c.updatedAt)}</p>
+                        {/* updatedAt é instante — formatDate() lia sem fuso e virava um dia errado
+                            perto da meia-noite; dataDeBrasilia() força o fuso do escritório. */}
+                        <p className="text-corpo text-tx tabular-nums">{dataDeBrasilia(c.updatedAt)}</p>
                       </div>
                       <div>
                         <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
@@ -374,7 +377,8 @@ export default function AssessoriaProcessosCasosTab({
                   </div>
                   <div>
                     <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Criado em</p>
-                    <p className="text-corpo text-tx tabular-nums">{formatDate(a.createdAt)}</p>
+                    {/* createdAt é instante — mesmo motivo do "Atualizado em" acima. */}
+                    <p className="text-corpo text-tx tabular-nums">{dataDeBrasilia(a.createdAt)}</p>
                   </div>
                   <div>
                     <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
@@ -454,7 +458,8 @@ export default function AssessoriaProcessosCasosTab({
       {openAttendance && (
         <SlideDrawer
           title={openAttendance.subject}
-          subtitle={formatDate(openAttendance.createdAt)}
+          // createdAt é instante — mesmo motivo dos outros usos nesta aba.
+          subtitle={dataDeBrasilia(openAttendance.createdAt)}
           onClose={() => setOpenAttendanceId(null)}
           // Mesma largura da gaveta de Licitações — pedido explícito para toda a aba "Demandas,
           // Processos e Casos".

@@ -7,7 +7,7 @@ import { formatCurrency, formatDate } from "@/components/ui";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { Pencil, CheckCircle2 } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
-import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
+import { horaDeBrasilia, dataDeBrasilia, dataEHoraDeBrasilia } from "@/lib/horaDeBrasilia";
 
 const leadSourceLabels: Record<string, string> = {
   INDICACAO: "Indicação",
@@ -101,8 +101,11 @@ export default function AttendanceCommercialForm({
         </div>
         {firstResponseAt ? (
           <div className="flex items-center gap-1.5 text-xs text-concluido dark:text-concluido">
-            <CheckCircle2 size={13} /> Respondido em {formatDate(firstResponseAt)}{" "}
-            {horaDeBrasilia(new Date(firstResponseAt))}
+            {/* firstResponseAt é o instante do primeiro contato de verdade (carimbado sozinho no
+                envio, ou manual) — misturava formatDate() (sem fuso) com horaDeBrasilia() (com
+                fuso): a data e a hora podiam sair de dias diferentes perto da meia-noite.
+                dataEHoraDeBrasilia() usa o mesmo fuso para as duas partes. */}
+            <CheckCircle2 size={13} /> Respondido em {dataEHoraDeBrasilia(firstResponseAt)}
           </div>
         ) : (
           <button

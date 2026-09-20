@@ -1,4 +1,5 @@
-import { Card, EmptyState, formatDate } from "@/components/ui";
+import { Card, EmptyState } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel } from "@/lib/documentTypes";
 import { ExternalLink } from "lucide-react";
 
@@ -46,7 +47,9 @@ export default function MobileCaseAttachmentsTab({ attachments }: { attachments:
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-tx truncate">{a.name}</p>
                     <p className="text-corpo text-tx-2">
-                      {getDocumentTypeLabel(a.docType)} · {formatDate(a.updatedAt ?? a.createdAt)}
+                      {/* updatedAt/createdAt são instantes — formatDate() lia sem fuso e virava
+                          um dia errado perto da meia-noite. */}
+                      {getDocumentTypeLabel(a.docType)} · {dataDeBrasilia(a.updatedAt ?? a.createdAt)}
                       {a.uploadedBy && <> · {a.uploadedBy.name}</>}
                       {a.driveUrl.startsWith("http") && !a.driveUrl.includes("drive.google.com") && <> · {getLinkSourceLabel(a.driveUrl)}</>}
                     </p>

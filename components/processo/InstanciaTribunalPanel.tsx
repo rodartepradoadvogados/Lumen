@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { retornarInstanciaAnterior } from "@/lib/actions/cases";
 import { INSTANCIA_OPTIONS, instanciaLabel } from "@/lib/caseInstance";
-import { formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { Undo2, History } from "lucide-react";
 
 export type CaseInstanceHistoryEntry = {
@@ -125,10 +125,12 @@ export default function InstanciaTribunalPanel({
                   <span>
                     {h.order}ª: {instanciaLabel(h.fromInstance)} → {instanciaLabel(h.toInstance)} ({h.toTribunalSigla})
                     {h.toInstanceDetail && ` — ${h.toInstanceDetail}`}
-                    <span className="text-tx-3"> · {formatDate(h.escalatedAt)}</span>
+                    {/* escalatedAt/returnedAt são instantes — formatDate() lia sem fuso e virava
+                        um dia errado perto da meia-noite. */}
+                    <span className="text-tx-3"> · {dataDeBrasilia(h.escalatedAt)}</span>
                   </span>
                   <span className={`shrink-0 text-etiqueta font-semibold px-1.5 py-0.5 rounded-full ${h.returnedAt ? "bg-sf-apoio text-tx-2" : "bg-marca-bg text-marca-tx"}`}>
-                    {h.returnedAt ? `Revertida em ${formatDate(h.returnedAt)}` : "Ativa"}
+                    {h.returnedAt ? `Revertida em ${dataDeBrasilia(h.returnedAt)}` : "Ativa"}
                   </span>
                 </li>
               ))}

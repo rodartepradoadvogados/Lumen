@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { createApiKey, revokeApiKey, type ApiKeyRow } from "@/lib/actions/apiKeys";
-import { formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import ModalShell from "@/components/ModalShell";
 import CopyButton from "@/components/CopyButton";
 
@@ -89,8 +89,10 @@ export default function ApiKeysManager({ initialKeys }: { initialKeys: ApiKeyRow
                   <td className="py-2 pr-2 text-tx">{k.name}</td>
                   <td className="py-2 pr-2 text-tx-2 font-mono text-xs">{k.prefix}</td>
                   <td className="py-2 pr-2 text-tx-2">{SCOPE_LABEL[k.scope] ?? k.scope}</td>
-                  <td className="py-2 pr-2 text-tx-2 tabular-nums">{formatDate(k.createdAt)}</td>
-                  <td className="py-2 pr-2 text-tx-2 tabular-nums">{k.lastUsedAt ? formatDate(k.lastUsedAt) : "Nunca usada"}</td>
+                  {/* createdAt e lastUsedAt são instantes — formatDate() lia sem fuso e virava um
+                      dia errado perto da meia-noite; dataDeBrasilia() força o fuso do escritório. */}
+                  <td className="py-2 pr-2 text-tx-2 tabular-nums">{dataDeBrasilia(k.createdAt)}</td>
+                  <td className="py-2 pr-2 text-tx-2 tabular-nums">{k.lastUsedAt ? dataDeBrasilia(k.lastUsedAt) : "Nunca usada"}</td>
                   <td className="py-2 pr-2 text-right">
                     {k.revokedAt ? (
                       <span className="text-xs text-tx-3">Revogada</span>

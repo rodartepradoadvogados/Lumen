@@ -14,7 +14,7 @@ import { getDjenTargets } from "@/lib/djenSync";
 import { isBtgConnected } from "@/lib/btg";
 import { getAppUrl } from "@/lib/appUrl";
 import { listApiKeys } from "@/lib/actions/apiKeys";
-import { formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import AccessRestrictedNotice from "@/components/AccessRestrictedNotice";
 import ApiKeysManager from "@/components/conexoes/ApiKeysManager";
 import ConexoesView, { type ConexaoGrupo, type ConexaoItem, type IntegrationRunRow } from "@/components/conexoes/ConexoesView";
@@ -426,7 +426,9 @@ export default async function ConexoesPage({
                     {webhookEvents.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-2">
                         <span>{e.eventType}</span>
-                        <span className="text-xs text-tx-2 tabular-nums">{formatDate(e.createdAt)}</span>
+                        {/* createdAt do evento de webhook é instante — formatDate() lia sem fuso
+                            e virava um dia errado perto da meia-noite. */}
+                        <span className="text-xs text-tx-2 tabular-nums">{dataDeBrasilia(e.createdAt)}</span>
                       </li>
                     ))}
                   </ul>
@@ -442,7 +444,8 @@ export default async function ConexoesPage({
           estado: btgConnected ? "ok" : "off",
           estadoTexto: btgConnected ? "ativo" : "não configurado",
           contexto: btgConnected
-            ? `Conectado${btgConnection ? ` — token expira em ${formatDate(btgConnection.expiresAt)}` : ""}`
+            // expiresAt é o instante de expiração do token OAuth — mesmo motivo do createdAt acima.
+            ? `Conectado${btgConnection ? ` — token expira em ${dataDeBrasilia(btgConnection.expiresAt)}` : ""}`
             : "Conciliação administrada pela plataforma (Painel Mestre) — ainda não conectado.",
         },
       ],
