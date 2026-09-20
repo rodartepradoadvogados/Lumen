@@ -8,6 +8,7 @@ import {
   enderecoDoContato,
   ROTULO_DO_TIPO,
   TIPOS_PARA_CADASTRAR,
+  telefoneLegivel,
   type ContatoConhecido,
   type TipoDeContato,
 } from "@/lib/quemEEsteNumero";
@@ -71,7 +72,7 @@ export default function QuemEEsteNumero({
           <p className={`text-xs mt-0.5 ${adverso ? "font-semibold text-urgente" : "text-tx-3"}`}>
             {contato.detalhe || ROTULO_DO_TIPO[contato.tipo]}
           </p>
-          {telefone && <p className="text-xs text-tx-3 mt-0.5">{telefone}</p>}
+          {telefone && <p className="text-xs text-tx-3 mt-0.5">{telefoneLegivel(telefone)}</p>}
         </div>
       </div>
     );
@@ -83,7 +84,7 @@ export default function QuemEEsteNumero({
 
   return (
     <div>
-      <p className="text-sm font-medium text-tx">{telefone}</p>
+      <p className="text-sm font-medium text-tx">{telefoneLegivel(telefone)}</p>
       <p className="text-xs text-tx-3 mt-0.5">Não está na agenda do escritório.</p>
       <div className="mt-2.5 flex flex-wrap gap-1.5">
         {TIPOS_PARA_CADASTRAR.map((tipo) => (

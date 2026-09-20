@@ -16,6 +16,9 @@ import AtendenteIaControle from "@/components/AtendenteIaControle";
 import EmailReplyPanel from "@/components/EmailReplyPanel";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import EditAttendanceSubject from "@/components/EditAttendanceSubject";
+import Conversa from "@/components/atendimento/Conversa";
+import TrilhoDoAtendimento from "@/components/atendimento/TrilhoDoAtendimento";
+import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
 import { isStorageConnected } from "@/lib/storageProvider";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -23,11 +26,27 @@ import { X } from "lucide-react";
 import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { filtroDoAtendimento, podeVerAtendimentos } from "@/lib/acessoAtendimento";
 import { identificarNumero } from "@/lib/identificarNumero";
-import QuemEEsteNumero from "@/components/atendimento/QuemEEsteNumero";
+import { telefoneLegivel } from "@/lib/quemEEsteNumero";
 
 export const dynamic = "force-dynamic";
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
+
+// ============================================================================
+// A TELA DO ATENDIMENTO — DUAS COLUNAS.
+//
+// Era uma pilha de dez cartões, e a conversa com o cliente estava no sexto. Quem abria a tela para
+// responder a um lead precisava rolar até achá-la, e o relógio de quinze minutos correndo enquanto
+// isso.
+//
+// AGORA A TELA ABRE NO QUE A TELA É PARA FAZER: a conversa ocupa a coluna da esquerda, com a caixa
+// de resposta presa no pé, e o contexto que se precisa ter para responder ocupa um trilho de 360px
+// à direita. O cabeçalho carrega o relógio.
+//
+// A FICHA COMPLETA NÃO SUMIU — ela segue abaixo, no mesmo rolar: tarefas, e-mail, anexos,
+// anotações, honorário pretendido, transformação em processo. O que mudou é a ORDEM DE CHEGADA:
+// primeiro o que é urgente, depois o que é completo.
+// ============================================================================
 
 export default async function AttendanceDetailPage({ params }: { params: { id: string } }) {
   const viewer = await getCurrentUser();
@@ -43,13 +62,14 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
     where: { id: params.id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
     include: {
       responsible: true,
+      campanha: { select: { nome: true } },
       tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } },
       attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
       convertedCase: true,
       whatsappMessages: { orderBy: { createdAt: "asc" } },
       emailMessages: { orderBy: { createdAt: "asc" } },
       pendencias: { include: { responsible: true }, orderBy: [{ status: "asc" }, { dueDate: "asc" }] },
-      // Anotações pessoais (painel global "Anotações") vinculadas a este Atendimento — filtradas
+      // Anotações pessoais (painel global "Anotações") vinculadas a este Attendance — filtradas
       // por authorId, mesma regra de app/(app)/processos/[id]/page.tsx.
       anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },
     },
@@ -71,6 +91,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
       })
     )?.agenteNome?.trim() || "O atendente";
   const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
+  const podeResponder = Boolean(a.waPhone) && whatsappConfigured;
 
   const [users, columns, storageConnected] = await Promise.all([
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
@@ -109,88 +130,159 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
     responsible: p.responsible ? { name: p.responsible.name } : null,
   }));
 
+  const agora = new Date();
+
   return (
     <>
       {/* Backdrop puramente visual: clicar fora não fecha a janela (só o X fecha). */}
       <div className="fixed inset-0 bg-grafite-900/40 z-40" aria-hidden="true" />
 
       <div className="fixed inset-4 md:inset-8 lg:inset-12 z-50 bg-sf shadow-pop flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-3 border-b border-regua shrink-0 bg-sf">
-          <span className="text-xs font-semibold text-tx-3 uppercase tracking-wide">Atendimento</span>
-          <Link
-            href="/atendimento"
-            className="text-tx-3 hover:text-tx transition-colors"
-            aria-label="Fechar"
-            title="Fechar"
-          >
-            <X size={20} />
-          </Link>
-        </div>
-
-        <div className="overflow-y-auto flex-1 p-6">
-          {/* Largura cheia — mesmo motivo do Processo: quem define o espaço é a casca do modo
-              de visualização, não um teto fixo aqui. */}
-          <div className="tela">
-            <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
-              <h1 className="text-autuacao font-bold text-tx leading-tight">{a.clientName}</h1>
-              <div className="flex items-center gap-2 flex-wrap">
+        {/* ── O CABEÇALHO ────────────────────────────────────────────────────
+            Nome, os dois eixos de estado, a linha de procedência e o relógio. O relógio fica aqui,
+            e não dentro da conversa, porque ele vale para a tela inteira: onde a pessoa estiver
+            rolando, ele continua à vista. */}
+        <div className="shrink-0 border-b border-regua bg-sf px-6 py-4">
+          <div className="flex items-start gap-5">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-guia font-bold leading-tight text-tx">{a.clientName}</h1>
                 <FunnelStageSelect attendanceId={a.id} stage={a.stage} />
                 <AttendanceStatusSelect attendanceId={a.id} status={a.status} />
-                <DeleteEntityButton
-                  entityType="ATTENDANCE"
-                  entityId={a.id}
-                  entityLabel={`${a.clientName} — ${a.subject}`}
-                  confirmMessage={`Excluir o atendimento de "${a.clientName}"?`}
-                  redirectTo="/atendimento"
+              </div>
+              <div className="mt-1">
+                <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
+              </div>
+              <p className="mt-1.5 text-xs text-tx-2">
+                {telefoneDoContato && <span>{telefoneLegivel(telefoneDoContato)}</span>}
+                {a.campanha?.nome && (
+                  <>
+                    {telefoneDoContato && <span className="text-regua-forte"> · </span>}
+                    campanha <strong className="font-semibold">{a.campanha.nome}</strong>
+                  </>
+                )}
+                {a.transferidoEm && (
+                  <>
+                    <span className="text-regua-forte"> · </span>
+                    seu desde {horaDeBrasilia(a.transferidoEm)}
+                  </>
+                )}
+              </p>
+            </div>
+
+            <RelogioDoAtendimento prazoISO={a.prazoDeRespostaAte ? a.prazoDeRespostaAte.toISOString() : null} />
+
+            <div className="flex shrink-0 items-center gap-1">
+              <DeleteEntityButton
+                entityType="ATTENDANCE"
+                entityId={a.id}
+                entityLabel={`${a.clientName} — ${a.subject}`}
+                confirmMessage={`Excluir o atendimento de "${a.clientName}"?`}
+                redirectTo="/atendimento"
+              />
+              <Link href="/atendimento" className="p-1 text-tx-3 transition-colors hover:text-tx" aria-label="Fechar" title="Fechar">
+                <X size={20} />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-1">
+          {/* ── AS DUAS COLUNAS ──────────────────────────────────────────────
+              Altura travada em telas grandes para que a caixa de resposta fique presa no pé da
+              conversa, que é o que faz a tela ser usável sem rolar. Abaixo de `lg` as duas empilham
+              e a conversa ganha um teto próprio — numa tela estreita, uma conversa de altura livre
+              empurraria a caixa de resposta para fora do alcance. */}
+          <div className="flex flex-col lg:h-[620px] lg:flex-row">
+            <div className="flex min-w-0 flex-1 flex-col border-b border-regua bg-sf-apoio lg:border-b-0 lg:border-r">
+              <div
+                data-rolagem-da-conversa=""
+                className="max-h-[420px] min-h-0 flex-1 overflow-y-auto px-6 py-5 lg:max-h-none lg:px-8"
+              >
+                <Conversa
+                  mensagens={a.whatsappMessages}
+                  agora={agora}
+                  nomeDoAtendente={nomeDoAtendente}
+                  transferidoPor={a.transferidoPor}
+                  transferidoEm={a.transferidoEm}
                 />
               </div>
-            </div>
-            <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
-            <p className="text-xs italic text-tx-3 mt-1.5 mb-5">
-              Use os seletores acima para mudar o estágio comercial e o status operacional deste atendimento a qualquer momento.
-            </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-              <Card className="p-5 space-y-3">
-                {/* QUEM É ESTE NÚMERO vem antes de tudo, e é o único bloco desta ficha que não é
-                    um par rótulo/valor: é a primeira coisa que quem vai responder precisa saber, e
-                    "Telefone: 62 9999-8888" numa linha de tabela não responde a pergunta. */}
-                <div className="pb-3 border-b border-regua">
-                  <h4 className="text-xs font-semibold text-tx-3 uppercase tracking-wide mb-2">Quem é este número</h4>
-                  <QuemEEsteNumero attendanceId={a.id} telefone={telefoneDoContato} contato={contatoConhecido} />
-                </div>
-                <Field label="Matéria" value={a.area} />
-                <Field label="Canal" value={channelLabels[a.channel]} />
-                {a.contact && <Field label="Contato (legado)" value={a.contact} />}
-                <Field label="Responsável pela triagem" value={a.responsible?.name} />
-                <Field label="Data" value={formatDate(a.createdAt)} />
-                {a.convertedCase && (
-                  <div className="flex justify-between text-sm border-b border-regua pb-2">
-                    <span className="text-tx-3">Convertido em</span>
-                    <Link href={`/processos/${a.convertedCase.id}`} className="font-medium text-marca-tx hover:underline text-right">
-                      {a.convertedCase.title}
-                    </Link>
-                  </div>
+              <div className="shrink-0 border-t border-regua bg-sf px-6 pb-4 pt-3 lg:px-8">
+                {podeResponder ? (
+                  <>
+                    {/* A chave do atendente fica ACIMA da caixa de resposta: quem está lendo a
+                        conversa é quem sabe se aquele lead pode ser atendido por máquina, e a
+                        decisão tem que estar onde ela é tomada. */}
+                    <AtendenteIaControle
+                      attendanceId={a.id}
+                      responde={a.agenteResponde}
+                      silenciado={Boolean(a.agenteSilenciadoEm)}
+                      ultimaEhDoCliente={
+                        a.whatsappMessages.length > 0 && a.whatsappMessages[a.whatsappMessages.length - 1].direction === "IN"
+                      }
+                      nomeDoAtendente={nomeDoAtendente}
+                    />
+                    <WhatsappReplyBox attendanceId={a.id} nomeDoCliente={a.clientName} />
+                  </>
+                ) : (
+                  <p className="py-2 text-xs text-tx-3">
+                    {a.waPhone
+                      ? "O canal de WhatsApp do escritório não está configurado, então não há como responder por aqui."
+                      : "Este atendimento não tem WhatsApp vinculado. Responda pelo e-mail, abaixo."}
+                  </p>
                 )}
-                <div className="pt-2 border-t border-regua">
-                  <AttendanceCommercialForm
-                    attendanceId={a.id}
-                    estimatedValue={a.estimatedValue}
-                    leadSource={a.leadSource}
-                    nextContactAt={a.nextContactAt ? a.nextContactAt.toISOString() : null}
-                    feeMode={a.feeMode}
-                    feePercentual={a.feePercentual}
-                    feePercentualBase={a.feePercentualBase}
-                    responseDeadline={a.responseDeadline ? a.responseDeadline.toISOString() : null}
-                    firstResponseAt={a.firstResponseAt ? a.firstResponseAt.toISOString() : null}
-                  />
+              </div>
+            </div>
+
+            <div className="w-full shrink-0 lg:w-[360px]">
+              <TrilhoDoAtendimento
+                attendanceId={a.id}
+                telefone={telefoneDoContato}
+                contato={contatoConhecido}
+                area={a.area}
+                canal={channelLabels[a.channel] || a.channel}
+                campanha={a.campanha?.nome ?? null}
+                responsavel={a.responsible?.name ?? null}
+                abertoEm={a.createdAt}
+                descricao={a.description}
+                anexos={a.attachments.map((att) => ({ id: att.id, name: att.name }))}
+                pendencias={a.pendencias}
+                jaConvertido={Boolean(a.convertedCaseId)}
+              />
+            </div>
+          </div>
+
+          {/* ── A FICHA COMPLETA, NO MESMO ROLAR ───────────────────────────── */}
+          <div className="tela pt-6">
+            {a.convertedCase && (
+              <Card className="mb-5 p-5">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-tx-3">Convertido em</span>
+                  <Link href={`/processos/${a.convertedCase.id}`} className="text-right font-medium text-marca-tx hover:underline">
+                    {a.convertedCase.title}
+                  </Link>
                 </div>
               </Card>
-              <Card className="p-5">
-                <h4 className="text-xs font-semibold text-tx-3 uppercase tracking-wide mb-2">Descrição detalhada</h4>
-                <p className="text-sm text-tx-2 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
-              </Card>
-            </div>
+            )}
+
+            <Card className="mb-5 p-5">
+              <h4 className="mb-1 text-sm font-semibold text-tx">Honorário pretendido e prazo de resposta</h4>
+              <p className="mb-3 text-xs italic text-tx-3">
+                Capturado aqui para não ser redigitado na conversão em Processo. {a.contact ? `Contato (legado): ${a.contact}.` : ""}
+              </p>
+              <AttendanceCommercialForm
+                attendanceId={a.id}
+                estimatedValue={a.estimatedValue}
+                leadSource={a.leadSource}
+                nextContactAt={a.nextContactAt ? a.nextContactAt.toISOString() : null}
+                feeMode={a.feeMode}
+                feePercentual={a.feePercentual}
+                feePercentualBase={a.feePercentualBase}
+                responseDeadline={a.responseDeadline ? a.responseDeadline.toISOString() : null}
+                firstResponseAt={a.firstResponseAt ? a.firstResponseAt.toISOString() : null}
+              />
+            </Card>
 
             <Card className="p-5 mb-5">
               <h4 className="text-sm font-semibold text-tx mb-1">Pendências</h4>
@@ -202,78 +294,22 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
             </Card>
 
             {!a.convertedCaseId && (
-              <Card className="p-5 mb-5">
+              /* A âncora do botão contornado do trilho. O id vai num invólucro porque o Card não
+                 aceita id — e um botão que rola para lugar nenhum é pior que um botão a menos. */
+              <div id="transformar" className="mb-5 scroll-mt-4">
+              <Card className="p-5">
                 <h4 className="text-sm font-semibold text-tx mb-1">Transformar em Processo/Caso</h4>
                 <p className="text-xs italic text-tx-3 mb-3">
                   Isso cria um novo Caso ou Processo vinculado ao cliente, mantendo o histórico completo deste atendimento.
                 </p>
                 <ConvertAttendanceForm attendanceId={a.id} />
               </Card>
+              </div>
             )}
 
-            {showWhatsapp && (
-              <Card className="p-5 mb-5">
-                <div className="flex items-start justify-between mb-3 gap-2">
-                  <div>
-                    <h4 className="text-sm font-semibold text-tx">Conversa do WhatsApp</h4>
-                    <p className="text-xs italic text-tx-3 mt-1.5">
-                      Mensagens trocadas pelo número oficial do escritório no WhatsApp — a resposta sai pelo mesmo número que o cliente já
-                      conhece.
-                    </p>
-                  </div>
-                  {a.waPhone && <span className="text-xs text-tx-3 shrink-0">{a.waPhone}</span>}
-                </div>
-
-                {a.whatsappMessages.length === 0 ? (
-                  <p className="text-sm text-tx-3">Nenhuma mensagem ainda.</p>
-                ) : (
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                    {a.whatsappMessages.map((m) => {
-                      const out = m.direction === "OUT";
-                      return (
-                        <div key={m.id} className={out ? "flex justify-end" : "flex justify-start"}>
-                          <div
-                            className={
-                              out
-                                ? "max-w-[75%] bg-acao px-3 py-2 text-acao-tx"
-                                : "max-w-[75%] bg-sf-apoio px-3 py-2 text-tx border border-regua"
-                            }
-                          >
-                            <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
-                            <p className={out ? "mt-1 text-etiqueta text-acao-tx text-right" : "mt-1 text-etiqueta text-tx-3"}>
-                              {dataDeBrasilia(m.createdAt)}{" "}
-                              {horaDeBrasilia(m.createdAt)}
-                              {out && m.status === "FAILED" ? " · falhou" : ""}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {a.waPhone && whatsappConfigured ? (
-                  <>
-                    {/* A chave do atendente fica ACIMA da caixa de resposta: quem está lendo a
-                        conversa é quem sabe se aquele lead pode ser atendido por máquina, e a
-                        decisão tem que estar onde ela é tomada. */}
-                    <AtendenteIaControle
-                      attendanceId={a.id}
-                      responde={a.agenteResponde}
-                      silenciado={Boolean(a.agenteSilenciadoEm)}
-                      ultimaEhDoCliente={
-                        a.whatsappMessages.length > 0 &&
-                        a.whatsappMessages[a.whatsappMessages.length - 1].direction === "IN"
-                      }
-                      nomeDoAtendente={nomeDoAtendente}
-                    />
-                    <WhatsappReplyBox attendanceId={a.id} />
-                  </>
-                ) : (
-                  <p className="mt-3 text-xs text-tx-3">
-                    {a.waPhone ? "Canal WhatsApp não configurado." : "Este atendimento não tem WhatsApp vinculado."}
-                  </p>
-                )}
+            {!showWhatsapp && (
+              <Card className="mb-5 p-5">
+                <p className="text-sm text-tx-3">Este atendimento não tem conversa de WhatsApp.</p>
               </Card>
             )}
 
@@ -355,7 +391,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 <div>
                   <h4 className="text-sm font-semibold text-tx">Anexos</h4>
                   <p className="text-xs italic text-tx-3 mt-1.5">
-                    Documentos armazenados no Drive do escritório, vinculados a este atendimento.
+                    Documentos armazenados no Drive do escritório, vinculados a este atendimento. Abertos em {formatDate(a.createdAt)}.
                   </p>
                 </div>
                 <GerarDocumentoButton attendanceId={a.id} />
@@ -374,14 +410,5 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
         </div>
       </div>
     </>
-  );
-}
-
-function Field({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div className="flex justify-between text-sm border-b border-regua pb-2">
-      <span className="text-tx-3">{label}</span>
-      <span className="font-medium text-tx text-right">{value || "—"}</span>
-    </div>
   );
 }
