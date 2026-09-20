@@ -1092,6 +1092,52 @@ html:has(.site-publico) {
 }
 
 /* ============================================================================
+   BOLINHA DE "ESPERANDO RESPOSTA" — o cliente escreveu e ninguém respondeu.
+   ============================================================================
+   Pisca de propósito, e é a ÚNICA coisa do produto que pisca. Movimento é o recurso de atenção
+   mais caro que existe numa tela: gasta-se uma vez, e num fato que não pode passar despercebido.
+   Aqui o fato é uma pessoa esperando resposta com relógio correndo.
+
+   NÃO CONFUNDIR COM A COLUNA "AGUARDANDO" da Triagem. A coluna é ESTÁGIO (alguém pôs o card ali);
+   a bolinha é FATO (a última mensagem é do cliente). Um lead pode ter a bolinha em qualquer
+   coluna, inclusive em Fechado. Ver a nota longa em lib/funil.ts.
+
+   O pulso é de OPACIDADE e não de tamanho: tamanho empurra o texto ao lado e faz a linha inteira
+   tremer, que é o tipo de movimento que cansa em dez minutos de tela aberta.
+
+   Fora do `.portal-shell` de propósito: a mesma bolinha vale no site e no app (`.mobile-shell`),
+   e a `live-dot` do portal é outra coisa — aquela é verde e diz "está acontecendo agora". */
+.bolinha-espera {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--acao);
+  box-shadow: 0 0 0 0 var(--acao);
+  display: inline-block;
+  flex-shrink: 0;
+  animation: pulso-espera 1.6s ease-in-out infinite;
+}
+@keyframes pulso-espera {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--acao-light);
+  }
+  50% {
+    opacity: 0.45;
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+/* Quem desligou movimento continua vendo a bolinha — ela só para de piscar. A informação é a
+   COR e a PRESENÇA; o piscar é o reforço, e reforço é o que se abre mão primeiro. */
+@media (prefers-reduced-motion: reduce) {
+  .bolinha-espera {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--acao-light);
+  }
+}
+
+/* ============================================================================
    PWA NOTURNO — escopo `.mobile-shell` (app/m/*, ver app/m/layout.tsx).
    Mesmo sistema do Portal Noturno acima (.portal-shell), reaproveitado tal qual — nenhum valor
    novo, só estendido a uma segunda área logada. Decisão registrada em

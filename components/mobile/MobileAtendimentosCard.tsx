@@ -64,6 +64,10 @@ export default function MobileAtendimentosCard({
                 className={`block border-l-[3px] px-4 py-3.5 ${tarja}`}
               >
                 <div className="flex items-baseline gap-2">
+                  {/* Pisca só quem está de fato esperando — quem já foi respondido não pisca. */}
+                  {q.esperandoHa !== null && (
+                    <span className="bolinha-espera self-center" role="img" aria-label="Esperando resposta" />
+                  )}
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold text-tx">{q.nome}</span>
                   {espera ? (
                     <span className={`shrink-0 text-corpo font-bold ${q.meu ? "text-marca-tx" : "text-aviso"}`}>{espera}</span>

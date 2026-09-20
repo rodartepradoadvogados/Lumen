@@ -84,6 +84,13 @@ export default async function MobileAttendanceDetail({
 
   const whatsappConfigured = await isWhatsappConfigured(viewer.officeId);
   const podeResponder = Boolean(a.waPhone) && whatsappConfigured;
+
+  // O MESMO CRITÉRIO DE TODAS AS TELAS (lib/rotulosDaEspera.ts): a última palavra é do cliente.
+  // Serve a duas coisas de uma vez — a bolinha que pisca no cabeçalho e o controle do atendente,
+  // que só se oferece a responder quando há o que responder. Duas definições fariam a bolinha
+  // discordar do botão logo abaixo dela.
+  const ultimaEhDoCliente =
+    a.whatsappMessages.length > 0 && a.whatsappMessages[a.whatsappMessages.length - 1].direction === "IN";
   const nomeDoAtendente =
     (
       await prisma.whatsappConfig.findUnique({ where: { officeId: viewer.officeId }, select: { agenteNome: true } })
@@ -124,7 +131,20 @@ export default async function MobileAttendanceDetail({
             cortado em "Carlos Eduardo da Si…" — e o nome de quem está do outro lado é a primeira
             coisa que a tela precisa dizer. */}
         <div className="mt-1 min-w-0">
-          <h1 className="truncate text-lg font-bold leading-tight text-tx">{a.clientName}</h1>
+          <h1 className="flex items-center gap-2 truncate text-lg font-bold leading-tight text-tx">
+            {/* A bolinha que pisca: a última palavra é do cliente e ninguém respondeu. É FATO, e
+                não estágio — ver a nota em lib/funil.ts. Mesma marca das outras telas, para que
+                quem olha o celular e quem olha o computador esteja vendo a mesma coisa. */}
+            {ultimaEhDoCliente && (
+              <span
+                className="bolinha-espera"
+                role="img"
+                aria-label="O cliente está esperando resposta"
+                title="O cliente escreveu e ninguém respondeu"
+              />
+            )}
+            <span className="min-w-0 truncate">{a.clientName}</span>
+          </h1>
           <div className="mt-0.5">
             <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
           </div>
@@ -266,9 +286,7 @@ export default async function MobileAttendanceDetail({
                 attendanceId={a.id}
                 responde={a.agenteResponde}
                 silenciado={Boolean(a.agenteSilenciadoEm)}
-                ultimaEhDoCliente={
-                  a.whatsappMessages.length > 0 && a.whatsappMessages[a.whatsappMessages.length - 1].direction === "IN"
-                }
+                ultimaEhDoCliente={ultimaEhDoCliente}
                 nomeDoAtendente={nomeDoAtendente}
                 compacto
               />

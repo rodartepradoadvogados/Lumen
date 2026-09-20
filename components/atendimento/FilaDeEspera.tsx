@@ -66,7 +66,18 @@ export default function FilaDeEspera({
                   className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-regua border-l-[3px] px-5 py-3.5 last:border-b-0 ${tarja}`}
                 >
                   <div className="w-full min-w-0 lg:w-[210px] lg:shrink-0">
-                    <p className="truncate text-sm font-semibold text-tx">{q.nome}</p>
+                    <p className="flex items-center gap-2 truncate text-sm font-semibold text-tx">
+                      {/* A bolinha pisca porque TODA linha desta fila é alguém esperando resposta.
+                          Ver lib/funil.ts: isto é FATO (a última mensagem é do cliente), diferente
+                          da coluna "Aguardando" do quadro, que é estágio escolhido. */}
+                      <span
+                        className="bolinha-espera"
+                        role="img"
+                        aria-label="O cliente está esperando resposta"
+                        title="O cliente escreveu e ninguém respondeu"
+                      />
+                      <span className="min-w-0 truncate">{q.nome}</span>
+                    </p>
                     <p className="mt-0.5 truncate text-xs text-tx-3">{q.campanha || "sem campanha · veio direto"}</p>
                   </div>
 

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ESTAGIO_DE_ESPERA, podeCairEmAguardando } from "@/lib/funil";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 import { getAppUrl } from "@/lib/appUrl";
 import { sendWhatsappText } from "@/lib/whatsapp";
@@ -43,6 +44,7 @@ type LeadVencido = {
   responsibleId: string | null;
   filaJaTentou: string | null;
   firstResponseAt: Date | null;
+  stage: string;
   campanha: { destino: string } | null;
 };
 
@@ -134,6 +136,27 @@ async function avisarAdministradores(lead: LeadVencido, quantos: number): Promis
   return `${admins.length} administrador(es) avisado(s)`;
 }
 
+/**
+ * Empurra o card para a coluna "Aguardando" da Triagem.
+ *
+ * É O MOTIVO DE A COLUNA EXISTIR: o lead que ninguém respondeu em quinze minutos precisa parar de
+ * ser um número numa fila e virar um card que alguém vê ao abrir a tela. Vale nos DOIS desfechos
+ * do relógio — quando o lead é repassado para a pessoa seguinte e quando a volta fecha sem
+ * ninguém atender —, porque nos dois o prazo passou.
+ *
+ * NÃO MEXE EM QUEM JÁ DECIDIU. Um lead FECHADO que recebe uma mensagem tardia não volta a pedir
+ * atenção comercial: o relógio da conversa continua valendo, mas o funil já acabou para ele. E
+ * quem já está em Aguardando fica onde está, para que o campo `stageChangedAt` não seja reescrito
+ * a cada rodada do cron e passe a mentir sobre há quanto tempo o card está parado ali.
+ */
+async function empurrarParaAguardando(lead: LeadVencido): Promise<void> {
+  if (!podeCairEmAguardando(lead.stage)) return;
+  await prisma.attendance.update({
+    where: { id: lead.id },
+    data: { stage: ESTAGIO_DE_ESPERA, stageChangedAt: new Date() },
+  });
+}
+
 async function tratarUmLead(lead: LeadVencido): Promise<string> {
   if (await alguemJaAtendeu(lead)) {
     // O RELÓGIO PARA, e o lead não volta para a fila. Quem respondeu assumiu.
@@ -185,6 +208,7 @@ async function tratarUmLead(lead: LeadVencido): Promise<string> {
       // este lead. Sem isso ele giraria para sempre, avisando os administradores a cada rodada.
       data: { semRespostaEm: new Date(), prazoDeRespostaAte: null, filaJaTentou: jaTentaram },
     });
+    await empurrarParaAguardando(lead);
     const aviso = await avisarAdministradores(lead, Math.max(fila.length, 1));
     return `volta fechada — ${aviso}`;
   }
@@ -209,6 +233,8 @@ async function tratarUmLead(lead: LeadVencido): Promise<string> {
       data: tipo === "ADVOGADOS" ? { ultimoAdvogadoId: proximo.id } : { ultimaRecepcaoId: proximo.id },
     }),
   ]);
+
+  await empurrarParaAguardando(lead);
 
   const aviso = await avisarAdvogadoDoLead(lead.id, proximo.id, (lead.transferidoPor as GatilhoDaTransferencia) ?? "ROTEIRO");
   return `repassado para ${proximo.nome} — ${aviso.motivo}`;
@@ -241,6 +267,7 @@ export async function repassarLeadsSemResposta(): Promise<{
       responsibleId: true,
       filaJaTentou: true,
       firstResponseAt: true,
+      stage: true,
       campanha: { select: { destino: true } },
     },
   })) as LeadVencido[];
