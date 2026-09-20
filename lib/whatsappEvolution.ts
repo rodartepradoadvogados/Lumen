@@ -1,4 +1,5 @@
 import type { IncomingMessage } from "@/lib/whatsapp";
+import { type TipoMidiaWhatsapp } from "@/lib/driveNaming";
 
 // ============================================================================
 // EVOLUTION API — o caminho não oficial do WhatsApp.
@@ -158,6 +159,23 @@ export async function enviarTexto(config: ConfigEvolution, paraE164: string, tex
   return d?.key?.id ?? "";
 }
 
+// F5 — MÍDIA DO WHATSAPP. A Evolution não manda o arquivo dentro do próprio webhook (ver
+// `base64: false` em criarInstancia acima — decisão de não inchar todo evento com o peso de cada
+// mídia, a maioria delas texto). Pra baixar o conteúdo é preciso pedir de volta, identificando a
+// mensagem pela MESMA chave que veio no evento (remoteJid + id da mensagem) — é assim que a
+// Evolution sabe qual mídia, já que ela guarda por um tempo curto, não por um id solto que dure.
+export async function baixarMidiaEvolution(
+  config: ConfigEvolution,
+  midia: { remoteJid: string; waMessageId: string },
+): Promise<{ buffer: Buffer; mimeType: string }> {
+  const d = (await pedir(config, "POST", `/chat/getBase64FromMediaMessage/${encodeURIComponent(config.instancia)}`, {
+    message: { key: { id: midia.waMessageId, remoteJid: midia.remoteJid } },
+    convertToMp4: false,
+  })) as { base64?: string; mimetype?: string } | null;
+  if (!d?.base64) throw new FalhaDaEvolution("a Evolution não devolveu o conteúdo da mídia.");
+  return { buffer: Buffer.from(d.base64, "base64"), mimeType: d.mimetype || "application/octet-stream" };
+}
+
 // ── Entrada ──────────────────────────────────────────────────────────────────────────────────
 
 export function somenteDigitos(numero: string): string {
@@ -208,34 +226,74 @@ export function podeResponder(
   return lista.some((n) => mesmoNumero(n, deNumero));
 }
 
+// Um dos quatro tipos de mídia que a Baileys (motor por trás da Evolution) usa — a forma é a
+// mesma nos quatro (mimetype; image/video/document ainda trazem caption; document também traz
+// fileName). `documentWithCaptionMessage` é como o WhatsApp embrulha um documento MANDADO COM
+// legenda — o documento de verdade fica um nível mais fundo, dentro de `.message.documentMessage`.
+type EvolutionMediaField = { mimetype?: string; caption?: string; fileName?: string };
+
+type EvolutionMessage = {
+  conversation?: string;
+  extendedTextMessage?: {
+    text?: string;
+    // A ORIGEM DO ANÚNCIO. Quem clica em "Enviar mensagem" num anúncio do Instagram ou do
+    // Facebook chega com este bloco na PRIMEIRA mensagem, e só nela. É o `sourceUrl` daqui
+    // que casa a conversa com a campanha cadastrada.
+    contextInfo?: {
+      externalAdReply?: { sourceUrl?: string; sourceId?: string; title?: string };
+    };
+  };
+  imageMessage?: EvolutionMediaField;
+  videoMessage?: EvolutionMediaField;
+  audioMessage?: EvolutionMediaField;
+  documentMessage?: EvolutionMediaField;
+  documentWithCaptionMessage?: { message?: { documentMessage?: EvolutionMediaField } };
+};
+
 type EnvelopeEvolution = {
   event?: string;
   instance?: string;
   data?: {
     key?: { remoteJid?: string; fromMe?: boolean; id?: string };
     pushName?: string;
-    message?: {
-      conversation?: string;
-      extendedTextMessage?: {
-        text?: string;
-        // A ORIGEM DO ANÚNCIO. Quem clica em "Enviar mensagem" num anúncio do Instagram ou do
-        // Facebook chega com este bloco na PRIMEIRA mensagem, e só nela. É o `sourceUrl` daqui
-        // que casa a conversa com a campanha cadastrada.
-        contextInfo?: {
-          externalAdReply?: { sourceUrl?: string; sourceId?: string; title?: string };
-        };
-      };
-    };
+    message?: EvolutionMessage;
   };
 };
+
+/**
+ * Lê o bloco de mídia (image/video/audio/document) de UMA mensagem da Evolution, pelos QUATRO
+ * tipos que a F5 promete subir pro Drive — mesmo recorte de extrairMidiaMeta (lib/whatsapp.ts):
+ * qualquer outro tipo (figurinha, localização, contato, reação, enquete...) é ignorado de
+ * propósito. `null` quando nenhum dos quatro campos veio com `mimetype` — mensagem "vazia" de
+ * mídia (ex.: `{ imageMessage: {} }`) acontece em evento de atualização de mensagem já entregue, e
+ * não é mídia nova pra baixar.
+ */
+export function extrairMidiaEvolution(
+  message?: EvolutionMessage
+): { tipo: TipoMidiaWhatsapp; mimeType: string; legenda: string; nomeOriginal: string | null } | null {
+  const documento = message?.documentMessage || message?.documentWithCaptionMessage?.message?.documentMessage;
+  const campo: EvolutionMediaField | undefined = message?.imageMessage || message?.videoMessage || message?.audioMessage || documento;
+  if (!campo?.mimetype) return null;
+
+  const tipo: TipoMidiaWhatsapp = message?.imageMessage
+    ? "IMG"
+    : message?.videoMessage
+      ? "VID"
+      : message?.audioMessage
+        ? "AUD"
+        : "DOC";
+
+  return { tipo, mimeType: campo.mimetype, legenda: campo.caption || "", nomeOriginal: campo.fileName || null };
+}
 
 /**
  * Traduz o webhook da Evolution para a MESMA forma que o da Meta produz, para que tudo o que vem
  * depois (`ingestIncomingWhatsapp`) não saiba de qual dos dois veio a mensagem.
  *
- * Devolve nulo para tudo o que não for texto de terceiro: eventos de status, mídia, mensagem de
- * grupo (`@g.us`) e — importante — mensagem enviada PELO próprio escritório (`fromMe`), que
- * chega aqui também e criaria um atendimento com o escritório como se fosse o cliente.
+ * Devolve nulo para tudo o que não for texto OU mídia (das quatro suportadas) de terceiro: eventos
+ * de status, figurinha/localização/etc., mensagem de grupo (`@g.us`) e — importante — mensagem
+ * enviada PELO próprio escritório (`fromMe`), que chega aqui também e criaria um atendimento com o
+ * escritório como se fosse o cliente.
  */
 export function parseEntradaEvolution(payload: unknown): IncomingMessage | null {
   try {
@@ -251,20 +309,26 @@ export function parseEntradaEvolution(payload: unknown): IncomingMessage | null 
     const texto = e.data?.message?.conversation || e.data?.message?.extendedTextMessage?.text || "";
     const waMessageId = chave?.id || "";
     const instancia = e.instance || "";
-    if (!texto.trim() || !waMessageId || !instancia) return null;
+    if (!waMessageId || !instancia) return null;
+
+    const midia = extrairMidiaEvolution(e.data?.message);
+    if (!texto.trim() && !midia) return null;
 
     const ad = e.data?.message?.extendedTextMessage?.contextInfo?.externalAdReply;
 
     return {
       fromNumber: jid.split("@")[0],
       waMessageId,
-      text: texto,
+      text: midia ? midia.legenda : texto,
       profileName: e.data?.pushName || undefined,
       phoneNumberId: instancia,
       anuncio:
         ad?.sourceUrl || ad?.sourceId
           ? { sourceUrl: ad.sourceUrl, sourceId: ad.sourceId, titulo: ad.title }
           : undefined,
+      midia: midia
+        ? { tipo: midia.tipo, mimeType: midia.mimeType, nomeOriginal: midia.nomeOriginal, evolution: { remoteJid: jid, waMessageId } }
+        : undefined,
     };
   } catch {
     return null;

@@ -114,6 +114,15 @@ teste("o teto de linhas do WhatsApp está no pedido", () => {
   verdade(montarPergunta(BASE).includes(`no máximo ${MAXIMO_DE_LINHAS} linhas`), "faltou o teto de linhas");
 });
 
+// ── F5: "já mandei" e o limite da conversa registrada ────────────────────────────────────────
+
+teste("a Ana sabe que só tem o que veio NESTA conversa, e não questiona o cliente", () => {
+  const p = montarPergunta(BASE);
+  verdade(p.includes("já mandou um documento"), "faltou a instrução do 'já mandei'");
+  verdade(p.includes("não questione"), "ela não pode acusar o cliente de estar enganado");
+  verdade(p.includes("registro desta conversa começa a partir do cumprimento inicial"), "faltou a explicação do limite");
+});
+
 teste("o nome do nosso produto não vaza para o cliente", () => {
   const p = montarPergunta({ ...BASE, campanha: "Negativa de cobertura." });
   verdade(!p.includes("Lúmen"), "a palavra Lúmen não pode aparecer no pedido do atendente");
