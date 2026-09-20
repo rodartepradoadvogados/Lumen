@@ -206,7 +206,21 @@ export function rotuloDeTranscricaoNaTela(t: TranscricaoDaMensagem): RotuloDeTra
   if (t.erro === ERRO_TRANSCRICAO_NAO_CONFIGURADA) {
     return { texto: "Transcrição não configurada", ehConteudo: false };
   }
-  return { texto: "Não foi possível transcrever este áudio", ehConteudo: false };
+  // O MOTIVO VAI JUNTO, e não é detalhe de programador na tela de quem usa. "Não foi possível" é um
+  // beco sem saída: quem olha não sabe se o serviço caiu, se a chave está errada, se o arquivo
+  // sumiu do Drive ou se o áudio é longo demais — e cada um desses tem uma providência diferente.
+  // Foi exatamente o que aconteceu na primeira falha real: a tela dizia que não deu, o log de
+  // produção não registrava nada, e não havia por onde começar.
+  //
+  // O motivo guardado é seguro de mostrar por construção: `lerRespostaDeTranscricao` nunca copia o
+  // corpo bruto da resposta para dentro dele (justamente para o token de um proxy mal configurado
+  // não vazar ali), e o token nunca faz parte de erro de rede. Ainda assim vai aparado, porque
+  // mensagem comprida na bolha da conversa atrapalha a leitura do que interessa.
+  const motivo = (t.erro || "").replace(/\s+/g, " ").trim();
+  return {
+    texto: motivo ? `Não foi possível transcrever este áudio — ${motivo.slice(0, 160)}` : "Não foi possível transcrever este áudio",
+    ehConteudo: false,
+  };
 }
 
 // ============================================================================
