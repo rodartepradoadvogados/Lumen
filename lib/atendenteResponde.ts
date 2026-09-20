@@ -1,6 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { deveResponder, montarPergunta, extrairTransferencia } from "@/lib/agenteAtendimento";
+import { deveResponder, montarPergunta, lerDecisaoDaAna } from "@/lib/agenteAtendimento";
+import { lerParametros } from "@/lib/actions/parametrosDaAna";
+import { textoDosParametros } from "@/lib/parametrosDaAna";
+import {
+  eixoAutorizado,
+  registrarRecusaDaAna,
+  registrarProposta,
+  registrarEsperaDeDocumento,
+} from "@/lib/recusaPelaAna";
 import { transferirLead } from "@/lib/transferirLead";
 import { perguntarAoHermes, hermesConfigurado, FalhaDoHermes } from "@/lib/hermesPonte";
 import { sendWhatsappText } from "@/lib/whatsapp";
@@ -164,11 +172,14 @@ export async function atendenteResponde(
       return { respondeu: false, motivo: "a última mensagem não é do cliente" };
     }
 
+    const parametros = await lerParametros(atendimento.officeId);
+
     const pergunta = montarPergunta({
       nomeDoAtendente: config.agenteNome?.trim() || "Atendimento",
       nomeDoEscritorio: atendimento.office.name,
       instrucoesDoEscritorio: config.agenteInstrucoes,
       campanha: textoDaCampanha(atendimento.campanha),
+      parametros: textoDosParametros(parametros),
       nomeDoCliente: atendimento.clientName,
       historico: emOrdem.slice(0, -1).map((m) => ({
         de: m.direction === "IN" ? ("cliente" as const) : ("escritorio" as const),
@@ -190,12 +201,37 @@ export async function atendenteResponde(
       return { respondeu: false, motivo: `agente indisponível: ${motivo}` };
     }
 
-    // A MARCA SAI ANTES DE QUALQUER COISA. Ela é combinada entre nós e o agente; vazar
-    // "[[TRANSFERIR:RISCO]]" para o WhatsApp de um cliente é constrangimento puro.
-    const { texto, gatilho } = extrairTransferencia(resposta);
-    resposta = texto;
+    // AS MARCAS SAEM ANTES DE QUALQUER COISA. Elas são combinadas entre nós e o agente; vazar
+    // "[[TRANSFERIR:RISCO]]" para o WhatsApp de um cliente é constrangimento puro — e vazar o
+    // recado interno que vem depois de [[PROPOR_RECUSA]] ("acho que não devemos pegar este caso")
+    // seria muito pior do que constrangimento.
+    const decisao = lerDecisaoDaAna(resposta);
+    resposta = decisao.texto;
+    let gatilho = decisao.gatilho;
 
-    if (!resposta) return { respondeu: false, motivo: "o agente devolveu resposta vazia" };
+    // A TRAVA. A marca da Ana é um pedido, não uma ordem: ela só encerra no eixo que o ESCRITÓRIO
+    // escreveu. Marca sem autorização não é ignorada — vira proposta, que é o que ela deveria ter
+    // feito. Ignorar em silêncio esconderia o sinal de que algo está mal configurado. Ver a nota
+    // inteira em lib/recusaPelaAna.ts.
+    let recusa = decisao.recusa;
+    let proposta = decisao.proposta;
+    if (recusa && !eixoAutorizado(parametros, recusa)) {
+      proposta =
+        `A atendente quis encerrar por ${recusa.toLowerCase()}, mas o escritório não tem esse critério ` +
+        `configurado. ${proposta ?? ""}`.trim();
+      recusa = null;
+    }
+    // Quem propõe transfere: proposta sem gente do outro lado é uma observação que ninguém lê. Vai
+    // para a fila dos advogados porque decidir não pegar uma causa é decisão de advogado.
+    if (proposta && !gatilho) gatilho = "RISCO";
+
+    if (!resposta) {
+      // Sem texto não há o que enviar — mas pode haver o que fazer. Uma decisão sem mensagem quer
+      // dizer que a Ana só escreveu marcas; o caso segue para uma pessoa em vez de ficar parado.
+      if (proposta) await registrarProposta(attendanceId, proposta);
+      if (gatilho) await transferirLead(attendanceId, gatilho);
+      return { respondeu: false, motivo: "o agente devolveu resposta vazia" };
+    }
 
     const envio = await sendWhatsappText(atendimento.officeId, atendimento.waPhone, resposta);
     if (!envio.ok) {
@@ -223,6 +259,27 @@ export async function atendenteResponde(
     // a fila falhar agora, o cliente ao menos foi despedido com educação e a conversa fica sem
     // dono para alguém ver na tela. O contrário — transferir e a mensagem não sair — deixaria o
     // advogado com um lead que não sabe que foi atendido.
+    // A DECISÃO VEM DEPOIS DO ENVIO, pela mesma razão da transferência: a mensagem de despedida já
+    // saiu. Recusar antes e falhar o envio deixaria o lead com status RECUSADO sem nunca ter sido
+    // avisado — e a carta é justamente o que o escritório manda depois, à mão.
+    let sobreADecisao = "";
+    if (recusa) {
+      await registrarRecusaDaAna(attendanceId, atendimento.officeId, recusa);
+      sobreADecisao += ` · RECUSADO pela atendente (${recusa.toLowerCase()}) — na fila de recusados da Triagem`;
+      // Recusa não transfere: o caso saiu das listas ativas e já está na fila de análise.
+      gatilho = null;
+    }
+    if (proposta) {
+      await registrarProposta(attendanceId, proposta);
+      sobreADecisao += " · a atendente PROPÔS recusar — quem decide é o advogado";
+    }
+    if (decisao.aguardarDocumento && !recusa) {
+      // `!recusa` porque encerrar e esperar ao mesmo tempo é contradição, e entre as duas vale a
+      // que já está escrita no status.
+      const ate = await registrarEsperaDeDocumento(attendanceId, parametros);
+      sobreADecisao += ` · esperando documento até ${ate.toISOString().slice(0, 10)}`;
+    }
+
     let sobreATransferencia = "";
     if (gatilho) {
       const r = await transferirLead(attendanceId, gatilho);
@@ -233,7 +290,7 @@ export async function atendenteResponde(
 
     revalidatePath(`/atendimento/${attendanceId}`);
     revalidatePath("/atendimento");
-    return { respondeu: true, motivo: `respondido pelo atendente${sobreATransferencia}` };
+    return { respondeu: true, motivo: `respondido pelo atendente${sobreADecisao}${sobreATransferencia}` };
   } catch (erro) {
     // Nunca lança: ver a nota no topo.
     console.error("[atendente] falha inesperada:", mensagemDeErro(erro));

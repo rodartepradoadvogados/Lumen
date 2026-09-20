@@ -1210,6 +1210,21 @@ model Attendance {
   nextContactAt  DateTime? // data do próximo contato/follow-up
   stageChangedAt DateTime? // quando o estágio comercial mudou pela última vez
 
+  // ── O QUE A ANA DECIDIU SEM PODER DECIDIR SOZINHA ──────────────────────────────────────────
+  //
+  // A PROPOSTA DE RECUSA. Fora dos contornos que o escritório escreveu (ver lib/parametrosDaAna.ts)
+  // a Ana não encerra: ela transfere e deixa aqui, em uma frase, por que acha que o escritório não
+  // deveria pegar o caso. ESTE TEXTO NUNCA SAI PARA O CLIENTE — é nota interna, e a mesma marca que
+  // o traz é retirada da mensagem antes do envio.
+  propostaDeRecusa   String?
+  propostaDeRecusaEm DateTime?
+
+  // A ESPERA DO DOCUMENTO, que NÃO é recusa. Preenchido quando a Ana pediu um documento sem o qual
+  // o escritório não analisa: o atendimento fica guardado até esta data em vez de ser encerrado.
+  // Falta de papel é "ainda não", nunca "não".
+  documentoAte      DateTime?
+  documentoPendente String?
+
   // Honorário PRETENDIDO (Fase 5) — forma de cobrança que o advogado pretende propor ao lead,
   // capturada já na triagem para não ser redigitada na conversão em Processo (ver
   // convertAttendanceToCase, lib/actions/attendance.ts, que usa estes 3 campos + estimatedValue
