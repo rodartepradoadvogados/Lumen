@@ -7,14 +7,20 @@ import NewSupplierModal from "@/components/NewSupplierModal";
 import EditSupplierModal from "@/components/EditSupplierModal";
 import DeleteButton from "@/components/DeleteButton";
 import { deleteSupplier } from "@/lib/actions/suppliers";
+import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
 
 export const dynamic = "force-dynamic";
 
-export default async function FornecedoresPage() {
+export default async function FornecedoresPage({ searchParams }: { searchParams: { q?: string } }) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
 
-  const suppliers = await prisma.supplier.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } });
+  // Ver o comentário de `q` em contatos/advogados: é o link do nome dentro do atendimento.
+  const q = (searchParams.q || "").trim();
+  const suppliers = await prisma.supplier.findMany({
+    where: { officeId: viewer.officeId, ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}) },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="tela">
@@ -22,6 +28,8 @@ export default async function FornecedoresPage() {
         ← Contatos
       </Link>
       <PageHeader title="Fornecedores" subtitle={`${suppliers.length} registro(s)`} action={<NewSupplierModal />} />
+
+      {q && <FiltradoPorNome q={q} href="/contatos/fornecedores" total={suppliers.length} />}
 
       <Card>
         {suppliers.length === 0 ? (

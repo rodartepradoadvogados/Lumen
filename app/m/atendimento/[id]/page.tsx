@@ -13,6 +13,8 @@ import EditAttendanceSubject from "@/components/EditAttendanceSubject";
 import { ArrowLeft } from "lucide-react";
 import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { filtroDoAtendimento, podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { identificarNumero } from "@/lib/identificarNumero";
+import QuemEEsteNumero from "@/components/atendimento/QuemEEsteNumero";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +44,10 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
     },
   });
   if (!a) notFound();
+
+  // Mesma identificação do site: o app não pode saber menos sobre quem está falando do que a tela
+  // grande, porque é justamente no app que se responde fora do escritório.
+  const { telefone: telefoneDoContato, contato: contatoConhecido } = await identificarNumero(viewer.officeId, a);
 
   const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
   const showEmail = a.emailMessages.length > 0;
@@ -89,9 +95,12 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
       </div>
 
       <Card className="p-4 space-y-2.5">
+        <div className="pb-2.5 border-b border-regua">
+          <h4 className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">Quem é este número</h4>
+          <QuemEEsteNumero attendanceId={a.id} telefone={telefoneDoContato} contato={contatoConhecido} />
+        </div>
         <Field label="Matéria" value={a.area} />
         <Field label="Canal" value={channelLabels[a.channel]} />
-        <Field label="Telefone" value={a.contactPhone} />
         <Field label="E-mail" value={a.clientEmail} />
         <Field label="Responsável" value={a.responsible?.name} />
         <Field label="Data" value={formatDate(a.createdAt)} />
