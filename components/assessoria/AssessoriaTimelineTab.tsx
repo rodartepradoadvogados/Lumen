@@ -1,10 +1,35 @@
 import Link from "next/link";
 import type { getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 
-type TimelineEvent = { date: Date; title: string; desc: string; color: string };
+type TimelineEvent = {
+  date: Date;
+  title: string;
+  desc: string;
+  color: string;
+  /**
+   * O QUE ESTA DATA É — e não é detalhe de formatação, é a diferença entre mostrar o dia certo e
+   * o dia de trás.
+   *
+   *   "instante"  o sistema sabe a hora exata (um documento anexado às 22h40). Precisa ser lido no
+   *               fuso do escritório, senão o que aconteceu às 22h de terça aparece como quarta.
+   *   "dia"       só existe o dia, sem hora nenhuma — é o caso do honorário pago, que ninguém
+   *               anota com hora. Ler no fuso ANDA PARA TRÁS: 15/03 vira 14/03.
+   *
+   * A linha do tempo junta os dois tipos na mesma lista, e é por isso que cada evento tem de
+   * carregar o seu. Formatar os quatro do mesmo jeito erra alguém, sempre: arrumar para os
+   * instantes estraga o pagamento, deixar como está estraga os instantes.
+   */
+  quando: "instante" | "dia";
+};
+
+/** Cada evento é formatado pelo que a data dele É. Ver a nota em TimelineEvent. */
+function dataDoEvento(e: TimelineEvent): string {
+  return e.quando === "instante" ? dataDeBrasilia(e.date) : formatDate(e.date);
+}
 
 // `color` é sempre uma referência a variável CSS (var(--token), ver app/globals.css) — nunca um
 // hex cravado (DESIGN-SYSTEM.md §0/§16). Documento/licitação cadastrados usam --marca-tx (ouro,
@@ -14,19 +39,19 @@ function buildTimeline(assessoria: Assessoria): TimelineEvent[] {
   const events: TimelineEvent[] = [];
 
   for (const d of assessoria.documents) {
-    events.push({ date: d.createdAt, title: "Documento adicionado", desc: d.name, color: "var(--marca-tx)" });
+    events.push({ date: d.createdAt, title: "Documento adicionado", desc: d.name, color: "var(--marca-tx)", quando: "instante" });
   }
   for (const h of assessoria.honorarios) {
     if (h.receivable.status === "PAGO" && h.receivable.paidDate) {
-      events.push({ date: h.receivable.paidDate, title: `Honorário de ${h.competencia} pago`, desc: `Recibo${h.receivable.paymentReceiptNumber ? ` ${h.receivable.paymentReceiptNumber}` : ""} anexado`, color: "var(--concluido)" });
+      events.push({ date: h.receivable.paidDate, title: `Honorário de ${h.competencia} pago`, desc: `Recibo${h.receivable.paymentReceiptNumber ? ` ${h.receivable.paymentReceiptNumber}` : ""} anexado`, color: "var(--concluido)", quando: "dia" });
     }
   }
   for (const l of assessoria.licitacoes) {
-    events.push({ date: l.createdAt, title: `${l.objeto} — cadastrada`, desc: l.modalidade || l.orgao, color: "var(--marca-tx)" });
+    events.push({ date: l.createdAt, title: `${l.objeto} — cadastrada`, desc: l.modalidade || l.orgao, color: "var(--marca-tx)", quando: "instante" });
   }
   for (const c of assessoria.linkedCases) {
     if (c.lastHistoryAt && c.lastHistoryDesc) {
-      events.push({ date: c.lastHistoryAt, title: `Movimentação em ${c.title}`, desc: c.lastHistoryDesc, color: "var(--tx-2)" });
+      events.push({ date: c.lastHistoryAt, title: `Movimentação em ${c.title}`, desc: c.lastHistoryDesc, color: "var(--tx-2)", quando: "instante" });
     }
   }
 
@@ -51,7 +76,7 @@ export default function AssessoriaTimelineTab({ assessoria }: { assessoria: Asse
                   {i < events.length - 1 && <span className="w-px flex-1 bg-regua mt-1" />}
                 </div>
                 <div className="pb-1">
-                  <p className="text-etiqueta text-tx-3 tabular-nums">{formatDate(e.date)}</p>
+                  <p className="text-etiqueta text-tx-3 tabular-nums">{dataDoEvento(e)}</p>
                   <p className="text-sm font-semibold text-tx">{e.title}</p>
                   <p className="text-xs text-tx-2">{e.desc}</p>
                 </div>

@@ -26,7 +26,7 @@ import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersMana
 import BankAccountsManager from "@/components/BankAccountsManager";
 import HolidaysManager from "@/components/HolidaysManager";
 import InstallAppButton from "@/components/InstallAppButton";
-import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell, Bot } from "lucide-react";
+import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell, Bot, MessageSquare } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
@@ -35,6 +35,8 @@ import ModulesManager from "@/components/ModulesManager";
 import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
 import OfficeBillingSummary from "@/components/OfficeBillingSummary";
 import { PASTA_MAE_PADRAO, PREFIXO_PADRAO } from "@/lib/driveNaming";
+import MotivosDeRecusaPanel from "@/components/atendimento/MotivosDeRecusaPanel";
+import { motivosDoEscritorio } from "@/lib/motivosDeRecusa";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +103,9 @@ const SECOES = [
   // Atendente de IA: só aparece para quem tem o módulo WhatsApp, porque é o módulo que paga por
   // ele — e uma aba que existe só para dizer "contrate" é propaganda dentro da configuração.
   { key: "atendente", label: "Atendente", requires: "admin" },
+  // Atendimento: como o escritório RECUSA um lead. Gated pelo módulo de Atendimento, e não pelo
+  // de WhatsApp: recusar acontece também num atendimento aberto à mão, pelo telefone.
+  { key: "atendimento", label: "Atendimento", requires: "admin" },
   // Fase 3 (Asaas) — autoatendimento: qualquer admin do próprio escritório vê a PRÓPRIA
   // cobrança (ciclo, forma de pagamento, Pix/QR pendente, histórico de faturas). Nada aqui
   // exige ser platform owner — quem configura isso é o Painel Mestre (aba "Cobrança &
@@ -115,6 +120,7 @@ const SECAO_ICONS = {
   workflows: Workflow,
   blog: Newspaper,
   atendente: Bot,
+  atendimento: MessageSquare,
   cobranca: CreditCard,
 } as const;
 
@@ -268,9 +274,25 @@ export default async function ConfiguracoesPage({
     leads: c._count.atendimentos,
   }));
 
+  // Os dois andares do catálogo de motivos, resolvidos para este escritório (ver
+  // lib/motivosDeRecusa.ts). Só lido quando a seção existe: uma consulta a mais numa tela que
+  // renderiza a cada navegação é lentidão que ninguém vê de onde vem.
+  const motivosDoCatalogo =
+    isAdmin && modules.atendimento
+      ? motivosDoEscritorio(
+          await prisma.motivoDeRecusa.findMany({
+            where: { OR: [{ officeId: null }, { officeId: viewer.officeId }] },
+            select: { id: true, officeId: true, baseId: true, rotulo: true, descricao: true, desativado: true, ordem: true },
+            orderBy: { ordem: "asc" },
+          }),
+          viewer.officeId,
+        )
+      : [];
+
   const availableSecoes = SECOES.filter((s) => {
     const allowed = s.requires === "none" ? true : isAdmin;
     if (s.key === "atendente") return allowed && modules.whatsapp;
+    if (s.key === "atendimento") return allowed && modules.atendimento;
     return allowed && (s.key !== "blog" || blogAccess);
   });
   const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
@@ -773,6 +795,18 @@ export default async function ConfiguracoesPage({
         <HolidaysManager holidays={holidays} />
       </Card>
       </>
+      )}
+
+      {isAdmin && secao === "atendimento" && (
+        <Card>
+          <CardHeader
+            title="Motivos de recusa"
+            subtitle="A lista que aparece quando um lead é recusado — e que vai, em uma frase, para a carta que ele recebe"
+          />
+          <div className="p-5">
+            <MotivosDeRecusaPanel motivos={motivosDoCatalogo} podeEditar={isAdmin} />
+          </div>
+        </Card>
       )}
 
       {isAdmin && secao === "atendente" && (
