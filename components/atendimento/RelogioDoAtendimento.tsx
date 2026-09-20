@@ -19,7 +19,14 @@ import { estadoDoRelogio, tituloDoRelogio, detalheDoRelogio } from "@/lib/relogi
 // segundo em segundo só gastaria bateria para redesenhar o mesmo texto.
 // ============================================================================
 
-export default function RelogioDoAtendimento({ prazoISO }: { prazoISO: string | null }) {
+export default function RelogioDoAtendimento({
+  prazoISO,
+  compacto = false,
+}: {
+  prazoISO: string | null;
+  /** Uma linha só, para o telefone — onde cada linha do cabeçalho é uma linha a menos de conversa. */
+  compacto?: boolean;
+}) {
   const prazo = prazoISO ? new Date(prazoISO) : null;
   const [agora, setAgora] = useState<Date | null>(null);
 
@@ -44,12 +51,20 @@ export default function RelogioDoAtendimento({ prazoISO }: { prazoISO: string | 
   const grave = estado.tipo === "estourado" || (estado.tipo === "correndo" && estado.faltam <= 5);
   const cor = grave ? "text-marca-tx" : "text-tx-2";
 
+  const moldura = grave ? "border-marca-tx/30 bg-marca-tx/[0.08]" : "border-regua bg-sf-apoio";
+
+  if (compacto) {
+    return (
+      <div className={`flex min-w-0 items-center gap-2 border px-2.5 py-1.5 ${moldura}`}>
+        <Clock size={14} className={`shrink-0 ${cor}`} strokeWidth={2.2} />
+        <span className={`shrink-0 whitespace-nowrap text-corpo font-bold ${cor}`}>{tituloDoRelogio(estado)}</span>
+        <span className="min-w-0 truncate text-corpo text-tx-2">— {detalheDoRelogio(estado)}</span>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`flex shrink-0 items-center gap-2.5 border px-3.5 py-2.5 ${
-        grave ? "border-marca-tx/30 bg-marca-tx/[0.08]" : "border-regua bg-sf-apoio"
-      }`}
-    >
+    <div className={`flex shrink-0 items-center gap-2.5 border px-3.5 py-2.5 ${moldura}`}>
       <Clock size={18} className={`shrink-0 ${cor}`} strokeWidth={2.2} />
       <span className="block">
         <span className={`block text-sm font-bold leading-tight ${cor}`}>{tituloDoRelogio(estado)}</span>

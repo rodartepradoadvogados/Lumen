@@ -27,12 +27,15 @@ export default function AtendenteIaControle({
   silenciado,
   ultimaEhDoCliente,
   nomeDoAtendente,
+  compacto = false,
 }: {
   attendanceId: string;
   responde: boolean;
   silenciado: boolean;
   ultimaEhDoCliente: boolean;
   nomeDoAtendente: string;
+  /** No telefone, cada linha aqui é uma linha a menos de conversa. Ver a nota abaixo. */
+  compacto?: boolean;
 }) {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
@@ -68,10 +71,14 @@ export default function AtendenteIaControle({
     });
   }
 
+  // NO TELEFONE ESTE BLOCO DISPUTA ESPAÇO COM A CONVERSA. Medido no navegador a 390px: em três
+  // linhas ele comia a última mensagem, que é justamente a que se está lendo para responder. O
+  // modo compacto encurta o rótulo, encurta o botão e reduz a frase a uma linha — sem tirar
+  // nenhuma das duas decisões que moram aqui.
   return (
-    <div className="mt-3 border border-regua bg-sf-apoio px-3 py-2">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs text-tx">
+    <div className={compacto ? "border border-regua bg-sf-apoio px-2.5 py-1.5" : "mt-3 border border-regua bg-sf-apoio px-3 py-2"}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <label className={`flex cursor-pointer items-center gap-2 text-xs text-tx ${compacto ? "min-h-[36px]" : "min-h-11"}`}>
           <input
             type="checkbox"
             checked={responde}
@@ -81,7 +88,8 @@ export default function AtendenteIaControle({
           />
           <IconeAgente size={16} className="text-tx-2" />
           <span>
-            <strong className="text-tx">{nomeDoAtendente}</strong> responde nesta conversa
+            <strong className="text-tx">{nomeDoAtendente}</strong>
+            {compacto ? " responde" : " responde nesta conversa"}
           </span>
         </label>
 
@@ -92,10 +100,12 @@ export default function AtendenteIaControle({
             type="button"
             onClick={responderAgora}
             disabled={pendente}
-            className="inline-flex min-h-11 items-center gap-1.5 border border-regua px-3 text-xs font-semibold text-tx-2 hover:bg-sf disabled:opacity-50"
+            className={`inline-flex items-center gap-1.5 border border-regua px-3 text-xs font-semibold text-tx-2 hover:bg-sf disabled:opacity-50 ${
+              compacto ? "min-h-[36px]" : "min-h-11"
+            }`}
           >
             <CornerUpLeft size={13} />
-            {pendente ? "Respondendo…" : "Responder à última pergunta"}
+            {pendente ? "Respondendo…" : compacto ? "Responder agora" : "Responder à última pergunta"}
           </button>
         )}
       </div>
@@ -103,13 +113,17 @@ export default function AtendenteIaControle({
       {/* A frase diz o que ACONTECE, e não o que a chave é. Havia aqui um texto sobre "ligar" e
           "desligar"; o que a pessoa precisa saber é que enviar uma mensagem já assume a conversa —
           não existe botão de assumir, e não deve existir: quem escreveu, assumiu. */}
-      <p className="mt-1 text-etiqueta leading-snug text-tx-3">
+      <p className={`text-etiqueta leading-snug text-tx-3 ${compacto ? "" : "mt-1"}`}>
         {responde ? (
           /* Não repete o que a caixa acima já diz: a caixa diz QUEM responde, a frase diz o que
              acontece se você escrever. */
-          <>Ao enviar uma mensagem você assume, e ele não fala mais aqui.</>
+          <>Ao enviar {compacto ? "" : "uma mensagem "}você assume, e ele não fala mais aqui.</>
         ) : (
-          <>Marcar vale da próxima mensagem do cliente. Ao enviar uma mensagem você assume, e ele não fala mais aqui.</>
+          compacto ? (
+            <>Ao enviar você assume, e ele não fala mais aqui.</>
+          ) : (
+            <>Marcar vale da próxima mensagem do cliente. Ao enviar uma mensagem você assume, e ele não fala mais aqui.</>
+          )
         )}
       </p>
 

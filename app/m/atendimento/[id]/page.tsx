@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, formatDate } from "@/components/ui";
+import { Card } from "@/components/ui";
 import MobileAttendanceStatusSelect from "@/components/mobile/MobileAttendanceStatusSelect";
 import FunnelStageSelect from "@/components/FunnelStageSelect";
 import MobileConvertAttendanceForm from "@/components/mobile/MobileConvertAttendanceForm";
@@ -10,21 +10,50 @@ import MobileCaseAttachmentsTab from "@/components/mobile/MobileCaseAttachmentsT
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import EditAttendanceSubject from "@/components/EditAttendanceSubject";
+import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
+import Conversa from "@/components/atendimento/Conversa";
+import QuemEEsteNumero from "@/components/atendimento/QuemEEsteNumero";
+import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
+import WhatsappReplyBox from "@/components/WhatsappReplyBox";
+import AtendenteIaControle from "@/components/AtendenteIaControle";
 import { ArrowLeft } from "lucide-react";
-import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
+import { dataDeBrasilia, dataEHoraDeBrasilia } from "@/lib/horaDeBrasilia";
 import { filtroDoAtendimento, podeVerAtendimentos } from "@/lib/acessoAtendimento";
 import { identificarNumero } from "@/lib/identificarNumero";
-import QuemEEsteNumero from "@/components/atendimento/QuemEEsteNumero";
+import { telefoneLegivel } from "@/lib/quemEEsteNumero";
+import { pendenciaKindLabel } from "@/lib/pendencias";
+import { isWhatsappConfigured } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
-// Detalhe mobile do Atendimento. Escopo reduzido em relação ao desktop (app/(app)/atendimento/[id]):
-// dados essenciais, troca de status e conversão em Caso/Processo; histórico de WhatsApp/E-mail é
-// só leitura — responder pelo app mobile fica para uma tarefa futura, não é o foco aqui (o foco é
-// nunca levar o usuário para uma tela do site desktop).
-export default async function MobileAttendanceDetail({ params }: { params: { id: string } }) {
+const ABAS = ["conversa", "ficha", "documentos", "anotacoes"] as const;
+type Aba = (typeof ABAS)[number];
+
+// ============================================================================
+// O ATENDIMENTO NO APP — A CONVERSA PRIMEIRO.
+//
+// Era uma pilha de cartões com a conversa no meio e, no pé dela, a frase "Para responder, use o
+// computador". Isso invertia o propósito do app: o advogado abre o telefone JUSTAMENTE quando não
+// está no computador, e o relógio de quinze minutos corre igual.
+//
+// Agora: abas no topo (conversa, ficha, documentos, anotações), a conversa ocupando o miolo, e o
+// rodapé inteiro para escrever. A tela não rola como um todo — só a conversa rola — porque uma
+// caixa de resposta que foge para baixo enquanto se rola a conversa é uma caixa de resposta que não
+// se usa com uma mão só.
+//
+// RESPONDER PELO APP É NOVO, e usa a mesma ação do site (replyWhatsapp), com a mesma porta de
+// acesso e o mesmo efeito sobre o atendente de IA: quem escreve, assume.
+// ============================================================================
+
+export default async function MobileAttendanceDetail({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { aba?: string };
+}) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
   // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
@@ -36,21 +65,31 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
     where: { id: params.id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
     include: {
       responsible: true,
+      campanha: { select: { nome: true } },
       convertedCase: true,
       whatsappMessages: { orderBy: { createdAt: "asc" } },
       emailMessages: { orderBy: { createdAt: "asc" } },
+      pendencias: { orderBy: [{ status: "asc" }, { dueDate: "asc" }] },
       anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },
       attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
     },
   });
   if (!a) notFound();
 
+  const aba: Aba = ABAS.includes(searchParams.aba as Aba) ? (searchParams.aba as Aba) : "conversa";
+
   // Mesma identificação do site: o app não pode saber menos sobre quem está falando do que a tela
   // grande, porque é justamente no app que se responde fora do escritório.
   const { telefone: telefoneDoContato, contato: contatoConhecido } = await identificarNumero(viewer.officeId, a);
 
-  const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
-  const showEmail = a.emailMessages.length > 0;
+  const whatsappConfigured = await isWhatsappConfigured(viewer.officeId);
+  const podeResponder = Boolean(a.waPhone) && whatsappConfigured;
+  const nomeDoAtendente =
+    (
+      await prisma.whatsappConfig.findUnique({ where: { officeId: viewer.officeId }, select: { agenteNome: true } })
+    )?.agenteNome?.trim() || "O atendente";
+
+  const aguardando = a.pendencias.filter((p) => p.status !== "CONCLUIDA");
   const serializedAnotacoes = a.anotacoes.map((n) => ({
     id: n.id,
     content: n.content,
@@ -67,154 +106,196 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  return (
-    <div className="p-4 space-y-4 animate-fade-in">
-      <Link
-        href="/m/atendimento"
-        className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2"
-      >
-        <ArrowLeft size={13} /> Atendimento
-      </Link>
+  const guia = (destino: Aba) => `/m/atendimento/${a.id}${destino === "conversa" ? "" : `?aba=${destino}`}`;
 
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <h1 className="text-lg font-bold text-tx leading-tight">{a.clientName}</h1>
+  return (
+    // A ALTURA É CONTADA, e os dois números têm origem: 52px é o cabeçalho do app (app/m/layout.tsx,
+    // `min-h-[52px]`) e 80px é a barra de baixo, que o `pb-20` do <main> já reserva. `-mb-20`
+    // devolve essa reserva, porque aqui quem manda na altura é esta caixa. Sem isto a conversa e o
+    // compositor rolariam junto com a página, e a caixa de resposta fugiria para baixo.
+    <div className="-mb-20 flex h-[calc(100dvh-132px)] flex-col animate-fade-in">
+      <div className="shrink-0 border-b border-regua bg-sf px-4 pb-0 pt-3">
+        <Link href="/m/atendimento" className="inline-flex min-h-[32px] items-center gap-1 text-corpo font-semibold text-tx-2">
+          <ArrowLeft size={13} /> Atendimentos
+        </Link>
+
+        {/* O NOME OCUPA A LARGURA INTEIRA, e os dois seletores descem para a linha seguinte.
+            Medido no navegador a 390px: com os seletores ao lado, "Carlos Eduardo da Silva" era
+            cortado em "Carlos Eduardo da Si…" — e o nome de quem está do outro lado é a primeira
+            coisa que a tela precisa dizer. */}
+        <div className="mt-1 min-w-0">
+          <h1 className="truncate text-lg font-bold leading-tight text-tx">{a.clientName}</h1>
           <div className="mt-0.5">
             <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
           </div>
         </div>
-        {/* Estágio do funil comercial (Novo/Qualificação/Proposta/Fechado/Perdido) — faltava no
-            app: só dava pra ver a contagem agregada em Relatórios, sem jeito de mudar o estágio
-            de quem atendeu por telefone fora do escritório. Mesmo componente do site
-            (components/FunnelStageSelect.tsx) — já é autônomo e mobile-friendly, sem precisar de
-            uma versão "Mobile" própria. */}
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <FunnelStageSelect attendanceId={a.id} stage={a.stage} />
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <MobileAttendanceStatusSelect attendanceId={a.id} status={a.status} />
+          <FunnelStageSelect attendanceId={a.id} stage={a.stage} />
+          <RelogioDoAtendimento prazoISO={a.prazoDeRespostaAte ? a.prazoDeRespostaAte.toISOString() : null} compacto />
         </div>
+
+        <TiraDeGuias className="-mx-4 mt-3 px-4">
+          <GuiaLink href={guia("conversa")} ativa={aba === "conversa"}>Conversa</GuiaLink>
+          <GuiaLink href={guia("ficha")} ativa={aba === "ficha"}>Ficha</GuiaLink>
+          <GuiaLink href={guia("documentos")} ativa={aba === "documentos"} contagem={a.attachments.length}>
+            Documentos
+          </GuiaLink>
+          <GuiaLink href={guia("anotacoes")} ativa={aba === "anotacoes"} contagem={a.anotacoes.length}>
+            Anotações
+          </GuiaLink>
+        </TiraDeGuias>
       </div>
 
-      <Card className="p-4 space-y-2.5">
-        <div className="pb-2.5 border-b border-regua">
-          <h4 className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">Quem é este número</h4>
-          <QuemEEsteNumero attendanceId={a.id} telefone={telefoneDoContato} contato={contatoConhecido} />
-        </div>
-        <Field label="Matéria" value={a.area} />
-        <Field label="Canal" value={channelLabels[a.channel]} />
-        <Field label="E-mail" value={a.clientEmail} />
-        <Field label="Responsável" value={a.responsible?.name} />
-        <Field label="Data" value={formatDate(a.createdAt)} />
-        {a.convertedCase && (
-          <div className="flex justify-between gap-3 text-sm pb-0">
-            <span className="text-tx-2 shrink-0">Convertido em</span>
-            <Link href={`/m/processos/${a.convertedCase.id}`} className="font-medium text-marca-tx text-right">
-              {a.convertedCase.title}
-            </Link>
+      <div data-rolagem-da-conversa="" className="min-h-0 flex-1 overflow-y-auto bg-sf-fundo p-4">
+        {aba === "conversa" && (
+          <Conversa
+            mensagens={a.whatsappMessages}
+            agora={new Date()}
+            nomeDoAtendente={nomeDoAtendente}
+            transferidoPor={a.transferidoPor}
+            transferidoEm={a.transferidoEm}
+          />
+        )}
+
+        {aba === "ficha" && (
+          <div className="space-y-4">
+            <Card className="p-4">
+              <Rotulo>Quem é este número</Rotulo>
+              <QuemEEsteNumero attendanceId={a.id} telefone={telefoneDoContato} contato={contatoConhecido} />
+            </Card>
+
+            <Card className="space-y-2.5 p-4">
+              <Rotulo>O que a triagem apurou</Rotulo>
+              <Field label="Matéria" value={a.area} />
+              <Field label="Canal" value={channelLabels[a.channel] || a.channel} />
+              {a.campanha?.nome && <Field label="Campanha" value={a.campanha.nome} />}
+              <Field label="E-mail" value={a.clientEmail} />
+              <Field label="Responsável" value={a.responsible?.name} />
+              <Field label="Aberto em" value={dataDeBrasilia(a.createdAt)} />
+              {a.convertedCase && (
+                <div className="flex justify-between gap-3 text-sm">
+                  <span className="shrink-0 text-tx-2">Convertido em</span>
+                  <Link href={`/m/processos/${a.convertedCase.id}`} className="text-right font-medium text-marca-tx">
+                    {a.convertedCase.title}
+                  </Link>
+                </div>
+              )}
+              {a.description && (
+                <div className="border-t border-regua pt-2.5">
+                  <p className="text-corpo text-tx-3">O que o cliente contou</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-tx-2">{a.description}</p>
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-4">
+              <Rotulo>Pendências</Rotulo>
+              {aguardando.length === 0 ? (
+                <p className="text-corpo text-tx-3">Nada pendente neste atendimento.</p>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {aguardando.map((p) => (
+                    <div key={p.id} className="flex items-baseline gap-2.5">
+                      <span className="min-w-0 flex-1 break-words text-sm text-tx">
+                        {p.description?.trim() || pendenciaKindLabel(p.direction, p.kind)}
+                      </span>
+                      <span className="shrink-0 text-corpo text-tx-3">
+                        {p.direction === "SOLICITAR" ? "pedir" : "enviar"}
+                        {p.dueDate ? ` · ${dataDeBrasilia(p.dueDate)}` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {a.emailMessages.length > 0 && (
+              <Card className="p-4">
+                <Rotulo>E-mail</Rotulo>
+                <div className="space-y-2">
+                  {a.emailMessages.map((m) => (
+                    <div key={m.id} className="border border-regua bg-sf-apoio px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-semibold text-tx">{m.subject}</p>
+                        <span className="shrink-0 text-corpo text-tx-2">{dataEHoraDeBrasilia(m.createdAt)}</span>
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap break-words text-sm text-tx">{m.body}</p>
+                      {m.status === "FAILED" && (
+                        <p className="mt-1 text-corpo font-medium text-urgente">
+                          Falhou{m.errorMessage ? `: ${m.errorMessage}` : ""}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-corpo italic text-tx-2">Para responder por e-mail, use o computador.</p>
+              </Card>
+            )}
+
+            {!a.convertedCaseId && (
+              <Card className="p-4">
+                <h4 className="mb-1 text-sm font-semibold text-tx">Transformar em Processo/Caso</h4>
+                <p className="mb-3 text-corpo italic text-tx-3">
+                  Cria um novo Caso ou Processo vinculado ao cliente, mantendo o histórico deste atendimento.
+                </p>
+                <MobileConvertAttendanceForm attendanceId={a.id} />
+              </Card>
+            )}
           </div>
         )}
-      </Card>
 
-      <Card className="p-4">
-        <h4 className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">Descrição</h4>
-        <p className="text-sm text-tx-2 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
-      </Card>
+        {aba === "documentos" && <MobileCaseAttachmentsTab attachments={serializedAttachments} />}
 
-      <div>
-        <h4 className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</h4>
-        <MobileCaseAttachmentsTab attachments={serializedAttachments} />
+        {aba === "anotacoes" && (
+          <Card className="p-4">
+            <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
+            <div className="mt-3 border-t border-regua pt-3">
+              <MobileNovaAnotacaoForm linkType="ATENDIMENTO" entityId={a.id} />
+            </div>
+          </Card>
+        )}
       </div>
 
-      {!a.convertedCaseId && (
-        <Card className="p-4">
-          <h4 className="text-sm font-semibold text-tx mb-1">Transformar em Processo/Caso</h4>
-          <p className="text-corpo italic text-tx-3 mb-3">
-            Cria um novo Caso ou Processo vinculado ao cliente, mantendo o histórico deste atendimento.
-          </p>
-          <MobileConvertAttendanceForm attendanceId={a.id} />
-        </Card>
-      )}
-
-      {showWhatsapp && (
-        <Card className="p-4">
-          <div className="flex items-start justify-between mb-3 gap-2">
-            <h4 className="text-sm font-semibold text-tx">Conversa do WhatsApp</h4>
-            {a.waPhone && <span className="text-corpo text-tx-2 shrink-0">{a.waPhone}</span>}
-          </div>
-
-          {a.whatsappMessages.length === 0 ? (
-            <p className="text-sm text-tx-2">Nenhuma mensagem ainda.</p>
+      {aba === "conversa" && (
+        <div className="shrink-0 border-t border-regua bg-sf px-4 pb-3 pt-2">
+          {podeResponder ? (
+            <>
+              <AtendenteIaControle
+                attendanceId={a.id}
+                responde={a.agenteResponde}
+                silenciado={Boolean(a.agenteSilenciadoEm)}
+                ultimaEhDoCliente={
+                  a.whatsappMessages.length > 0 && a.whatsappMessages[a.whatsappMessages.length - 1].direction === "IN"
+                }
+                nomeDoAtendente={nomeDoAtendente}
+                compacto
+              />
+              <WhatsappReplyBox attendanceId={a.id} nomeDoCliente={a.clientName} />
+            </>
           ) : (
-            <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-              {a.whatsappMessages.map((m) => {
-                const out = m.direction === "OUT";
-                return (
-                  <div key={m.id} className={out ? "flex justify-end" : "flex justify-start"}>
-                    <div
-                      className={
-                        out
-                          ? "max-w-[80%] bg-acao px-3 py-2 text-acao-tx"
-                          : "max-w-[80%] bg-sf-apoio px-3 py-2 text-tx border border-regua"
-                      }
-                    >
-                      <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
-                      <p className={out ? "mt-1 text-corpo text-acao-tx text-right" : "mt-1 text-corpo text-tx-2"}>
-                        {dataDeBrasilia(m.createdAt)}{" "}
-                        {horaDeBrasilia(m.createdAt)}
-                        {out && m.status === "FAILED" ? " · falhou" : ""}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <p className="py-2 text-corpo text-tx-3">
+              {a.waPhone
+                ? "O canal de WhatsApp do escritório não está configurado, então não há como responder por aqui."
+                : `Este atendimento não tem WhatsApp vinculado${telefoneDoContato ? ` — o telefone é ${telefoneLegivel(telefoneDoContato)}` : ""}.`}
+            </p>
           )}
-
-          <p className="mt-3 text-corpo italic text-tx-2">Para responder, use o computador.</p>
-        </Card>
-      )}
-
-      {showEmail && (
-        <Card className="p-4">
-          <h4 className="text-sm font-semibold text-tx mb-3">E-mail</h4>
-          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-            {a.emailMessages.map((m) => (
-              <div key={m.id} className=" border border-regua bg-sf-apoio px-3 py-2">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-tx truncate">{m.subject}</p>
-                  <span className="shrink-0 text-corpo text-tx-2">
-                    {dataDeBrasilia(m.createdAt)} {horaDeBrasilia(m.createdAt)}
-                  </span>
-                </div>
-                <p className="mt-1 text-corpo text-tx-2">
-                  De {m.fromAddress} para {m.toAddress}
-                </p>
-                <p className="mt-1 text-sm text-tx whitespace-pre-wrap break-words">{m.body}</p>
-                {m.status === "FAILED" && (
-                  <p className="mt-1 text-corpo font-medium text-urgente">Falhou{m.errorMessage ? `: ${m.errorMessage}` : ""}</p>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-corpo italic text-tx-2">Para responder, use o computador.</p>
-        </Card>
-      )}
-
-      <Card className="p-4">
-        <h4 className="text-sm font-semibold text-tx mb-2">Anotações pessoais</h4>
-        <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
-        <div className="mt-3 pt-3 border-t border-regua">
-          <MobileNovaAnotacaoForm linkType="ATENDIMENTO" entityId={a.id} />
         </div>
-      </Card>
+      )}
     </div>
   );
 }
 
+function Rotulo({ children }: { children: React.ReactNode }) {
+  return <p className="mb-2.5 text-etiqueta font-bold uppercase tracking-wider text-tx-3">{children}</p>;
+}
+
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex justify-between gap-3 text-sm border-b border-regua pb-2 last:border-0 last:pb-0">
-      <span className="text-tx-2 shrink-0">{label}</span>
-      <span className="font-medium text-tx text-right">{value || "—"}</span>
+    <div className="flex justify-between gap-3 border-b border-regua pb-2 text-sm last:border-0 last:pb-0">
+      <span className="shrink-0 text-tx-2">{label}</span>
+      <span className="text-right font-medium text-tx">{value || "—"}</span>
     </div>
   );
 }
