@@ -245,4 +245,29 @@ teste("MUTAÇÃO-ALVO: o cron de transcrições pendentes está registrado no ve
   igual(entrada?.schedule, "*/5 * * * *", "o intervalo do cron mudou — confira se ainda é rápido o bastante");
 });
 
-void resumo("transcrição assíncrona — disparo, fail-closed, reavaliação");
+void teste("a confirmação enviada ao cliente TAMBÉM é gravada na conversa", () => {
+  // Achado por mutação na revisão: tirar o `create` da mensagem deixava a suíte inteira verde.
+  // O estrago é a tela mentir — o cliente recebe "recebi o seu áudio" no WhatsApp, e quem abre o
+  // atendimento vê um áudio sem resposta nenhuma. O escritório conclui que a Ana ficou muda,
+  // responde por cima, e a conversa passa a ter duas versões: a do cliente e a da tela.
+  //
+  // E não basta gravar: tem de gravar COM A MARCA. Sem ela, esta própria mensagem vira "a última
+  // mensagem" e cala a Ana para sempre — foi o defeito crítico desta rodada.
+  const corpo = corpoDaFuncao(confirmacaoFonte, "confirmarRecebimentoDeAudio");
+  verdade(corpo.length > 0, "confirmarRecebimentoDeAudio sumiu");
+  verdade(/prisma\.whatsappMessage\.create\(/.test(corpo),
+    "a confirmação deixou de ser gravada na conversa — a tela passa a mentir sobre o que o cliente recebeu");
+  verdade(/direction: "OUT"/.test(corpo), "a confirmação não é gravada como mensagem de saída");
+  verdade(/confirmacaoAutomaticaDeAudio: true/.test(corpo),
+    "a confirmação é gravada SEM a marca — ela volta a calar a Ana para sempre");
+  // O envio vem antes da gravação: gravar primeiro e falhar o envio mostraria na tela uma
+  // mensagem que o cliente nunca recebeu, que é a mentira na direção contrária.
+  verdade(corpo.indexOf("sendWhatsappText") < corpo.indexOf("prisma.whatsappMessage.create"),
+    "a confirmação é gravada antes de ser enviada — a tela mostraria o que o cliente não recebeu");
+  // E o envio que FALHA não pode ser gravado. É a mesma mentira na direção contrária: a tela diria
+  // que o cliente foi avisado quando ele não foi, e ninguém iria atrás do áudio parado.
+  verdade(/if \(!envio\.ok\) return/.test(corpo),
+    "envio que falhou passou a ser gravado como se tivesse chegado ao cliente");
+});
+
+resumo("transcrição assíncrona — disparo, fail-closed, reavaliação");
