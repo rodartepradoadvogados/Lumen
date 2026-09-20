@@ -1,6 +1,6 @@
 import Link from "next/link";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
-import { rotuloDaEspera, rotuloDaVolta, comQuemEsta, type QuemEspera } from "@/lib/esperaDoAtendimento";
+import { rotuloDaEspera, rotuloDaVolta, comQuemEsta, type QuemEspera } from "@/lib/rotulosDaEspera";
 
 // ============================================================================
 // A FILA DE QUEM ESTÁ ESPERANDO RESPOSTA — no topo da Triagem.

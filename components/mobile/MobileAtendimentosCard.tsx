@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Phone, Plus, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui";
-import { rotuloDaEspera, procedencia, type QuemEspera } from "@/lib/esperaDoAtendimento";
+import { rotuloDaEspera, procedencia, type QuemEspera } from "@/lib/rotulosDaEspera";
 
 // ============================================================================
 // O CARTÃO DE ATENDIMENTOS NA TELA INICIAL DO APP.
