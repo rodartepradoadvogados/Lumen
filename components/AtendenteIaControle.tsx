@@ -100,9 +100,17 @@ export default function AtendenteIaControle({
         )}
       </div>
 
+      {/* A frase diz o que ACONTECE, e não o que a chave é. Havia aqui um texto sobre "ligar" e
+          "desligar"; o que a pessoa precisa saber é que enviar uma mensagem já assume a conversa —
+          não existe botão de assumir, e não deve existir: quem escreveu, assumiu. */}
       <p className="mt-1 text-etiqueta leading-snug text-tx-3">
-        Ligar vale da próxima mensagem do cliente. Assim que alguém do escritório responder aqui, o atendente cala
-        para sempre nesta conversa.
+        {responde ? (
+          /* Não repete o que a caixa acima já diz: a caixa diz QUEM responde, a frase diz o que
+             acontece se você escrever. */
+          <>Ao enviar uma mensagem você assume, e ele não fala mais aqui.</>
+        ) : (
+          <>Marcar vale da próxima mensagem do cliente. Ao enviar uma mensagem você assume, e ele não fala mais aqui.</>
+        )}
       </p>
 
       {erro && <p className="mt-2 text-xs font-medium text-urgente">{erro}</p>}

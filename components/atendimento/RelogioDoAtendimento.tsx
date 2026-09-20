@@ -1,0 +1,60 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Clock } from "lucide-react";
+import { estadoDoRelogio, tituloDoRelogio, detalheDoRelogio } from "@/lib/relogioDoAtendimento";
+
+// ============================================================================
+// O CHIP DO RELÓGIO, NO CABEÇALHO DO ATENDIMENTO.
+//
+// É CLIENTE, e o motivo é concreto: um chip renderizado no servidor diria "11 min sem resposta"
+// para sempre, e a aba do navegador de um advogado fica aberta a manhã inteira. Um relógio que
+// mostra a hora de quando a página carregou é pior do que nenhum relógio, porque é acreditado.
+//
+// A CONTA CONTINUA SENDO A MESMA (lib/relogioDoAtendimento.ts, estadoDoRelogio): o que chega aqui é
+// o instante do prazo, e não um texto pronto. Assim a regra tem um só lugar e é testada sem
+// navegador.
+//
+// DE TRINTA EM TRINTA SEGUNDOS. O relógio é de quinze minutos e mostra minutos inteiros; contar de
+// segundo em segundo só gastaria bateria para redesenhar o mesmo texto.
+// ============================================================================
+
+export default function RelogioDoAtendimento({ prazoISO }: { prazoISO: string | null }) {
+  const prazo = prazoISO ? new Date(prazoISO) : null;
+  const [agora, setAgora] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (!prazo) return;
+    setAgora(new Date());
+    const t = setInterval(() => setAgora(new Date()), 30_000);
+    return () => clearInterval(t);
+    // `prazoISO` é a dependência de verdade (o objeto Date é novo a cada render).
+  }, [prazoISO]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!prazo) return null;
+
+  // Antes do primeiro efeito não há hora do cliente para usar, e usar a do servidor aqui traria de
+  // volta a diferença de relógio que este componente existe para não ter. Uma batida de vazio é
+  // invisível; um número errado, não.
+  if (!agora) return null;
+
+  const estado = estadoDoRelogio(prazo, agora);
+  if (estado.tipo === "sem-relogio") return null;
+
+  const grave = estado.tipo === "estourado" || (estado.tipo === "correndo" && estado.faltam <= 5);
+  const cor = grave ? "text-marca-tx" : "text-tx-2";
+
+  return (
+    <div
+      className={`flex shrink-0 items-center gap-2.5 border px-3.5 py-2.5 ${
+        grave ? "border-marca-tx/30 bg-marca-tx/[0.08]" : "border-regua bg-sf-apoio"
+      }`}
+    >
+      <Clock size={18} className={`shrink-0 ${cor}`} strokeWidth={2.2} />
+      <span className="block">
+        <span className={`block text-sm font-bold leading-tight ${cor}`}>{tituloDoRelogio(estado)}</span>
+        <span className="mt-0.5 block text-xs text-tx-2">{detalheDoRelogio(estado)}</span>
+      </span>
+    </div>
+  );
+}

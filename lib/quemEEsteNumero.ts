@@ -74,16 +74,42 @@ export function enderecoDoContato(contato: { tipo: TipoDeContato; id: string; no
  * oferecer o cadastro. Contato sem telefone nunca casa (um cadastro vazio não pode "reconhecer"
  * todo mundo, que é o que uma comparação descuidada de string vazia faria).
  */
+/**
+ * A comparação de número que a agenda exige, e que `mesmoNumero` sozinho não dá.
+ *
+ * O PROBLEMA, MEDIDO NO BANCO: a coluna `phoneDdi` foi criada depois, e quase todo cadastro antigo
+ * tem o telefone gravado sem código de país — "(62) 99123-4567". O WhatsApp, do outro lado, sempre
+ * manda com o DDI: "5562991234567". `mesmoNumero` compara 11 dígitos com 13 e diz que não é a mesma
+ * pessoa, porque o tratamento do nono dígito dele pressupõe que os dois lados tenham DDI.
+ *
+ * Sem isto, o cruzamento com a agenda falharia para a maioria dos clientes já cadastrados — e
+ * falharia calado, que é o pior jeito: a tela ofereceria "cadastrar" um cliente que existe desde
+ * 2024.
+ *
+ * A SAÍDA É A MESMA SUPOSIÇÃO DE `separarDdi`: número nacional de 10 ou 11 dígitos é brasileiro.
+ * Ela é assumida em UM lugar e nos dois sentidos, e não corrige o banco — corrige a comparação.
+ */
+export function mesmoNumeroDaAgenda(a: string | null | undefined, b: string | null | undefined): boolean {
+  const variacoes = (n: string | null | undefined): string[] => {
+    const d = (n || "").replace(/\D/g, "");
+    if (!d) return [];
+    return d.length === 10 || d.length === 11 ? [d, `55${d}`] : [d];
+  };
+  const xs = variacoes(a);
+  const ys = variacoes(b);
+  return xs.some((x) => ys.some((y) => mesmoNumero(x, y)));
+}
+
 export function casarContato(contatos: ContatoConhecido[], numero: string | null | undefined): ContatoConhecido | null {
   const alvo = (numero || "").trim();
   if (!alvo) return null;
 
-  // Cadastro sem telefone nunca casa, e quem garante isso é `mesmoNumero` (que devolve falso
-  // quando qualquer um dos dois lados fica sem dígitos) — não uma segunda guarda aqui. Não
+  // Cadastro sem telefone nunca casa, e quem garante isso é `mesmoNumeroDaAgenda` (que devolve
+  // falso quando qualquer um dos dois lados fica sem dígitos) — não uma segunda guarda aqui. Não
   // repetir a checagem é deliberado: duas guardas para a mesma coisa fazem parecer que a de baixo
   // pode ser removida sem consequência. O teste em lib/testes/numero.teste.ts prova o
   // comportamento, e prova-o ATRAVÉS daqui, que é onde ele importa.
-  const candidatos = contatos.filter((c) => mesmoNumero(c.telefone, alvo));
+  const candidatos = contatos.filter((c) => mesmoNumeroDaAgenda(c.telefone, alvo));
   if (candidatos.length === 0) return null;
 
   for (const tipo of PRECEDENCIA) {
@@ -139,4 +165,28 @@ export function separarDdi(bruto: string | null | undefined): { ddi: string; num
     if (resto.length >= 8 && resto.length <= 11) return { ddi, numero: resto };
   }
   return { ddi: "", numero: digitos };
+}
+
+/**
+ * O telefone escrito como gente escreve.
+ *
+ * O número chega do WhatsApp colado — "5562991234567" — e mostrar isso no cabeçalho de uma tela de
+ * atendimento é mostrar um dado de máquina a quem está prestes a ligar para a pessoa. Quem lê
+ * precisa reconhecer o número, e ninguém reconhece treze dígitos sem espaço.
+ *
+ * SÓ FORMATA O QUE TEM CERTEZA. Brasileiro com DDI vira "+55 (62) 99123-4567"; nacional vira
+ * "(62) 99123-4567"; qualquer outro volta como veio. Inventar uma formatação estrangeira que não se
+ * conhece é trocar um número feio por um número errado.
+ */
+export function telefoneLegivel(bruto: string | null | undefined): string {
+  const { ddi, numero } = separarDdi(bruto);
+  const d = numero.replace(/\D/g, "");
+  const nacional =
+    d.length === 11
+      ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+      : d.length === 10
+        ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+        : "";
+  if (!nacional) return (bruto || "").trim();
+  return ddi ? `+${ddi} ${nacional}` : nacional;
 }

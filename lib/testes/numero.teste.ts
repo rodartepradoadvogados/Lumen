@@ -2,8 +2,10 @@ import { readFileSync } from "node:fs";
 import { teste, igual, verdade, resumo } from "./executar";
 import {
   casarContato,
+  mesmoNumeroDaAgenda,
   enderecoDoContato,
   separarDdi,
+  telefoneLegivel,
   podeCadastrarComo,
   TIPOS_PARA_CADASTRAR,
   type ContatoConhecido,
@@ -38,6 +40,36 @@ teste("acha o cliente mesmo com o nono dígito de diferença", () => {
   // O cadastro tem 8 dígitos de assinante; o WhatsApp manda 9. É o caso que uma comparação de
   // string devolveria como desconhecido — e um cliente de cinco anos apareceria como lead novo.
   igual(casarContato([{ ...cliente, telefone: "+55 62 9999-8888" }], "5562999998888")?.id, "c1");
+});
+
+teste("acha o cliente cadastrado SEM código de país — o caso da maioria do banco", () => {
+  // Medido no banco de homologação: `phoneDdi` é nulo em todos os clientes antigos, porque a coluna
+  // nasceu depois. Se este caso não casar, o cruzamento com a agenda falha para quase todo mundo — e
+  // falha calado: a tela oferece "cadastrar" um cliente que existe há dois anos.
+  const antigo: ContatoConhecido = { tipo: "cliente", id: "c7", nome: "Carlos Eduardo", telefone: "(62) 99123-4567" };
+  igual(casarContato([antigo], "5562991234567")?.id, "c7");
+  igual(casarContato([antigo], "556291234567")?.id, "c7");
+});
+
+teste("a comparação da agenda vale nos dois sentidos, e não afrouxa demais", () => {
+  igual(mesmoNumeroDaAgenda("62991234567", "5562991234567"), true);
+  igual(mesmoNumeroDaAgenda("5562991234567", "62991234567"), true);
+  igual(mesmoNumeroDaAgenda("6291234567", "5562991234567"), true);
+  // Dois números nacionais diferentes continuam diferentes: acrescentar 55 aos dois lados não pode
+  // transformar a comparação em "qualquer coisa casa".
+  igual(mesmoNumeroDaAgenda("62991234567", "62991234568"), false);
+  igual(mesmoNumeroDaAgenda("62991234567", "11991234567"), false);
+  igual(mesmoNumeroDaAgenda("", "5562991234567"), false);
+  igual(mesmoNumeroDaAgenda(null, null), false);
+});
+
+teste("DDD 55 não é confundido com código de país", () => {
+  // Santa Maria, no Rio Grande do Sul, é DDD 55 — e há cadastros antigos com só o número, sem DDD
+  // nenhum, de quando o escritório anotava telefone de recado. Uma comparação que TIRASSE o "55" da
+  // frente para tentar casar faria o número de Santa Maria virar o telefone de recado de outra
+  // pessoa. Acrescentar 55 é uma suposição segura; tirar não é, e é por isso que só se acrescenta.
+  igual(mesmoNumeroDaAgenda("5599112345", "99112345"), false);
+  igual(mesmoNumeroDaAgenda("99112345", "5599112345"), false);
 });
 
 teste("não acha ninguém quando o número não está na agenda", () => {
@@ -130,6 +162,21 @@ teste("número estrangeiro de verdade é reconhecido pelo prefixo", () => {
 teste("sem número, devolve vazio nos dois campos", () => {
   igual(separarDdi(null), { ddi: "", numero: "" });
   igual(separarDdi("abc"), { ddi: "", numero: "" });
+});
+
+teste("o número vira algo que gente reconhece", () => {
+  igual(telefoneLegivel("5562991234567"), "+55 (62) 99123-4567");
+  igual(telefoneLegivel("556232221000"), "+55 (62) 3222-1000");
+  igual(telefoneLegivel("62991234567"), "(62) 99123-4567");
+  igual(telefoneLegivel("(62) 99123-4567"), "(62) 99123-4567");
+});
+
+teste("o que não dá para formatar volta como veio, em vez de virar outro número", () => {
+  // Um número estrangeiro cortado em blocos brasileiros seria ilegível E errado. Feio e certo
+  // ganha de bonito e errado.
+  igual(telefoneLegivel("351912345678"), "351912345678");
+  igual(telefoneLegivel("12345"), "12345");
+  igual(telefoneLegivel(null), "");
 });
 
 // ── 5. O TELEFONE DO ATENDIMENTO ────────────────────────────────────────────
