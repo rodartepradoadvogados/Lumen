@@ -161,6 +161,10 @@ export default async function AttendanceDetailPage({
 
   const agora = new Date();
 
+  // Mesmo critério da fila e do quadro (lib/rotulosDaEspera.ts): a última palavra é do cliente.
+  const ultimaMensagem = a.whatsappMessages[a.whatsappMessages.length - 1];
+  const esperandoResposta = ultimaMensagem?.direction === "IN";
+
   // Os motivos só são buscados quando há chance de recusar — e o endereço do site é o que monta o
   // link da carta, que é copiado e mandado à mão.
   const recusaAtual = a.recusas[0] ?? null;
@@ -203,6 +207,17 @@ export default async function AttendanceDetailPage({
           <div className="flex items-start gap-5">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2.5">
+                {/* A bolinha que pisca: a última mensagem é do cliente e ninguém respondeu. É FATO,
+                    e não estágio — ver a nota em lib/funil.ts. Fica colada no nome porque é sobre
+                    esta pessoa que ela fala. */}
+                {esperandoResposta && (
+                  <span
+                    className="bolinha-espera"
+                    role="img"
+                    aria-label="O cliente está esperando resposta"
+                    title="O cliente escreveu e ninguém respondeu"
+                  />
+                )}
                 <h1 className="text-guia font-bold leading-tight text-tx">{a.clientName}</h1>
                 <FunnelStageSelect attendanceId={a.id} stage={a.stage} />
                 <AttendanceStatusSelect attendanceId={a.id} status={a.status} />

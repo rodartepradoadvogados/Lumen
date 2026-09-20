@@ -743,7 +743,7 @@ export const assistantTools: AssistantTool[] = [
             type: "string",
             description: "Status operacional: NOVO, EM_TRIAGEM, CONVERTIDO, ARQUIVADO ou RASCUNHO (rascunhos só são incluídos se este filtro for explicitamente RASCUNHO).",
           },
-          estagio: { type: "string", description: "Estágio do funil comercial: NOVO, QUALIFICACAO, PROPOSTA, FECHADO ou PERDIDO." },
+          estagio: { type: "string", description: "Estágio do funil comercial: NOVO, AGUARDANDO, QUALIFICACAO, PROPOSTA, FECHADO ou PERDIDO." },
         },
         required: [],
       },

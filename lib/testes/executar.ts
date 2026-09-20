@@ -81,6 +81,21 @@ export function corpoDaFuncao(fonte: string, nome: string): string {
     if (i >= 0) break;
   }
   if (i < 0) return "";
+
+  // O FIM DA FUNÇÃO É A CHAVE QUE FECHA NA MESMA INDENTAÇÃO DO CABEÇALHO, e não "a próxima função
+  // do arquivo". A heurística antiga transbordava em função ANINHADA: `function soltar(` dentro de
+  // um componente não tem outra `function` antes do fim do componente, então o trecho ia até o
+  // próximo componente e levava junto o JSX inteiro. Uma varredura que procurava uma palavra dentro
+  // da função a encontrava no JSX e passava verde com o defeito instalado — foi exatamente o que
+  // aconteceu com a mensagem de recusa do quadro do funil.
+  const inicioDaLinha = fonte.lastIndexOf("\n", i) + 1;
+  const indentacao = fonte.slice(inicioDaLinha, i);
+  const fechamento = new RegExp(`\\n${indentacao}\\}`);
+  const fim = fonte.slice(i).search(fechamento);
+  if (fim >= 0) return codigoDe(fonte.slice(i, i + fim + 2 + indentacao.length));
+
+  // Sem chave no lugar esperado (formatação fora do padrão), volta à heurística antiga em vez de
+  // devolver vazio — vazio faria a varredura acusar ausência de algo que existe.
   const seguinte = fonte.slice(i + 10).search(/\n(export )?(async )?function /);
   return codigoDe(seguinte < 0 ? fonte.slice(i) : fonte.slice(i, i + 10 + seguinte));
 }
