@@ -1,7 +1,9 @@
+import { Ear } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
 import RolarParaOFim from "@/components/atendimento/RolarParaOFim";
 import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
 import { agruparPorDia, fraseDaTransferencia } from "@/lib/relogioDoAtendimento";
+import { rotuloDeTranscricaoNaTela, type TranscricaoDaMensagem } from "@/lib/transcricaoDeAudio";
 
 // ============================================================================
 // A CONVERSA.
@@ -32,6 +34,8 @@ export type MensagemDaConversa = {
   body: string;
   status: string;
   createdAt: Date;
+  /** Preenchido só quando esta mensagem É um áudio (ver prisma/schema.prisma:TranscricaoDeAudio). */
+  transcricao?: TranscricaoDaMensagem;
 };
 
 export default function Conversa({
@@ -84,12 +88,34 @@ export default function Conversa({
 
           {grupo.mensagens.map((m) => {
             const saiu = m.direction === "OUT";
+            // A TRANSCRIÇÃO NUNCA É UMA MENSAGEM — é um registro à parte (TranscricaoDeAudio) que
+            // só aparece DENTRO da bolha do áudio a que pertence, visualmente distinto de fala de
+            // verdade: quem lê precisa perceber, num olhar, que aquele texto é o REGISTRO do que
+            // foi dito (para consulta), não algo que alguém escreveu ou que foi enviado a alguém.
+            const transcricao = rotuloDeTranscricaoNaTela(m.transcricao);
             return (
               <div key={m.id} className={saiu ? "flex justify-end" : "flex justify-start"}>
                 <div
                   className={`max-w-[560px] bg-sf px-4 py-3 border ${saiu ? "border-regua-forte" : "border-regua"}`}
                 >
                   <p className="whitespace-pre-wrap break-words text-sm text-tx">{m.body}</p>
+                  {transcricao && (
+                    <div className="mt-2 flex items-start gap-2 border-l-[3px] border-marca bg-marca-bg px-3 py-2">
+                      <Ear size={14} className="mt-0.5 shrink-0 text-marca-tx" aria-hidden="true" />
+                      <div className="min-w-0">
+                        {transcricao.ehConteudo ? (
+                          <p className="whitespace-pre-wrap break-words text-xs italic leading-snug text-tx-2">
+                            “{transcricao.texto}”
+                          </p>
+                        ) : (
+                          <p className="text-xs italic text-tx-3">{transcricao.texto}</p>
+                        )}
+                        <p className="mt-1 text-etiqueta text-tx-3">
+                          Transcrição do áudio, para consulta — o cliente nunca vê isto.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <div className={`mt-2 flex items-center gap-1.5 ${saiu ? "justify-end" : ""}`}>
                     {saiu && m.porAgente && <IconeAgente size={12} className="text-tx-3" />}
                     <span className="text-etiqueta text-tx-3">

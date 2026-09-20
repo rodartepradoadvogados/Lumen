@@ -5,8 +5,9 @@ import { enviarTexto as enviarTextoEvolution, FalhaDaEvolution, mesmoNumero, bai
 import { casarCampanha } from "@/lib/campanhas";
 import { composePhoneWithDdi } from "@/lib/documentoEnvios";
 import { deveExplicarAoColega, FRASE_AO_COLEGA } from "@/lib/avisoDeLead";
-import { type TipoMidiaWhatsapp, montarNomeArquivoWhatsapp, rotuloDaMidiaWhatsapp } from "@/lib/driveNaming";
+import { type TipoMidiaWhatsapp, montarNomeArquivoWhatsapp, rotuloDaMidiaWhatsapp, extensaoDoArquivo } from "@/lib/driveNaming";
 import { getOrCreateAttendanceFolder, uploadFileToDriveFolder } from "@/lib/storageProvider";
+import { transcreverAudioRecebido } from "@/lib/transcricao";
 
 // ============================================================================
 // Integração WhatsApp — DOIS provedores, uma porta só para o resto do sistema.
@@ -484,7 +485,7 @@ export async function ingestIncomingWhatsapp({
 
   const recebidoEm = new Date();
 
-  await prisma.whatsappMessage.create({
+  const novaMensagem = await prisma.whatsappMessage.create({
     data: {
       officeId,
       attendanceId: attendance.id,
@@ -504,16 +505,32 @@ export async function ingestIncomingWhatsapp({
     data: { waLastMessageAt: new Date() },
   });
 
-  // F5 — MÍDIA DO WHATSAPP NO DRIVE. Sobe AGORA, no mesmo pedido do webhook, e não numa fila:
-  // a URL de mídia da Meta expira em minutos, e a Evolution só guarda o arquivo por um tempo
-  // curto — adiar para depois seria arriscar não ter mais o arquivo pra baixar quando a fila
-  // rodasse. Nunca lança: a mensagem já ficou registrada acima (o cliente não perde o rastro da
-  // conversa), então uma falha aqui vira log, não erro que derruba o webhook nem impede o
-  // atendente de responder.
+  // F5 — MÍDIA DO WHATSAPP NO DRIVE, E A TRANSCRIÇÃO DE ÁUDIO. As duas sobem/rodam AGORA, no mesmo
+  // pedido do webhook, e não numa fila: a URL de mídia da Meta expira em minutos, e a Evolution só
+  // guarda o arquivo por um tempo curto — adiar para depois seria arriscar não ter mais o arquivo
+  // pra baixar quando a fila rodasse. Nenhuma das duas lança: a mensagem já ficou registrada acima
+  // (o cliente não perde o rastro da conversa), então uma falha aqui vira log, não erro que derruba
+  // o webhook nem impede o atendente de responder.
+  //
+  // A ORDEM DAS OPERAÇÕES, DECIDIDA E NÃO IMPLÍCITA: a transcrição roda AQUI, ANTES de devolver o
+  // atendimento para quem chamou (a rota do webhook, que liga o atendente de IA logo depois) — não
+  // em paralelo com a resposta da Ana. A alternativa (disparar a transcrição sem esperar, deixando
+  // a Ana responder já) daria a PRIMEIRA resposta mais rápida, mas essa resposta chegaria sem o
+  // conteúdo do áudio — exatamente o problema que esta entrega existe para resolver ("responde com
+  // base na transcrição" foi o pedido, não "responde, e um dia mais tarde alguém lê a transcrição
+  // guardada"). Transcrever um áudio de voz leva alguns segundos, bem menos que o orçamento que a
+  // rota já reserva para o Hermes responder (maxDuration = 120s; ver lib/hermesPonte.ts). O custo é
+  // real — a resposta demora um pouco mais — e é um custo aceito, não escondido.
   if (midia) {
     await processarMidiaRecebida(officeId, attendance.id, attendance.subject, waMessageId, midia, recebidoEm).catch((e) => {
       console.error(`[whatsapp] falha ao subir a mídia da mensagem ${waMessageId} para o Drive:`, e);
     });
+
+    if (midia.tipo === "AUD") {
+      await transcreverAudioDaMensagem(officeId, novaMensagem.id, midia).catch((e) => {
+        console.error(`[whatsapp] falha ao transcrever o áudio da mensagem ${waMessageId}:`, e);
+      });
+    }
   }
 
   revalidatePath("/atendimento");
@@ -579,4 +596,40 @@ async function processarMidiaRecebida(
   });
 
   revalidatePath(`/atendimento/${attendanceId}`);
+}
+
+/**
+ * Baixa o áudio (na porta certa, conforme onde ele chegou — mesma lógica de processarMidiaRecebida
+ * acima) e passa o conteúdo para o transcritor (lib/transcricao.ts).
+ *
+ * SEGUNDO DOWNLOAD DO MESMO ÁUDIO, DE PROPÓSITO E NÃO POR DESCUIDO: processarMidiaRecebida já baixa
+ * este mesmo arquivo para subir ao Drive, e dividir o buffer entre as duas funções exigiria mexer
+ * numa função já auditada e coberta por teste que ancora leituras no CORPO dela por regex (ver
+ * lib/testes/whatsappMidia.teste.ts, a nota sobre a terceira armadilha de corpoDaFuncao) — o risco
+ * de quebrar essa cobertura, ou de um refactor sutil abrir uma brecha na F5, custa mais do que uma
+ * segunda chamada de rede. Áudio de voz do WhatsApp é pequeno (o app limita a gravação a poucos
+ * minutos, e o arquivo raramente passa de 1–2 MB); o preço de baixar de novo é aceitável.
+ *
+ * Não é exportada: só lib/whatsapp.ts sabe como um IncomingMidia de áudio se baixa (mediaId da Meta
+ * vs. a chave remoteJid+id da Evolution) — lib/transcricao.ts não precisa saber, e não sabe, disso.
+ */
+async function transcreverAudioDaMensagem(officeId: string, whatsappMessageId: string, midia: IncomingMidia): Promise<void> {
+  const config = await prisma.whatsappConfig.findUnique({ where: { officeId } });
+  if (!config) return; // não deveria acontecer — a mensagem só chegou porque este config existe
+
+  let baixado: { buffer: Buffer; mimeType: string };
+  if (config.provider === "EVOLUTION") {
+    if (!config.baseUrl || !config.apiKey || !midia.evolution) return;
+    baixado = await baixarMidiaEvolution({ baseUrl: config.baseUrl, apiKey: config.apiKey, instancia: config.phoneNumberId }, midia.evolution);
+  } else {
+    if (!midia.mediaId) return;
+    baixado = await baixarMidiaMeta(midia.mediaId, config.accessToken);
+  }
+
+  const mimeType = baixado.mimeType || midia.mimeType;
+  await transcreverAudioRecebido(officeId, whatsappMessageId, {
+    buffer: baixado.buffer,
+    mimeType,
+    nomeArquivo: `audio.${extensaoDoArquivo(mimeType)}`,
+  });
 }

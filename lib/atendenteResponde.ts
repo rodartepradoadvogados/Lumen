@@ -13,6 +13,7 @@ import { transferirLead } from "@/lib/transferirLead";
 import { perguntarAoHermes, hermesConfigurado, FalhaDoHermes } from "@/lib/hermesPonte";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
+import { textoParaAgente } from "@/lib/transcricaoDeAudio";
 
 // ============================================================================
 // O ATENDENTE RESPONDE (ou explica por que não).
@@ -161,7 +162,9 @@ export async function atendenteResponde(
       where: { attendanceId },
       orderBy: { createdAt: "desc" },
       take: QUANTAS_MENSAGENS_DE_CONTEXTO,
-      select: { direction: true, body: true },
+      // A transcrição (quando a mensagem é um áudio) entra junto: textoParaAgente decide o que
+      // vai no lugar do rótulo cru "[áudio]" — ver lib/transcricaoDeAudio.ts.
+      select: { direction: true, body: true, transcricao: { select: { status: true, texto: true, erro: true } } },
     });
     const emOrdem = mensagens.reverse();
     const ultima = emOrdem[emOrdem.length - 1];
@@ -181,11 +184,16 @@ export async function atendenteResponde(
       campanha: textoDaCampanha(atendimento.campanha),
       parametros: textoDosParametros(parametros),
       nomeDoCliente: atendimento.clientName,
+      // TRANSCRIÇÃO NO LUGAR DO ÁUDIO, nas duas pontas do histórico: nas mensagens de contexto
+      // (historico) E na mensagem de agora — quando é a ÚLTIMA mensagem que é um áudio (o caso
+      // comum: a pessoa acabou de mandar a voz), a Ana precisa da transcrição dela também, não só
+      // das anteriores. textoParaAgente já resolve os dois casos (áudio transcrito, áudio que
+      // falhou, mensagem comum) com a mesma regra.
       historico: emOrdem.slice(0, -1).map((m) => ({
         de: m.direction === "IN" ? ("cliente" as const) : ("escritorio" as const),
-        texto: m.body,
+        texto: textoParaAgente(m),
       })),
-      mensagem: ultima.body,
+      mensagem: textoParaAgente(ultima),
     });
 
     let resposta: string;
