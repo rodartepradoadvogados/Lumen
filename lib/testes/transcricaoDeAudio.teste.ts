@@ -303,6 +303,28 @@ teste("MUTAÇÃO-ALVO: o header de autenticação da chamada de transcrição us
   verdade(!/console\.(log|error|warn)\([^)]*config\.token/.test(corpo), "o token está sendo impresso em log");
 });
 
+teste("MUTAÇÃO-ALVO: o AbortController de verdade é amarrado ao fetch (signal), não só criado e ignorado", () => {
+  // Achado ao reconferir esta suíte: um `AbortController` instanciado e um `setTimeout` chamando
+  // `.abort()` não travam NADA sozinhos — se o objeto `signal` não for passado nas opções do
+  // `fetch`, o timer dispara, `controlador.abort()` roda, e o pedido de rede simplesmente CONTINUA
+  // esperando a resposta (ou a conexão) até o timeout do próprio Node/undici, não o nosso. Um
+  // teste que só chama `chamarServicoDeTranscricao` contra um servidor RÁPIDO (os três acima) não
+  // pega isso — a chamada termina antes do timeout entrar em jogo dos dois jeitos. Por isso este é
+  // varredura de código-fonte, não uma chamada de verdade contra um servidor lento: esperar os
+  // ESPERA_MS de produção (20s, ligados ao orçamento do pedido — não um número solto de teste) só
+  // pra prová-lo custaria caro demais pra suíte rodar toda vez.
+  const corpo = corpoDaFuncao(transcricaoFonte, "chamarServicoDeTranscricao");
+  verdade(corpo.length > 0, "chamarServicoDeTranscricao não existe mais, ou mudou de nome");
+  verdade(/new AbortController\(\)/.test(corpo), "o AbortController sumiu — a chamada de transcrição não tem mais teto nenhum");
+  verdade(/setTimeout\(\s*\(\)\s*=>\s*controlador\.abort\(\)/.test(corpo), "o timer que chama controlador.abort() sumiu");
+  verdade(
+    /signal:\s*controlador\.signal/.test(corpo),
+    "o AbortController é criado e o timer chama .abort(), mas o `signal` não é passado ao fetch — " +
+      "o timeout nunca corta a chamada de verdade, ela fica presa esperando a rede",
+  );
+  verdade(/clearTimeout\(\s*relogio\s*\)/.test(corpo), "o clearTimeout do relógio sumiu — todo pedido bem-sucedido deixaria um timer pendente");
+});
+
 // NOTA (revisão 2 — a transcrição saiu do webhook, ver lib/orcamentoDoPedido.ts e
 // lib/transcricaoAssincrona.ts): ingestIncomingWhatsapp não transcreve mais nada. Ele só grava o
 // registro PENDENTE, com a referência de onde o áudio ficou guardado no Drive — o processamento

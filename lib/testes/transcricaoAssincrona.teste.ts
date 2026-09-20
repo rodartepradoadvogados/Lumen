@@ -23,17 +23,35 @@ const confirmacaoFonte = readFileSync("lib/confirmacaoDeAudio.ts", "utf8");
 
 // ── 1. dispararTranscricaoAssincrona — fire-and-forget, fail-closed ─────────────────────────
 
-// AS DUAS CHECAGENS ABAIXO FICAM NUM TESTE SÓ, DE PROPÓSITO: `teste()` (lib/testes/executar.ts)
-// dispara todos os corpos ao mesmo tempo (`Promise.all`), e os dois cenários mutam a MESMA
-// variável de ambiente global (`TRANSCRICAO_INTERNA_SECRET`) e o MESMO `global.fetch` — rodando em
-// testes separados, um pisaria no outro. Sequencialmente, dentro de um teste só, não há corrida.
-teste("MUTAÇÃO-ALVO: dispararTranscricaoAssincrona é fail-closed sem o segredo, e dispara certo com ele", async () => {
+async function chamarRotaProcessar(headers: Record<string, string>): Promise<number> {
+  const { POST } = await import("@/app/api/transcricao/processar/route");
+  const { NextRequest } = await import("next/server");
+  const req = new NextRequest("http://localhost/api/transcricao/processar", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ waMessageId: "wamid.NUNCA-CHEGA-A-EXISTIR" }),
+  });
+  const res = await POST(req);
+  return res.status;
+}
+
+// TODOS OS CENÁRIOS ABAIXO (disparo E os 401 da rota interna) FICAM NUM TESTE SÓ, DE PROPÓSITO:
+// `teste()` (lib/testes/executar.ts) roda todos os corpos ao mesmo tempo (`Promise.all`), e TODOS
+// eles mutam a MESMA variável de ambiente global (`TRANSCRICAO_INTERNA_SECRET`) — em testes
+// separados, mesmo cada um com seu próprio try/finally, um pisaria no outro NO MEIO da execução
+// (o finally de um só limpa depois que o corpo dele termina, não antes). ACHADO AO RECONFERIR
+// esta suíte: era exatamente essa a race que existia antes desta junção — dois testes diferentes
+// (disparo, e os 401 da rota) cada um mexendo em `process.env.TRANSCRICAO_INTERNA_SECRET`
+// concorrentemente escondia uma mutação real (ver o comentário sobre "Bearer undefined" abaixo)
+// atrás de um resultado que só passava por coincidência de timing. Sequencialmente, dentro de um
+// teste só, não há corrida nenhuma.
+teste("MUTAÇÃO-ALVO: dispararTranscricaoAssincrona é fail-closed e dispara certo; a rota interna recusa (401) em todos os casos sem o segredo certo", async () => {
   const original = process.env.TRANSCRICAO_INTERNA_SECRET;
   const fetchOriginal = global.fetch;
   try {
     const { dispararTranscricaoAssincrona } = await import("@/lib/transcricaoAssincrona");
 
-    // 1) SEM o segredo: nem tenta.
+    // 1) SEM o segredo: nem tenta disparar.
     delete process.env.TRANSCRICAO_INTERNA_SECRET;
     let chamou = false;
     global.fetch = (...args: Parameters<typeof fetch>) => {
@@ -43,8 +61,24 @@ teste("MUTAÇÃO-ALVO: dispararTranscricaoAssincrona é fail-closed sem o segred
     dispararTranscricaoAssincrona("wamid.QUALQUER");
     await new Promise((r) => setTimeout(r, 20));
     verdade(!chamou, "sem o segredo configurado, o disparo chamou fetch mesmo assim — a rota interna recusaria, mas nem deveria tentar");
+    global.fetch = fetchOriginal;
 
-    // 2) COM o segredo: dispara o pedido certo — método, Authorization e corpo.
+    // 2) Ainda SEM o segredo: a rota interna de verdade (chamando o handler HTTP exportado)
+    // recusa qualquer Authorization — inclusive o bypass exato que existiria se a checagem
+    // explícita `if (!segredo) return 401` sumisse e sobrasse só a comparação por
+    // timingSafeEqual: `segredo` undefined vira `Bearer ${undefined}` = "Bearer undefined", uma
+    // string de 16 caracteres que bate EXATAMENTE, em tamanho e conteúdo, com o Authorization
+    // "Bearer undefined" que um atacante pode mandar de propósito — testar só "Bearer
+    // qualquer-coisa" não pega isso, porque por acaso os tamanhos diferem e `a.length !==
+    // b.length` barra antes por outro motivo.
+    igual(await chamarRotaProcessar({ authorization: "Bearer qualquer-coisa" }), 401, "sem o segredo configurado, com um Authorization qualquer: ");
+    igual(
+      await chamarRotaProcessar({ authorization: "Bearer undefined" }),
+      401,
+      "sem o segredo configurado, mandando literalmente 'Bearer undefined' (o bypass exato se a checagem explícita sumir): ",
+    );
+
+    // 3) COM o segredo: o disparo manda o pedido certo — método, Authorization e corpo.
     process.env.TRANSCRICAO_INTERNA_SECRET = "segredo-de-teste-123";
     let pedido: { url: string; opcoes: RequestInit } | null = null;
     // @ts-expect-error -- espião de teste
@@ -61,6 +95,12 @@ teste("MUTAÇÃO-ALVO: dispararTranscricaoAssincrona é fail-closed sem o segred
     const headers = p.opcoes.headers as Record<string, string>;
     igual(headers.authorization, "Bearer segredo-de-teste-123");
     igual(JSON.parse(String(p.opcoes.body)), { waMessageId: "wamid.ABC123" });
+    global.fetch = fetchOriginal;
+
+    // 4) Ainda COM o segredo certo: a rota interna de verdade recusa segredo errado e ausência de
+    // Authorization.
+    igual(await chamarRotaProcessar({ authorization: "Bearer segredo-errado" }), 401, "com o segredo errado: ");
+    igual(await chamarRotaProcessar({}), 401, "sem cabeçalho Authorization nenhum: ");
   } finally {
     global.fetch = fetchOriginal;
     if (original === undefined) delete process.env.TRANSCRICAO_INTERNA_SECRET;
@@ -133,35 +173,9 @@ teste("MUTAÇÃO-ALVO: varrerTranscricoesPendentes só pega o que está PENDENTE
 });
 
 // ── 4. Fail-closed das duas rotas HTTP (só a parte que NÃO toca o banco) ───────────────────
-
-async function chamarRotaProcessar(headers: Record<string, string>): Promise<number> {
-  const { POST } = await import("@/app/api/transcricao/processar/route");
-  const { NextRequest } = await import("next/server");
-  const req = new NextRequest("http://localhost/api/transcricao/processar", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ waMessageId: "wamid.NUNCA-CHEGA-A-EXISTIR" }),
-  });
-  const res = await POST(req);
-  return res.status;
-}
-
-// OS TRÊS CENÁRIOS ABAIXO FICAM NUM TESTE SÓ, PELO MESMO MOTIVO do disparo: mutam a MESMA
-// variável de ambiente global, e `teste()` roda todos os corpos em paralelo.
-teste("MUTAÇÃO-ALVO: a rota interna recusa (401) — sem segredo configurado, com segredo errado, e sem Authorization", async () => {
-  const original = process.env.TRANSCRICAO_INTERNA_SECRET;
-  try {
-    delete process.env.TRANSCRICAO_INTERNA_SECRET;
-    igual(await chamarRotaProcessar({ authorization: "Bearer qualquer-coisa" }), 401, "sem o segredo configurado, mesmo com um Authorization qualquer: ");
-
-    process.env.TRANSCRICAO_INTERNA_SECRET = "segredo-certo";
-    igual(await chamarRotaProcessar({ authorization: "Bearer segredo-errado" }), 401, "com o segredo errado: ");
-    igual(await chamarRotaProcessar({}), 401, "sem cabeçalho Authorization nenhum: ");
-  } finally {
-    if (original === undefined) delete process.env.TRANSCRICAO_INTERNA_SECRET;
-    else process.env.TRANSCRICAO_INTERNA_SECRET = original;
-  }
-});
+//
+// `chamarRotaProcessar` está definida lá em cima, perto do teste que a usa (item 1) — os 401 da
+// rota interna precisam rodar NA MESMA sequência que o disparo, pelo motivo explicado lá.
 
 teste("MUTAÇÃO-ALVO: a rota interna usa comparação em tempo constante (timingSafeEqual), não `===`", () => {
   // Comparar segredo por `===` vaza quanto do prefixo bate através do tempo de resposta — pouco
