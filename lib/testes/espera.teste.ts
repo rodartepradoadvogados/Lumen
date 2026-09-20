@@ -1,6 +1,14 @@
 import { readFileSync } from "node:fs";
 import { teste, igual, verdade, resumo } from "./executar";
-import { rotuloDaEspera, ordenarPorEspera, procedencia, nomeDaLinha, type QuemEspera } from "@/lib/esperaDoAtendimento";
+import {
+  rotuloDaEspera,
+  ordenarPorEspera,
+  procedencia,
+  nomeDaLinha,
+  rotuloDaVolta,
+  comQuemEsta,
+  type QuemEspera,
+} from "@/lib/esperaDoAtendimento";
 
 // ============================================================================
 // QUEM ESTÁ ESPERANDO RESPOSTA.
@@ -18,6 +26,8 @@ const linha = (p: Partial<QuemEspera> & { id: string }): QuemEspera => ({
   campanha: null,
   responsavel: null,
   meu: false,
+  prazoISO: null,
+  voltaDaFila: 1,
   ...p,
 });
 
@@ -117,6 +127,32 @@ teste("número no lugar do nome é escrito como número", () => {
 teste("sem nome e sem telefone, a linha ainda diz alguma coisa", () => {
   igual(nomeDaLinha(null, null), "Sem nome");
   igual(nomeDaLinha("   ", ""), "Sem nome");
+});
+
+// ── A FILA DA TRIAGEM ───────────────────────────────────────────────────────
+
+teste("a volta da fila é contada a partir de quem já teve a vez", () => {
+  igual(rotuloDaVolta(1), "1ª vez na fila");
+  igual(rotuloDaVolta(3), "3ª vez na fila");
+  // Zero e negativo não existem — mas se um `filaJaTentou` torto produzisse um, "0ª vez na fila"
+  // seria uma frase que não quer dizer nada numa tela que alguém lê às onze da noite.
+  igual(rotuloDaVolta(0), "1ª vez na fila");
+  igual(rotuloDaVolta(-2), "1ª vez na fila");
+});
+
+teste("lead sem responsável está com a RECEPÇÃO, não com ninguém", () => {
+  // "sem responsável" faria a fila parecer abandonada quando ela está exatamente onde deveria: o
+  // que chega sem dono é da recepção, que é quem atende o que chega sem dono.
+  igual(comQuemEsta(linha({ id: "1", responsavel: null })), "Recepção");
+  igual(comQuemEsta(linha({ id: "2", responsavel: "Rodrigo Prado" })), "Rodrigo Prado");
+});
+
+teste("a fila da Triagem só mostra quem de fato está esperando", () => {
+  // Um lead respondido não é fila: se ele entrasse, a contagem do cabeçalho ("3 leads") mentiria e
+  // a tela mandaria alguém correr atrás de conversa que já foi atendida.
+  const fonte = readFileSync("app/(app)/atendimento/funil/page.tsx", "utf8");
+  verdade(fonte.includes("filter((q) => q.esperandoHa !== null)"), "a Triagem não separa quem está esperando");
+  verdade(fonte.includes("veTodoOAtendimento(viewer)"), "a Triagem perdeu o gate de nível total");
 });
 
 // ── AS PORTAS ───────────────────────────────────────────────────────────────

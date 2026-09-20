@@ -22,10 +22,17 @@ import { estadoDoRelogio, tituloDoRelogio, detalheDoRelogio } from "@/lib/relogi
 export default function RelogioDoAtendimento({
   prazoISO,
   compacto = false,
+  apenasDetalhe = false,
 }: {
   prazoISO: string | null;
   /** Uma linha só, para o telefone — onde cada linha do cabeçalho é uma linha a menos de conversa. */
   compacto?: boolean;
+  /**
+   * Só a linha de baixo ("volta para a fila em 4"), sem moldura nem ícone. É o que a fila da
+   * Triagem precisa: o tempo decorrido já está escrito ao lado, em coluna própria, e repetir a
+   * moldura do chip em cada uma das linhas da tabela encheria a tela de caixas.
+   */
+  apenasDetalhe?: boolean;
 }) {
   const prazo = prazoISO ? new Date(prazoISO) : null;
   const [agora, setAgora] = useState<Date | null>(null);
@@ -50,6 +57,8 @@ export default function RelogioDoAtendimento({
 
   const grave = estado.tipo === "estourado" || (estado.tipo === "correndo" && estado.faltam <= 5);
   const cor = grave ? "text-marca-tx" : "text-tx-2";
+
+  if (apenasDetalhe) return <>{detalheDoRelogio(estado)}</>;
 
   const moldura = grave ? "border-marca-tx/30 bg-marca-tx/[0.08]" : "border-regua bg-sf-apoio";
 

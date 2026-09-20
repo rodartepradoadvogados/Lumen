@@ -8,6 +8,8 @@ import FunnelStageSelect from "@/components/FunnelStageSelect";
 import { stageLabels } from "@/lib/funil";
 import { List } from "lucide-react";
 import { veTodoOAtendimento } from "@/lib/acessoAtendimento";
+import { quemEstaEsperando } from "@/lib/esperaDoAtendimento";
+import FilaDeEspera from "@/components/atendimento/FilaDeEspera";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +59,19 @@ export default async function FunilPage() {
 
   const now = new Date();
 
+  // ── QUEM ESTÁ ESPERANDO, E O EXPEDIENTE QUE GOVERNA O RELÓGIO ─────────────
+  // Esta tela é só de quem vê o escritório inteiro (ver o gate acima), então a fila vem sem
+  // recorte por dono — de propósito: quem organiza a captação precisa enxergar a fila toda, e é
+  // isso que ele está autorizado a ver.
+  const [fila, cfg] = await Promise.all([
+    quemEstaEsperando(viewer.officeId, {}, viewer.id, now, 50),
+    prisma.whatsappConfig.findUnique({
+      where: { officeId: viewer.officeId },
+      select: { expedienteInicio: true, expedienteFim: true },
+    }),
+  ]);
+  const esperando = fila.lista.filter((q) => q.esperandoHa !== null);
+
   const byStage: Record<string, typeof attendances> = {};
   for (const s of STAGES) byStage[s] = [];
   for (const a of attendances) {
@@ -77,8 +92,8 @@ export default async function FunilPage() {
   return (
     <div className="tela">
       <PageHeader
-        title="Funil Comercial"
-        subtitle="Acompanhamento da captação de novos clientes por estágio"
+        title="Triagem"
+        subtitle="Primeiro o que tem relógio correndo. Depois o funil, que é do ritmo da semana."
         action={
           <Link
             href="/atendimento"
@@ -89,15 +104,26 @@ export default async function FunilPage() {
         }
       />
 
-      <div className="mb-4">
+      <FilaDeEspera
+        lista={esperando}
+        expediente={cfg ? { inicio: cfg.expedienteInicio, fim: cfg.expedienteFim } : null}
+      />
+
+      {/* O FUNIL RECUA A RÓTULO DE SEÇÃO. Ele continua inteiro, com as mesmas cinco colunas e o
+          mesmo arrastar — o que muda é o peso: um título de página anunciando o funil dizia que a
+          tela era sobre o ritmo da semana, quando o que estoura nela é o relógio de quinze
+          minutos. A taxa de conversão vem junto, na mesma linha, porque é leitura do funil. */}
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-etiqueta font-bold uppercase tracking-wider text-tx-3">Funil comercial</h2>
+        <span className="text-xs text-tx-3">
+          arraste entre as colunas — o estágio continua sendo movido por você, nunca pelo sistema
+        </span>
         {conversionRate !== null && (
-          <p className="text-sm text-tx-2">
-            Taxa de conversão:{" "}
-            <span className="font-semibold text-concluido tabular-nums">{conversionRate.toFixed(0)}%</span>{" "}
-            <span className="text-xs text-tx-3">
-              ({closed} fechado(s) de {closed + lost} decididos)
-            </span>
-          </p>
+          <span className="ml-auto text-xs text-tx-3">
+            Taxa de conversão{" "}
+            <span className="font-semibold tabular-nums text-concluido">{conversionRate.toFixed(0)}%</span> ({closed} de{" "}
+            {closed + lost} decididos)
+          </span>
         )}
       </div>
 

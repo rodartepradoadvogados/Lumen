@@ -72,7 +72,10 @@ export const RAIL_SECTIONS: SectionDef[] = [
     items: [
       { href: "/publicacoes", label: "Publicações" },
       { href: "/atendimento", label: "Atendimentos", moduleKey: "atendimento", atendimentoOnly: true },
-      { href: "/atendimento/funil", label: "Funil comercial", moduleKey: "atendimento", atendimentoTotal: true },
+      // A rota continua /funil (marcar página de novo por causa de um rótulo seria trocar seis por
+      // meia dúzia), mas a tela passou a ser a Triagem: a fila de quem espera resposta em cima, e
+      // o funil como seção dentro dela.
+      { href: "/atendimento/funil", label: "Triagem", moduleKey: "atendimento", atendimentoTotal: true },
       { href: "/contatos", label: "Contatos" },
     ],
   },
@@ -119,7 +122,7 @@ export const RAIL_SECTIONS: SectionDef[] = [
           { label: "Personalizado", value: "personalizado" },
           { label: "Produtividade", value: "produtividade" },
           { label: "Processos", value: "processos" },
-          { label: "Funil Comercial", value: "funil" },
+          { label: "Triagem", value: "funil" },
           { label: "Publicações", value: "publicacoes" },
           { label: "Financeiro", value: "financeiro", financeOnly: true },
         ],
