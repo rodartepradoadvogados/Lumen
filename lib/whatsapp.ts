@@ -1,10 +1,12 @@
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { enviarTexto as enviarTextoEvolution, FalhaDaEvolution, mesmoNumero } from "@/lib/whatsappEvolution";
+import { enviarTexto as enviarTextoEvolution, FalhaDaEvolution, mesmoNumero, baixarMidiaEvolution } from "@/lib/whatsappEvolution";
 import { casarCampanha } from "@/lib/campanhas";
 import { composePhoneWithDdi } from "@/lib/documentoEnvios";
 import { deveExplicarAoColega, FRASE_AO_COLEGA } from "@/lib/avisoDeLead";
+import { type TipoMidiaWhatsapp, montarNomeArquivoWhatsapp, rotuloDaMidiaWhatsapp } from "@/lib/driveNaming";
+import { getOrCreateAttendanceFolder, uploadFileToDriveFolder } from "@/lib/storageProvider";
 
 // ============================================================================
 // Integração WhatsApp — DOIS provedores, uma porta só para o resto do sistema.
@@ -201,9 +203,23 @@ export function verifySignature(rawBody: string, signatureHeader: string | null)
 // Parsing do webhook de entrada
 // ---------------------------------------------------------------------------
 
+// F5 — MÍDIA DO WHATSAPP. Um dos dois campos é preenchido, nunca os dois — cada mensagem chega por
+// UMA porta só (Meta OU Evolution), e cada porta guarda o identificador que a SUA API de download
+// exige de volta (a Meta baixa por `mediaId`; a Evolution, pela chave da mensagem — remoteJid + id
+// — porque ela não devolve o arquivo dentro do próprio webhook, ver lib/whatsappEvolution.ts).
+export type IncomingMidia = {
+  tipo: TipoMidiaWhatsapp;
+  mimeType: string;
+  /** Nome que o cliente deu ao arquivo — hoje só "documento" costuma trazer isto. */
+  nomeOriginal: string | null;
+  mediaId?: string;
+  evolution?: { remoteJid: string; waMessageId: string };
+};
+
 export type IncomingMessage = {
   fromNumber: string;
   waMessageId: string;
+  /** Corpo de texto (mensagem de texto) ou legenda (mensagem de mídia — "" quando não há legenda). */
   text: string;
   profileName?: string;
   phoneNumberId: string;
@@ -213,6 +229,29 @@ export type IncomingMessage = {
    * hora em que ele nasce.
    */
   anuncio?: { sourceUrl?: string; sourceId?: string; titulo?: string };
+  /** Presente quando a mensagem trouxe imagem/documento/áudio/vídeo (ver extrairMidiaMeta). */
+  midia?: IncomingMidia;
+};
+
+// Um dos quatro campos de mídia que a Meta manda, conforme `message.type` — a forma é a mesma nos
+// quatro (id + mime_type, e document/image/video ainda trazem caption; document também traz
+// filename). Ver https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/payload-examples.
+type MetaMediaField = { id?: string; mime_type?: string; caption?: string; filename?: string };
+
+// UMA mensagem do array `messages` do webhook da Meta — nome próprio (em vez de inline) porque
+// extrairMidiaMeta também recebe este tipo, e o Payload inteiro fica mais simples de ler com ele
+// já nomeado.
+type MetaMessage = {
+  type?: string;
+  from?: string;
+  id?: string;
+  text?: { body?: string };
+  image?: MetaMediaField;
+  video?: MetaMediaField;
+  audio?: MetaMediaField;
+  document?: MetaMediaField;
+  // Click-to-WhatsApp da Meta: a origem vem aqui, e só na primeira mensagem.
+  referral?: { source_url?: string; source_id?: string; headline?: string };
 };
 
 // Forma parcial do payload de webhook da Meta que nos interessa.
@@ -221,14 +260,7 @@ type WebhookPayload = {
     changes?: {
       value?: {
         metadata?: { phone_number_id?: string };
-        messages?: {
-          type?: string;
-          from?: string;
-          id?: string;
-          text?: { body?: string };
-          // Click-to-WhatsApp da Meta: a origem vem aqui, e só na primeira mensagem.
-          referral?: { source_url?: string; source_id?: string; headline?: string };
-        }[];
+        messages?: MetaMessage[];
         contacts?: { profile?: { name?: string } }[];
       };
     }[];
@@ -236,35 +268,101 @@ type WebhookPayload = {
 };
 
 /**
- * Extrai a primeira mensagem de TEXTO processável de um payload de webhook da
- * Meta. Retorna null para qualquer coisa que não seja texto (ex.: eventos de
- * status de entrega, mídias, etc.), sinalizando "nada a fazer".
+ * Lê o bloco de mídia (image/video/audio/document) de UMA mensagem da Meta, pelos QUATRO tipos que
+ * a F5 promete subir pro Drive — os únicos que o pedido do dono cobre. Qualquer outro tipo
+ * (sticker, location, contacts, reaction, interactive, unsupported...) é ignorado de propósito:
+ * cobrir mídia que não foi pedida é mais superfície pra manter sem ganho nenhum. `null` quando o
+ * tipo não é um dos quatro, ou quando o bloco não trouxe o mínimo pra baixar o arquivo (id + MIME).
+ */
+export function extrairMidiaMeta(
+  message: MetaMessage
+): { tipo: TipoMidiaWhatsapp; mimeType: string; legenda: string; nomeOriginal: string | null; mediaId: string } | null {
+  const campo: MetaMediaField | undefined =
+    message?.type === "image"
+      ? message.image
+      : message?.type === "video"
+        ? message.video
+        : message?.type === "audio"
+          ? message.audio
+          : message?.type === "document"
+            ? message.document
+            : undefined;
+  if (!campo?.id || !campo.mime_type) return null;
+
+  const tipo: TipoMidiaWhatsapp =
+    message.type === "image" ? "IMG" : message.type === "video" ? "VID" : message.type === "audio" ? "AUD" : "DOC";
+
+  return { tipo, mimeType: campo.mime_type, legenda: campo.caption || "", nomeOriginal: campo.filename || null, mediaId: campo.id };
+}
+
+/**
+ * Extrai a primeira mensagem processável (texto OU mídia) de um payload de webhook da Meta.
+ * Retorna null para o que não é nenhum dos dois (ex.: eventos de status de entrega, sticker,
+ * localização...), sinalizando "nada a fazer".
  */
 export function parseIncoming(payload: unknown): IncomingMessage | null {
   try {
     const value = (payload as WebhookPayload)?.entry?.[0]?.changes?.[0]?.value;
     const message = value?.messages?.[0];
     if (!message) return null;
-    if (message.type !== "text") return null;
 
-    const text: string | undefined = message.text?.body;
     const fromNumber: string | undefined = message.from;
     const waMessageId: string | undefined = message.id;
     const phoneNumberId: string | undefined = value?.metadata?.phone_number_id;
-    if (!text || !fromNumber || !waMessageId || !phoneNumberId) return null;
+    if (!fromNumber || !waMessageId || !phoneNumberId) return null;
 
     const profileName: string | undefined = value?.contacts?.[0]?.profile?.name;
-
     const ref = message.referral;
     const anuncio =
       ref?.source_url || ref?.source_id
         ? { sourceUrl: ref.source_url, sourceId: ref.source_id, titulo: ref.headline }
         : undefined;
 
-    return { fromNumber, waMessageId, text, profileName, phoneNumberId, anuncio };
+    if (message.type === "text") {
+      const text = message.text?.body;
+      if (!text) return null;
+      return { fromNumber, waMessageId, text, profileName, phoneNumberId, anuncio };
+    }
+
+    const midia = extrairMidiaMeta(message);
+    if (!midia) return null;
+
+    return {
+      fromNumber,
+      waMessageId,
+      text: midia.legenda,
+      profileName,
+      phoneNumberId,
+      anuncio,
+      midia: { tipo: midia.tipo, mimeType: midia.mimeType, nomeOriginal: midia.nomeOriginal, mediaId: midia.mediaId },
+    };
   } catch {
     return null;
   }
+}
+
+const GRAPH_API_BASE = "https://graph.facebook.com";
+
+/**
+ * Baixa o conteúdo de uma mídia da Cloud API da Meta — em DOIS pedidos, porque é assim que a API
+ * funciona: o webhook só traz o `mediaId`; o primeiro pedido troca esse id por uma URL temporária
+ * (poucos minutos de validade — por isso não dá pra guardar essa URL para baixar depois, o download
+ * acontece agora, dentro do mesmo pedido do webhook); o segundo baixa o arquivo de verdade dessa
+ * URL, com o MESMO token de acesso do app.
+ * https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#download-media
+ */
+export async function baixarMidiaMeta(mediaId: string, accessToken: string): Promise<{ buffer: Buffer; mimeType: string }> {
+  const metaRes = await fetch(`${GRAPH_API_BASE}/${GRAPH_API_VERSION}/${mediaId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!metaRes.ok) throw new Error(`Falha ao consultar metadados da mídia na Meta (HTTP ${metaRes.status}).`);
+  const meta = (await metaRes.json()) as { url?: string; mime_type?: string };
+  if (!meta.url) throw new Error("A Meta não devolveu a URL de download da mídia.");
+
+  const fileRes = await fetch(meta.url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!fileRes.ok) throw new Error(`Falha ao baixar a mídia da Meta (HTTP ${fileRes.status}).`);
+  const buffer = Buffer.from(await fileRes.arrayBuffer());
+  return { buffer, mimeType: meta.mime_type || "application/octet-stream" };
 }
 
 // ---------------------------------------------------------------------------
@@ -329,6 +427,7 @@ export async function ingestIncomingWhatsapp({
   profileName,
   phoneNumberId,
   anuncio,
+  midia,
 }: IncomingMessage): Promise<string | null> {
   // Dedupe: reenvio da Meta não deve reprocessar. Devolve nulo também aqui: uma mensagem repetida
   // não pode acionar o atendente de novo, senão o cliente recebe duas respostas iguais.
@@ -383,12 +482,17 @@ export async function ingestIncomingWhatsapp({
     });
   }
 
+  const recebidoEm = new Date();
+
   await prisma.whatsappMessage.create({
     data: {
       officeId,
       attendanceId: attendance.id,
       direction: "IN",
-      body: text,
+      // Mídia não tem como virar texto (WhatsappMessage.body é NOT NULL) — vira um rótulo
+      // ("[imagem]", "[documento: nome.pdf]"...) com a legenda junto, se houver. O arquivo de
+      // verdade mora no Attachment que processarMidiaRecebida cria logo abaixo.
+      body: midia ? rotuloDaMidiaWhatsapp(midia.tipo, text, midia.nomeOriginal) : text,
       waMessageId,
       status: "RECEIVED",
       fromNumber,
@@ -400,6 +504,18 @@ export async function ingestIncomingWhatsapp({
     data: { waLastMessageAt: new Date() },
   });
 
+  // F5 — MÍDIA DO WHATSAPP NO DRIVE. Sobe AGORA, no mesmo pedido do webhook, e não numa fila:
+  // a URL de mídia da Meta expira em minutos, e a Evolution só guarda o arquivo por um tempo
+  // curto — adiar para depois seria arriscar não ter mais o arquivo pra baixar quando a fila
+  // rodasse. Nunca lança: a mensagem já ficou registrada acima (o cliente não perde o rastro da
+  // conversa), então uma falha aqui vira log, não erro que derruba o webhook nem impede o
+  // atendente de responder.
+  if (midia) {
+    await processarMidiaRecebida(officeId, attendance.id, attendance.subject, waMessageId, midia, recebidoEm).catch((e) => {
+      console.error(`[whatsapp] falha ao subir a mídia da mensagem ${waMessageId} para o Drive:`, e);
+    });
+  }
+
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${attendance.id}`);
 
@@ -407,4 +523,60 @@ export async function ingestIncomingWhatsapp({
   // responder NÃO é tomada aqui: guardar a mensagem e responder a ela são trabalhos diferentes,
   // e o primeiro tem que acontecer mesmo quando o segundo falha.
   return attendance.id;
+}
+
+/**
+ * F5 — baixa a mídia (na porta certa, conforme onde ela chegou) e sobe pro Drive/OneDrive/Dropbox
+ * do escritório, na pasta do PRÓPRIO atendimento — criada agora, se ainda não existir, mesmo que o
+ * atendimento acabou de nascer (item 3 do pedido: a pasta nasce desde o início da conversa, não só
+ * quando o lead vira cliente/processo; item 4 — a pasta ser RENOMEADA quando ele deixa de ser só um
+ * lead — já é o que convertAttendanceToCase, em lib/actions/attendance.ts, faz com QUALQUER pasta
+ * de atendimento que já exista, sem saber nem precisar saber como ela nasceu).
+ */
+async function processarMidiaRecebida(
+  officeId: string,
+  attendanceId: string,
+  subject: string,
+  waMessageId: string,
+  midia: IncomingMidia,
+  recebidoEm: Date
+): Promise<void> {
+  const config = await prisma.whatsappConfig.findUnique({ where: { officeId } });
+  if (!config) return; // não deveria acontecer — a mensagem só chegou porque este config existe
+
+  let baixado: { buffer: Buffer; mimeType: string };
+  if (config.provider === "EVOLUTION") {
+    if (!config.baseUrl || !config.apiKey || !midia.evolution) return;
+    baixado = await baixarMidiaEvolution({ baseUrl: config.baseUrl, apiKey: config.apiKey, instancia: config.phoneNumberId }, midia.evolution);
+  } else {
+    if (!midia.mediaId) return;
+    baixado = await baixarMidiaMeta(midia.mediaId, config.accessToken);
+  }
+
+  const nomeArquivo = montarNomeArquivoWhatsapp({
+    recebidoEm,
+    // O MIME devolvido no DOWNLOAD é a fonte mais confiável (vem do arquivo de verdade); o do
+    // webhook é só um aviso prévio — os dois quase sempre batem, mas o download manda quando
+    // divergirem.
+    mimeType: baixado.mimeType || midia.mimeType,
+    waMessageId,
+    nomeOriginal: midia.nomeOriginal,
+  });
+
+  const folderId = await getOrCreateAttendanceFolder(attendanceId, subject, officeId);
+  const upload = await uploadFileToDriveFolder(nomeArquivo, baixado.mimeType || midia.mimeType, baixado.buffer, folderId, officeId);
+
+  await prisma.attachment.create({
+    data: {
+      officeId,
+      attendanceId,
+      name: nomeArquivo,
+      driveUrl: upload.webViewLink,
+      docType: "MIDIA_WHATSAPP",
+      storageProvider: upload.storageProvider,
+      storageFileId: upload.id,
+    },
+  });
+
+  revalidatePath(`/atendimento/${attendanceId}`);
 }

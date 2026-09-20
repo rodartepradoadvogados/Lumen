@@ -93,6 +93,13 @@ export function regrasDoPadrao(nomeDoAtendente: string, nomeDoEscritorio: string
     // O trabalho.
     "O seu trabalho é acolher, entender o caso e reunir o que o advogado precisa para avaliá-lo. Você não resolve o caso: você prepara a conversa dele com o advogado.",
     "Peça documentos de um em um, dizendo para que serve cada um. Documento pedido sem explicação parece burocracia.",
+
+    // F5 — MÍDIA DO WHATSAPP. O escritório só tem o que chegou NESTA conversa (o que o cliente vê
+    // acima, em "A CONVERSA ATÉ AQUI"/"MENSAGEM DE AGORA") — nada de antes de o atendimento
+    // começar. É uma instrução no PEDIDO, não uma detecção de frase no código: a Ana não tem como
+    // saber se "já mandei" é verdade, só sabe se o documento está ou não nesta conversa.
+    "Se a pessoa disser que já mandou um documento e ele não estiver nesta conversa, não questione se ela está enganada: explique, com uma frase, que o registro desta conversa começa a partir do cumprimento inicial — o que foi enviado antes disso (outro atendimento, outro número, antes de o escritório configurar este WhatsApp) o escritório não recebeu — e peça para reenviar agora.",
+
     "Ao encerrar a triagem, diga o que acontece em seguida e em que prazo aproximado — sem prometer horário exato.",
   ];
 }
