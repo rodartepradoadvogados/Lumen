@@ -213,6 +213,38 @@ export function lerDecisaoDaAna(resposta: string): DecisaoDaAna {
   return { texto, gatilho, recusa, proposta, aguardarDocumento };
 }
 
+// ============================================================================
+// O PEDIDO TEM TETO, E O TETO NÃO É NOSSO — É DO SERVIDOR DO HERMES.
+//
+// `servidor-hermes/servidor.py` recusa com HTTP 400 ("mensagem ausente ou longa demais") qualquer
+// pergunta acima de PERGUNTA_MAXIMA (8000 caracteres). O pedido montado aqui vinha crescendo a cada
+// camada nova e passou desse número quando os parâmetros de recusa entraram: o pedido base tinha
+// 7587 caracteres e o bloco de parâmetros acrescenta 556 em TODA conversa, inclusive na de um
+// escritório que não configurou critério nenhum.
+//
+// O QUE ISSO CAUSOU EM PRODUÇÃO, e é o motivo de este teto existir: a Ana parou de responder no
+// WhatsApp. Não deu erro de tela, não caiu nenhuma página, nenhum alerta soou — o webhook recebia a
+// mensagem, gravava tudo direitinho, e a resposta simplesmente não saía. O escritório teria
+// descoberto pelo cliente reclamando que ninguém respondeu.
+//
+// A ORDEM DO QUE SE CORTA É REGRA DE SEGURANÇA, não de economia:
+//   1. o HISTÓRICO VELHO, das mensagens mais antigas para as mais novas, até sobrarem as duas
+//      últimas — contexto velho é o que menos falta;
+//   2. o CONHECIMENTO GERAL (a lista de áreas do escritório) — ajuda a conversar, mas não protege
+//      ninguém, e vale menos que as duas últimas coisas que a pessoa disse;
+//   3. só então o resto do histórico.
+// A ordem entre 2 e 3 não é detalhe: a primeira versão deste corte jogava fora a conversa INTEIRA
+// antes de abrir mão da lista genérica de áreas, e a Ana respondia sem saber o que tinha acabado de
+// ser dito. O teste em lib/testes/limiteDoPedido.teste.ts trava isso.
+// NUNCA se corta: os LIMITES DUROS, a instrução do escritório, os parâmetros de recusa e a mensagem
+// de agora. São o que impede a Ana de prometer resultado, de fechar contrato e de recusar um caso
+// fora do contorno — cortar isso para caber seria economizar exatamente na parte que não pode
+// faltar.
+// ============================================================================
+
+/** Folga proposital sob o teto do Hermes: a conta do lado de lá conta caracteres, não a nossa. */
+export const LIMITE_DA_PERGUNTA = 7_500;
+
 export function montarPergunta(entrada: {
   nomeDoAtendente: string;
   nomeDoEscritorio: string;
@@ -225,6 +257,36 @@ export function montarPergunta(entrada: {
   historico: { de: "cliente" | "escritorio"; texto: string }[];
   mensagem: string;
 }): string {
+  // Monta uma vez com tudo; se estourar, remonta cortando na ordem acima. Remontar é barato (é
+  // concatenação de texto) e deixa a regra de corte num lugar só, em vez de espalhada em `if`s.
+  const total = entrada.historico.length;
+  const ultimas = (quantas: number) => entrada.historico.slice(Math.max(0, total - quantas));
+
+  // Piso do histórico enquanto o conhecimento geral ainda está na mesa: as duas últimas falas.
+  const PISO_DO_HISTORICO = 2;
+  const tentativas: { historico: { de: "cliente" | "escritorio"; texto: string }[]; semConhecimentoGeral: boolean }[] = [];
+  for (let n = total; n >= Math.min(PISO_DO_HISTORICO, total); n--) {
+    tentativas.push({ historico: ultimas(n), semConhecimentoGeral: false });
+  }
+  for (let n = total; n >= 0; n--) {
+    tentativas.push({ historico: ultimas(n), semConhecimentoGeral: true });
+  }
+
+  for (const corte of tentativas) {
+    const tentativa = montarUmaVez(entrada, corte);
+    if (tentativa.length <= LIMITE_DA_PERGUNTA) return tentativa;
+  }
+
+  // Estourou até sem histórico e sem conhecimento geral: o que sobrou é tudo inegociável. Manda
+  // assim mesmo — é melhor o Hermes recusar e isso virar erro visível do que a gente cortar em
+  // silêncio um limite duro para caber.
+  return montarUmaVez(entrada, { historico: [], semConhecimentoGeral: true });
+}
+
+function montarUmaVez(
+  entrada: Parameters<typeof montarPergunta>[0],
+  corte: { historico: { de: "cliente" | "escritorio"; texto: string }[]; semConhecimentoGeral: boolean },
+): string {
   const partes: string[] = [];
 
   partes.push(...regrasDoPadrao(entrada.nomeDoAtendente, entrada.nomeDoEscritorio));
@@ -247,7 +309,7 @@ export function montarPergunta(entrada: {
 
   if (entrada.campanha?.trim()) {
     partes.push("\nESTA CONVERSA VEIO DE UM ANÚNCIO, e o assunto dela é só este:", entrada.campanha.trim());
-  } else {
+  } else if (!corte.semConhecimentoGeral) {
     partes.push("", ...conhecimentoGeral());
   }
 
@@ -266,9 +328,9 @@ export function montarPergunta(entrada: {
     partes.push("\nSe algo acima conflitar com 'O QUE VOCÊ NUNCA FAZ', vale o 'NUNCA'.");
   }
 
-  if (entrada.historico.length > 0) {
+  if (corte.historico.length > 0) {
     partes.push("\nA CONVERSA ATÉ AQUI:");
-    for (const m of entrada.historico) {
+    for (const m of corte.historico) {
       partes.push(`${m.de === "cliente" ? entrada.nomeDoCliente : entrada.nomeDoAtendente}: ${m.texto}`);
     }
   }
