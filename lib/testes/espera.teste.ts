@@ -8,7 +8,7 @@ import {
   rotuloDaVolta,
   comQuemEsta,
   type QuemEspera,
-} from "@/lib/esperaDoAtendimento";
+} from "@/lib/rotulosDaEspera";
 
 // ============================================================================
 // QUEM ESTÁ ESPERANDO RESPOSTA.
@@ -156,6 +156,26 @@ teste("a fila da Triagem só mostra quem de fato está esperando", () => {
 });
 
 // ── AS PORTAS ───────────────────────────────────────────────────────────────
+
+teste("o que a tela do navegador lê não arrasta o banco junto", () => {
+  // O build quebrou por isto: o sino é componente de CLIENTE e precisa do rótulo da espera;
+  // enquanto o rótulo morava ao lado da consulta, importá-lo arrastava `@/lib/prisma` para o
+  // pacote do navegador. A separação é a correção, e este teste é o que impede a volta.
+  // A varredura olha as linhas de IMPORT, e não o texto do arquivo: a nota acima cita
+  // `@/lib/prisma` de propósito, e um teste que casasse com a menção acusaria o próprio comentário
+  // que explica a regra.
+  const importes = (caminho: string) =>
+    readFileSync(caminho, "utf8")
+      .split("\n")
+      .filter((l) => /^\s*import\b/.test(l))
+      .join("\n");
+  const puro = importes("lib/rotulosDaEspera.ts");
+  verdade(!puro.includes("@/lib/prisma"), "o módulo puro voltou a importar o banco");
+  verdade(!puro.includes("next/headers"), "o módulo puro voltou a importar next/headers");
+  for (const cliente of ["components/atendimento/FilaDeEspera.tsx", "components/mobile/MobileAtendimentosCard.tsx", "lib/leadNoSino.ts"]) {
+    verdade(!importes(cliente).includes("@/lib/esperaDoAtendimento"), `${cliente} importa o módulo que fala com o banco`);
+  }
+});
 
 teste("a fila é buscada com o recorte por dono dentro da consulta", () => {
   // Um advogado da escala não pode trazer para a memória do servidor a conversa do colega — nem

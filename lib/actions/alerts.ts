@@ -72,6 +72,12 @@ export type AlertaPrevia = {
   date: string;
   href: string;
   severity: "alta" | "media" | "baixa";
+  // Só os avisos de lead trazem o que segue — é o que dá a eles forma própria no sino
+  // (ver lib/leadNoSino.ts e components/SinoAlertas.tsx).
+  resumo?: string;
+  esperandoHa?: number;
+  gatilho?: string;
+  meu?: boolean;
 };
 
 export async function listarPreviaAlertas(): Promise<AlertaPrevia[]> {
@@ -87,5 +93,9 @@ export async function listarPreviaAlertas(): Promise<AlertaPrevia[]> {
     date: a.date.toISOString(),
     href: a.href,
     severity: a.severity,
+    resumo: a.resumo,
+    esperandoHa: a.esperandoHa,
+    gatilho: a.gatilho,
+    meu: a.meu,
   }));
 }

@@ -1,6 +1,6 @@
 import {
   AlertTriangle, Wallet, AtSign, CalendarClock, Gavel, PhoneCall, UserPlus,
-  FolderSync, ClipboardList, AlarmClock, Bell, type LucideIcon,
+  FolderSync, ClipboardList, AlarmClock, Bell, MessageSquare, PhoneOff, type LucideIcon,
 } from "lucide-react";
 import type { AlertItem } from "@/lib/alerts";
 
@@ -28,6 +28,8 @@ export const ALERT_KIND_META: Record<AlertItem["kind"], { label: string; icon: L
   HONORARIO_APURAR_PARADO: { label: "Honorário a Apurar — Parado", icon: Gavel },
   PENDENCIA_ATENDIMENTO_VENCIDA: { label: "Pendência do Atendimento", icon: ClipboardList },
   RESPOSTA_PRAZO_ESTOURADO: { label: "Prazo de Resposta Estourado", icon: AlarmClock },
+  LEAD_TRANSFERIDO: { label: "Lead novo", icon: MessageSquare },
+  LEAD_SEM_RESPOSTA: { label: "Lead sem atendimento", icon: PhoneOff },
 };
 
 const PADRAO = { label: "Alerta", icon: Bell } as const;
