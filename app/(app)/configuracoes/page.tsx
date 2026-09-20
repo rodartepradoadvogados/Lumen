@@ -36,6 +36,9 @@ import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
 import OfficeBillingSummary from "@/components/OfficeBillingSummary";
 import { PASTA_MAE_PADRAO, PREFIXO_PADRAO } from "@/lib/driveNaming";
 import MotivosDeRecusaPanel from "@/components/atendimento/MotivosDeRecusaPanel";
+import ParametrosDaAnaPanel from "@/components/atendimento/ParametrosDaAnaPanel";
+import { lerParametros } from "@/lib/actions/parametrosDaAna";
+import { DIAS_PARA_O_DOCUMENTO_PADRAO } from "@/lib/parametrosDaAna";
 import { motivosDoEscritorio } from "@/lib/motivosDeRecusa";
 
 export const dynamic = "force-dynamic";
@@ -288,6 +291,13 @@ export default async function ConfiguracoesPage({
           viewer.officeId,
         )
       : [];
+
+  // Os parâmetros que dizem quando a Ana pode encerrar sozinha (ver lib/parametrosDaAna.ts). Mesma
+  // regra do catálogo acima: só lidos quando a seção existe.
+  const parametrosDaAna =
+    isAdmin && modules.atendimento
+      ? await lerParametros(viewer.officeId)
+      : { valorMinimoDaCausa: null, diasParaODocumento: DIAS_PARA_O_DOCUMENTO_PADRAO, criterios: [] };
 
   const availableSecoes = SECOES.filter((s) => {
     const allowed = s.requires === "none" ? true : isAdmin;
@@ -805,6 +815,18 @@ export default async function ConfiguracoesPage({
           />
           <div className="p-5">
             <MotivosDeRecusaPanel motivos={motivosDoCatalogo} podeEditar={isAdmin} />
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "atendimento" && (
+        <Card>
+          <CardHeader
+            title="Quando a atendente recusa sozinha"
+            subtitle="O contorno do escritório: a matéria que ele não faz, a comarca fora do alcance e o valor mínimo. Fora disso, ela não encerra — propõe"
+          />
+          <div className="p-5">
+            <ParametrosDaAnaPanel parametros={parametrosDaAna} podeEditar={isAdmin} />
           </div>
         </Card>
       )}

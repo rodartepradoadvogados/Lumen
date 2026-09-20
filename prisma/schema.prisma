@@ -256,6 +256,10 @@ model Office {
   campanhas        Campanha[]
   motivosDeRecusa  MotivoDeRecusa[]
   recusas          RecusaDeAtendimento[]
+
+  // Os parâmetros que dizem QUANDO a Ana pode recusar sozinha — ver lib/parametrosDaAna.ts.
+  parametrosDeRecusa ParametrosDeRecusa?
+  criteriosDeRecusa  CriterioDeRecusa[]
 }
 
 // Catálogo de planos (Painel Mestre → Preços) — 5 linhas fixas (Standard/Silver/Gold/Diamond/Sob
@@ -319,7 +323,7 @@ model User {
   //
   // A POSIÇÃO NA FILA É `createdAt`: ordem de cadastro, como o dono definiu — quem entra depois
   // vai para o fim, sem ninguém ter que renumerar nada.
-  recebeTransferencia Boolean  @default(false)
+  recebeTransferencia Boolean @default(false)
 
   // Quando esta pessoa recebeu, pela última vez, a frase automática explicando que o número do
   // atendimento não conversa com o escritório (ver lib/avisoDeLead.ts: FRASE_AO_COLEGA). Existe
@@ -328,9 +332,9 @@ model User {
   // coisa a cada mensagem, ou cala para sempre e quem escrever daqui a seis meses conclui que o
   // número quebrou.
   avisoAutomaticoEm DateTime?
-  financeAccess       Boolean  @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
-  active              Boolean  @default(true)
-  createdAt           DateTime @default(now())
+  financeAccess     Boolean   @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
+  active            Boolean   @default(true)
+  createdAt         DateTime  @default(now())
 
   // Dono(a) da PLATAFORMA Lúmen (Jairo e Rodrigo) — nada a ver com isAdmin (que é por
   // escritório). Só quem tem isPlatformOwner=true enxerga e acessa /painel-mestre, e só esse
@@ -385,9 +389,9 @@ model User {
   mentions                    Mention[]
   publicationReads            PublicationRead[]
   attendances                 Attendance[]            @relation("AttendanceResponsible")
-  recusasQueFez               RecusaDeAtendimento[]  @relation("RecusaAutor")
-  recusasQueReverteu          RecusaDeAtendimento[]  @relation("RecusaRevisor")
-  recusasQueArquivou          RecusaDeAtendimento[]  @relation("RecusaArquivista")
+  recusasQueFez               RecusaDeAtendimento[]   @relation("RecusaAutor")
+  recusasQueReverteu          RecusaDeAtendimento[]   @relation("RecusaRevisor")
+  recusasQueArquivou          RecusaDeAtendimento[]   @relation("RecusaArquivista")
   attachments                 Attachment[]
   documentTemplates           DocumentTemplate[]
   deletionRequested           DeletionRequest[]       @relation("DeletionRequestedBy")
@@ -1189,8 +1193,8 @@ model Attendance {
   // A VOLTA FECHOU e ninguém atendeu. Carimbado uma vez só, e é o que faz o repasse parar de
   // tentar: sem ele o cron giraria o mesmo lead para sempre, avisando todo mundo a cada rodada.
   semRespostaEm DateTime?
-  notes          String?
-  createdAt      DateTime  @default(now())
+  notes         String?
+  createdAt     DateTime  @default(now())
 
   // Funil comercial (CRM de captação) — eixo independente do status operacional acima
   stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO
@@ -1864,8 +1868,8 @@ model MotivoDeRecusa {
   office   Office? @relation(fields: [officeId], references: [id], onDelete: Cascade)
 
   // Preenchido só na camada do escritório, quando ela é a versão dele de um padrão.
-  baseId String?
-  base   MotivoDeRecusa?  @relation("MotivoBase", fields: [baseId], references: [id], onDelete: Cascade)
+  baseId  String?
+  base    MotivoDeRecusa?  @relation("MotivoBase", fields: [baseId], references: [id], onDelete: Cascade)
   versoes MotivoDeRecusa[] @relation("MotivoBase")
 
   // A frase que vai para a carta que o lead lê. Uma frase, não um parágrafo.
@@ -1882,6 +1886,64 @@ model MotivoDeRecusa {
 
   @@index([officeId])
   @@index([baseId])
+}
+
+// ── OS PARÂMETROS DE RECUSA DA ANA ────────────────────────────────────────────────────────────
+//
+// Quatro eixos, e eles NÃO são quatro coisas iguais. Três desenham o CONTORNO DO ESCRITÓRIO —
+// matéria que ele não aceita, comarca fora do alcance, valor de causa abaixo do mínimo — e são
+// fatos que não dependem do mérito de caso nenhum: ou a causa é trabalhista e o escritório não faz
+// trabalhista, ou não é. É por isso que a Ana pode encerrar sozinha quando bate num deles, e é o
+// único lugar onde ela encerra sozinha.
+//
+// O QUARTO NÃO É RECUSA. Documento que falta é ESPERA COM DATA: o escritório não está dizendo não,
+// está dizendo "sem isto eu não consigo olhar". Tratar falta de documento como recusa transformaria
+// em "não" definitivo o que é só um "ainda não" — e o lead que ia mandar a carteira de trabalho na
+// segunda receberia uma carta de recusa no domingo.
+//
+// FORA DO CASO ÓBVIO, A ANA SÓ PROPÕE. Se o caso não bate exatamente num dos três contornos, ela
+// não encerra: transfere com a proposta anotada, e quem decide é gente. A regra inteira, com os
+// porquês e os testes, está em lib/parametrosDaAna.ts.
+//
+// E NADA DISTO REVOGA OS LIMITES DUROS (lib/agenteAtendimento.ts): a Ana não discute mérito e não
+// promete resultado nem para recusar. "O escritório não atua nesta matéria" é contorno; "o seu caso
+// não tem chance" é mérito, e ela não diz.
+
+model ParametrosDeRecusa {
+  id String @id @default(cuid())
+
+  officeId String @unique
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // EM CENTAVOS, e nulo quando o escritório não usa este critério — que é diferente de zero. Zero
+  // seria "aceito causa de zero real", e o padrão precisa ser "não tenho piso", senão um escritório
+  // que nunca abriu esta tela passaria a recusar por um valor que ninguém escolheu.
+  valorMinimoDaCausa Int?
+
+  // A ESPERA DO DOCUMENTO, em dias corridos. Corridos e não úteis porque a conta é dita ao cliente
+  // no WhatsApp ("até dia 5") e ninguém conta dia útil de cabeça para conferir uma data que uma
+  // máquina falou.
+  diasParaODocumento Int @default(15)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CriterioDeRecusa {
+  id String @id @default(cuid())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // MATERIA | COMARCA | DOCUMENTO. Os três numa tabela só porque são a mesma coisa do ponto de
+  // vista da tela e do banco — uma linha de texto que o escritório acrescenta, edita e remove.
+  eixo  String
+  valor String
+  ordem Int    @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([officeId, eixo])
 }
 
 // ── A RECUSA DE UM LEAD ───────────────────────────────────────────────────────────────────────
