@@ -11,15 +11,13 @@
 //   - Caso TRIADO vai para advogado; GENÉRICO vai para a recepção.
 //   - Sem ninguém na recepção, o genérico vai para os advogados. Nunca para ninguém.
 //   - Só entra quem está marcado. A marca nasce desligada.
-//   - Só entra quem PODE ABRIR o atendimento (ver lib/acessoAtendimento.ts). Entregar a conversa
-//     a quem bate numa tela de acesso negado deixa o lead com dono e sem atendimento.
 //   - Advogado EXTERNO (a tabela `Lawyer`, que é parceiro ou parte adversa) nunca recebe nada.
 //     Não há código para isso aqui porque a fila nem olha aquela tabela — e é assim que se
 //     impede de verdade, e não com um `if`.
 // ============================================================================
 
 /** Os papéis que atendem lead triado. "Sócio" entra: sócio é advogado do escritório. */
-const PAPEIS_ADVOGADO = ["advogado", "sócio", "socio"];
+export const PAPEIS_ADVOGADO = ["advogado", "sócio", "socio"];
 
 /**
  * Os papéis de recepção.
@@ -35,13 +33,6 @@ export type PessoaDaFila = {
   nome: string;
   papel: string;
   ativo: boolean;
-  /**
-   * Sócio administrador. Entra na fila porque ENTRA NA TELA: o Atendimento é restrito a
-   * administradores e à recepção (ver lib/acessoAtendimento.ts), e entregar uma conversa a quem
-   * não consegue abri-la é pior do que não entregar — o lead fica com dono e sem atendimento, e
-   * o relógio de quinze minutos passa a girar em falso.
-   */
-  isAdmin: boolean;
   recebeTransferencia: boolean;
   /** Ordem de cadastro: é a posição na fila. */
   criadoEm: Date;
@@ -74,21 +65,17 @@ function papelNaLista(papel: string, lista: string[]): boolean {
 }
 
 /**
- * Quem está apto, na ordem de cadastro. Inativo e não-marcado ficam de fora — e quem não pode
- * ABRIR o atendimento também.
+ * Quem está apto, na ordem de cadastro. Inativo e não-marcado ficam de fora.
  *
- * A fila de ADVOGADOS exige `isAdmin`, e não é excesso de zelo: desde que o Atendimento passou a
- * ser restrito a administradores e à recepção, um advogado comum marcado para receber
- * transferências receberia a conversa e bateria numa tela de acesso negado. O lead ficaria com
- * dono, sem atendimento, e o relógio de quinze minutos giraria em falso até fechar a volta.
- *
- * A fila de RECEPÇÃO não precisa da mesma exigência: o papel de recepção já dá o acesso.
+ * ADVOGADO NÃO PRECISA SER SÓCIO para entrar aqui — e não precisa nem do Lúmen. Ele recebe a
+ * demanda por WhatsApp e por e-mail e procura o lead por lá; o sistema é o registro, não o
+ * caminho. Estar marcado para receber já lhe dá, no Lúmen, o acesso ao que foi repassado a ele
+ * (ver lib/acessoAtendimento.ts, nível "proprios").
  */
 export function montarFila(pessoas: PessoaDaFila[], tipo: TipoDeFila): PessoaDaFila[] {
   const papeis = tipo === "ADVOGADOS" ? PAPEIS_ADVOGADO : PAPEIS_RECEPCAO;
   return pessoas
     .filter((p) => p.ativo && p.recebeTransferencia && papelNaLista(p.papel, papeis))
-    .filter((p) => (tipo === "ADVOGADOS" ? p.isAdmin : true))
     .sort((a, b) => a.criadoEm.getTime() - b.criadoEm.getTime() || a.id.localeCompare(b.id));
 }
 

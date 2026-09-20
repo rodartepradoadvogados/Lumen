@@ -40,10 +40,12 @@ const STATIC_ACTIONS: { label: string; href: string }[] = [
 export default function GlobalSearch({
   hasFinanceAccess,
   podeAtendimento = false,
+  veTodoAtendimento = false,
   modules,
 }: {
   hasFinanceAccess: boolean;
   podeAtendimento?: boolean;
+  veTodoAtendimento?: boolean;
   modules: OfficeModules;
 }) {
   const router = useRouter();
@@ -153,8 +155,8 @@ export default function GlobalSearch({
   const navItems: PaletteItem[] = (() => {
     const all: PaletteItem[] = [{ type: "Navegação", id: "/painel", titulo: "Painel", href: "/painel" }];
     for (const section of RAIL_SECTIONS) {
-      if (!isSectionVisible(section, { hasFinanceAccess, modules, podeAtendimento })) continue;
-      for (const item of visibleSectionItems(section, { hasFinanceAccess, modules, podeAtendimento })) {
+      if (!isSectionVisible(section, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento })) continue;
+      for (const item of visibleSectionItems(section, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento })) {
         all.push({ type: "Navegação", id: item.href, titulo: item.label, href: item.href });
       }
     }

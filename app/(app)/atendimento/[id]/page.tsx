@@ -21,7 +21,7 @@ import { isWhatsappConfigured } from "@/lib/whatsapp";
 import { getCurrentUser } from "@/lib/currentUser";
 import { X } from "lucide-react";
 import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
-import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { filtroDoAtendimento, podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,10 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   if (!podeVerAtendimentos(viewer)) notFound();
 
   const a = await prisma.attendance.findFirst({
-    where: { id: params.id, officeId: viewer.officeId },
+    // O dono entra no WHERE, e não num `if` depois de carregar: assim o atendimento do colega
+    // simplesmente não existe para quem não pode vê-lo, e não há objeto carregado esperando um
+    // `if` que alguém pode remover num refatoramento.
+    where: { id: params.id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
     include: {
       responsible: true,
       tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } },

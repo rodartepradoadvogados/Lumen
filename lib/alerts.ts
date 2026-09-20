@@ -139,14 +139,18 @@ export async function getAlerts(
   viewerId?: string,
   includeDriveSync: boolean = false,
   /**
-   * Alertas de ATENDIMENTO (follow-up atrasado, pendência vencida, lead sem resposta). Restritos
-   * a administrador e recepção, como a própria tela — ver lib/acessoAtendimento.ts.
+   * Alertas de ATENDIMENTO (follow-up atrasado, pendência vencida, lead sem resposta), com o
+   * MESMO recorte da tela — ver lib/acessoAtendimento.ts.
    *
-   * O padrão é FALSO, e não verdadeiro como os outros: quem esquecer de passar esconde o alerta
-   * em vez de mostrá-lo. Um alerta que escapa diz o nome de uma pessoa que procurou o escritório
-   * e o assunto dela — é o conteúdo da tela vazando pela porta lateral do sino.
+   * `null` significa "nenhum alerta de atendimento". Um objeto vazio `{}` significa "todos";
+   * `{ responsibleId }`, só os dessa pessoa. É o mesmo pedaço de `where` que a lista usa, e é
+   * de propósito: um alerta que escapa diz o nome de quem procurou o escritório e o assunto
+   * dela — é o conteúdo da tela vazando pela porta lateral do sino.
+   *
+   * O padrão é `null`, e não "todos" como os outros parâmetros: quem esquecer de passar esconde
+   * o alerta em vez de mostrá-lo.
    */
-  includeAtendimento: boolean = false,
+  recorteAtendimento: { responsibleId?: string } | null = null,
 ): Promise<AlertItem[]> {
   const now = new Date();
   // dueDate é data-calendário (meia-noite) — comparar contra `now` (timestamp com hora) marca
@@ -216,9 +220,9 @@ export async function getAlerts(
       includeFinance
         ? prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
         : Promise.resolve([]),
-      includeAtendimento
+      recorteAtendimento
         ? prisma.attendance.findMany({
-            where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
+            where: { officeId, ...recorteAtendimento, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
             orderBy: { nextContactAt: "asc" },
           })
         : Promise.resolve([]),
@@ -261,9 +265,9 @@ export async function getAlerts(
           })
         : Promise.resolve([]),
       // Fase 5 — pendências do atendimento (SOLICITAR/ENVIAR) com prazo vencido e ainda abertas.
-      includeAtendimento
+      recorteAtendimento
         ? prisma.atendimentoPendencia.findMany({
-            where: { officeId, status: "PENDENTE", dueDate: { lt: now } },
+            where: { officeId, status: "PENDENTE", dueDate: { lt: now }, attendance: { is: recorteAtendimento } },
             include: { attendance: { select: { id: true, clientName: true } } },
             orderBy: { dueDate: "asc" },
           })
@@ -271,10 +275,11 @@ export async function getAlerts(
       // Fase 5 — prazo de resposta ao lead estourado sem primeira resposta registrada. Exclui
       // atendimentos já encerrados (arquivado/rascunho/convertido) — não faz sentido cobrar
       // resposta de um lead que já não está mais em aberto.
-      includeAtendimento
+      recorteAtendimento
         ? prisma.attendance.findMany({
             where: {
               officeId,
+              ...recorteAtendimento,
               responseDeadline: { lt: now },
               firstResponseAt: null,
               status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] },
@@ -549,14 +554,18 @@ export async function getAlertsCount(
   viewerId?: string,
   includeDriveSync: boolean = false,
   /**
-   * Alertas de ATENDIMENTO (follow-up atrasado, pendência vencida, lead sem resposta). Restritos
-   * a administrador e recepção, como a própria tela — ver lib/acessoAtendimento.ts.
+   * Alertas de ATENDIMENTO (follow-up atrasado, pendência vencida, lead sem resposta), com o
+   * MESMO recorte da tela — ver lib/acessoAtendimento.ts.
    *
-   * O padrão é FALSO, e não verdadeiro como os outros: quem esquecer de passar esconde o alerta
-   * em vez de mostrá-lo. Um alerta que escapa diz o nome de uma pessoa que procurou o escritório
-   * e o assunto dela — é o conteúdo da tela vazando pela porta lateral do sino.
+   * `null` significa "nenhum alerta de atendimento". Um objeto vazio `{}` significa "todos";
+   * `{ responsibleId }`, só os dessa pessoa. É o mesmo pedaço de `where` que a lista usa, e é
+   * de propósito: um alerta que escapa diz o nome de quem procurou o escritório e o assunto
+   * dela — é o conteúdo da tela vazando pela porta lateral do sino.
+   *
+   * O padrão é `null`, e não "todos" como os outros parâmetros: quem esquecer de passar esconde
+   * o alerta em vez de mostrá-lo.
    */
-  includeAtendimento: boolean = false,
+  recorteAtendimento: { responsibleId?: string } | null = null,
 ): Promise<number> {
   const now = new Date();
   // Mesma correção de getAlerts acima — ver comentário lá.
@@ -609,9 +618,9 @@ export async function getAlertsCount(
     includeFinance
       ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
       : Promise.resolve(0),
-    includeAtendimento
+    recorteAtendimento
       ? prisma.attendance.count({
-          where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
+          where: { officeId, ...recorteAtendimento, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
         })
       : Promise.resolve(0),
     viewerId
@@ -632,12 +641,12 @@ export async function getAlertsCount(
     includeFinance
       ? prisma.receivable.findMany({ where: { officeId, status: "A_APURAR", caseId: { not: null } }, select: { id: true, createdAt: true, caseId: true } })
       : Promise.resolve([]),
-    includeAtendimento
-      ? prisma.atendimentoPendencia.count({ where: { officeId, status: "PENDENTE", dueDate: { lt: now } } })
+    recorteAtendimento
+      ? prisma.atendimentoPendencia.count({ where: { officeId, status: "PENDENTE", dueDate: { lt: now }, attendance: { is: recorteAtendimento } } })
       : Promise.resolve(0),
-    includeAtendimento
+    recorteAtendimento
       ? prisma.attendance.count({
-          where: { officeId, responseDeadline: { lt: now }, firstResponseAt: null, status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] } },
+          where: { officeId, ...recorteAtendimento, responseDeadline: { lt: now }, firstResponseAt: null, status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] } },
         })
       : Promise.resolve(0),
   ]);

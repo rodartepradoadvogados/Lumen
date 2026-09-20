@@ -32,8 +32,10 @@ export type SectionPanelItem = {
   href: string;
   label: string;
   adminOnly?: boolean;
-  /** Item do Atendimento: só administrador e recepção (ver lib/acessoAtendimento.ts). */
+  /** Item do Atendimento: qualquer um dos três níveis menos "nenhum". */
   atendimentoOnly?: boolean;
+  /** Item do Atendimento que exige ver o escritório INTEIRO — o funil comercial. */
+  atendimentoTotal?: boolean;
   moduleKey?: keyof OfficeModules;
   subParam?: string;
   subDefaultValue?: string;
@@ -70,7 +72,7 @@ export const RAIL_SECTIONS: SectionDef[] = [
     items: [
       { href: "/publicacoes", label: "Publicações" },
       { href: "/atendimento", label: "Atendimentos", moduleKey: "atendimento", atendimentoOnly: true },
-      { href: "/atendimento/funil", label: "Funil comercial", moduleKey: "atendimento", atendimentoOnly: true },
+      { href: "/atendimento/funil", label: "Funil comercial", moduleKey: "atendimento", atendimentoTotal: true },
       { href: "/contatos", label: "Contatos" },
     ],
   },
@@ -151,8 +153,10 @@ export const RAIL_SECTIONS: SectionDef[] = [
 export type ContextoDeVisibilidade = {
   hasFinanceAccess: boolean;
   modules: OfficeModules;
-  /** Administrador ou recepção — quem pode abrir o Atendimento. Ausente vale FALSO. */
+  /** Tem alguma porta aberta no Atendimento. Ausente vale FALSO. */
   podeAtendimento?: boolean;
+  /** Vê o Atendimento do escritório inteiro. Ausente vale FALSO. */
+  veTodoAtendimento?: boolean;
 };
 
 function itemVisivel(item: SectionPanelItem, ctx: ContextoDeVisibilidade): boolean {
@@ -160,6 +164,7 @@ function itemVisivel(item: SectionPanelItem, ctx: ContextoDeVisibilidade): boole
   if (item.moduleKey && !ctx.modules[item.moduleKey]) return false;
   // Fechado por padrão: um contexto que esqueceu de informar esconde o item em vez de mostrá-lo.
   if (item.atendimentoOnly && ctx.podeAtendimento !== true) return false;
+  if (item.atendimentoTotal && ctx.veTodoAtendimento !== true) return false;
   return true;
 }
 

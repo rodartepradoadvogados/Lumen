@@ -12,7 +12,7 @@ import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import EditAttendanceSubject from "@/components/EditAttendanceSubject";
 import { ArrowLeft } from "lucide-react";
 import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
-import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { filtroDoAtendimento, podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,8 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
   if (!podeVerAtendimentos(viewer)) notFound();
 
   const a = await prisma.attendance.findFirst({
-    where: { id: params.id, officeId: viewer.officeId },
+    // Mesmo recorte do site: o dono entra no WHERE, não num `if` depois de carregar.
+    where: { id: params.id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
     include: {
       responsible: true,
       convertedCase: true,

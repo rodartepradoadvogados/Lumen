@@ -9,7 +9,7 @@ import { redirect, notFound } from "next/navigation";
 import { Filter } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
-import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { filtroDoAtendimento, podeVerAtendimentos, veTodoOAtendimento } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +30,12 @@ export default async function AtendimentoPage({
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
-  // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
-  // `notFound` e não uma tela de "sem permissão": quem não pode ver não precisa saber que existe.
+  // Três níveis (ver lib/acessoAtendimento.ts): quem não tem nenhum não chega nem a saber que a
+  // tela existe; quem só vê os próprios recebe a mesma tela com a consulta recortada.
   if (!podeVerAtendimentos(viewer)) notFound();
+  // O RÓTULO TEM DE DIZER A VERDADE. Um advogado que abre a tela e lê "Atendimento · 3 registros"
+  // conclui que o escritório inteiro tem três leads. São três DELE.
+  const soOsMeus = !veTodoOAtendimento(viewer);
 
   const q = (searchParams.q || "").trim();
   // officeId/status entram aqui em baseFilters (não só no `where` abaixo) de propósito:
@@ -41,6 +44,10 @@ export default async function AtendimentoPage({
   // acento/pontuação — mesma regra já usada na busca global e em Processos) já sai escopado.
   const baseFilters: Prisma.AttendanceWhereInput = {
     officeId: viewer.officeId,
+    // O recorte por dono vai na CONSULTA, e não no render: filtrar depois de buscar já teria
+    // trazido para a memória do servidor a conversa que esta pessoa não pode ler, e bastaria um
+    // `console.log` de depuração para ela sair do outro lado.
+    ...filtroDoAtendimento(viewer, viewer.id),
     // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
     // na aba própria "Rascunhos" — não fazem parte da triagem normal.
     status: searchParams.status || { not: "RASCUNHO" },
@@ -84,8 +91,12 @@ export default async function AtendimentoPage({
   return (
     <div className="tela">
       <PageHeader
-        title="Atendimento"
-        subtitle="Triagem de novos contatos antes de virarem processos/casos"
+        title={soOsMeus ? "Suas demandas" : "Atendimento"}
+        subtitle={
+          soOsMeus
+            ? "Os atendimentos repassados a você. A lista completa do escritório é dos sócios e da recepção."
+            : "Triagem de novos contatos antes de virarem processos/casos"
+        }
         action={
           <div className="flex items-center gap-2">
             <Link

@@ -13,7 +13,7 @@ import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/of
 import { getOfficeModules } from "@/lib/officeModules";
 import { normalizeForCompare } from "@/lib/textNormalize";
 import { createAttendancePendencias, type PendenciaInput } from "@/lib/actions/attendancePendencias";
-import { podeVerAtendimentos, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
+import { podeVerAtendimentos, veTodoOAtendimento, filtroDoAtendimento, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
 
 async function assertAttendanceRelationsInOffice(
   data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
@@ -56,6 +56,25 @@ type CreateAttendanceInput = {
 // Server Action é um endereço HTTP, e quem souber o nome dela a chama sem passar por tela
 // nenhuma. Por isso a trava repete-se em cada função deste arquivo, logo depois de saber quem
 // está do outro lado e antes de qualquer consulta ao banco.
+/**
+ * O responsável de um atendimento criado à mão.
+ *
+ * Quem só vê os PRÓPRIOS atendimentos fica como responsável do que abre, sempre — mesmo que o
+ * formulário mande outro nome ou nenhum. Sem isto, o advogado abriria um atendimento manual e ele
+ * SUMIRIA no instante em que fosse salvo: o recorte por dono o esconderia dele mesmo, e o botão
+ * "Novo atendimento" que acabamos de lhe dar seria um botão que engole o trabalho.
+ *
+ * Escolher o responsável continua sendo de quem enxerga o escritório inteiro — é escala, e escala
+ * é de quem organiza.
+ */
+function responsavelDoNovoAtendimento(
+  viewer: { id: string; isAdmin: boolean; role: string | null; recebeTransferencia: boolean },
+  escolhido: string | null | undefined,
+): string | null {
+  if (!veTodoOAtendimento(viewer)) return viewer.id;
+  return escolhido || null;
+}
+
 export async function createAttendance(data: CreateAttendanceInput): Promise<{ id: string; newClientId?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
@@ -100,7 +119,7 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<{ i
       area: data.area || null,
       description: data.description || null,
       channel: data.channel,
-      responsibleId: data.responsibleId || null,
+      responsibleId: responsavelDoNovoAtendimento(viewer, data.responsibleId),
       estimatedValue: data.estimatedValue ?? null,
       leadSource: data.leadSource || null,
       nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
@@ -166,7 +185,7 @@ export async function markAttendanceResponded(attendanceId: string): Promise<{ e
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
   if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
   await prisma.attendance.updateMany({
-    where: { id: attendanceId, officeId: viewer.officeId, firstResponseAt: null },
+    where: { id: attendanceId, officeId: viewer.officeId, firstResponseAt: null, ...filtroDoAtendimento(viewer, viewer.id) },
     data: { firstResponseAt: new Date() },
   });
   revalidatePath(`/atendimento/${attendanceId}`);
@@ -199,7 +218,7 @@ export async function saveAttendanceDraft(
       area: data.area || null,
       description: data.description || null,
       channel: data.channel || "WHATSAPP",
-      responsibleId: data.responsibleId || null,
+      responsibleId: responsavelDoNovoAtendimento(viewer, data.responsibleId),
       estimatedValue: data.estimatedValue ?? null,
       leadSource: data.leadSource || null,
       nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
@@ -281,7 +300,7 @@ export async function updateAttendanceStatus(id: string, status: string) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
   if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
-  await prisma.attendance.updateMany({ where: { id, officeId: viewer.officeId }, data: { status } });
+  await prisma.attendance.updateMany({ where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) }, data: { status } });
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${id}`);
   revalidatePath("/m/atendimento");
@@ -298,7 +317,7 @@ export async function updateAttendanceSubject(id: string, subject: string): Prom
   const trimmed = subject.trim();
   if (!trimmed) return { error: "Preencha o assunto." };
 
-  const existing = await prisma.attendance.findFirst({ where: { id, officeId: viewer.officeId }, select: { id: true } });
+  const existing = await prisma.attendance.findFirst({ where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) }, select: { id: true } });
   if (!existing) return { error: "Atendimento não encontrado." };
 
   await prisma.attendance.update({ where: { id }, data: { subject: trimmed } });
@@ -325,7 +344,7 @@ export async function setAttendanceStage(id: string, stage: string, lostReason?:
   }
 
   await prisma.attendance.updateMany({
-    where: { id, officeId: viewer.officeId },
+    where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
     data: {
       stage,
       stageChangedAt: new Date(),
@@ -359,7 +378,7 @@ export async function updateAttendanceCommercial(
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
   if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
   await prisma.attendance.updateMany({
-    where: { id, officeId: viewer.officeId },
+    where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
     data: {
       estimatedValue: data.estimatedValue ?? null,
       leadSource: data.leadSource || null,
@@ -395,7 +414,7 @@ export async function definirAtendenteResponde(
   if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   const atendimento = await prisma.attendance.findFirst({
-    where: { id: attendanceId, officeId: user.officeId },
+    where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) },
     select: { agenteSilenciadoEm: true },
   });
   if (!atendimento) return { error: "Atendimento não encontrado." };
@@ -420,7 +439,7 @@ export async function responderUltimaPergunta(attendanceId: string): Promise<{ e
   if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   const existe = await prisma.attendance.findFirst({
-    where: { id: attendanceId, officeId: user.officeId },
+    where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) },
     select: { id: true },
   });
   if (!existe) return { error: "Atendimento não encontrado." };
@@ -441,7 +460,7 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
   const text = body.trim();
   if (!text) return { error: "Digite uma mensagem antes de enviar." };
 
-  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: user.officeId } });
+  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) } });
   if (!attendance) return { error: "Atendimento não encontrado." };
   if (!attendance.waPhone) return { error: "Este atendimento não tem WhatsApp vinculado." };
 
@@ -487,7 +506,7 @@ export async function updateAttendanceClientEmail(attendanceId: string, clientEm
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
   if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
   const email = clientEmail.trim();
-  await prisma.attendance.updateMany({ where: { id: attendanceId, officeId: viewer.officeId }, data: { clientEmail: email || null } });
+  await prisma.attendance.updateMany({ where: { id: attendanceId, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) }, data: { clientEmail: email || null } });
   revalidatePath(`/atendimento/${attendanceId}`);
   return {};
 }
@@ -501,7 +520,7 @@ export async function replyEmail(attendanceId: string, subject: string, body: st
   const bodyText = body.trim();
   if (!subjectText || !bodyText) return { error: "Preencha o assunto e a mensagem antes de enviar." };
 
-  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: user.officeId } });
+  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) } });
   if (!attendance) return { error: "Atendimento não encontrado." };
   if (!attendance.clientEmail) return { error: "Este atendimento não tem e-mail do cliente cadastrado." };
 
@@ -555,7 +574,7 @@ export async function convertAttendanceToCase(
 
   // Escopo por escritório logo na busca do atendimento: impede que alguém converta um
   // atendimento de OUTRO escritório só por conhecer/adivinhar o id.
-  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: viewer.officeId } });
+  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) } });
   if (!attendance) throw new Error("Atendimento não encontrado.");
 
   // Client/Case criados a partir daqui usam o officeId do PRÓPRIO atendimento (não o do viewer)

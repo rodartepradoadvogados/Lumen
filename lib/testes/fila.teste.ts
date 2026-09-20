@@ -29,7 +29,6 @@ function pessoa(over: Partial<PessoaDaFila> = {}): PessoaDaFila {
     nome: `Pessoa ${n}`,
     papel: "Advogado",
     ativo: true,
-    isAdmin: true,
     recebeTransferencia: true,
     criadoEm: new Date(2026, 0, n),
     ...over,
