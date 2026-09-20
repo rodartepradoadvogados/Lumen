@@ -1,9 +1,14 @@
 import { NextRequest } from "next/server";
 import { getVerifyToken, verifySignature, parseIncoming, ingestIncomingWhatsapp } from "@/lib/whatsapp";
 import { atendenteResponde } from "@/lib/atendenteResponde";
+import { confirmarRecebimentoDeAudio } from "@/lib/confirmacaoDeAudio";
+import { dispararTranscricaoAssincrona } from "@/lib/transcricaoAssincrona";
 
 export const dynamic = "force-dynamic";
-// O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido.
+// O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido — isto
+// continua valendo para mensagem de TEXTO. Para ÁUDIO não vale mais: a transcrição e a resposta de
+// verdade rodam FORA deste pedido (ver app/api/transcricao/processar/route.ts), exatamente porque
+// as duas juntas (Hermes + transcrição) somavam mais que este teto — ver lib/orcamentoDoPedido.ts.
 export const maxDuration = 120;
 
 // Handshake de verificação do webhook (a Meta chama uma vez ao configurar).
@@ -40,7 +45,17 @@ export async function POST(req: NextRequest) {
     // Sem mensagem de texto processável (ex.: status de entrega) → apenas ack.
     if (incoming) {
       const attendanceId = await ingestIncomingWhatsapp(incoming);
-      if (attendanceId) await atendenteResponde(attendanceId);
+      if (attendanceId) {
+        // ÁUDIO: confirmação FIXA na hora (não passa pelo Hermes) + transcrição disparada FORA
+        // deste pedido. A resposta de verdade (baseada na transcrição) sai depois, como uma
+        // SEGUNDA mensagem — ver app/api/transcricao/processar/route.ts.
+        if (incoming.midia?.tipo === "AUD") {
+          await confirmarRecebimentoDeAudio(attendanceId);
+          dispararTranscricaoAssincrona(incoming.waMessageId);
+        } else {
+          await atendenteResponde(attendanceId);
+        }
+      }
     }
   } catch (e) {
     // NUNCA deixa a Meta reenviar infinitamente por erro interno: registra e ack 200.

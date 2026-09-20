@@ -6,7 +6,7 @@ import { casarCampanha } from "@/lib/campanhas";
 import { composePhoneWithDdi } from "@/lib/documentoEnvios";
 import { deveExplicarAoColega, FRASE_AO_COLEGA } from "@/lib/avisoDeLead";
 import { type TipoMidiaWhatsapp, montarNomeArquivoWhatsapp, rotuloDaMidiaWhatsapp } from "@/lib/driveNaming";
-import { getOrCreateAttendanceFolder, uploadFileToDriveFolder } from "@/lib/storageProvider";
+import { getOrCreateAttendanceFolder, uploadFileToDriveFolder, type StorageProvider } from "@/lib/storageProvider";
 
 // ============================================================================
 // Integração WhatsApp — DOIS provedores, uma porta só para o resto do sistema.
@@ -484,7 +484,7 @@ export async function ingestIncomingWhatsapp({
 
   const recebidoEm = new Date();
 
-  await prisma.whatsappMessage.create({
+  const novaMensagem = await prisma.whatsappMessage.create({
     data: {
       officeId,
       attendanceId: attendance.id,
@@ -504,16 +504,54 @@ export async function ingestIncomingWhatsapp({
     data: { waLastMessageAt: new Date() },
   });
 
-  // F5 — MÍDIA DO WHATSAPP NO DRIVE. Sobe AGORA, no mesmo pedido do webhook, e não numa fila:
-  // a URL de mídia da Meta expira em minutos, e a Evolution só guarda o arquivo por um tempo
-  // curto — adiar para depois seria arriscar não ter mais o arquivo pra baixar quando a fila
-  // rodasse. Nunca lança: a mensagem já ficou registrada acima (o cliente não perde o rastro da
-  // conversa), então uma falha aqui vira log, não erro que derruba o webhook nem impede o
-  // atendente de responder.
+  // F5 — MÍDIA DO WHATSAPP NO DRIVE. Sobe AGORA, no mesmo pedido do webhook, e não numa fila: a
+  // URL de mídia da Meta expira em minutos, e a Evolution só guarda o arquivo por um tempo curto —
+  // adiar para depois seria arriscar não ter mais o arquivo pra baixar quando a fila rodasse.
+  // Nunca lança: a mensagem já ficou registrada acima (o cliente não perde o rastro da conversa),
+  // então uma falha aqui vira log, não erro que derruba o webhook nem impede o atendente de
+  // responder.
+  //
+  // A TRANSCRIÇÃO DE ÁUDIO NÃO ACONTECE AQUI — DE PROPÓSITO. Rodar a chamada de transcrição (e a
+  // do Hermes, para compor a resposta de verdade) dentro deste pedido colocava dois relógios
+  // independentes (até 105s do Hermes, até 60s da transcrição) somando mais que os 120s de
+  // `maxDuration` da rota — a plataforma podia matar a função ANTES de o Hermes responder, e o
+  // cliente ficava SEM RESPOSTA NENHUMA, pior que o problema que esta entrega resolve. Por isso o
+  // desenho é: cria o registro PENDENTE aqui (rápido, só grava no banco), e quem chama esta função
+  // (a rota do webhook) manda uma confirmação FIXA na hora e dispara o processamento de verdade
+  // fora deste pedido — ver lib/transcricaoAssincrona.ts e o comentário em
+  // app/api/transcricao/processar/route.ts.
   if (midia) {
-    await processarMidiaRecebida(officeId, attendance.id, attendance.subject, waMessageId, midia, recebidoEm).catch((e) => {
-      console.error(`[whatsapp] falha ao subir a mídia da mensagem ${waMessageId} para o Drive:`, e);
+    const baixado = await baixarMidiaDoWhatsapp(officeId, midia).catch((e) => {
+      console.error(`[whatsapp] falha ao baixar a mídia da mensagem ${waMessageId}:`, e);
+      return null;
     });
+
+    let uploadInfo: { storageProvider: StorageProvider; storageFileId: string } | null = null;
+    if (baixado) {
+      uploadInfo = await processarMidiaRecebida(officeId, attendance.id, attendance.subject, waMessageId, midia, recebidoEm, baixado).catch((e) => {
+        console.error(`[whatsapp] falha ao subir a mídia da mensagem ${waMessageId} para o Drive:`, e);
+        return null;
+      });
+    }
+
+    if (midia.tipo === "AUD") {
+      // SÓ O REGISTRO NASCE AQUI — status PENDENTE, e a referência de onde o áudio está guardado
+      // no Drive (nula quando o upload acima falhou: sem cópia durável, não há de onde a
+      // transcrição assíncrona ler o arquivo depois, e ela falha honestamente por causa disso).
+      await prisma.transcricaoDeAudio
+        .create({
+          data: {
+            whatsappMessageId: novaMensagem.id,
+            officeId,
+            status: "PENDENTE",
+            storageProvider: uploadInfo?.storageProvider ?? null,
+            storageFileId: uploadInfo?.storageFileId ?? null,
+          },
+        })
+        .catch((e) => {
+          console.error(`[whatsapp] falha ao criar o registro de transcrição da mensagem ${waMessageId}:`, e);
+        });
+    }
   }
 
   revalidatePath("/atendimento");
@@ -526,12 +564,18 @@ export async function ingestIncomingWhatsapp({
 }
 
 /**
- * F5 — baixa a mídia (na porta certa, conforme onde ela chegou) e sobe pro Drive/OneDrive/Dropbox
- * do escritório, na pasta do PRÓPRIO atendimento — criada agora, se ainda não existir, mesmo que o
- * atendimento acabou de nascer (item 3 do pedido: a pasta nasce desde o início da conversa, não só
- * quando o lead vira cliente/processo; item 4 — a pasta ser RENOMEADA quando ele deixa de ser só um
- * lead — já é o que convertAttendanceToCase, em lib/actions/attendance.ts, faz com QUALQUER pasta
- * de atendimento que já exista, sem saber nem precisar saber como ela nasceu).
+ * F5 — sobe pro Drive/OneDrive/Dropbox do escritório a mídia JÁ BAIXADA (por baixarMidiaDoWhatsapp,
+ * mais abaixo neste arquivo, chamada uma vez só em ingestIncomingWhatsapp), na pasta do PRÓPRIO
+ * atendimento — criada agora, se ainda não existir, mesmo que o atendimento acabou de nascer (item
+ * 3 do pedido: a pasta nasce desde o início da conversa, não só quando o lead vira cliente/
+ * processo; item 4 — a pasta ser RENOMEADA quando ele deixa de ser só um lead — já é o que
+ * convertAttendanceToCase, em lib/actions/attendance.ts, faz com QUALQUER pasta de atendimento que
+ * já exista, sem saber nem precisar saber como ela nasceu).
+ *
+ * DEVOLVE onde o arquivo ficou (provedor + id) — é essa referência que ingestIncomingWhatsapp
+ * grava em TranscricaoDeAudio quando a mídia é um áudio: a transcrição roda depois, fora deste
+ * pedido (ver lib/transcricaoAssincrona.ts), e lê o arquivo DAQUI (do Drive, que não expira), não
+ * baixando de novo da Meta/Evolution (cuja URL já teria expirado a essa altura).
  */
 async function processarMidiaRecebida(
   officeId: string,
@@ -539,20 +583,9 @@ async function processarMidiaRecebida(
   subject: string,
   waMessageId: string,
   midia: IncomingMidia,
-  recebidoEm: Date
-): Promise<void> {
-  const config = await prisma.whatsappConfig.findUnique({ where: { officeId } });
-  if (!config) return; // não deveria acontecer — a mensagem só chegou porque este config existe
-
-  let baixado: { buffer: Buffer; mimeType: string };
-  if (config.provider === "EVOLUTION") {
-    if (!config.baseUrl || !config.apiKey || !midia.evolution) return;
-    baixado = await baixarMidiaEvolution({ baseUrl: config.baseUrl, apiKey: config.apiKey, instancia: config.phoneNumberId }, midia.evolution);
-  } else {
-    if (!midia.mediaId) return;
-    baixado = await baixarMidiaMeta(midia.mediaId, config.accessToken);
-  }
-
+  recebidoEm: Date,
+  baixado: { buffer: Buffer; mimeType: string },
+): Promise<{ storageProvider: StorageProvider; storageFileId: string }> {
   const nomeArquivo = montarNomeArquivoWhatsapp({
     recebidoEm,
     // O MIME devolvido no DOWNLOAD é a fonte mais confiável (vem do arquivo de verdade); o do
@@ -579,4 +612,27 @@ async function processarMidiaRecebida(
   });
 
   revalidatePath(`/atendimento/${attendanceId}`);
+
+  return { storageProvider: upload.storageProvider, storageFileId: upload.id };
+}
+
+/**
+ * F5 — baixa a mídia (na porta certa, conforme onde ela chegou), chamada UMA VEZ SÓ por mensagem,
+ * em ingestIncomingWhatsapp.
+ *
+ * `null` sem lançar quando falta config/credencial pro provedor certo (a mensagem só chegou
+ * porque ALGUM config existe — isto cobre o caso raro de ele ter sido apagado/incompleto entre a
+ * mensagem chegar e este código rodar). Falha de REDE de verdade (Meta/Evolution fora do ar)
+ * continua lançando — quem chama já trata com `.catch()`.
+ */
+async function baixarMidiaDoWhatsapp(officeId: string, midia: IncomingMidia): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  const config = await prisma.whatsappConfig.findUnique({ where: { officeId } });
+  if (!config) return null; // não deveria acontecer — a mensagem só chegou porque este config existe
+
+  if (config.provider === "EVOLUTION") {
+    if (!config.baseUrl || !config.apiKey || !midia.evolution) return null;
+    return baixarMidiaEvolution({ baseUrl: config.baseUrl, apiKey: config.apiKey, instancia: config.phoneNumberId }, midia.evolution);
+  }
+  if (!midia.mediaId) return null;
+  return baixarMidiaMeta(midia.mediaId, config.accessToken);
 }

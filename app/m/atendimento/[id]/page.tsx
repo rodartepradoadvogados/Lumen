@@ -68,7 +68,9 @@ export default async function MobileAttendanceDetail({
       responsible: true,
       campanha: { select: { nome: true } },
       convertedCase: true,
-      whatsappMessages: { orderBy: { createdAt: "asc" } },
+      // `transcricao` entra junto: é ela que a bolha do áudio mostra na Conversa (mesmo componente
+      // do site, ver components/atendimento/Conversa.tsx).
+      whatsappMessages: { orderBy: { createdAt: "asc" }, include: { transcricao: true } },
       emailMessages: { orderBy: { createdAt: "asc" } },
       pendencias: { orderBy: [{ status: "asc" }, { dueDate: "asc" }] },
       anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },

@@ -94,7 +94,10 @@ export default async function AttendanceDetailPage({
       tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } },
       attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
       convertedCase: true,
-      whatsappMessages: { orderBy: { createdAt: "asc" } },
+      // `transcricao` entra junto: é ela que a bolha do áudio mostra na Conversa (ver
+      // components/atendimento/Conversa.tsx) — nunca enviada ao cliente, só lida por quem tem
+      // acesso a este atendimento.
+      whatsappMessages: { orderBy: { createdAt: "asc" }, include: { transcricao: true } },
       emailMessages: { orderBy: { createdAt: "asc" } },
       pendencias: { include: { responsible: true }, orderBy: [{ status: "asc" }, { dueDate: "asc" }] },
       // A recusa mais recente que ainda está de pé. Só uma: as anteriores (desfeitas ou

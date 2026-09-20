@@ -40,6 +40,7 @@ import ParametrosDaAnaPanel from "@/components/atendimento/ParametrosDaAnaPanel"
 import { lerParametros } from "@/lib/actions/parametrosDaAna";
 import { DIAS_PARA_O_DOCUMENTO_PADRAO } from "@/lib/parametrosDaAna";
 import { motivosDoEscritorio } from "@/lib/motivosDeRecusa";
+import { transcricaoConfigurada } from "@/lib/transcricao";
 
 export const dynamic = "force-dynamic";
 
@@ -851,6 +852,7 @@ export default async function ConfiguracoesPage({
                 expedienteFim: atendente?.expedienteFim ?? "18:00",
               }}
               campanhas={campanhas}
+              transcricao={{ configurada: transcricaoConfigurada(), url: process.env.TRANSCRICAO_URL || null }}
             />
           </div>
         </Card>

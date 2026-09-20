@@ -178,6 +178,7 @@ model Office {
   mentions                Mention[]
   attendances             Attendance[]
   whatsappMessages        WhatsappMessage[]
+  transcricoesDeAudio     TranscricaoDeAudio[]
   emailMessages           EmailMessage[]
   attachments             Attachment[]
   documentTemplates       DocumentTemplate[]
@@ -1336,6 +1337,15 @@ model WhatsappMessage {
   // conversa com "respondido pelo atendente" na tela, e é o que faz a regra do silêncio funcionar
   // — a resposta da máquina não pode calar a própria máquina.
   porAgente    Boolean    @default(false)
+  // TRUE só na frase fixa de "recebi seu áudio" (lib/confirmacaoDeAudio.ts). Achado real (não
+  // teórico — reproduzido e corrigido depois de um relatório): sem esta marca, a própria
+  // confirmação virava "a última mensagem", e a checagem "a última tem que ser do cliente" (mais
+  // abaixo, e em lib/atendenteResponde.ts) fechava a porta para a RESPOSTA DE VERDADE que viria
+  // depois da transcrição — a Ana prometia responder e nunca respondia. Esta marca deixa
+  // `atendenteResponde` ignorar a confirmação automática ao decidir se há uma pergunta pendente,
+  // sem abrir mão da trava para qualquer OUTRA mensagem de saída (inclusive uma resposta anterior
+  // de verdade da própria Ana, que continua bloqueando corretamente — só a confirmação some).
+  confirmacaoAutomaticaDeAudio Boolean @default(false)
   body         String
   waMessageId  String?    @unique // id da mensagem na Meta (dedupe)
   status       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
@@ -1345,7 +1355,66 @@ model WhatsappMessage {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
+  // A TRANSCRIÇÃO DO ÁUDIO (quando esta mensagem É um áudio) — ver o modelo TranscricaoDeAudio
+  // logo abaixo, e o comentário nele sobre por que é um registro próprio, e não um campo aqui.
+  transcricao TranscricaoDeAudio?
+
   @@index([officeId, attendanceId, createdAt])
+}
+
+// ============ TRANSCRIÇÃO DE ÁUDIO DO WHATSAPP (ouvir, sem virar mensagem) ============
+//
+// REGISTRO PRÓPRIO — não um campo `interna: Boolean` em WhatsappMessage, e não uma WhatsappMessage
+// nova. DECISÃO DE PROJETO, não implementação provisória: uma mensagem marcada como "interna"
+// depende de TODO `where` que lê WhatsappMessage lembrar de excluí-la — e basta UM esquecimento no
+// caminho de SAÍDA (sendWhatsappText, atendenteResponde, qualquer relatório futuro que percorra
+// mensagens) para a transcrição ir parar no WhatsApp do cliente. Um registro que não É mensagem
+// não tem como ser enviado por engano: nenhum código que manda mensagem para o WhatsApp sabe que
+// este modelo existe, e não precisa saber.
+//
+// 1:1 com a WhatsappMessage do áudio (`@unique` em whatsappMessageId) — cada áudio recebido tem no
+// máximo uma transcrição, e o relacionamento nasce/atualiza pelo `upsert` em lib/transcricao.ts.
+model TranscricaoDeAudio {
+  id                String          @id @default(cuid())
+  whatsappMessageId String          @unique
+  whatsappMessage   WhatsappMessage @relation(fields: [whatsappMessageId], references: [id], onDelete: Cascade)
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  // PENDENTE (baixando o áudio / esperando o serviço) | PRONTA (texto abaixo preenchido) | FALHOU
+  // (erro abaixo preenchido — inclusive quando TRANSCRICAO_URL/TRANSCRICAO_TOKEN não estão
+  // configurados: ver lib/transcricaoDeAudio.ts:ERRO_TRANSCRICAO_NAO_CONFIGURADA — "não configurado"
+  // NÃO é um quarto estado, é um MOTIVO de falha, para a tela e o agente sempre terem uma resposta
+  // honesta em só três estados possíveis).
+  status String @default("PENDENTE")
+  // O que a Ana lê no lugar da mensagem de áudio (lib/atendenteResponde.ts) e o que a tela mostra
+  // na bolha, para quem tem acesso ao atendimento — nunca enviado ao cliente por nenhum caminho.
+  texto String?
+  // Motivo da falha, em linguagem de gente. NUNCA o corpo bruto da resposta do serviço de
+  // transcrição: um serviço mal configurado pode ecoar de volta o que recebeu (inclusive o
+  // cabeçalho Authorization), e aquele valor é o TOKEN — ver lib/transcricaoDeAudio.ts:lerRespostaDeTranscricao.
+  erro String?
+
+  // ONDE O ÁUDIO FICA GUARDADO DE VERDADE — o MESMO arquivo que processarMidiaRecebida (F5) já
+  // sobe pro Drive/OneDrive/Dropbox do escritório, gravado aqui na hora em que o upload termina.
+  // A TRANSCRIÇÃO É ASSÍNCRONA (fora do pedido do webhook — ver lib/transcricaoAssincrona.ts e o
+  // comentário em app/api/transcricao/processar/route.ts) e por isso não tem mais o Buffer em
+  // mãos quando chega a hora de transcrever: a URL de mídia da Meta já expirou a essa altura. Em
+  // vez de guardar o áudio duas vezes (ou arriscar um segundo download da Meta/Evolution, que pode
+  // já ter descartado o arquivo), o processo assíncrono BAIXA DO DRIVE — que não expira — usando
+  // estes dois campos. `null` quando o upload pro Drive falhou: sem cópia durável, a transcrição
+  // não tem de onde ler, e falha honestamente (ver ERRO_ARQUIVO_INDISPONIVEL).
+  storageProvider String?
+  storageFileId   String?
+
+  criadoEm    DateTime  @default(now())
+  concluidoEm DateTime? // quando virou PRONTA ou FALHOU (nulo enquanto PENDENTE)
+
+  @@index([officeId])
+  // A rede de segurança por cron (app/api/cron/transcricoes-pendentes) varre por status +
+  // antiguidade — este índice é o que faz essa varredura não custar um full scan da tabela.
+  @@index([status, criadoEm])
 }
 
 // ============ E-MAIL (resposta ao cliente via Gmail da conta Google do próprio advogado) ============
