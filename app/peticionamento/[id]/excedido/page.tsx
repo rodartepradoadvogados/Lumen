@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
-import { obterSessaoPeticionamento } from "@/lib/actions/peticionamento";
+import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos } from "@/lib/actions/peticionamento";
 import { ExcedidoClient } from "@/components/peticionamento/ExcedidoClient";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +14,18 @@ export default async function ExcedidoPage({ params }: { params: { id: string } 
   if (!user) notFound();
   const sessao = await obterSessaoPeticionamento(params.id).catch(() => null);
   if (!sessao) notFound();
+  const [temTrabalho, rascunhosCount] = await Promise.all([avaliarTrabalhoEmAndamento(params.id), contarRascunhos()]);
 
   return (
-    <ShellPeticionamento sessaoId={params.id} ativo="documentos" crumbAtual="Limite de contexto" nomeUsuario={user.name} papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}>
+    <ShellPeticionamento
+      sessaoId={params.id}
+      ativo="documentos"
+      crumbAtual="Limite de contexto"
+      nomeUsuario={user.name}
+      papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}
+      temTrabalho={temTrabalho}
+      rascunhosCount={rascunhosCount}
+    >
       <ExcedidoClient sessaoId={params.id} motivoBloqueio={sessao.contextoBloqueadoMotivo} avisoResumo={sessao.contextoResumoAviso} />
     </ShellPeticionamento>
   );

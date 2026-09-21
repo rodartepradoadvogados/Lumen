@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
 import { MinutaClient } from "@/components/peticionamento/MinutaClient";
-import { obterSessaoPeticionamento } from "@/lib/actions/peticionamento";
+import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos } from "@/lib/actions/peticionamento";
 import { montarNotaObrigatoria, type PrecedenteCitado } from "@/lib/peticionamentoNotaObrigatoria";
 import { perfilDePeticionamento } from "@/lib/hermesPonte";
 import { avaliarExportacao } from "@/lib/peticionamentoAcesso";
@@ -36,10 +36,11 @@ export default async function MinutaPage({ params }: { params: { id: string } })
   if (!user) notFound();
   const sessao = await obterSessaoPeticionamento(params.id).catch(() => null);
   if (!sessao) notFound();
+  const [temTrabalho, rascunhosCount] = await Promise.all([avaliarTrabalhoEmAndamento(params.id), contarRascunhos()]);
 
   if (sessao.status === "GERANDO") {
     return (
-      <ShellPeticionamento sessaoId={params.id} ativo="minuta" crumbAtual="Minuta" nomeUsuario={user.name} papelUsuario={user.role}>
+      <ShellPeticionamento sessaoId={params.id} ativo="minuta" crumbAtual="Minuta" nomeUsuario={user.name} papelUsuario={user.role} temTrabalho={temTrabalho} rascunhosCount={rascunhosCount}>
         <div className="content">
           <div className="callout">Gerando minuta com o Hermes — isto pode levar até 1-2 minutos.</div>
         </div>
@@ -49,7 +50,7 @@ export default async function MinutaPage({ params }: { params: { id: string } })
 
   if (sessao.status === "FALHA_GERACAO" || !sessao.minutaTexto) {
     return (
-      <ShellPeticionamento sessaoId={params.id} ativo="minuta" crumbAtual="Minuta" nomeUsuario={user.name} papelUsuario={user.role}>
+      <ShellPeticionamento sessaoId={params.id} ativo="minuta" crumbAtual="Minuta" nomeUsuario={user.name} papelUsuario={user.role} temTrabalho={temTrabalho} rascunhosCount={rascunhosCount}>
         <div className="content">
           <div className="callout callout-danger">
             <h2>Não foi possível gerar a minuta</h2>
@@ -84,6 +85,8 @@ export default async function MinutaPage({ params }: { params: { id: string } })
       nomeUsuario={user.name}
       papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}
       statusCentro={sessao.status === "EXPORTADA" ? "exportada" : "documento vivo · edição local, ainda não exportado"}
+      temTrabalho={temTrabalho}
+      rascunhosCount={rascunhosCount}
     >
       <MinutaClient
         sessaoId={params.id}
