@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { alternarVinculo, definirSessaoAvulsa, definirMateria, adicionarMateriaDoEscritorio } from "@/lib/actions/peticionamento";
+import { alternarVinculo, definirSessaoAvulsa, definirMateria, adicionarMateriaDoEscritorio, confirmarNatureza } from "@/lib/actions/peticionamento";
 import type { TipoVinculo } from "@/lib/peticionamentoContexto";
+import { NATUREZAS_DE_PROCEDIMENTO, type NaturezaDeProcedimento } from "@/lib/peticionamentoNatureza";
+import { useSaidaDoPeticionamento } from "./SaidaContext";
 
 type Candidato = {
   id: string;
@@ -20,11 +22,33 @@ type Props = {
   candidatos: { processos: Candidato[]; atendimentos: Candidato[]; assessorias: Candidato[]; clienteTravado: { id: string; nome: string | null } | null };
   materias: { nome: string; ehDoEscritorio: boolean }[];
   materiaAtual: string | null;
+  naturezaProcedimento: string | null;
+  naturezaMotivo: string | null;
+  naturezaConfirmadaManualmente: boolean;
 };
 
-export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciais, materiaAtual }: Props) {
+const ROTULO_NATUREZA: Record<NaturezaDeProcedimento, string> = {
+  "processo judicial": "Processo judicial",
+  "processo administrativo": "Processo administrativo",
+  extrajudicial: "Extrajudicial",
+  consultivo: "Consultivo",
+};
+
+export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciais, materiaAtual, naturezaProcedimento, naturezaMotivo, naturezaConfirmadaManualmente }: Props) {
   const router = useRouter();
+  const { marcarTrabalho } = useSaidaDoPeticionamento();
   const [pendente, iniciar] = useTransition();
+  const [naturezaLocal, setNaturezaLocal] = useState<string | null>(naturezaProcedimento);
+  useEffect(() => setNaturezaLocal(naturezaProcedimento), [naturezaProcedimento]);
+
+  function corrigirNatureza(valor: NaturezaDeProcedimento) {
+    setNaturezaLocal(valor);
+    marcarTrabalho();
+    iniciar(async () => {
+      await confirmarNatureza(sessaoId, valor);
+      router.refresh();
+    });
+  }
   const [avulsa, setAvulsa] = useState<boolean>(false); // default visual: começa sempre em "Vincular"
   const [aba, setAba] = useState<TipoVinculo>("case");
   // `candidatos` vem direto da prop (Server Component), de propósito: depois de
@@ -62,6 +86,7 @@ export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciai
 
   function selecionarMateria(nome: string, ehDoEscritorio: boolean) {
     setMateria(nome);
+    marcarTrabalho();
     iniciar(async () => {
       await definirMateria(sessaoId, nome, ehDoEscritorio);
     });
@@ -83,6 +108,7 @@ export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciai
   function alternar(tipo: TipoVinculo, id: string, marcar: boolean) {
     setErro(null);
     setOverrides((o) => ({ ...o, [id]: marcar }));
+    marcarTrabalho();
     iniciar(async () => {
       const resultado = await alternarVinculo(sessaoId, tipo, id, marcar);
       if ("error" in resultado) {
@@ -104,6 +130,7 @@ export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciai
 
   function irParaAvulsa() {
     setAvulsa(true);
+    marcarTrabalho();
     iniciar(async () => {
       await definirSessaoAvulsa(sessaoId);
       router.refresh();
@@ -238,6 +265,25 @@ export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciai
             </p>
           </div>
         )}
+
+        {/* Natureza do procedimento — espec. §8: DEDUZIDA a partir do vínculo, nunca perguntada do
+            zero, mas a dedução NUNCA é silenciosa: o motivo aparece sempre em texto, e corrigir é
+            um clique num dos quatro botões. */}
+        <div className="group">
+          <h2>Natureza do procedimento</h2>
+          {naturezaMotivo && (
+            <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--tx-2)" }}>
+              {naturezaConfirmadaManualmente ? "Confirmado manualmente pelo advogado." : <>Deduzido pelo Peticionamento: <strong style={{ color: "var(--tx-0)" }}>{naturezaMotivo}</strong></>}
+            </p>
+          )}
+          <div className="segmented">
+            {NATUREZAS_DE_PROCEDIMENTO.map((n) => (
+              <button key={n} className={naturezaLocal === n ? "active" : ""} disabled={pendente} onClick={() => corrigirNatureza(n)}>
+                {ROTULO_NATUREZA[n]}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="sticky-bar">
