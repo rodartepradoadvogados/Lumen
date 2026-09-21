@@ -67,7 +67,28 @@ export function lerConfigDeTranscricao(env: {
   const url = env.url?.trim();
   const token = env.token?.trim();
   if (!url || !token) return null;
-  return { url: url.replace(/\/+$/, ""), token, modelo: env.modelo?.trim() || MODELO_PADRAO_DE_TRANSCRICAO };
+  return { url: normalizarEndereco(url), token, modelo: env.modelo?.trim() || MODELO_PADRAO_DE_TRANSCRICAO };
+}
+
+/**
+ * Tira a barra final E o `/v1` final do endereço configurado.
+ *
+ * O `/v1` É UMA ARMADILHA DE VERDADE, e ela já mordeu. Quem chama monta
+ * `${url}/v1/audio/transcriptions` — mas os fornecedores documentam a própria base JÁ COM o `/v1`
+ * dentro: a Groq como `https://api.groq.com/openai/v1`, a OpenAI como `https://api.openai.com/v1`.
+ * Quem copia o endereço da documentação (que é o que qualquer pessoa faz) acaba com
+ * `.../openai/v1/v1/audio/transcriptions`, recebe 404, e a tela diz só "não foi possível
+ * transcrever". Não há como adivinhar a causa a partir do sintoma.
+ *
+ * Um servidor Whisper do próprio escritório costuma ser configurado SEM o `/v1` — então as duas
+ * formas existem no mundo real e as duas têm de funcionar. Aceitar as duas custa uma linha; exigir
+ * a forma certa custa uma tarde de alguém.
+ *
+ * Só o `/v1` do FIM sai. Um endereço que tenha `/v1` no meio do caminho (um proxy servindo a API
+ * sob um prefixo, por exemplo) fica intacto.
+ */
+export function normalizarEndereco(bruto: string): string {
+  return bruto.trim().replace(/\/+$/, "").replace(/\/v1$/, "");
 }
 
 /**
