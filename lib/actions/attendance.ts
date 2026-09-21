@@ -317,10 +317,31 @@ export async function updateAttendanceSubject(id: string, subject: string): Prom
   const trimmed = subject.trim();
   if (!trimmed) return { error: "Preencha o assunto." };
 
-  const existing = await prisma.attendance.findFirst({ where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) }, select: { id: true } });
+  const existing = await prisma.attendance.findFirst({
+    where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
+    select: { id: true, subject: true, driveFolderId: true },
+  });
   if (!existing) return { error: "Atendimento não encontrado." };
 
   await prisma.attendance.update({ where: { id }, data: { subject: trimmed } });
+
+  // A pasta do Drive (quando já existe — ver getOrCreateAttendanceFolder em lib/googleDrive.ts)
+  // é nomeada com o assunto ("Lúmen - Atendimentos/{assunto}"), do mesmo jeito que
+  // convertAttendanceToCase já renomeia ao virar Processo/Caso. Editar o assunto à mão tinha o
+  // mesmo efeito sem o mesmo cuidado: a pasta ficava com o nome velho pra sempre. Aqui só
+  // RENOMEIA — nunca cria pasta nova (quem decide se um atendimento ganha pasta é o primeiro
+  // anexo, não a edição do texto) e nunca troca o driveFolderId (o id é o que amarra tudo no
+  // banco; o nome é só rótulo).
+  if (existing.driveFolderId && trimmed !== existing.subject) {
+    try {
+      await renameDriveFolder(existing.driveFolderId, trimmed, viewer.officeId);
+    } catch {
+      // Best-effort, igual ao renomeio de convertAttendanceToCase: um escritório sem Drive
+      // conectado (ou uma chamada que falhe) não pode impedir a correção do assunto — a pasta
+      // fica com o nome antigo até a próxima tentativa, mas o atendimento é atualizado normalmente.
+    }
+  }
+
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${id}`);
   revalidatePath("/m/atendimento");
