@@ -75,4 +75,132 @@ teste("salvarPrecoDoModuloDeCampanhas recusa preço negativo antes do upsert", (
   verdade(iGate < iUpsert, "a checagem de preço negativo vem depois do upsert");
 });
 
+// ── 3 · ACHADO DA SUPERVISÃO: a lista de ações acima é ESCRITA À MÃO ────────────────────────
+// Uma lista fixa cobre o que existe hoje e nada do que vier depois: a ação que alguém acrescentar
+// amanhã sem trava passa verde, porque ninguém lembrou de escrever o nome dela aqui. Foi
+// exatamente esse o buraco encontrado nas ações de peticionamento (ver
+// lib/testes/peticionamentoIsolamento.teste.ts, que deriva a lista do próprio arquivo).
+// As varreduras abaixo DERIVAM a lista, e por isso caem sozinhas quando o arquivo cresce.
+
+function acoesExportadas(codigo: string): string[] {
+  return [...codigo.matchAll(/export async function (\w+)\(/g)].map((m) => m[1]);
+}
+
+teste("a derivação acha as ações dos dois arquivos — lista vazia passaria verde sem provar nada", () => {
+  const daTela = acoesExportadas(CODIGO_DA_TELA);
+  const doPainel = acoesExportadas(CODIGO_DO_PAINEL_MESTRE);
+  verdade(daTela.length >= 3, `só ${daTela.length} ação(ões) exportada(s) na tela do escritório: ${daTela.join(", ")}`);
+  verdade(doPainel.length >= 4, `só ${doPainel.length} ação(ões) exportada(s) no painel mestre: ${doPainel.join(", ")}`);
+  for (const esperada of ["assinarModulo", "salvarInstrucoesDoPerfilDeCampanha", "solicitarNovaCampanha"]) {
+    verdade(daTela.includes(esperada), `a derivação não achou "${esperada}"`);
+  }
+  verdade(doPainel.includes("liberarCampanhaSlot"), 'a derivação não achou "liberarCampanhaSlot"');
+});
+
+teste("TRAVA DERIVADA: TODA ação do painel mestre checa acesso ANTES de tocar o banco", () => {
+  for (const nome of acoesExportadas(CODIGO_DO_PAINEL_MESTRE)) {
+    const corpo = corpoDaFuncao(CODIGO_DO_PAINEL_MESTRE, nome);
+    verdade(corpo.length > 40, `corpoDaFuncao("${nome}") devolveu ${corpo.length} caracteres — varredura cega`);
+    const posTrava = corpo.search(/isPlatformStaff\(\)|getPlatformMember\(\)|platformMemberIdDeQuemClicou\(\)/);
+    verdade(posTrava >= 0, `"${nome}" não checa acesso ao painel mestre — qualquer visitante poderia chamá-la`);
+    const posPrisma = corpo.indexOf("prisma.");
+    if (posPrisma >= 0) {
+      verdade(posTrava < posPrisma, `"${nome}" toca o banco antes de checar quem está pedindo`);
+    }
+  }
+});
+
+teste("TRAVA DERIVADA: TODA ação da tela do escritório exige administrador ANTES de tocar o banco", () => {
+  for (const nome of acoesExportadas(CODIGO_DA_TELA)) {
+    const corpo = corpoDaFuncao(CODIGO_DA_TELA, nome);
+    verdade(corpo.length > 40, `corpoDaFuncao("${nome}") devolveu ${corpo.length} caracteres — varredura cega`);
+    const posTrava = corpo.indexOf("exigirAdministrador()");
+    verdade(posTrava >= 0, `"${nome}" não chama exigirAdministrador()`);
+    const posPrisma = corpo.indexOf("prisma.");
+    if (posPrisma >= 0) {
+      verdade(posTrava < posPrisma, `"${nome}" toca o banco antes de saber quem está pedindo`);
+    }
+  }
+});
+
+// ── 4 · ISOLAMENTO ENTRE ESCRITÓRIOS ────────────────────────────────────────────────────────
+// A trava de administrador diz QUEM é; ela não diz de QUAL escritório. Sem o corte por officeId,
+// um administrador de um escritório treinaria o perfil de campanha de outro. E o officeId nunca
+// pode vir de FORA: se ele for parâmetro da ação, o navegador escolhe de quem é a assinatura.
+
+teste("TRAVA: nenhuma ação da tela recebe officeId por parâmetro — ele sai SEMPRE da sessão", () => {
+  for (const nome of acoesExportadas(CODIGO_DA_TELA)) {
+    const corpo = corpoDaFuncao(CODIGO_DA_TELA, nome);
+    const cabecalho = corpo.slice(0, corpo.indexOf("{") + 1);
+    verdade(!/officeId/.test(cabecalho), `"${nome}" aceita officeId de quem chama — o navegador escolheria de quem é a assinatura`);
+  }
+});
+
+teste("TRAVA: toda consulta da tela do escritório é precedida pelo corte por user.officeId", () => {
+  // A régua NÃO é "todo prisma carrega officeId": escrever por um id que veio de um registro já
+  // filtrado por escritório é legítimo e é o padrão da casa (o mesmo de
+  // lib/actions/peticionamento.ts). A régua é que, DENTRO DA MESMA FUNÇÃO, o escritório da sessão
+  // já tenha entrado na conversa ANTES de o banco ser tocado. Tirar o `officeId` do filtro deixa
+  // a função inteira sem nenhuma menção a `user.officeId` antes da escrita — e é aí que cai.
+  let conferidas = 0;
+  for (const nome of acoesExportadas(CODIGO_DA_TELA)) {
+    const corpo = corpoDaFuncao(CODIGO_DA_TELA, nome);
+    verdade(corpo.length > 40, `corpoDaFuncao("${nome}") devolveu ${corpo.length} caracteres — varredura cega`);
+    for (const m of [...corpo.matchAll(/prisma\.(\w+)\.(findUnique|findFirst|findMany|update|upsert|create|count)\(/g)]) {
+      // campanhaPrecoParametro é a tabela GLOBAL de preços da Lúmen, não de um escritório.
+      if (m[1] === "campanhaPrecoParametro") continue;
+      // Até o FIM desta chamada, e não até o começo dela: o corte normalmente mora DENTRO do
+      // argumento (`where: { officeId: user.officeId }`), logo depois do `prisma.`.
+      let profundidade = 0;
+      let fim = corpo.length;
+      for (let i = m.index! + m[0].length - 1; i < corpo.length; i++) {
+        const ch = corpo[i];
+        if (ch === "(" || ch === "{" || ch === "[") profundidade++;
+        else if (ch === ")" || ch === "}" || ch === "]") {
+          profundidade--;
+          if (profundidade === 0) { fim = i + 1; break; }
+        }
+      }
+      const posCorte = corpo.slice(0, fim).indexOf("user.officeId");
+      verdade(posCorte >= 0,
+        `em "${nome}", prisma.${m[1]}.${m[2]} é alcançado sem que user.officeId tenha entrado antes — escritório alheio ao alcance de quem tiver o id`);
+      conferidas++;
+    }
+  }
+  verdade(conferidas >= 3, `só ${conferidas} consulta(s) conferida(s) — a varredura não está achando o que deveria`);
+});
+
+// ── 5 · ACHADO DA SUPERVISÃO: CHAMAR NÃO É OBEDECER ─────────────────────────────────────────
+// As travas acima provam que cada ação CHAMA `exigirAdministrador()`. Nenhuma provava o que essa
+// função checa por dentro — e ela é a porta de todas elas. Três mutações passaram verdes:
+// tirar `isAdmin` (qualquer pessoa do escritório assinaria um módulo de R$ 120/mês em nome do
+// escritório), tirar `active` (usuário desligado continuaria agindo) e apagar a validação da
+// forma de pagamento (uma string qualquer viraria forma de pagamento e seguiria para a cobrança).
+
+teste("TRAVA: exigirAdministrador confere as TRÊS condições — existe, está ativo e é administrador", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_TELA, "exigirAdministrador");
+  verdade(corpo.length > 40, `corpoDaFuncao devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/!user\b/.test(corpo), "exigirAdministrador deixou de conferir se existe alguém logado");
+  verdade(/!user\.active\b/.test(corpo), "exigirAdministrador deixou de conferir `active` — usuário desligado voltaria a agir");
+  verdade(/!user\.isAdmin\b/.test(corpo),
+    "exigirAdministrador deixou de conferir `isAdmin` — qualquer pessoa do escritório assinaria o módulo pago em nome dele");
+  verdade(/return null/.test(corpo), "a recusa precisa devolver null — quem chama trata null como 'sem permissão'");
+});
+
+teste("TRAVA: a forma de pagamento é conferida contra a lista fechada antes de virar assinatura", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_TELA, "assinarModulo");
+  verdade(corpo.length > 80, `corpoDaFuncao devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/FORMAS_DE_PAGAMENTO_VALIDAS[\s\S]{0,80}\.includes\(formaDePagamento\)/.test(corpo),
+    "assinarModulo deixou de conferir a forma de pagamento contra a lista fechada");
+  const posChecagem = corpo.search(/FORMAS_DE_PAGAMENTO_VALIDAS/);
+  const posAssinatura = corpo.indexOf("assinarModuloDeCampanhas(");
+  verdade(posChecagem >= 0 && posAssinatura >= 0 && posChecagem < posAssinatura,
+    "a conferência da forma de pagamento precisa vir ANTES de criar a assinatura");
+  // A lista tem de ser exatamente as três formas que a especificação §2 nomeia.
+  const lista = CODIGO_DA_TELA.slice(CODIGO_DA_TELA.indexOf("FORMAS_DE_PAGAMENTO_VALIDAS"));
+  for (const forma of ["BOLETO", "PIX_QRCODE", "PIX_AUTOMATICO"]) {
+    verdade(lista.slice(0, 200).includes(forma), `a forma de pagamento ${forma} sumiu da lista fechada`);
+  }
+});
+
 resumo("varredura das ações da tela do módulo de campanhas (Frente D)");
