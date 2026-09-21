@@ -142,6 +142,16 @@ export async function POST(request: NextRequest) {
       });
 
       if (response.stop_reason === "pause_turn") {
+        // A PAUSA TAMBÉM CONTA. Antes esta volta fazia `continue` sem tocar no contador: uma
+        // sequência de `pause_turn` girava o laço SEM TETO, e cada volta é uma chamada PAGA à
+        // API. O único freio era a Vercel matar a função aos 60 segundos — quer dizer, o
+        // custo acontecia e ninguém ficava sabendo. Um laço sem teto num caminho que gasta
+        // dinheiro é defeito, mesmo quando a resposta final sai certa.
+        rounds += 1;
+        if (rounds > MAX_TOOL_ROUNDS) {
+          respostaFinal = "A consulta demorou mais do que o previsto e foi interrompida. Tente reformular a pergunta.";
+          break;
+        }
         messages.push({ role: "assistant", content: response.content });
         continue;
       }

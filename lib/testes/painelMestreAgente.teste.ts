@@ -262,4 +262,93 @@ teste("orcamentoDoPedido: NUNCA corta o texto fixo nem a pergunta de agora — s
   if (!r.cabe) verdade(r.motivo.length > 0, "recusa sem motivo falado");
 });
 
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA SUPERVISÃO — A ROTA NÃO TINHA TESTE NENHUM.
+//
+// As travas acima cobrem os módulos puros, e cobrem bem. Mas a ROTA é a única porta: é nela que
+// a Lei 1 ("herda a credencial de quem perguntou") de fato aterrissa. Oito mutações aplicadas
+// direto no arquivo da rota passaram VERDES na primeira revisão — inclusive a primeira desta
+// lista, que apaga a autenticação inteira e deixa qualquer visitante conversar com um agente que
+// lê dado de escritório. O código estava certo; nada o segurava.
+//
+// Varredura, e não execução, pelo motivo de sempre nesta casa: rodar a rota exigiria sessão
+// autenticada e a API da Anthropic. Ancorada por regex e por corpoDaFuncao, com `codigoDe` para
+// um comentário que CITA a trava não fingir que ela existe no código.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+const FONTE_DA_ROTA = readFileSync(join(process.cwd(), "app", "api", "painel-mestre", "agente", "route.ts"), "utf8");
+const CODIGO_DA_ROTA = codigoDe(FONTE_DA_ROTA);
+
+teste("TRAVA: a rota recusa quem não é da equipe da Lúmen, ANTES de ler o corpo do pedido", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(corpo.length > 400, `corpoDaFuncao("POST") devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/const viewer = await resolveViewer\(\);/.test(corpo), "a rota deixou de resolver quem está perguntando");
+  verdade(/if \(!viewer\)[\s\S]{0,120}status: 401/.test(corpo),
+    "sumiu a recusa de quem não está autenticado — qualquer visitante conversaria com o agente");
+  const posTrava = corpo.indexOf("if (!viewer)");
+  const posCorpo = corpo.indexOf("request.json()");
+  verdade(posTrava >= 0 && posCorpo >= 0 && posTrava < posCorpo, "a autenticação precisa vir antes de ler o corpo do pedido");
+});
+
+teste("TRAVA: a chave ausente barra a conversa — nunca segue sem configuração", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(/if \(!isAssistantConfigured\(\)\)/.test(corpo), "a rota deixou de conferir se o assistente está configurado");
+});
+
+teste("HARD GATE: nem o dono da plataforma alcança COFRE — o schema é literal nisso", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "resolveViewer");
+  verdade(corpo.length > 120, `corpoDaFuncao("resolveViewer") devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/maxVisibility: "QUEBRA_VIDRO"/.test(corpo), "o teto sintetizado para o dono da plataforma mudou");
+  verdade(!/COFRE/.test(corpo), "alguém deu COFRE a alguém — nem sócio alcança, e o dono não é exceção");
+});
+
+teste("TRAVA: o histórico vindo do navegador só aceita os dois papéis de conversa", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  // Sem isto, um `role` qualquer (ex.: "system") vindo do cliente entraria no pedido como se
+  // fosse instrução — a superfície clássica de injeção por histórico forjado.
+  verdade(/role === "user" \|\| turno!\.role === "assistant"/.test(corpo),
+    "o filtro de papéis do histórico caiu — o cliente passa a escolher o papel de cada turno");
+  verdade(/\.slice\(-40\)/.test(corpo), "sumiu o teto bruto do histórico — o cliente manda o tamanho que quiser");
+});
+
+teste("TRAVA: o veredito do orçamento INTERROMPE o pedido, não é só calculado", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(/if \(!orcamento\.cabe\)[\s\S]{0,120}status: 400/.test(corpo),
+    "o orçamento virou enfeite — o pedido seguiria acima do teto, que foi o defeito que derrubou a Ana em produção");
+});
+
+teste("LEI 1: a lista de ferramentas oferecida ao modelo é filtrada pelo teto de quem pergunta", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(/painelMestreFerramentas\.filter\(\(tool\) => ferramentaLiberada\(tool, viewer\)\)/.test(corpo),
+    "a rota passou a oferecer TODAS as ferramentas ao modelo, sem filtrar pelo papel");
+});
+
+teste("LEI 1: ferramenta fora da lista oferecida NUNCA é executada — recusa por escrito", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(/const tool = ferramentasPorNome\.get\(toolUse\.name\);/.test(corpo), "sumiu a resolução da ferramenta pela lista liberada");
+  verdade(/tool\s*\?\s*await tool\.executar\(entrada, viewer\)\s*:/.test(corpo),
+    "a execução deixou de ser condicionada à ferramenta estar liberada para este papel");
+  verdade(!/painelMestreFerramentas\.find\(/.test(corpo),
+    "a rota voltou a procurar a ferramenta na lista COMPLETA — o filtro por papel deixa de valer");
+});
+
+teste("TRAVA: nenhum caminho do laço gira sem teto — cada volta é uma chamada paga", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  const pos = corpo.indexOf('stop_reason === "pause_turn"');
+  verdade(pos >= 0, "sumiu o tratamento de pause_turn");
+  const trecho = corpo.slice(pos, pos + 420);
+  // O DEFEITO ORIGINAL: `pause_turn` fazia `continue` sem tocar no contador, e uma sequência
+  // delas girava o laço até a Vercel matar a função aos 60s — gastando a cada volta.
+  verdade(/rounds \+= 1/.test(trecho), "a volta de pause_turn não conta rodada — laço sem teto num caminho que gasta dinheiro");
+  verdade(/rounds > MAX_TOOL_ROUNDS/.test(trecho), "a volta de pause_turn não tem saída pelo teto de rodadas");
+  const posContinue = trecho.indexOf("continue");
+  const posIncremento = trecho.indexOf("rounds += 1");
+  verdade(posIncremento >= 0 && posIncremento < posContinue, "o contador precisa subir ANTES do continue");
+});
+
+teste("LEI 3: a rota inteira é de leitura — nenhuma escrita no banco em caminho nenhum", () => {
+  verdade(!/prisma\.\w+\.(create|update|upsert|delete|updateMany|deleteMany|createMany)\(/.test(CODIGO_DA_ROTA),
+    "apareceu escrita no banco dentro da rota do agente — ele é só leitura, sem exceção");
+});
+
 void resumo("F7 — o agente do Painel Mestre");
