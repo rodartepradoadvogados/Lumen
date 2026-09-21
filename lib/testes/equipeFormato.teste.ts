@@ -125,4 +125,36 @@ teste("a ferramenta de equipe não escreve no banco", () => {
   }
 });
 
-void resumo("formatação da equipe");
+void teste("a consulta da equipe tem select EXPLÍCITO — a trava nº 1 não pode se apagar em silêncio", () => {
+  // Achado por mutação na revisão. Tirar a linha do `select` inteira deixava a suíte VERDE: sem
+  // ela o Prisma devolve TODOS os campos escalares do User — telefone, e-mail, CPF, endereço e o
+  // hash de senha — e o registro inteiro passa a trafegar até a memória do processo.
+  //
+  // Nada vazava para o agente, porque a trava nº 2 (formatarEquipe) descarta o que não conhece, e
+  // é exatamente para isso que ela existe. Mas defesa em profundidade só é profunda enquanto as
+  // duas camadas estão de pé: com a primeira apagada, a segunda vira a única, e ninguém fica
+  // sabendo. O comentário do código chama aquela linha de "TRAVA Nº 1" — este caso é o que faz o
+  // nome ser verdade.
+  const fonte = codigoDe(readFileSync("lib/assistantTools.ts", "utf8"));
+  const i = fonte.indexOf('name: "consultar_equipe"');
+  verdade(i > 0, "a ferramenta de equipe sumiu");
+
+  // A consulta fica ANTES da definição da ferramenta no arquivo; pega-se o trecho do executor.
+  const inicio = fonte.lastIndexOf("prisma.user.findMany(", i) >= 0
+    ? fonte.lastIndexOf("prisma.user.findMany(", i)
+    : fonte.indexOf("prisma.user.findMany(");
+  verdade(inicio > 0, "a consulta da equipe sumiu");
+  const consulta = fonte.slice(inicio, inicio + 400);
+
+  verdade(/select:\s*\{[^}]*name:\s*true/.test(consulta),
+    "a consulta da equipe perdeu o select explícito — o Prisma passa a devolver o User inteiro, com telefone, e-mail e hash de senha");
+  verdade(/recebeTransferencia:\s*true/.test(consulta), "a escala saiu do select da equipe");
+  verdade(!/include:/.test(consulta), "a consulta da equipe passou a usar include");
+  // E os campos proibidos não podem ser pedidos nem por engano.
+  for (const proibido of ["phone", "email", "passwordHash", "cpf"]) {
+    verdade(!new RegExp(`${proibido}:\\s*true`).test(consulta),
+      `a consulta da equipe passou a pedir ${proibido} ao banco`);
+  }
+});
+
+resumo("formatação da equipe");
