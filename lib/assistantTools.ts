@@ -1,10 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
-import type { NivelFinanceiro } from "@/lib/nivelFinanceiro";
+import type { NivelFinanceiro, QuemPergunta } from "@/lib/nivelFinanceiro";
+import { podeVerNivel, valoresOuOmissao } from "@/lib/nivelFinanceiro";
 import { calcularDre, periodoAnterior, variacaoPercentual } from "@/lib/dreCalculo";
 import { inicioDoMesEmBrasilia, inicioDoProximoMesEmBrasilia, dataDeBrasilia, lerPeriodoEmBrasilia } from "@/lib/horaDeBrasilia";
 import { valorLiquido } from "@/lib/financeCalc";
 import { caseMatchesMateria } from "@/lib/caseMaterias";
+import { formatarEquipe } from "@/lib/equipeFormato";
+import { getDocumentTypeLabel } from "@/lib/documentTypes";
+import { pendenciaKindLabel } from "@/lib/pendencias";
 
 // ============================================================================
 // Ferramentas do Assistente Claude (chat interno)
@@ -26,7 +30,11 @@ export type AssistantToolModule =
   | "agenda"
   | "atendimento"
   | "clientes"
-  | "financeiro";
+  | "financeiro"
+  | "equipe"
+  | "documentos"
+  | "tarefas"
+  | "assessorias";
 
 // Entrada bruta de um tool_use — vem de fora (o modelo), então nunca é tipada
 // como a interface "ideal" da ferramenta; cada `executar` lê os campos que
@@ -47,7 +55,19 @@ export type AssistantTool = {
    */
   nivel?: NivelFinanceiro;
   spec: Anthropic.Tool;
-  executar: (input: ToolInput, ctx: { userId: string; officeId: string }) => Promise<string>;
+  /**
+   * `financeiro`/`admin`: a MESMA dupla de `QuemPergunta` (lib/nivelFinanceiro.ts), levada até
+   * quem executa a ferramenta. Toda ferramenta de módulo "financeiro" já é barrada ANTES de
+   * chegar aqui (pela lista oferecida e pela dupla checagem nas duas rotas) — esses dois campos
+   * existem para a ferramenta que NÃO é do financeiro mas TEM um bloco de dinheiro por dentro
+   * (o histórico do cliente, a mensalidade de uma assessoria): ela decide sozinha se mostra ou
+   * omite aquele bloco, com `valoresOuOmissao`. Ausentes (chamada antiga, teste) contam como
+   * "sem acesso a nada" — fechado por padrão, o mesmo princípio de `podeVerNivel`.
+   */
+  executar: (
+    input: ToolInput,
+    ctx: { userId: string; officeId: string; financeiro?: boolean; admin?: boolean },
+  ) => Promise<string>;
 };
 
 // ============================================================================
@@ -167,6 +187,21 @@ function bool(input: ToolInput, key: string): boolean {
 // ============================================================================
 function linkDoProcesso(caseId: string | null | undefined): string {
   return caseId ? `/processos/${caseId}` : "/processos";
+}
+
+function linkDoAtendimento(attendanceId: string | null | undefined): string {
+  return attendanceId ? `/atendimento/${attendanceId}` : "/atendimento";
+}
+
+function linkDaAssessoria(assessoriaId: string | null | undefined): string {
+  return assessoriaId ? `/assessoria/${assessoriaId}` : "/assessoria";
+}
+
+/** Tarefa aponta para o processo quando tem um; senão para o atendimento; senão para a agenda. */
+function linkDaTarefa(caseId: string | null | undefined, attendanceId: string | null | undefined): string {
+  if (caseId) return linkDoProcesso(caseId);
+  if (attendanceId) return linkDoAtendimento(attendanceId);
+  return "/agenda";
 }
 
 // ---------------------------------------------------------------------------
@@ -389,22 +424,27 @@ async function executarConsultarAtendimento(input: ToolInput, officeId: string):
 
 // ---------------------------------------------------------------------------
 // buscar_cliente
+//
+// SEM `nome`, esta ferramenta virou também a LISTA de clientes do escritório (F6, item "clientes"
+// da entrevista do dono: "a lista/ficha de clientes do escritório") — não uma ferramenta nova ao
+// lado dela. Com `nome`, continua sendo a busca/ficha que já era. Uma ferramenta que já sabia
+// filtrar por cliente só precisava aprender a responder também sem filtro nenhum.
 // ---------------------------------------------------------------------------
 
 async function executarBuscarCliente(input: ToolInput, officeId: string): Promise<string> {
   try {
     const nome = str(input, "nome");
-    if (!nome) {
-      return "Informe o nome do cliente a ser buscado.";
-    }
 
-    const filtro = { officeId, name: { contains: nome, mode: "insensitive" as const } };
+    const filtro = { officeId, name: nome ? { contains: nome, mode: "insensitive" as const } : undefined };
 
     const [totalNoBanco, clientes] = await Promise.all([
       prisma.client.count({ where: filtro }),
       prisma.client.findMany({
         where: filtro,
         include: { _count: { select: { cases: true } } },
+        // Sem `nome`, isto é a LISTA do escritório inteiro — ordem alfabética é a única que faz
+        // sentido para folhear; com `nome`, a ordem quase não importa (poucos resultados).
+        orderBy: { name: "asc" },
         take: 20,
       }),
     ]);
@@ -673,6 +713,489 @@ async function executarConsultarIndicadores(input: ToolInput, officeId: string):
 }
 
 // ---------------------------------------------------------------------------
+// consultar_equipe (F6) — nome, função e escala. SÓ ISSO.
+//
+// Decisão expressa do dono na entrevista: "a ferramenta de equipe NUNCA devolve telefone nem
+// e-mail de ninguém". Duas travas, não uma: o `select` abaixo já não pede esses campos ao banco,
+// e `formatarEquipe` (lib/equipeFormato.ts) descarta qualquer campo a mais que chegue até ela —
+// ver o comentário lá para o porquê de a trava ser uma função pura e não só este `select`.
+// ---------------------------------------------------------------------------
+
+async function executarConsultarEquipe(input: ToolInput, officeId: string): Promise<string> {
+  try {
+    const nome = str(input, "nome");
+    const apenasNaEscala = bool(input, "apenasNaEscala");
+    // Inativo continua fora por padrão — como em toda outra ferramenta desta casa que lista
+    // pessoas ou registros vivos; incluir quem saiu do escritório é a exceção, não a regra.
+    const incluirInativos = bool(input, "incluirInativos");
+
+    const filtro = {
+      officeId,
+      active: incluirInativos ? undefined : true,
+      name: nome ? { contains: nome, mode: "insensitive" as const } : undefined,
+      recebeTransferencia: apenasNaEscala ? true : undefined,
+    };
+
+    const [totalNoBanco, linhas] = await Promise.all([
+      prisma.user.count({ where: filtro }),
+      prisma.user.findMany({
+        where: filtro,
+        // A TRAVA Nº 1: só estes três campos saem do banco. Nunca `include`, nunca o User
+        // inteiro — telefone, e-mail, CPF, endereço e hash de senha moram no mesmo registro.
+        select: { name: true, role: true, recebeTransferencia: true },
+        orderBy: { name: "asc" },
+        take: 20,
+      }),
+    ]);
+
+    return JSON.stringify(comAviso({
+      total: totalNoBanco,
+      mostrados: linhas.length,
+      truncado: totalNoBanco > linhas.length,
+      // A TRAVA Nº 2: mesmo que o `select` acima um dia vaze campo a mais, só nome/função/escala
+      // atravessam esta função pura (ver lib/equipeFormato.ts).
+      equipe: formatarEquipe(linhas),
+    }));
+  } catch (error) {
+    console.error("[assistantTools] erro em consultar_equipe:", error);
+    return "Não foi possível consultar a equipe agora. Tente novamente em instantes.";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// consultar_pendencias (F6) — as pendências do atendimento (Fase 5): o que falta pedir AO lead
+// (SOLICITAR) ou mandar PARA ele (ENVIAR) para fechar a triagem.
+// ---------------------------------------------------------------------------
+
+async function executarConsultarPendencias(input: ToolInput, officeId: string): Promise<string> {
+  try {
+    const status = str(input, "status"); // PENDENTE | CONCLUIDA
+    const direcao = str(input, "direcao"); // SOLICITAR | ENVIAR
+    const responsavel = str(input, "responsavel");
+    const somenteVencidas = bool(input, "somenteVencidas");
+
+    const filtro = {
+      officeId,
+      // Sem filtro explícito, só o que ainda está em aberto — é o que a pergunta "o que está
+      // pendente" quer dizer; quem quiser o que já foi resolvido pede CONCLUIDA de propósito.
+      status: status || "PENDENTE",
+      direction: direcao || undefined,
+      dueDate: somenteVencidas ? { lt: new Date() } : undefined,
+      responsible: responsavel ? { name: { contains: responsavel, mode: "insensitive" as const } } : undefined,
+    };
+
+    const [totalNoBanco, pendencias] = await Promise.all([
+      prisma.atendimentoPendencia.count({ where: filtro }),
+      prisma.atendimentoPendencia.findMany({
+        where: filtro,
+        include: { attendance: true, responsible: true },
+        orderBy: { dueDate: "asc" },
+        take: 20,
+      }),
+    ]);
+
+    const resumo = pendencias.map((p) => ({
+      link: linkDoAtendimento(p.attendanceId),
+      direcao: p.direction,
+      tipo: pendenciaKindLabel(p.direction, p.kind),
+      descricao: p.description,
+      status: p.status,
+      dueDate: p.dueDate,
+      atendimento: p.attendance?.clientName ?? null,
+      responsavel: p.responsible?.name ?? null,
+    }));
+
+    return JSON.stringify(comAviso({
+      total: totalNoBanco,
+      mostrados: resumo.length,
+      truncado: totalNoBanco > resumo.length,
+      pendencias: resumo,
+    }));
+  } catch (error) {
+    console.error("[assistantTools] erro em consultar_pendencias:", error);
+    return "Não foi possível consultar as pendências agora. Tente novamente em instantes.";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// consultar_documentos (F6) — os anexos (Attachment) do escritório: processo, atendimento ou
+// licitação, com o link do Drive de quem quer abrir o arquivo em vez de só saber que ele existe.
+// ---------------------------------------------------------------------------
+
+async function executarConsultarDocumentos(input: ToolInput, officeId: string): Promise<string> {
+  try {
+    const cliente = str(input, "cliente");
+    const tipo = str(input, "tipo");
+    const diasAtras = num(input, "diasAtras");
+
+    const desde = diasAtras ? new Date(Date.now() - Math.max(1, diasAtras) * 86_400_000) : undefined;
+
+    const filtro = {
+      officeId,
+      docType: tipo || undefined,
+      createdAt: desde ? { gte: desde } : undefined,
+      // O documento pode estar preso a um Processo OU a um Atendimento — o nome do cliente mora
+      // em lugares diferentes em cada um (Case.client.name vs. Attendance.clientName), então a
+      // busca por cliente precisa olhar os dois.
+      OR: cliente
+        ? [
+            { case: { client: { name: { contains: cliente, mode: "insensitive" as const } } } },
+            { attendance: { clientName: { contains: cliente, mode: "insensitive" as const } } },
+          ]
+        : undefined,
+    };
+
+    const [totalNoBanco, documentos] = await Promise.all([
+      prisma.attachment.count({ where: filtro }),
+      prisma.attachment.findMany({
+        where: filtro,
+        include: { case: { include: { client: true } }, attendance: true, uploadedBy: true },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+    ]);
+
+    const resumo = documentos.map((a) => ({
+      // O link de um documento É o arquivo — não uma tela do Lúmen. Diferente de processo/tarefa,
+      // aqui "onde se age" é o próprio Drive.
+      link: a.driveUrl,
+      name: a.name,
+      tipo: getDocumentTypeLabel(a.docType),
+      createdAt: a.createdAt,
+      processo: a.case?.title ?? null,
+      cliente: a.case?.client?.name ?? a.attendance?.clientName ?? null,
+      atendimento: a.attendance?.subject ?? null,
+      enviadoPor: a.uploadedBy?.name ?? null,
+    }));
+
+    return JSON.stringify(comAviso({
+      total: totalNoBanco,
+      mostrados: resumo.length,
+      truncado: totalNoBanco > resumo.length,
+      documentos: resumo,
+    }));
+  } catch (error) {
+    console.error("[assistantTools] erro em consultar_documentos:", error);
+    return "Não foi possível consultar os documentos agora. Tente novamente em instantes.";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// consultar_tarefas (F6) — as tarefas do escritório, em qualquer status.
+//
+// Diferente de consultar_agenda (que só olha PRA FRENTE e já exclui CONCLUIDO/CANCELADO, porque
+// responde "o que vem por aí"), esta responde "as tarefas", sem recorte de tempo nem de status
+// por padrão — inclusive as já concluídas, porque "o que já foi feito" também é uma pergunta
+// válida sobre tarefas, e a agenda não responde isso.
+// ---------------------------------------------------------------------------
+
+async function executarConsultarTarefas(input: ToolInput, officeId: string): Promise<string> {
+  try {
+    const status = str(input, "status");
+    const tipo = str(input, "tipo");
+    const responsavel = str(input, "responsavel");
+    const cliente = str(input, "cliente");
+
+    const filtro = {
+      officeId,
+      status: status || undefined,
+      type: tipo || undefined,
+      responsible: responsavel ? { name: { contains: responsavel, mode: "insensitive" as const } } : undefined,
+      OR: cliente
+        ? [
+            { case: { client: { name: { contains: cliente, mode: "insensitive" as const } } } },
+            { attendance: { clientName: { contains: cliente, mode: "insensitive" as const } } },
+          ]
+        : undefined,
+    };
+
+    const [totalNoBanco, tarefas] = await Promise.all([
+      prisma.task.count({ where: filtro }),
+      prisma.task.findMany({
+        where: filtro,
+        include: { case: { include: { client: true } }, attendance: true, responsible: true },
+        // Mais recente por vencimento primeiro — o mesmo idioma de "atividade recente" que
+        // consultar_processos/consultar_atendimento já usam, e não "o que vem a seguir" (isso é
+        // a agenda).
+        orderBy: { dueDate: "desc" },
+        take: 20,
+      }),
+    ]);
+
+    const resumo = tarefas.map((t) => ({
+      link: linkDaTarefa(t.caseId, t.attendanceId),
+      title: t.title,
+      type: t.type,
+      status: t.status,
+      priority: t.priority,
+      dueDate: t.dueDate,
+      dueTime: t.dueTime,
+      processo: t.case?.title ?? null,
+      cliente: t.case?.client?.name ?? t.attendance?.clientName ?? null,
+      responsavel: t.responsible?.name ?? null,
+    }));
+
+    return JSON.stringify(comAviso({
+      total: totalNoBanco,
+      mostrados: resumo.length,
+      truncado: totalNoBanco > resumo.length,
+      tarefas: resumo,
+    }));
+  } catch (error) {
+    console.error("[assistantTools] erro em consultar_tarefas:", error);
+    return "Não foi possível consultar as tarefas agora. Tente novamente em instantes.";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// consultar_assessorias (F6) — as assessorias (contrato mensal com empresa-cliente).
+//
+// `mensalidade` é dinheiro — o valor contratado do honorário mensal — e por isso passa pela MESMA
+// régua do financeiro que o resto da casa usa (REGISTRO: quem tem acesso ao financeiro vê; quem
+// não tem recebe a assessoria inteira, sem o valor, com aviso de que foi omitido). A regra do
+// dono não fala de "ferramenta financeira", fala de "responder sobre o financeiro" — e mensalidade
+// é financeiro, esteja em qual ferramenta estiver.
+// ---------------------------------------------------------------------------
+
+async function executarConsultarAssessorias(input: ToolInput, officeId: string, quem: QuemPergunta): Promise<string> {
+  try {
+    const status = str(input, "status"); // ATIVA | SUSPENSA | ENCERRADA
+    const cliente = str(input, "cliente");
+
+    const filtro = {
+      officeId,
+      status: status || undefined,
+      client: cliente ? { name: { contains: cliente, mode: "insensitive" as const } } : undefined,
+    };
+
+    const [totalNoBanco, assessorias] = await Promise.all([
+      prisma.assessoria.count({ where: filtro }),
+      prisma.assessoria.findMany({
+        where: filtro,
+        include: { client: true, responsible: true },
+        orderBy: { startDate: "desc" },
+        take: 20,
+      }),
+    ]);
+
+    const resumo = assessorias.map((a) => ({
+      link: linkDaAssessoria(a.id),
+      cliente: a.client.name,
+      status: a.status,
+      iniciadaEm: a.startDate,
+      diaDeVencimento: a.dueDay,
+      responsavel: a.responsible?.name ?? null,
+      // O bloco de dinheiro, sujeito ao corte de REGISTRO — ver comentário acima da função.
+      valores: valoresOuOmissao(quem, { mensalidade: a.monthlyFee }),
+    }));
+
+    return JSON.stringify(comAviso({
+      total: totalNoBanco,
+      mostrados: resumo.length,
+      truncado: totalNoBanco > resumo.length,
+      assessorias: resumo,
+    }));
+  } catch (error) {
+    console.error("[assistantTools] erro em consultar_assessorias:", error);
+    return "Não foi possível consultar as assessorias agora. Tente novamente em instantes.";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// consultar_historico_cliente (F6) — "o que já aconteceu com aquele cliente": processos,
+// atendimentos, tarefas e documentos vinculados a ele, mais um resumo do que está lançado
+// financeiramente em nome dele.
+//
+// A REGRA DO DONO (Q15), LETRA POR LETRA: o histórico do cliente é REGISTRO em tudo, EXCETO os
+// valores de dinheiro dentro dele, que seguem a régua do financeiro — "somar o que já está
+// lançado é registro". Por isso só o bloco `financeiro` passa por `valoresOuOmissao`; o resto
+// (processos, atendimentos, tarefas, documentos) não tem dinheiro dentro e é visível a qualquer
+// um que use o assistente, financeiro ou não.
+// ---------------------------------------------------------------------------
+
+async function executarHistoricoCliente(input: ToolInput, officeId: string, quem: QuemPergunta): Promise<string> {
+  try {
+    const nome = str(input, "nome");
+    if (!nome) {
+      return "Informe o nome do cliente para consultar o histórico.";
+    }
+
+    // Resolve o NOME num cliente só, antes de buscar histórico nenhum — um histórico "do cliente
+    // errado" por causa de homônimo é pior do que pedir para a pessoa ser mais específica.
+    const candidatos = await prisma.client.findMany({
+      where: { officeId, name: { contains: nome, mode: "insensitive" as const } },
+      select: { id: true, name: true },
+      take: 5,
+    });
+
+    if (candidatos.length === 0) {
+      return JSON.stringify({ encontrado: false, mensagem: `Nenhum cliente encontrado com o nome "${nome}".` });
+    }
+    if (candidatos.length > 1) {
+      return JSON.stringify({
+        encontrado: false,
+        ambiguo: true,
+        candidatos: candidatos.map((c) => c.name),
+        mensagem: "Mais de um cliente encontrado com esse nome — peça para a pessoa ser mais específica (nome completo).",
+      });
+    }
+
+    const cliente = candidatos[0];
+    const apenasPendente = bool(input, "apenasPendente");
+
+    const filtroTarefasEDocumentos = {
+      officeId,
+      OR: [{ case: { clientId: cliente.id } }, { attendance: { clientId: cliente.id } }],
+    };
+
+    // CADA lista traz o TOTAL real, não o tamanho da amostra — a mesma regra do topo do arquivo
+    // (AVISO_AMOSTRA): um histórico que mostra 20 processos e diz "total: 20" quando há 60 mente
+    // por omissão do mesmo jeito que "não há processo" mentiria.
+    const [
+      totalProcessos,
+      processos,
+      totalAtendimentos,
+      atendimentos,
+      totalTarefas,
+      tarefas,
+      totalDocumentos,
+      documentos,
+    ] = await Promise.all([
+      prisma.case.count({ where: { officeId, clientId: cliente.id } }),
+      prisma.case.findMany({
+        where: { officeId, clientId: cliente.id },
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+        select: { id: true, title: true, status: true, area: true, materias: true, updatedAt: true },
+      }),
+      prisma.attendance.count({ where: { officeId, clientId: cliente.id } }),
+      prisma.attendance.findMany({
+        where: { officeId, clientId: cliente.id },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        // NUNCA `estimatedValue` aqui: é dinheiro, e este bloco (diferente de `financeiro` abaixo)
+        // não passa pela régua — mais simples excluir o campo do que lembrar de omiti-lo depois.
+        select: { id: true, subject: true, status: true, stage: true, channel: true, createdAt: true },
+      }),
+      prisma.task.count({ where: filtroTarefasEDocumentos }),
+      prisma.task.findMany({
+        where: filtroTarefasEDocumentos,
+        orderBy: { dueDate: "desc" },
+        take: 20,
+        select: { id: true, title: true, type: true, status: true, dueDate: true, caseId: true, attendanceId: true },
+      }),
+      prisma.attachment.count({ where: filtroTarefasEDocumentos }),
+      prisma.attachment.findMany({
+        where: filtroTarefasEDocumentos,
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: { id: true, name: true, docType: true, driveUrl: true, createdAt: true },
+      }),
+    ]);
+
+    // O FINANCEIRO É SEMPRE DO UNIVERSO INTEIRO DO CLIENTE, NUNCA DA AMOSTRA acima (que é só os
+    // 20 processos/atendimentos mais recentes). Somar dinheiro sobre uma amostra deu um número
+    // errado com cara de certo antes nesta casa (ver o aviso no topo do arquivo) — aqui o filtro é
+    // direto no cliente (Receivable.clientId) ou no processo dele (Payable.case.clientId), sem
+    // passar pelos ids que vieram na amostra de cima.
+    //
+    // A consulta só RODA quando `quem` tem acesso — poupa duas agregações a mais quando o
+    // resultado vai ser omitido de qualquer forma —, mas quem decide o que SAI é sempre
+    // `valoresOuOmissao`, o mesmo portão usado em consultar_assessorias: uma trava, não duas.
+    let financeiro: ReturnType<typeof valoresOuOmissao<{ aReceberDesteCliente: unknown; despesasDosProcessosDesteCliente: unknown }>>;
+    if (podeVerNivel("registro", quem)) {
+      const statusFiltro = apenasPendente ? "PENDENTE" : { not: "A_APURAR" as const };
+      const [receberAgg, receberTotal, pagarAgg, pagarTotal] = await Promise.all([
+        prisma.receivable.aggregate({
+          where: { officeId, clientId: cliente.id, status: statusFiltro },
+          _sum: { amount: true, discount: true, surcharge: true },
+        }),
+        prisma.receivable.count({ where: { officeId, clientId: cliente.id, status: statusFiltro } }),
+        prisma.payable.aggregate({
+          where: { officeId, case: { clientId: cliente.id }, status: statusFiltro },
+          _sum: { amount: true, discount: true, surcharge: true },
+        }),
+        prisma.payable.count({ where: { officeId, case: { clientId: cliente.id }, status: statusFiltro } }),
+      ]);
+      financeiro = valoresOuOmissao(quem, {
+        aReceberDesteCliente: {
+          quantidade: receberTotal,
+          somaValores: valorLiquido(receberAgg._sum.amount ?? 0, receberAgg._sum.discount ?? 0, receberAgg._sum.surcharge ?? 0),
+        },
+        despesasDosProcessosDesteCliente: {
+          quantidade: pagarTotal,
+          somaValores: valorLiquido(pagarAgg._sum.amount ?? 0, pagarAgg._sum.discount ?? 0, pagarAgg._sum.surcharge ?? 0),
+        },
+      });
+    } else {
+      // Sem consulta nenhuma ao banco: `quem.financeiro` já é falso aqui, então `valoresOuOmissao`
+      // cai direto na omissão — o valor fictício passado nunca é lido nem devolvido.
+      financeiro = valoresOuOmissao(quem, { aReceberDesteCliente: null, despesasDosProcessosDesteCliente: null });
+    }
+
+    return JSON.stringify({
+      cliente: cliente.name,
+      processos: comAviso({
+        total: totalProcessos,
+        mostrados: processos.length,
+        truncado: totalProcessos > processos.length,
+        lista: processos.map((c) => ({
+          link: linkDoProcesso(c.id),
+          title: c.title,
+          status: c.status,
+          area: c.area,
+          materias: c.materias,
+          atualizadoEm: c.updatedAt,
+        })),
+      }),
+      atendimentos: comAviso({
+        total: totalAtendimentos,
+        mostrados: atendimentos.length,
+        truncado: totalAtendimentos > atendimentos.length,
+        lista: atendimentos.map((a) => ({
+          link: linkDoAtendimento(a.id),
+          subject: a.subject,
+          status: a.status,
+          stage: a.stage,
+          channel: a.channel,
+          criadoEm: a.createdAt,
+        })),
+      }),
+      tarefas: comAviso({
+        total: totalTarefas,
+        mostrados: tarefas.length,
+        truncado: totalTarefas > tarefas.length,
+        lista: tarefas.map((t) => ({
+          link: linkDaTarefa(t.caseId, t.attendanceId),
+          title: t.title,
+          type: t.type,
+          status: t.status,
+          dueDate: t.dueDate,
+        })),
+      }),
+      documentos: comAviso({
+        total: totalDocumentos,
+        mostrados: documentos.length,
+        truncado: totalDocumentos > documentos.length,
+        lista: documentos.map((d) => ({
+          link: d.driveUrl,
+          name: d.name,
+          tipo: getDocumentTypeLabel(d.docType),
+          criadoEm: d.createdAt,
+        })),
+      }),
+      // O bloco de dinheiro — e SÓ ele — sujeito ao corte de REGISTRO. Quando omitido, o objeto
+      // diz `omitido: true` com o motivo por escrito; nunca fica ausente (silêncio) nem mostra o
+      // número a quem não tem acesso.
+      financeiro,
+    });
+  } catch (error) {
+    console.error("[assistantTools] erro em consultar_historico_cliente:", error);
+    return "Não foi possível consultar o histórico deste cliente agora. Tente novamente em instantes.";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Registro de ferramentas
 // ---------------------------------------------------------------------------
 
@@ -755,13 +1278,13 @@ export const assistantTools: AssistantTool[] = [
     spec: {
       name: "buscar_cliente",
       description:
-        "Busca dados cadastrais de um cliente pelo nome. Use quando o usuário perguntar dados de contato, documento ou quantos processos um cliente tem.",
+        "Busca dados cadastrais de um cliente pelo nome, ou lista os clientes do escritório quando nenhum nome for informado. Use quando o usuário perguntar dados de contato, documento ou quantos processos um cliente tem, ou pedir a lista/ficha de clientes do escritório.",
       input_schema: {
         type: "object",
         properties: {
-          nome: { type: "string", description: "Nome (ou parte do nome) do cliente a buscar." },
+          nome: { type: "string", description: "Nome (ou parte do nome) do cliente a buscar. Deixe vazio para listar os clientes do escritório." },
         },
-        required: ["nome"],
+        required: [],
       },
     },
     executar: (input, ctx) => executarBuscarCliente(input, ctx.officeId),
@@ -822,5 +1345,121 @@ export const assistantTools: AssistantTool[] = [
       },
     },
     executar: (input, ctx) => executarConsultarIndicadores(input, ctx.officeId),
+  },
+  {
+    // Módulo próprio ("equipe"), e não "clientes": é gente do escritório, não gente atendida por
+    // ele. Nada aqui gira em torno de "financeiro" — a trava desta ferramenta é outra (ver acima).
+    modulo: "equipe",
+    spec: {
+      name: "consultar_equipe",
+      description:
+        "Lista as pessoas da equipe do escritório: nome, função e se estão na escala de repasse de leads (rodízio do WhatsApp). NUNCA traz telefone nem e-mail — para isso não existe ferramenta. Use quando o usuário perguntar quem trabalha no escritório, a função de alguém, ou quem está na escala.",
+      input_schema: {
+        type: "object",
+        properties: {
+          nome: { type: "string", description: "Nome (ou parte do nome) da pessoa a buscar." },
+          apenasNaEscala: { type: "boolean", description: "Se true, retorna só quem está na escala de repasse de leads do WhatsApp." },
+          incluirInativos: { type: "boolean", description: "Se true, inclui também pessoas inativas (desligadas). Padrão: só ativas." },
+        },
+        required: [],
+      },
+    },
+    executar: (input, ctx) => executarConsultarEquipe(input, ctx.officeId),
+  },
+  {
+    modulo: "atendimento",
+    spec: {
+      name: "consultar_pendencias",
+      description:
+        "Busca as pendências do atendimento (Fase 5): o que falta pedir ao lead (SOLICITAR) ou mandar para ele (ENVIAR) para fechar a triagem. Use quando o usuário perguntar o que está faltando, pendente, ou o que falta cobrar de um lead/cliente em atendimento.",
+      input_schema: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "PENDENTE ou CONCLUIDA. Padrão: PENDENTE (só o que ainda está em aberto)." },
+          direcao: { type: "string", enum: ["SOLICITAR", "ENVIAR"], description: "SOLICITAR (pedir algo ao lead) ou ENVIAR (mandar algo para ele)." },
+          responsavel: { type: "string", description: "Nome (ou parte do nome) do responsável pela pendência." },
+          somenteVencidas: { type: "boolean", description: "Se true, retorna só as pendências com prazo já vencido." },
+        },
+        required: [],
+      },
+    },
+    executar: (input, ctx) => executarConsultarPendencias(input, ctx.officeId),
+  },
+  {
+    modulo: "documentos",
+    spec: {
+      name: "consultar_documentos",
+      description:
+        "Busca documentos/anexos do escritório (processos, atendimentos e licitações), com o link do Drive para abrir o arquivo. Use quando o usuário perguntar por um documento, anexo, contrato ou petição já enviada/anexada.",
+      input_schema: {
+        type: "object",
+        properties: {
+          cliente: { type: "string", description: "Nome (ou parte do nome) do cliente dono do processo/atendimento do documento." },
+          tipo: { type: "string", description: "Tipo do documento (ver catálogo do escritório, ex: CONTRATO, PETICAO_INICIAL, PROCURACAO)." },
+          diasAtras: { type: "integer", description: "Só documentos enviados nos últimos N dias. Sem isto, não há recorte de data." },
+        },
+        required: [],
+      },
+    },
+    executar: (input, ctx) => executarConsultarDocumentos(input, ctx.officeId),
+  },
+  {
+    // Módulo próprio ("tarefas"), distinto de "agenda": a agenda só olha pra frente e exclui o
+    // que já foi concluído/cancelado; esta ferramenta responde sobre QUALQUER tarefa.
+    modulo: "tarefas",
+    spec: {
+      name: "consultar_tarefas",
+      description:
+        "Busca tarefas do escritório em qualquer status (inclusive já concluídas ou canceladas), por tipo, responsável ou cliente. Use para perguntas sobre tarefas em geral — o que já foi feito, quantas tarefas um responsável tem, etc. Para o que está PELA FRENTE na agenda (prazos, audiências futuras), use consultar_agenda.",
+      input_schema: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "PENDENTE, EM_ANDAMENTO, CONCLUIDO ou CANCELADO." },
+          tipo: { type: "string", description: "TAREFA, EVENTO, AUDIENCIA, PERICIA ou PRAZO." },
+          responsavel: { type: "string", description: "Nome (ou parte do nome) do responsável." },
+          cliente: { type: "string", description: "Nome (ou parte do nome) do cliente do processo/atendimento da tarefa." },
+        },
+        required: [],
+      },
+    },
+    executar: (input, ctx) => executarConsultarTarefas(input, ctx.officeId),
+  },
+  {
+    modulo: "assessorias",
+    spec: {
+      name: "consultar_assessorias",
+      description:
+        "Busca as assessorias (contrato mensal de honorário com empresa-cliente) do escritório. O valor da mensalidade só aparece para quem tem acesso ao financeiro do escritório — para quem não tem, vem omitido com aviso, nunca em silêncio. Use quando o usuário perguntar sobre assessorias ativas, honorário mensal de uma empresa, ou vencimento da assessoria.",
+      input_schema: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: ["ATIVA", "SUSPENSA", "ENCERRADA"], description: "Status da assessoria." },
+          cliente: { type: "string", description: "Nome (ou parte do nome) da empresa-cliente." },
+        },
+        required: [],
+      },
+    },
+    executar: (input, ctx) => executarConsultarAssessorias(input, ctx.officeId, { financeiro: ctx.financeiro ?? false, admin: ctx.admin ?? false }),
+  },
+  {
+    // NÃO é módulo "financeiro": a ferramenta inteira é oferecida a qualquer usuário do
+    // escritório (é REGISTRO de cliente, não financeiro) — só o bloco `financeiro` da resposta é
+    // que passa pela régua, por dentro da própria função. Ver o comentário de
+    // executarHistoricoCliente para a regra completa (Q15 da entrevista do dono).
+    modulo: "clientes",
+    spec: {
+      name: "consultar_historico_cliente",
+      description:
+        "Traz o histórico completo de um cliente: processos, atendimentos, tarefas e documentos vinculados a ele, mais um resumo financeiro (contas a receber dele e despesas dos processos dele). Os VALORES financeiros só aparecem para quem tem acesso ao financeiro do escritório — para quem não tem, vêm omitidos com aviso explícito, nunca em silêncio e nunca com o número. Use quando o usuário perguntar 'o que já aconteceu com' um cliente, o histórico dele, ou um resumo geral de um cliente específico.",
+      input_schema: {
+        type: "object",
+        properties: {
+          nome: { type: "string", description: "Nome (o mais completo possível) do cliente." },
+          apenasPendente: { type: "boolean", description: "Se true, o resumo financeiro considera só o que ainda está PENDENTE." },
+        },
+        required: ["nome"],
+      },
+    },
+    executar: (input, ctx) => executarHistoricoCliente(input, ctx.officeId, { financeiro: ctx.financeiro ?? false, admin: ctx.admin ?? false }),
   },
 ];

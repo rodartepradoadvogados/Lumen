@@ -207,6 +207,14 @@ teste("cada ferramenta de hoje tem rótulo em português", () => {
     "consultar_atendimento",
     "buscar_cliente",
     "consultar_financeiro",
+    "consultar_indicadores",
+    // F6 — as sete ferramentas novas.
+    "consultar_equipe",
+    "consultar_pendencias",
+    "consultar_documentos",
+    "consultar_tarefas",
+    "consultar_assessorias",
+    "consultar_historico_cliente",
   ]) {
     const r = rotuloDaFerramenta(nome);
     verdade(!r.includes("_"), `${nome} caiu no rótulo genérico ("${r}")`);
