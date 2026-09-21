@@ -52,7 +52,11 @@ PORTA = int(os.environ.get("HERMES_PORT", "8787"))
 ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "110"))
 
 CORPO_MAXIMO = 64 * 1024  # 64 KiB: uma pergunta de chat não chega perto disso.
-PERGUNTA_MAXIMA = 8_000  # caracteres
+PERGUNTA_MAXIMA = 16_000  # caracteres
+# 16.000 e NAO 8.000: a maquina de producao ja roda com este valor desde que o orcamento do prompt
+# do atendimento (LIMITE_DA_PERGUNTA em lib/agenteAtendimento.ts) apertou com os parametros de
+# recusa da Ana. O repositorio ficou para tras, e quem um dia reinstalasse a ponte a partir daqui
+# faria a Ana voltar a recusar mensagem longa em producao, sem ninguem entender por que.
 
 # O nome do perfil é conferido contra um formato, não contra uma lista: minúsculas, dígitos, ponto,
 # hífen e sublinhado. NÃO se exige mais o prefixo "lumen-tenant-" — esse prefixo era invenção do
