@@ -63,54 +63,69 @@ export default function FilaDeEspera({
               return (
                 <div
                   key={q.id}
-                  className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-regua border-l-[3px] px-5 py-3.5 last:border-b-0 ${tarja}`}
+                  className={`flex flex-wrap items-stretch border-b border-regua border-l-[3px] last:border-b-0 ${tarja}`}
                 >
-                  <div className="w-full min-w-0 lg:w-[210px] lg:shrink-0">
-                    <p className="flex items-center gap-2 truncate text-sm font-semibold text-tx">
-                      {/* A bolinha pisca porque TODA linha desta fila é alguém esperando resposta.
-                          Ver lib/funil.ts: isto é FATO (a última mensagem é do cliente), diferente
-                          da coluna "Aguardando" do quadro, que é estágio escolhido. */}
-                      <span
-                        className="bolinha-espera"
-                        role="img"
-                        aria-label="O cliente está esperando resposta"
-                        title="O cliente escreveu e ninguém respondeu"
-                      />
-                      <span className="min-w-0 truncate">{q.nome}</span>
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-tx-3">{q.campanha || "sem campanha · veio direto"}</p>
-                  </div>
-
-                  <div className="w-[180px] shrink-0">
-                    <p className={`text-sm font-bold ${i === 0 ? "text-marca-tx" : grave ? "text-aviso" : "text-tx-2"}`}>
-                      {rotuloDaEspera(q.esperandoHa)} sem resposta
-                    </p>
-                    {/* O relógio de quinze minutos conta no navegador — o que falta muda a cada
-                        minuto, e um número parado aqui seria acreditado. Ver RelogioDoAtendimento. */}
-                    <p className="mt-0.5 text-xs text-tx-3">
-                      <RelogioDoAtendimento prazoISO={q.prazoISO} apenasDetalhe />
-                    </p>
-                  </div>
-
-                  <div className="w-[170px] shrink-0">
-                    <p className="truncate text-sm text-tx">{comQuemEsta(q)}</p>
-                    <p className="mt-0.5 text-xs text-tx-3">{rotuloDaVolta(q.voltaDaFila)}</p>
-                  </div>
-
-                  <p className="min-w-0 flex-1 truncate text-sm text-tx-2">
-                    {q.ultimaMensagem ? `“${q.ultimaMensagem}”` : "—"}
-                  </p>
-
+                  {/* A linha inteira abre a conversa — mesmo padrão do card do funil
+                      (QuadroDoFunil) e do card do celular (MobileAtendimentosCard): a área de
+                      informação é o link, e o que precisa continuar fora dele (aqui, o botão
+                      "Abrir") fica como irmão, nunca aninhado — link dentro de link é HTML
+                      inválido e quebra de formas silenciosas. */}
                   <Link
                     href={`/atendimento/${q.id}`}
-                    className={`inline-flex h-11 w-[76px] shrink-0 items-center justify-center text-sm font-semibold transition-colors ${
-                      i === 0
-                        ? "bg-acao text-acao-tx hover:bg-acao-hover"
-                        : "border border-regua-forte bg-sf text-tx-2 hover:bg-sf-apoio hover:text-tx"
-                    }`}
+                    className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 outline-none focus-visible:bg-sf-apoio focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-marca-tx"
                   >
-                    Abrir
+                    <div className="w-full min-w-0 lg:w-[210px] lg:shrink-0">
+                      <p className="flex items-center gap-2 truncate text-sm font-semibold text-tx">
+                        {/* A bolinha pisca porque TODA linha desta fila é alguém esperando resposta.
+                            Ver lib/funil.ts: isto é FATO (a última mensagem é do cliente), diferente
+                            da coluna "Aguardando" do quadro, que é estágio escolhido. */}
+                        <span
+                          className="bolinha-espera"
+                          role="img"
+                          aria-label="O cliente está esperando resposta"
+                          title="O cliente escreveu e ninguém respondeu"
+                        />
+                        <span className="min-w-0 truncate">{q.nome}</span>
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-tx-3">{q.campanha || "sem campanha · veio direto"}</p>
+                    </div>
+
+                    <div className="w-[180px] shrink-0">
+                      <p className={`text-sm font-bold ${i === 0 ? "text-marca-tx" : grave ? "text-aviso" : "text-tx-2"}`}>
+                        {rotuloDaEspera(q.esperandoHa)} sem resposta
+                      </p>
+                      {/* O relógio de quinze minutos conta no navegador — o que falta muda a cada
+                          minuto, e um número parado aqui seria acreditado. Ver RelogioDoAtendimento. */}
+                      <p className="mt-0.5 text-xs text-tx-3">
+                        <RelogioDoAtendimento prazoISO={q.prazoISO} apenasDetalhe />
+                      </p>
+                    </div>
+
+                    <div className="w-[170px] shrink-0">
+                      <p className="truncate text-sm text-tx">{comQuemEsta(q)}</p>
+                      <p className="mt-0.5 text-xs text-tx-3">{rotuloDaVolta(q.voltaDaFila)}</p>
+                    </div>
+
+                    <p className="min-w-0 flex-1 truncate text-sm text-tx-2">
+                      {q.ultimaMensagem ? `“${q.ultimaMensagem}”` : "—"}
+                    </p>
                   </Link>
+
+                  {/* O botão continua existindo — não é redundância. É a garantia de quem navega
+                      por teclado (o alvo de foco previsível) e de quem não descobre, só de olhar,
+                      que a linha inteira é clicável; a linha é comodidade, o botão é a garantia. */}
+                  <div className="flex shrink-0 items-center py-3.5 pr-5">
+                    <Link
+                      href={`/atendimento/${q.id}`}
+                      className={`inline-flex h-11 w-[76px] shrink-0 items-center justify-center text-sm font-semibold transition-colors ${
+                        i === 0
+                          ? "bg-acao text-acao-tx hover:bg-acao-hover"
+                          : "border border-regua-forte bg-sf text-tx-2 hover:bg-sf-apoio hover:text-tx"
+                      }`}
+                    >
+                      Abrir
+                    </Link>
+                  </div>
                 </div>
               );
             })}
