@@ -81,42 +81,50 @@ export default function RecusadosParaAnalise({ lista }: { lista: RecusadoNaLista
           {lista.map((r) => (
             <div
               key={r.recusaId}
-              className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-regua border-l-[3px] px-5 py-3.5 last:border-b-0 ${
+              className={`flex flex-wrap items-stretch border-b border-regua border-l-[3px] last:border-b-0 ${
                 r.revisitaVencida ? "border-l-marca-tx" : "border-l-regua-forte"
               }`}
             >
-              <div className="w-full min-w-0 lg:w-[220px] lg:shrink-0">
-                <Link href={`/atendimento/${r.attendanceId}`} className="block truncate text-sm font-semibold text-marca-tx hover:underline">
-                  {r.nome}
-                </Link>
-                <p className="mt-0.5 truncate text-xs text-tx-3">{r.assunto}</p>
-              </div>
+              {/* Mesma padronização da guia "Esperando resposta" (FilaDeEspera): a área de
+                  informação inteira abre a conversa, e as ações (reverter/arquivar/ver a carta)
+                  ficam fora do link, como irmãs — nunca aninhadas, porque link dentro de link é
+                  HTML inválido. O nome perde o sublinhado de link avulso porque agora é a linha
+                  toda que é clicável, não só a palavra. */}
+              <Link
+                href={`/atendimento/${r.attendanceId}`}
+                className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 outline-none focus-visible:bg-sf-apoio focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-marca-tx"
+              >
+                <div className="w-full min-w-0 lg:w-[220px] lg:shrink-0">
+                  <p className="truncate text-sm font-semibold text-tx">{r.nome}</p>
+                  <p className="mt-0.5 truncate text-xs text-tx-3">{r.assunto}</p>
+                </div>
 
-              <div className="w-[240px] shrink-0">
-                <p className="text-sm text-tx">{r.motivo}</p>
-                <p className="mt-0.5 truncate text-xs text-tx-3">
-                  {r.recusadoEm}
-                  {r.porAgente ? " · pelo atendente" : r.recusadoPor ? ` · ${r.recusadoPor}` : ""}
-                </p>
-              </div>
-
-              <div className="w-[190px] shrink-0">
-                <p className="text-xs text-tx-2">{r.situacao}</p>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                {r.revisitaLegivel ? (
-                  <p className={`text-sm ${r.revisitaVencida ? "font-semibold text-marca-tx" : "text-tx-2"}`}>
-                    {r.revisitaVencida ? "Era para olhar em " : "Olhar em "}
-                    {r.revisitaLegivel}
+                <div className="w-[240px] shrink-0">
+                  <p className="text-sm text-tx">{r.motivo}</p>
+                  <p className="mt-0.5 truncate text-xs text-tx-3">
+                    {r.recusadoEm}
+                    {r.porAgente ? " · pelo atendente" : r.recusadoPor ? ` · ${r.recusadoPor}` : ""}
                   </p>
-                ) : (
-                  <p className="text-sm text-tx-3">sem data</p>
-                )}
-                {r.observacao && <p className="mt-0.5 truncate text-xs italic text-tx-3">{r.observacao}</p>}
-              </div>
+                </div>
 
-              <div className="flex shrink-0 items-center gap-2 lg:w-[250px] lg:justify-end">
+                <div className="w-[190px] shrink-0">
+                  <p className="text-xs text-tx-2">{r.situacao}</p>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  {r.revisitaLegivel ? (
+                    <p className={`text-sm ${r.revisitaVencida ? "font-semibold text-marca-tx" : "text-tx-2"}`}>
+                      {r.revisitaVencida ? "Era para olhar em " : "Olhar em "}
+                      {r.revisitaLegivel}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-tx-3">sem data</p>
+                  )}
+                  {r.observacao && <p className="mt-0.5 truncate text-xs italic text-tx-3">{r.observacao}</p>}
+                </div>
+              </Link>
+
+              <div className="flex shrink-0 items-center gap-2 py-3.5 pr-5 lg:w-[250px] lg:justify-end">
                 {confirmando === r.recusaId ? (
                   <>
                     <span className="text-xs text-tx-2">Encerrar de vez?</span>
