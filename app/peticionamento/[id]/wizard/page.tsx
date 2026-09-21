@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
 import { WizardClient } from "@/components/peticionamento/WizardClient";
-import { obterSessaoPeticionamento } from "@/lib/actions/peticionamento";
+import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos } from "@/lib/actions/peticionamento";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +11,21 @@ export default async function WizardPage({ params }: { params: { id: string } })
   if (!user) notFound();
   const sessao = await obterSessaoPeticionamento(params.id).catch(() => null);
   if (!sessao) notFound();
+  const [temTrabalho, rascunhosCount] = await Promise.all([avaliarTrabalhoEmAndamento(params.id), contarRascunhos()]);
 
   return (
-    <ShellPeticionamento sessaoId={params.id} ativo="wizard" crumbAtual="Questionário" nomeUsuario={user.name} papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}>
+    <ShellPeticionamento
+      sessaoId={params.id}
+      ativo="wizard"
+      crumbAtual="Questionário"
+      nomeUsuario={user.name}
+      papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}
+      temTrabalho={temTrabalho}
+      rascunhosCount={rascunhosCount}
+    >
       <WizardClient
         sessaoId={params.id}
+        categoriaPeca={sessao.categoriaPeca}
         inicial={{
           tipoPeca: sessao.tipoPeca,
           tipoPecaOutro: sessao.tipoPecaOutro,

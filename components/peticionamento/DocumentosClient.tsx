@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { definirDocumentosSelecionados, anexarNovoDocumento, marcarConversaoMarkdown } from "@/lib/actions/peticionamento";
+import { useSaidaDoPeticionamento } from "./SaidaContext";
 
 type DocExistente = { id: string; name: string; docType: string; driveUrl: string };
 type Anexo = { id: string; nome: string; markdownConvertido: boolean; markdownRecusado: boolean };
@@ -23,6 +24,7 @@ export function DocumentosClient({
   faltando: ("fatos" | "pedidos")[];
 }) {
   const router = useRouter();
+  const { marcarTrabalho } = useSaidaDoPeticionamento();
   const [pendente, iniciar] = useTransition();
   const [selecionados, setSelecionados] = useState<string[]>(jaSelecionados);
   const [anexos, setAnexos] = useState<Anexo[]>(anexosIniciais);
@@ -33,6 +35,7 @@ export function DocumentosClient({
   function alternar(id: string) {
     const novo = selecionados.includes(id) ? selecionados.filter((x) => x !== id) : [...selecionados, id];
     setSelecionados(novo);
+    marcarTrabalho();
     iniciar(async () => {
       await definirDocumentosSelecionados(sessaoId, novo);
     });
@@ -41,6 +44,7 @@ export function DocumentosClient({
   async function enviarArquivo(file: File) {
     setErro(null);
     setEnviando(true);
+    marcarTrabalho();
     const fd = new FormData();
     fd.set("file", file);
     const resultado = await anexarNovoDocumento(sessaoId, fd);

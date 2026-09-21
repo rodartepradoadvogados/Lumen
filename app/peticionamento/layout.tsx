@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Marcellus, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { getCurrentUser } from "@/lib/currentUser";
 import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
+import { ProvedorDeSaida } from "@/components/peticionamento/SaidaContext";
 import "./peticionamento.css";
 
 // Aba de Peticionamento — decisão do dono: "sensação de sair do Lúmen". Por isso é uma raiz de
@@ -50,5 +51,12 @@ export default async function PeticionamentoLayout({ children }: { children: Rea
     );
   }
 
-  return <div className={`peticionamento ${marcellus.variable} ${plexSans.variable} ${plexMono.variable}`}>{children}</div>;
+  return (
+    <div className={`peticionamento ${marcellus.variable} ${plexSans.variable} ${plexMono.variable}`}>
+      {/* Pop-up de saída (espec. §4) — um único Provider para a aba inteira, ver
+          components/peticionamento/SaidaContext.tsx para o porquê de morar aqui e não em cada
+          página. */}
+      <ProvedorDeSaida>{children}</ProvedorDeSaida>
+    </div>
+  );
 }

@@ -1,15 +1,13 @@
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
+import { TipoPecaClient } from "@/components/peticionamento/TipoPecaClient";
 import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos } from "@/lib/actions/peticionamento";
-import { ExcedidoClient } from "@/components/peticionamento/ExcedidoClient";
 
 export const dynamic = "force-dynamic";
 
-// Especificação §8: "nunca trunca em silêncio". Esta tela é o BLOQUEIO — só existe estado
-// "resumido" (que segue em frente sozinho, avisando) e "bloqueado" (que pede decisão do
-// advogado); nunca um terceiro estado de "cortou e seguiu calado".
-export default async function ExcedidoPage({ params }: { params: { id: string } }) {
+// A PRIMEIRA TELA depois de "Iniciar" (espec. §1 e §7): "a primeira pergunta passa a ser o tipo".
+export default async function TipoPecaPage({ params }: { params: { id: string } }) {
   const user = await getCurrentUser();
   if (!user) notFound();
   const sessao = await obterSessaoPeticionamento(params.id).catch(() => null);
@@ -19,14 +17,14 @@ export default async function ExcedidoPage({ params }: { params: { id: string } 
   return (
     <ShellPeticionamento
       sessaoId={params.id}
-      ativo="documentos"
-      crumbAtual="Limite de contexto"
+      ativo="tipo"
+      crumbAtual="Tipo da peça"
       nomeUsuario={user.name}
       papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}
       temTrabalho={temTrabalho}
       rascunhosCount={rascunhosCount}
     >
-      <ExcedidoClient sessaoId={params.id} motivoBloqueio={sessao.contextoBloqueadoMotivo} avisoResumo={sessao.contextoResumoAviso} />
+      <TipoPecaClient sessaoId={params.id} categoriaAtual={sessao.categoriaPeca} />
     </ShellPeticionamento>
   );
 }

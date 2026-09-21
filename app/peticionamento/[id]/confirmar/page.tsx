@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
 import { ConfirmarClient } from "@/components/peticionamento/ConfirmarClient";
-import { obterSessaoPeticionamento, obterResumoTriagem } from "@/lib/actions/peticionamento";
+import { obterSessaoPeticionamento, obterResumoTriagem, avaliarTrabalhoEmAndamento, contarRascunhos } from "@/lib/actions/peticionamento";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +11,18 @@ export default async function ConfirmarPage({ params }: { params: { id: string }
   if (!user) notFound();
   const sessao = await obterSessaoPeticionamento(params.id).catch(() => null);
   if (!sessao) notFound();
-  const resumo = await obterResumoTriagem(params.id);
+  const [resumo, temTrabalho, rascunhosCount] = await Promise.all([obterResumoTriagem(params.id), avaliarTrabalhoEmAndamento(params.id), contarRascunhos()]);
 
   return (
-    <ShellPeticionamento sessaoId={params.id} ativo="documentos" crumbAtual="Confirmar geração" nomeUsuario={user.name} papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}>
+    <ShellPeticionamento
+      sessaoId={params.id}
+      ativo="confirmar"
+      crumbAtual="Confirmar geração"
+      nomeUsuario={user.name}
+      papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}
+      temTrabalho={temTrabalho}
+      rascunhosCount={rascunhosCount}
+    >
       <div className="page-head">
         <div>
           <h1>Confirme antes de gerar</h1>

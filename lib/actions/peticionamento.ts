@@ -20,6 +20,9 @@ import { avaliarProntidao } from "@/lib/peticionamentoMinimo";
 import { avaliarCandidatos, validarNovoVinculo, ehSessaoAvulsa, type ItemDeContexto, type TipoVinculo } from "@/lib/peticionamentoContexto";
 import { MATERIAS_DO_LUMEN, validarNovaMateria } from "@/lib/peticionamentoMateria";
 import { avaliarJanela, type ItemDeContexto as ItemDeJanela } from "@/lib/peticionamentoJanelaDeContexto";
+import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
+import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, type DeducaoDeNatureza } from "@/lib/peticionamentoNatureza";
+import { passoDaSessao, hrefDoPasso, ROTULO_DO_PASSO, sessaoTemTrabalhoEmAndamento } from "@/lib/peticionamentoPasso";
 import { montarMensagemParaHermes } from "@/lib/peticionamentoPrompt";
 import { interpretarRespostaHermes } from "@/lib/peticionamentoRespostaHermes";
 import { garantirFecho } from "@/lib/peticionamentoFecho";
@@ -51,6 +54,23 @@ async function carregarSessaoOuFalhar(sessaoId: string, officeId: string) {
   return sessao;
 }
 
+/**
+ * A DEDUÇÃO da natureza do procedimento (especificação §8) — recalculada sempre que o vínculo
+ * muda, nunca perguntada do zero. `officeId` já vem conferido de quem chama; a consulta abaixo
+ * ainda assim carrega `officeId` no `where` do processo (defesa em profundidade, mesmo padrão do
+ * resto do arquivo).
+ */
+async function recalcularNaturezaDoVinculo(officeId: string, vinculo: VinculoJson): Promise<DeducaoDeNatureza> {
+  const sinais: SinalDeVinculoParaNatureza[] = [];
+  if (vinculo.caseIds.length) {
+    const casos = await prisma.case.findMany({ where: { id: { in: vinculo.caseIds }, officeId }, select: { processNumber: true, court: true } });
+    sinais.push(...casos.map((c) => ({ tipo: "case" as const, numeroProcesso: c.processNumber, vara: c.court })));
+  }
+  if (vinculo.attendanceIds.length) sinais.push({ tipo: "attendance" });
+  if (vinculo.assessoriaIds.length) sinais.push({ tipo: "assessoria" });
+  return deduzirNatureza(sinais);
+}
+
 // ── SESSÃO ───────────────────────────────────────────────────────────────────────────────────
 
 export async function criarSessaoPeticionamento(): Promise<{ id: string } | { error: string }> {
@@ -66,6 +86,108 @@ export async function obterSessaoPeticionamento(sessaoId: string) {
   const user = await exigirAcessoAba();
   const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
   return sessao;
+}
+
+/**
+ * "Numa sessão vazia, sair é sair" (espec. §4) — cada página de sessão chama isto para saber se
+ * mostra o pop-up de saída (via SincronizarTrabalhoEmAndamento). Concentrado aqui para não
+ * duplicar, em cinco páginas, a conta de "o que conta como trabalho" (lib/peticionamentoPasso.ts).
+ */
+export async function avaliarTrabalhoEmAndamento(sessaoId: string): Promise<boolean> {
+  const user = await exigirAcessoAba();
+  const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const anexosCount = await prisma.peticionamentoAnexo.count({ where: { sessaoId } });
+  const documentosExistentesIds = ((sessao.documentosExistentesIds as string[] | null) ?? []) as string[];
+  return sessaoTemTrabalhoEmAndamento({
+    categoriaPeca: sessao.categoriaPeca,
+    materiaNome: sessao.materiaNome,
+    contextoDecidido: sessao.contextoDecidido,
+    fatos: sessao.fatos,
+    pedidos: ((sessao.pedidos as string[] | null) ?? []) as string[],
+    temDocumento: documentosExistentesIds.length > 0 || anexosCount > 0,
+    minutaTexto: sessao.minutaTexto,
+  });
+}
+
+// ── RASCUNHOS (espec. §3: "FAÇA ESTE PRIMEIRO" — o pop-up de saída promete que nada se perde) ──
+
+export type RascunhoResumo = {
+  id: string;
+  titulo: string;
+  categoriaPeca: string | null;
+  clienteNome: string | null;
+  naturezaProcedimento: string | null;
+  passo: string;
+  passoRotulo: string;
+  href: string;
+  atualizadoEm: string;
+  criadoPorNome: string;
+};
+
+/** Só a contagem — para o "Ver rascunhos (n)" do Menu, sem precisar montar a lista inteira (mesmo corte de listarRascunhos, logo abaixo). */
+export async function contarRascunhos(): Promise<number> {
+  const user = await exigirAcessoAba();
+  return prisma.peticionamentoSessao.count({ where: { officeId: user.officeId, status: { not: "EXPORTADA" } } });
+}
+
+/**
+ * Toda sessão do escritório ainda NÃO exportada — a lista inteira, não só as do usuário logado:
+ * um rascunho iniciado por um colega continua sendo do escritório, e a especificação não separa
+ * "meus rascunhos" de "os do escritório". `criadoPorNome` aparece na lista exatamente para deixar
+ * isso visível, nunca escondido.
+ */
+export async function listarRascunhos(): Promise<RascunhoResumo[]> {
+  const user = await exigirAcessoAba();
+  const sessoes = await prisma.peticionamentoSessao.findMany({
+    where: { officeId: user.officeId, status: { not: "EXPORTADA" } },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      categoriaPeca: true,
+      tipoPeca: true,
+      tipoPecaOutro: true,
+      materiaNome: true,
+      clienteNome: true,
+      naturezaProcedimento: true,
+      contextoDecidido: true,
+      fatos: true,
+      pedidos: true,
+      documentosExistentesIds: true,
+      status: true,
+      updatedAt: true,
+      criadoPor: { select: { name: true } },
+      _count: { select: { anexos: true } },
+    },
+  });
+
+  return sessoes.map((s) => {
+    const pedidos = ((s.pedidos as string[] | null) ?? []) as string[];
+    const documentosExistentesIds = ((s.documentosExistentesIds as string[] | null) ?? []) as string[];
+    const temDocumento = documentosExistentesIds.length > 0 || s._count.anexos > 0;
+    const passo = passoDaSessao({
+      status: s.status,
+      categoriaPeca: s.categoriaPeca,
+      materiaNome: s.materiaNome,
+      contextoDecidido: s.contextoDecidido,
+      fatos: s.fatos,
+      pedidos,
+      temDocumento,
+    });
+    const tipoParaTitulo = s.tipoPeca === "Outra" && s.tipoPecaOutro ? s.tipoPecaOutro : s.tipoPeca;
+    const titulo = s.categoriaPeca ? `${s.categoriaPeca}${tipoParaTitulo ? ` — ${tipoParaTitulo}` : ""}` : "Rascunho sem tipo de peça definido";
+    return {
+      id: s.id,
+      titulo,
+      categoriaPeca: s.categoriaPeca,
+      clienteNome: s.clienteNome,
+      naturezaProcedimento: s.naturezaProcedimento,
+      passo,
+      passoRotulo: ROTULO_DO_PASSO[passo],
+      href: hrefDoPasso(s.id, passo),
+      atualizadoEm: s.updatedAt.toISOString(),
+      criadoPorNome: s.criadoPor.name,
+    };
+  });
 }
 
 // ── MATÉRIA (decisions.md §9 item 4: nova matéria vale só para este escritório) ────────────────
@@ -93,6 +215,31 @@ export async function definirMateria(sessaoId: string, materiaNome: string, ehDo
   const user = await exigirAcessoAba();
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
   await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { materiaNome, materiaEhDoEscritorio: ehDoEscritorio } });
+  return { ok: true };
+}
+
+// ── CATEGORIA DA PEÇA (espec. §7: a primeira pergunta, antes até do contexto) ───────────────────
+
+export async function definirCategoriaPeca(sessaoId: string, categoriaPeca: string): Promise<{ ok: true } | { error: string }> {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  if (!ehCategoriaConhecida(categoriaPeca)) return { error: "Categoria de peça desconhecida." };
+  await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { categoriaPeca } });
+  revalidatePath(`/peticionamento/${sessaoId}/tipo`);
+  return { ok: true };
+}
+
+// ── NATUREZA DO PROCEDIMENTO (espec. §8: deduzida, corrigir é um clique) ────────────────────────
+
+/** O advogado corrige (ou confirma explicitamente) a dedução automática — nunca perguntada do zero. */
+export async function confirmarNatureza(sessaoId: string, naturezaProcedimento: string): Promise<{ ok: true } | { error: string }> {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  if (!ehNaturezaConhecida(naturezaProcedimento)) return { error: "Natureza de procedimento desconhecida." };
+  await prisma.peticionamentoSessao.update({
+    where: { id: sessaoId },
+    data: { naturezaProcedimento, naturezaConfirmadaManualmente: true },
+  });
   return { ok: true };
 }
 
@@ -183,12 +330,20 @@ export async function alternarVinculo(sessaoId: string, tipo: TipoVinculo, itemI
   if (!marcar) {
     vinculo[chave] = vinculo[chave].filter((id) => id !== itemId);
     const aindaTemAlgo = !ehSessaoAvulsa(vinculo);
+    // A dedução (espec. §8) é recalculada a cada mudança de vínculo, para trás e para frente —
+    // desmarcar um processo pode fazer a natureza voltar a "extrajudicial"/"consultivo", ou a
+    // nenhuma, se nada mais sobrou.
+    const deducao = await recalcularNaturezaDoVinculo(user.officeId, vinculo);
     await prisma.peticionamentoSessao.update({
       where: { id: sessaoId },
       data: {
         vinculoCaseIds: vinculo.caseIds,
         vinculoAttendanceIds: vinculo.attendanceIds,
         vinculoAssessoriaIds: vinculo.assessoriaIds,
+        contextoDecidido: true,
+        naturezaProcedimento: deducao.natureza,
+        naturezaMotivo: deducao.motivo,
+        naturezaConfirmadaManualmente: false,
         // Só some a trava de cliente quando NENHUM vínculo sobrou — do contrário um vínculo
         // remanescente ficaria "sem cliente" mesmo pertencendo a um.
         ...(aindaTemAlgo ? {} : { clienteId: null, clienteNome: null }),
@@ -222,6 +377,7 @@ export async function alternarVinculo(sessaoId: string, tipo: TipoVinculo, itemI
   if (!validacao.ok) return { error: validacao.erro };
 
   vinculo[chave] = Array.from(new Set([...vinculo[chave], itemId]));
+  const deducao = await recalcularNaturezaDoVinculo(user.officeId, vinculo);
   await prisma.peticionamentoSessao.update({
     where: { id: sessaoId },
     data: {
@@ -230,6 +386,10 @@ export async function alternarVinculo(sessaoId: string, tipo: TipoVinculo, itemI
       vinculoAssessoriaIds: vinculo.assessoriaIds,
       clienteId: validacao.clienteId,
       clienteNome: validacao.clienteNome,
+      contextoDecidido: true,
+      naturezaProcedimento: deducao.natureza,
+      naturezaMotivo: deducao.motivo,
+      naturezaConfirmadaManualmente: false,
     },
   });
   return { ok: true };
@@ -238,9 +398,22 @@ export async function alternarVinculo(sessaoId: string, tipo: TipoVinculo, itemI
 export async function definirSessaoAvulsa(sessaoId: string): Promise<{ ok: true }> {
   const user = await exigirAcessoAba();
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const vinculoVazio: VinculoJson = { caseIds: [], attendanceIds: [], assessoriaIds: [] };
+  const deducao = await recalcularNaturezaDoVinculo(user.officeId, vinculoVazio);
   await prisma.peticionamentoSessao.update({
     where: { id: sessaoId },
-    data: { vinculoCaseIds: [], vinculoAttendanceIds: [], vinculoAssessoriaIds: [], clienteId: null, clienteNome: null, pastaPrincipal: null },
+    data: {
+      vinculoCaseIds: [],
+      vinculoAttendanceIds: [],
+      vinculoAssessoriaIds: [],
+      clienteId: null,
+      clienteNome: null,
+      pastaPrincipal: null,
+      contextoDecidido: true,
+      naturezaProcedimento: deducao.natureza,
+      naturezaMotivo: deducao.motivo,
+      naturezaConfirmadaManualmente: false,
+    },
   });
   return { ok: true };
 }
@@ -417,8 +590,12 @@ export async function obterResumoTriagem(sessaoId: string) {
   return {
     contextoDescricao: (await descricaoDoContexto(sessaoId, user.officeId)) ?? "Sem vínculo — petição avulsa",
     materiaNome: sessao.materiaNome,
+    categoriaPeca: sessao.categoriaPeca,
     tipoPeca: sessao.tipoPeca,
     tipoPecaOutro: sessao.tipoPecaOutro,
+    naturezaProcedimento: sessao.naturezaProcedimento,
+    naturezaMotivo: sessao.naturezaMotivo,
+    naturezaConfirmadaManualmente: sessao.naturezaConfirmadaManualmente,
     fatos: sessao.fatos ?? "",
     pedidos: ((sessao.pedidos as string[] | null) ?? []) as string[],
     documentos: [...documentosExistentes.map((d) => d.name), ...anexos.map((a) => a.nome)],
@@ -455,6 +632,7 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
 
   const mensagem = montarMensagemParaHermes({
     materia: sessao.materiaNome ?? "(não informada)",
+    categoriaPeca: sessao.categoriaPeca,
     tipoPeca: sessao.tipoPeca,
     tipoPecaOutro: sessao.tipoPecaOutro,
     contextoDescricao: await descricaoDoContexto(sessaoId, user.officeId),

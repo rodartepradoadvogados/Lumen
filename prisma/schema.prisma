@@ -4346,6 +4346,11 @@ model PeticionamentoSessao {
   // Quando há mais de um vínculo, qual delas é a "pasta principal" para salvar anexo e minuta
   // final (seção 10) — formato "case:<id>" | "attendance:<id>" | "assessoria:<id>".
   pastaPrincipal       String?
+  // ADEQUAÇÃO 21/09/2026: marca que o advogado JÁ decidiu vincular algo OU escolheu avulsa
+  // explicitamente — sem este flag, uma sessão "avulsa de propósito" e uma sessão que ninguém
+  // tocou ainda ficam com o MESMO estado gravado (vínculos todos vazios), e a lista de rascunhos
+  // (lib/peticionamentoPasso.ts) não teria como saber se o passo "contexto" já foi decidido.
+  contextoDecidido Boolean @default(false)
 
   // Matéria — do Lúmen (lib/peticionamentoMateria.ts) ou do escritório (PeticionamentoMateria
   // acima); materiaEhDoEscritorio só marca QUAL das duas listas, nunca muda o tratamento do
@@ -4360,6 +4365,21 @@ model PeticionamentoSessao {
   tipoPeca         String?
   tipoPecaOutro    String?
   tipoPecaInferido Boolean @default(false)
+
+  // ADEQUAÇÃO 21/09/2026, espec. §7: a PRIMEIRA pergunta da sessão, antes até do contexto —
+  // Petição | Contrato | Parecer | Notificação Extrajudicial (lib/peticionamentoCategoriaPeca.ts).
+  // Não confundir com `tipoPeca` acima: aquele é a sublista (Inicial, Contestação, Réplica...)
+  // que só faz sentido QUANDO categoriaPeca é "Petição".
+  categoriaPeca String?
+
+  // ADEQUAÇÃO 21/09/2026, espec. §8: a natureza do procedimento é DEDUZIDA a partir do vínculo
+  // (lib/peticionamentoNatureza.ts), nunca perguntada do zero — mas a dedução nunca é silenciosa:
+  // naturezaMotivo é o texto explicativo mostrado na tela ("processo judicial, porque..."), e
+  // naturezaConfirmadaManualmente marca quando o advogado corrigiu a dedução (em vez de aceitá-la
+  // por omissão). Recalculada a cada mudança de vínculo — ver alternarVinculo/definirSessaoAvulsa.
+  naturezaProcedimento          String?
+  naturezaMotivo                String?
+  naturezaConfirmadaManualmente Boolean @default(false)
 
   // O MÍNIMO PARA GERAR (decisão do dono): fatos + pedidos. Os demais campos abaixo são
   // enriquecimento — a ausência deles nunca bloqueia a geração (ver lib/peticionamentoMinimo.ts).
