@@ -160,6 +160,39 @@ teste("carência é fuso-consciente: madrugada em UTC não empurra o dia em Bras
   igual(diasCorridosVencidos(vencimentoMeiaNoiteUtc, agoraMesmaHoraUmDiaDepois, FUSO), 1);
 });
 
+// ACHADO DA SUPERVISÃO, provado por execução, não por leitura: o teste acima NOMEIA o fuso, mas
+// não o EXERCITA — os dois instantes dele distam um dia tanto em Brasília quanto em UTC, então
+// trocar o fuso padrão da função por "UTC" continuava passando verde. O caso que separa os dois
+// relógios é o que cai DENTRO da janela de três horas em que Brasília e UTC estão em dias de
+// calendário diferentes. Sem esta trava, um escritório com vencimento de noite era desativado um
+// dia ANTES do fim da carência que o dono prometeu — 10 dias vira 9 para quem venceu às 21h.
+teste("FRONTEIRA + FUSO: às 23h de Brasília do 10º dia ainda é carência, embora em UTC já seja o 11º", () => {
+  const vencimento = new Date(Date.UTC(2026, 8, 1, 12, 0, 0)); // 01/09, 09h em Brasília
+  const noiteDoDecimoDia = new Date(Date.UTC(2026, 8, 12, 2, 0, 0)); // 11/09 23h em Brasília, 12/09 em UTC
+  igual(diasCorridosVencidos(vencimento, noiteDoDecimoDia, FUSO), DIAS_DE_CARENCIA);
+  igual(estadoPorVencimento(vencimento, noiteDoDecimoDia, FUSO), "CARENCIA");
+  // E o contraste que prova que o relógio escolhido MUDA a resposta — não é decoração:
+  igual(diasCorridosVencidos(vencimento, noiteDoDecimoDia, "UTC"), DIAS_DE_CARENCIA + 1);
+  igual(estadoPorVencimento(vencimento, noiteDoDecimoDia, "UTC"), "DESATIVADO");
+});
+
+teste("o fuso PADRÃO da função é o do escritório — quem chamar sem passar fuso não cai em UTC", () => {
+  const vencimento = new Date(Date.UTC(2026, 8, 1, 12, 0, 0));
+  const noiteDoDecimoDia = new Date(Date.UTC(2026, 8, 12, 2, 0, 0));
+  igual(diasCorridosVencidos(vencimento, noiteDoDecimoDia), DIAS_DE_CARENCIA);
+  igual(estadoPorVencimento(vencimento, noiteDoDecimoDia), "CARENCIA");
+});
+
+teste("contagem de slots nunca ABATE do total: número negativo é tratado como zero", () => {
+  // A guarda `Math.max(0, ...)` existia sem teste nenhum. Um número negativo chegando aqui
+  // (erro de conta em quem chama) devolveria uma mensalidade MENOR que a mensalidade — o
+  // escritório pagaria menos por um engano, e a tela mostraria isso como preço de verdade.
+  const parametros = { mensalidadeModulo: 100, precoSlotExtra: 30 };
+  const r = precoAMostrar(parametros, -2);
+  verdade(r.configurado, "deveria estar configurado");
+  if (r.configurado) igual(r.totalMensal, 100);
+});
+
 teste("carência aplica-se IGUALMENTE ao módulo e ao slot extra — mesma função, dois relógios diferentes", () => {
   const vencimentoDoModulo = VENCIMENTO;
   const vencimentoDoSlot = diasDepois(VENCIMENTO, 20); // relógio próprio, bem mais tarde
