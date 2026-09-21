@@ -36,7 +36,12 @@ export type RaizKey =
   | "atendimentos"
   | "casos"
   | "financeiroDespesas"
-  | "financeiroReceitas";
+  | "financeiroReceitas"
+  // Aba de Peticionamento (especificação §10): pasta geral do escritório que só recebe
+  // conteúdo quando a sessão está DESVINCULADA de processo/caso/atendimento/assessoria
+  // (petição avulsa) — com vínculo, anexo e minuta final vão direto pra pasta do item vinculado,
+  // esta raiz nem é tocada.
+  | "peticionamento";
 
 // A parte do nome que descreve a FUNÇÃO da pasta. Não é configurável de propósito: é o que o
 // sistema entende ("onde ficam os processos"), enquanto o prefixo é o que identifica o escritório.
@@ -50,6 +55,7 @@ export const RAIZ_SUFIXO: Record<RaizKey, string> = {
   casos: "Casos",
   financeiroDespesas: "Financeiro - Despesas",
   financeiroReceitas: "Financeiro - Receitas",
+  peticionamento: "Peticionamento",
 };
 
 export const RAIZ_ROTULO: Record<RaizKey, string> = {
@@ -62,6 +68,7 @@ export const RAIZ_ROTULO: Record<RaizKey, string> = {
   casos: "Casos",
   financeiroDespesas: "Financeiro — despesas",
   financeiroReceitas: "Financeiro — receitas",
+  peticionamento: "Peticionamento",
 };
 
 export type NomeacaoDrive = {
