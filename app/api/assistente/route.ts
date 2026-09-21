@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { assistantTools, AssistantTool } from "@/lib/assistantTools";
+import { podeVerNivel, type QuemPergunta } from "@/lib/nivelFinanceiro";
 import {
   carregarHistorico,
   criarSessao,
@@ -227,12 +228,17 @@ export async function POST(request: NextRequest) {
 
   // ── A RESERVA: o Claude, com as ferramentas de leitura da casa ─────────────────────────────
 
-  // Filtra as ferramentas disponíveis pela permissão do usuário logado: todo
-  // módulo é liberado por padrão, exceto "financeiro", que exige isAdmin ou
-  // financeAccess — igual à regra usada no resto do site.
-  const temAcessoFinanceiro = user.isAdmin || user.financeAccess;
+  // Filtra as ferramentas disponíveis pela permissão do usuário logado: todo módulo é liberado
+  // por padrão, exceto "financeiro" — e AQUI DENTRO do financeiro, `consultar_indicadores` (nível
+  // "indicador") só é liberada para sócio, exatamente como na rota do Hermes
+  // (app/api/agente/ferramentas/route.ts:liberada). Corrigido nesta entrega: antes esta lista só
+  // olhava o MÓDULO, então quem tinha `financeAccess` sem ser `isAdmin` via `consultar_indicadores`
+  // oferecida pela reserva mesmo sem ser sócio — a regra existia, mas só do lado do Hermes. A
+  // MESMA função (`podeVerNivel`) decide dos dois lados agora, para não haver dois portões que
+  // possam divergir.
+  const quemPergunta: QuemPergunta = { financeiro: Boolean(user.isAdmin || user.financeAccess), admin: Boolean(user.isAdmin) };
   const ferramentasDisponiveis: AssistantTool[] = assistantTools.filter(
-    (tool) => tool.modulo !== "financeiro" || temAcessoFinanceiro,
+    (tool) => tool.modulo !== "financeiro" || podeVerNivel(tool.nivel ?? "indicador", quemPergunta),
   );
   const ferramentasPorNome = new Map(ferramentasDisponiveis.map((tool) => [tool.spec.name, tool]));
 
@@ -291,7 +297,15 @@ export async function POST(request: NextRequest) {
         const tool = ferramentasPorNome.get(toolUse.name);
         const entrada = toolUse.input && typeof toolUse.input === "object" ? (toolUse.input as Record<string, unknown>) : {};
         const resultado = tool
-          ? await tool.executar(entrada, { userId: user.id, officeId: user.officeId })
+          ? await tool.executar(entrada, {
+              userId: user.id,
+              officeId: user.officeId,
+              // Mesma dupla usada para montar `ferramentasDisponiveis` acima — permite a uma
+              // ferramenta que NÃO é do financeiro (histórico do cliente, assessorias) omitir só
+              // o bloco de dinheiro que carrega por dentro, em vez de tudo ou nada.
+              financeiro: quemPergunta.financeiro,
+              admin: quemPergunta.admin,
+            })
           : `Ferramenta "${toolUse.name}" não está disponível para este usuário.`;
         // Só o que foi de fato executado. Uma ferramenta barrada por permissão não leu nada, e
         // anunciá-la embaixo da resposta diria à pessoa o contrário do que a resposta diz.

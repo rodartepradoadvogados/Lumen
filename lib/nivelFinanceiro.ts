@@ -66,3 +66,39 @@ export function explicacaoDaRecusa(nivel: NivelFinanceiro, quem: QuemPergunta): 
   }
   return "Consulta não autorizada.";
 }
+
+// ============================================================================
+// O CORTE DENTRO DE UMA FERRAMENTA QUE NÃO É, INTEIRA, DO FINANCEIRO.
+//
+// `podeVerNivel` acima decide se uma FERRAMENTA inteira (módulo "financeiro") é oferecida. Mas o
+// histórico do cliente (Q15 da entrevista do dono) não é uma ferramenta do financeiro — é uma
+// ferramenta de cliente que, por dentro, TEM valores de dinheiro (o que já foi cobrado dele, o que
+// ele já pagou). A régua é a mesma — "somar o que já está lançado é registro" —, mas ela corta
+// dentro de UM CAMPO da resposta, e não a ferramenta inteira. O mesmo vale para qualquer outro
+// bloco de valores dentro de uma ferramenta não financeira (ex.: o honorário mensal de uma
+// assessoria).
+//
+// A REGRA, LITERAL: quem não tem acesso ao financeiro recebe a ferramenta INTEIRA — processos,
+// atendimentos, tarefas, documentos —, só que SEM os valores; e a resposta tem de DIZER que
+// omitiu. Nunca fingir que não há dinheiro no caso (silêncio), e nunca devolver o número. As duas
+// falhas são igualmente graves: uma engana por omissão muda, a outra vaza.
+// ============================================================================
+
+export type OmissaoFinanceira = { omitido: true; motivo: string };
+
+export const MOTIVO_OMISSAO_FINANCEIRA =
+  "Valores financeiros omitidos: esta pessoa não tem acesso ao financeiro do escritório.";
+
+/**
+ * Aplica o corte de REGISTRO a um bloco de valores dentro de uma resposta maior.
+ *
+ * Nunca precisa de `admin`: somar o que já está lançado é sempre registro (nunca indicador),
+ * então quem tem acesso ao financeiro — sócio ou não — vê. Quem não tem recebe uma omissão
+ * FALANTE: `omitido: true` e o motivo por escrito, nunca um bloco vazio ou ausente que o agente
+ * possa confundir com "não há valor" (a diferença entre "não sei" e "não tem" é exatamente o que
+ * este objeto existe para preservar).
+ */
+export function valoresOuOmissao<T>(quem: QuemPergunta, valores: T): T | OmissaoFinanceira {
+  if (podeVerNivel("registro", quem)) return valores;
+  return { omitido: true, motivo: MOTIVO_OMISSAO_FINANCEIRA };
+}

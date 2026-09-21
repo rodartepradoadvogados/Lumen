@@ -104,6 +104,12 @@ export async function POST(request: NextRequest) {
     const resultado = await ferramenta.executar(entrada, {
       userId: permissao.userId,
       officeId: permissao.officeId,
+      // A MESMA dupla que decidiu se esta ferramenta foi oferecida (`liberada`, acima) chega até
+      // quem a executa — é o que permite a uma ferramenta que NÃO é do financeiro (o histórico do
+      // cliente, as assessorias) decidir, por dentro, se mostra ou omite o bloco de dinheiro que
+      // carrega. Ver AssistantTool.executar em lib/assistantTools.ts.
+      financeiro: permissao.financeiro,
+      admin: permissao.admin,
     });
 
     // O rastro de PROCEDÊNCIA: é esta linha que responde "de onde veio esse número" quando alguém
