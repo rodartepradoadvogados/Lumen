@@ -5,6 +5,7 @@ import {
   extensaoDoArquivo,
   montarNomeArquivoWhatsapp,
   rotuloDaMidiaWhatsapp,
+  ehNomeDeMidiaDoWhatsapp,
 } from "@/lib/driveNaming";
 import { extrairMidiaMeta, parseIncoming } from "@/lib/whatsapp";
 import { extrairMidiaEvolution, parseEntradaEvolution } from "@/lib/whatsappEvolution";
@@ -348,5 +349,75 @@ teste("o pedido de download à Evolution leva a chave INTEIRA da mensagem, não 
   verdade(baixar.includes("id: midia.waMessageId"), "o id da mensagem sumiu do pedido de download");
   verdade(baixar.includes("remoteJid: midia.remoteJid"), "o remoteJid sumiu do pedido de download");
 });
+
+// ── DEFEITO DE PRODUÇÃO, visto pelo dono na Central de Alertas ────────────────────────────────
+// Cada áudio e cada imagem recebidos pelo WhatsApp viravam uma pendência "INCONSISTÊNCIA NO
+// DRIVE — o arquivo está solto dentro de Atendimento via WhatsApp, fora de qualquer subpasta de
+// tipo de documento", com o conselho "mova para a subpasta do tipo correto — não é possível saber
+// automaticamente qual tipo é". O conselho denuncia o defeito: NÃO EXISTE tipo. Mídia de conversa
+// não é Petição nem Procuração, e por decisão do dono ela mora na RAIZ da pasta do atendimento.
+// Uma conversa com dez áudios virava dez pendências que ninguém pode resolver — e pendência que
+// não se resolve ensina a ignorar a Central de Alertas inteira.
+
+teste("o reconhecedor aceita TODO nome que a própria montarNomeArquivoWhatsapp gera", () => {
+  // Gerado com a função de verdade, não com strings escritas à mão: é isso que impede o padrão
+  // do nome e o reconhecedor de divergirem em silêncio no dia em que alguém mexer num dos dois.
+  const casos = [
+    { mimeType: "audio/ogg; codecs=opus", nomeOriginal: null },
+    { mimeType: "image/jpeg", nomeOriginal: null },
+    { mimeType: "video/mp4", nomeOriginal: null },
+    { mimeType: "application/pdf", nomeOriginal: "Contrato do cliente.pdf" },
+    { mimeType: "application/pdf", nomeOriginal: "acentuação e çedilha — traço.pdf" },
+    { mimeType: "image/png", nomeOriginal: "print da conversa.PNG" },
+  ];
+  for (const c of casos) {
+    const nome = montarNomeArquivoWhatsapp({
+      mimeType: c.mimeType,
+      nomeOriginal: c.nomeOriginal,
+      recebidoEm: new Date("2026-09-20T18:30:00Z"),
+      waMessageId: "wamid.TESTE123",
+    });
+    verdade(ehNomeDeMidiaDoWhatsapp(nome), `o reconhecedor recusou um nome que ele mesmo gerou: "${nome}"`);
+  }
+});
+
+teste("o reconhecedor NÃO aceita documento comum — senão o auditor pararia de acusar de verdade", () => {
+  for (const nome of [
+    "Petição inicial.pdf",
+    "2026_09_20_CONTRATO-abc.pdf",
+    "WHATSAPP.pdf",
+    "2026_09_20_WHATSAPP_IMG",
+    "2026_09_20_WHATSAPP_XYZ-abc.jpg",
+    "20260920_WHATSAPP_IMG-abc.jpg",
+    "relatorio_WHATSAPP_AUD-x.ogg",
+    // O reconhecedor é uma LICENÇA PARA PULAR A AUDITORIA: tudo que ele aceitar por engano deixa
+    // de ser conferido no Drive. Por isso as três formas de afrouxá-lo têm caso próprio — um
+    // documento qualquer que só CONTENHA o padrão no meio do nome, um nome sem extensão, e um
+    // ano de dois dígitos. Sem estes, dá para tirar a âncora do começo, a exigência de extensão
+    // ou o tamanho do ano e a suíte continua verde.
+    "copia de 2026_09_20_WHATSAPP_AUD-s2ghu5.ogg",
+    "backup 2026_09_20_WHATSAPP_IMG-rxw1tx.jpg",
+    "2026_09_20_WHATSAPP_IMG-rxw1tx",
+    "26_09_20_WHATSAPP_IMG-rxw1tx.jpg",
+    "",
+  ]) {
+    igual(ehNomeDeMidiaDoWhatsapp(nome), false, `aceitou indevidamente: "${nome}" — `);
+  }
+});
+
+teste("o auditor do Drive consulta o reconhecedor ANTES de abrir a pendência", () => {
+  const fonte = readFileSync("lib/driveSync.ts", "utf8");
+  const corpo = codigoDe(corpoDaFuncao(fonte, "processContainerChild"));
+  verdade(corpo.length > 300, `corpoDaFuncao devolveu ${corpo.length} caracteres — varredura cega`);
+  const posReconhecedor = corpo.indexOf("ehNomeDeMidiaDoWhatsapp(");
+  const posPendencia = corpo.indexOf("ARQUIVO_SOLTO_SEM_CATEGORIA");
+  verdade(posReconhecedor >= 0, "o auditor deixou de consultar ehNomeDeMidiaDoWhatsapp — a mídia do WhatsApp volta a virar pendência insolúvel");
+  verdade(posPendencia >= 0, "não achei ARQUIVO_SOLTO_SEM_CATEGORIA no auditor — a varredura está mirando errado");
+  verdade(posReconhecedor < posPendencia, "a consulta ao reconhecedor precisa vir ANTES de a pendência ser aberta");
+  // E a saída tem de ser um `return`: só calcular e seguir em frente abriria a pendência do mesmo jeito.
+  verdade(/if \(ehNomeDeMidiaDoWhatsapp\(child\.name\)\) return/.test(corpo),
+    "o reconhecedor é consultado mas não interrompe a abertura da pendência");
+});
+
 
 void resumo("whatsapp-midia (F5)");

@@ -27,6 +27,7 @@ import {
 } from "@/lib/googleDrive";
 import { DOCUMENT_TYPES } from "@/lib/documentTypes";
 import { isReservedCaseSubfolder } from "@/lib/protocolos";
+import { ehNomeDeMidiaDoWhatsapp } from "@/lib/driveNaming";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 export type DriveSyncIssueType =
@@ -240,6 +241,15 @@ async function processContainerChild(
   } else {
     // Arquivo solto direto na pasta do processo/atendimento, fora de qualquer subpasta de tipo.
     seenFileIds.push(child.id);
+
+    // MENOS A MÍDIA DO WHATSAPP, que mora na raiz POR DECISÃO DO DONO (F5) — ver
+    // lib/driveNaming.ts:ehNomeDeMidiaDoWhatsapp. Acusar isso era acusar o sistema do próprio
+    // desenho dele, e com um conselho que ninguém pode seguir: "mova para a subpasta do tipo
+    // correto — não é possível saber automaticamente qual tipo é". Não existe tipo; é mídia de
+    // conversa. Dez áudios numa conversa viravam dez pendências insolúveis, e pendência que não
+    // se resolve ensina a ignorar a Central de Alertas inteira.
+    if (ehNomeDeMidiaDoWhatsapp(child.name)) return { issues, seenFileIds, registered };
+
     issues.push({
       driveFileId: child.id,
       issueType: "ARQUIVO_SOLTO_SEM_CATEGORIA",

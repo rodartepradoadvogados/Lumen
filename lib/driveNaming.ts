@@ -241,6 +241,29 @@ export function montarNomeArquivoWhatsapp(input: NomeArquivoWhatsappInput): stri
 }
 
 /**
+ * Este arquivo é de mídia recebida pelo WhatsApp, pelo nome?
+ *
+ * POR QUE ISSO EXISTE: a mídia do WhatsApp mora, por decisão do dono, na RAIZ da pasta do
+ * atendimento — e não dentro de uma subpasta de tipo de documento. Não é desleixo: não existe
+ * tipo. Um áudio de voz ou uma foto que o cliente mandou não é "Petição" nem "Procuração", e
+ * ninguém consegue adivinhar em qual gaveta guardar.
+ *
+ * O auditor de pastas (lib/driveSync.ts) não sabia disso e acusava cada mídia como
+ * ARQUIVO_SOLTO_SEM_CATEGORIA, com um conselho impossível de seguir ("mova para a subpasta do
+ * tipo correto — não é possível saber automaticamente qual tipo é"). Uma conversa com dez áudios
+ * virava dez pendências que ninguém pode resolver, e pendência que não se resolve ensina a
+ * ignorar a Central de Alertas inteira.
+ *
+ * O reconhecedor mora AQUI, colado em `montarNomeArquivoWhatsapp`, de propósito: quem mudar o
+ * padrão do nome vê na mesma tela quem depende dele (e lib/testes/whatsappMidia.teste.ts gera
+ * nomes com a função de verdade e exige que este reconhecedor os aceite, para os dois nunca
+ * divergirem em silêncio).
+ */
+export function ehNomeDeMidiaDoWhatsapp(nome: string): boolean {
+  return /^\d{4}_\d{2}_\d{2}_WHATSAPP_(IMG|DOC|AUD|VID)-.+\.[A-Za-z0-9]+$/.test(nome.trim());
+}
+
+/**
  * O texto que fica no lugar do arquivo na conversa (WhatsappMessage.body é NOT NULL e não tem como
  * guardar um arquivo) — o arquivo de verdade mora no Attachment criado junto, na aba de Documentos
  * do atendimento (ver lib/whatsapp.ts:processarMidiaRecebida).
