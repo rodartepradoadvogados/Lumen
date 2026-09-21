@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getPlatformMember, isPlatformStaff } from "@/lib/platformMember";
+import { podeAprovarCampanha, MOTIVO_PAPEL_SEM_APROVACAO } from "@/lib/aprovacaoDeCampanha";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 import { aprovarCampanhaSlotPago, recusarCampanhaSlotPago, type ResultadoDeCobranca } from "@/lib/actions/campanhasCobranca";
 import { tentarProvisionarPerfil, type ResultadoDaTentativa } from "@/lib/actions/provisionamentoCampanhas";
@@ -27,7 +28,13 @@ import { ROTULO_DO_PRECO_POR_CHAVE } from "@/lib/telaCampanhas";
 // ---------------------------------------------------------------------------------------------
 async function platformMemberIdDeQuemClicou(): Promise<{ id: string } | { erro: string }> {
   const membro = await getPlatformMember();
-  if (membro) return { id: membro.id };
+  if (membro) {
+    // A TRAVA DE PAPEL VIVE AQUI, e não só na tela: esta é a única porta por onde a aprovação
+    // passa, e esconder o botão não impede ninguém de chamar a ação direto. Decisão revisada
+    // pelo dono depois da §6.4 — ver lib/aprovacaoDeCampanha.ts.
+    if (!podeAprovarCampanha(membro.roleKey)) return { erro: MOTIVO_PAPEL_SEM_APROVACAO };
+    return { id: membro.id };
+  }
   return {
     erro:
       "Sua conta de acesso ao painel mestre ainda não tem um registro em Equipe da Lúmen — cadastre-se lá " +

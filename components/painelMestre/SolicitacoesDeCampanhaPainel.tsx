@@ -8,8 +8,13 @@ import { LumenBadge } from "@/components/painelMestre/LumenUi";
 // ============================================================================
 // "LIBERAR CAMPANHA" (§6.3-6.4) — a tela que abre ao clicar na solicitação pendente. Aprovar ou
 // recusar chama DIRETO as ações da Frente B (lib/actions/campanhasCobranca.ts); nenhuma regra de
-// cobrança é decidida aqui. §6.4 é explícito: qualquer login do painel mestre aprova — sem papel
-// granular — a checagem de acesso mora na própria Server Action (isPlatformStaff).
+// cobrança é decidida aqui.
+//
+// QUEM APROVA: a §6.4 dizia "qualquer login do painel mestre, sem papel granular", e o dono
+// REVISOU isso depois de ver a tela pronta — agora são quatro papéis (Comercial, Marketing,
+// Financeiro, Sócio), em lib/aprovacaoDeCampanha.ts. A tela esconde os botões de quem não pode E
+// diz por quê; a trava que vale mora na Server Action, porque esconder botão não impede ninguém
+// de chamar a ação direto.
 // ============================================================================
 
 export type SolicitacaoDeCampanha = {
@@ -26,7 +31,13 @@ const ROTULO_FORMA: Record<string, string> = {
   PIX_AUTOMATICO: "Pix automático recorrente",
 };
 
-export default function SolicitacoesDeCampanhaPainel({ solicitacoes }: { solicitacoes: SolicitacaoDeCampanha[] }) {
+export default function SolicitacoesDeCampanhaPainel({
+  solicitacoes,
+  podeDecidir,
+}: {
+  solicitacoes: SolicitacaoDeCampanha[];
+  podeDecidir: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
@@ -61,22 +72,30 @@ export default function SolicitacoesDeCampanhaPainel({ solicitacoes }: { solicit
             </p>
           </div>
           <LumenBadge variant="warning">Aguardando decisão</LumenBadge>
-          <button
-            type="button"
-            disabled={pending && processando === s.slotId}
-            onClick={() => decidir(s.slotId, "APROVAR")}
-            className="text-xs font-semibold text-concluido hover:underline disabled:opacity-50"
-          >
-            Aprovar
-          </button>
-          <button
-            type="button"
-            disabled={pending && processando === s.slotId}
-            onClick={() => decidir(s.slotId, "RECUSAR")}
-            className="text-xs font-semibold text-urgente hover:underline disabled:opacity-50"
-          >
-            Recusar
-          </button>
+          {podeDecidir ? (
+            <>
+              <button
+                type="button"
+                disabled={pending && processando === s.slotId}
+                onClick={() => decidir(s.slotId, "APROVAR")}
+                className="text-xs font-semibold text-concluido hover:underline disabled:opacity-50"
+              >
+                Aprovar
+              </button>
+              <button
+                type="button"
+                disabled={pending && processando === s.slotId}
+                onClick={() => decidir(s.slotId, "RECUSAR")}
+                className="text-xs font-semibold text-urgente hover:underline disabled:opacity-50"
+              >
+                Recusar
+              </button>
+            </>
+          ) : (
+            // Some o botão, mas NUNCA a informação: quem não decide continua vendo a fila e o
+            // motivo de não poder agir — tela que esconde sem explicar vira chamado de suporte.
+            <span className="text-xs text-tx-3">Sem permissão para decidir</span>
+          )}
         </div>
       ))}
     </div>
