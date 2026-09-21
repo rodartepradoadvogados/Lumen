@@ -88,6 +88,11 @@ export const RAIL_SECTIONS: SectionDef[] = [
     items: [
       { href: "/processos", label: "Processos e casos" },
       { href: "/assessoria", label: "Assessoria jurídica", moduleKey: "assessoria" },
+      // A aba de Peticionamento tem layout e permissão PRÓPRIOS (app/peticionamento/layout.tsx,
+      // lib/peticionamentoAcesso.ts:podeAcessarAba — recepção nunca entra, mesmo clicando aqui).
+      // O link fica sempre visível, como "Configurações": a régua de verdade é decidida dentro
+      // da própria rota, não escondendo o item do menu (mesmo padrão já usado no resto do rail).
+      { href: "/peticionamento", label: "Peticionamento" },
     ],
   },
   {

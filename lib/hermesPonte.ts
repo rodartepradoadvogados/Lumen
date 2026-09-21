@@ -181,6 +181,53 @@ export async function estadoDosPerfis(perfis: string[]): Promise<EstadoDoPerfil[
 
 // ── A PERGUNTA ─────────────────────────────────────────────────────────────────────────────
 
+// ── O TERCEIRO PERFIL: peticionamento-lumen ─────────────────────────────────────────────────
+//
+// A especificação da aba de Peticionamento (seção 1 e 6) nomeia um perfil PRÓPRIO,
+// `peticionamento-lumen`, ao lado dos dois que já existem (`default`, `atendimento-lumen`) — e
+// diz que o desenho final é "um perfil por escritório", mas que a instalação de hoje tem só um
+// perfil de cada tipo na máquina (mesma situação, mesma solução, de `atendimento-lumen` acima:
+// ver o comentário de `perfilDoEscritorio`). Por isso este perfil é resolvido pelo MESMO
+// raciocínio — nome fixo por padrão, com uma variável de ambiente como escape hatch para o dia
+// em que a instalação migrar para um perfil por escritório — em vez de reusar
+// `perfilDoEscritorio` (que resolveria para `atendimento-lumen`, o perfil ERRADO: peticionar e
+// atender são conversas com regras e travas completamente diferentes, nunca a mesma sessão).
+const PERFIL_PETICIONAMENTO_PADRAO = "peticionamento-lumen";
+
+export function perfilDePeticionamento(): string {
+  return process.env.HERMES_PERFIL_PETICIONAMENTO?.trim() || PERFIL_PETICIONAMENTO_PADRAO;
+}
+
+/**
+ * Mesma pergunta de `perguntarAoHermes`, mas com o NOME DO PERFIL escolhido por quem chama, em
+ * vez de derivado do slug do escritório — usada só pelo Peticionamento, cujo perfil não é "um
+ * por escritório" na instalação de hoje (ver `perfilDePeticionamento` acima). Reaproveita o
+ * mesmo tratamento de erro de `chamar` (nunca um erro de rede cru para quem chama traduzir na
+ * mão) e o mesmo teto de tempo (`ESPERA_MS`).
+ */
+export async function perguntarAoHermesComPerfil(dados: {
+  perfil: string;
+  mensagem: string;
+  sessao?: string | null;
+  ferramentas?: { url: string; credencial: string };
+  esperaMs?: number;
+}): Promise<RespostaHermes> {
+  const corpo = (await chamar("/chat", {
+    corpo: {
+      perfil: dados.perfil,
+      mensagem: dados.mensagem,
+      sessao: dados.sessao || undefined,
+      ferramentas: dados.ferramentas,
+    },
+    esperaMs: dados.esperaMs,
+  })) as { resposta?: unknown; sessao?: unknown };
+
+  const texto = typeof corpo.resposta === "string" ? corpo.resposta.trim() : "";
+  if (!texto) throw new FalhaDoHermes("o Hermes respondeu vazio");
+
+  return { resposta: texto, sessao: typeof corpo.sessao === "string" ? corpo.sessao : "" };
+}
+
 export async function perguntarAoHermes(dados: {
   slug: string;
   mensagem: string;
