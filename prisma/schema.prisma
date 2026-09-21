@@ -266,6 +266,10 @@ model Office {
   // abaixo.
   peticionamentoMaterias PeticionamentoMateria[]
   peticionamentoSessoes  PeticionamentoSessao[]
+
+  // Módulo pago de campanhas — ver o bloco de models perto de Campanha mais abaixo.
+  assinaturaModuloCampanhas AssinaturaModuloCampanhas?
+  campanhaSlotsPagos        CampanhaSlotPago[]
 }
 
 // Catálogo de planos (Painel Mestre → Preços) — 5 linhas fixas (Standard/Silver/Gold/Diamond/Sob
@@ -2147,6 +2151,11 @@ model Campanha {
   documentos   CampanhaDocumento[]
   atendimentos Attendance[]
 
+  // Preenchido só quando esta campanha ocupa um SLOT PAGO (a partir da 2ª ativa
+  // simultaneamente — ver AssinaturaModuloCampanhas mais abaixo). A 1ª campanha ativa no
+  // momento não precisa de slot: já está coberta pela mensalidade do módulo.
+  slotPago CampanhaSlotPago?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2174,6 +2183,165 @@ model CampanhaDocumento {
   obrigatorio Boolean  @default(false)
 
   @@index([campanhaId, ordem])
+}
+
+// ============================================================================
+// MÓDULO PAGO DE CAMPANHAS — Frente A (dados + regras puras) da especificação fechada com o
+// dono (entrevista /grill-me). UI, cobrança via Asaas, webhook de pagamento e alerta de memória
+// da VPS do Hermes são frentes separadas; aqui só entra o que se prova sem tela e sem rede.
+//
+// O DESENHO EM TRÊS MODELS, e por que não é um só:
+//   AssinaturaModuloCampanhas — a assinatura em si (1 por escritório): destrava o módulo.
+//   PerfilCampanhaHermes      — o perfil PRÓPRIO do Hermes que a assinatura destrava, treinável
+//                               pelo escritório e reaproveitado entre campanhas (não é 1 por
+//                               campanha — por isso não pendura em Campanha, e sim em
+//                               AssinaturaModuloCampanhas).
+//   CampanhaSlotPago          — o direito de ter MAIS DE UMA campanha ativa ao mesmo tempo: só
+//                               existe a partir da 2ª campanha simultânea, e uma linha por
+//                               campanha que precisou dele (a 1ª não precisa, é de graça dentro
+//                               da mensalidade — ver comentário em Campanha.slotPago acima).
+// As regras de estado, carência e preço vivem em lib/moduloCampanhas.ts, PURAS (sem Prisma) — os
+// campos abaixo são só onde o resultado delas é lido e gravado.
+// ============================================================================
+
+model AssinaturaModuloCampanhas {
+  id       String @id @default(cuid())
+  officeId String @unique // um módulo por escritório — não existe "duas assinaturas" concorrentes
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // ATIVO | CARENCIA | DESATIVADO — texto livre, como o resto do schema (nunca enum de banco,
+  // pelo mesmo motivo de sempre: `db push` sem gerar migration). Este campo é o ÚLTIMO valor
+  // GRAVADO por quem processa a cobrança (frente C/D, ao confirmar pagamento ou rodar a rotina
+  // diária de carência) — a fonte da verdade de "está em dia ou não" é sempre RECALCULADA a
+  // partir de `vencimento` por lib/moduloCampanhas.ts, que nunca deixa um texto desconhecido
+  // virar "ativo" (fail-closed: vira "desativado", o estado mais seguro para quem cobra e para
+  // quem seria alvo de mensagem de campanha).
+  estado String @default("ATIVO")
+
+  iniciadoEm DateTime @default(now()) // quando o escritório assinou o módulo
+
+  // Próximo vencimento da MENSALIDADE do módulo — não confundir com o vencimento de um slot
+  // extra, que é por campanha (ver CampanhaSlotPago.entradaEmCarenciaEm). A cada pagamento
+  // confirmado, quem processa o webhook empurra este campo um ciclo à frente.
+  vencimento DateTime
+
+  // Escolhida pelo escritório no pop-up de solicitação, ANTES da aprovação (§6.2 da
+  // especificação): BOLETO | PIX_QRCODE | PIX_AUTOMATICO — mesmo vocabulário de
+  // Subscription.paymentMethod, mas um campo à parte porque o escritório pode escolher uma
+  // forma diferente para o módulo de campanhas da que já usa na assinatura base do Lúmen.
+  formaDePagamento String?
+
+  // Preenchida no instante em que `vencimento` foi ultrapassado sem pagamento confirmado — é o
+  // relógio de onde os 10 DIAS CORRIDOS de carência (§7) começam a contar. Nula enquanto em dia;
+  // volta a nula assim que o pagamento é confirmado, para o PRÓXIMO atraso (se houver) contar do
+  // zero — carência não acumula de um ciclo para o outro.
+  entradaEmCarenciaEm DateTime?
+
+  perfil PerfilCampanhaHermes?
+  slots  CampanhaSlotPago[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PerfilCampanhaHermes {
+  id String @id @default(cuid())
+
+  assinaturaId String                    @unique // 1 perfil por assinatura — não é 1 por campanha (§1)
+  assinatura   AssinaturaModuloCampanhas @relation(fields: [assinaturaId], references: [id], onDelete: Cascade)
+
+  // O nome do perfil no Hermes (ver lib/hermesPonte.ts para a convenção de nomes hoje em vigor —
+  // "um perfil por escritório" é o desenho final, e é para lá que este slug aponta assim que a
+  // frente de provisionamento existir). Nulo até `provisionarNoHermes` confirmar, porque o slug
+  // só existe depois de provisionado — não adivinhamos um valor antes disso.
+  slug String? @unique
+
+  // O treinamento em si: a MESMA tela/campo de instruções que o escritório já usa hoje (§5),
+  // aplicado a este perfil — não é uma tela nova. NUNCA é apagado ao desativar: é assim que "§7 —
+  // desativar não apaga o treinamento" fica estruturalmente impossível de violar por acidente.
+  // Não existe, neste schema, nenhum campo de "instruções ao desativar" que sobrescreva este —
+  // a única ação disponível é trocar `estado`, e lib/moduloCampanhas.ts nunca lê este campo para
+  // decidir se o perfil responde ou não.
+  instrucoes String @default("")
+
+  // PROVISIONADO | DESATIVADO — os dois únicos estados do perfil em si (§1). Fail-closed na
+  // leitura, como o estado da assinatura acima: lib/moduloCampanhas.ts nunca trata um valor
+  // desconhecido como perfil no ar. DESATIVADO não é "nunca provisionado" — é "chegou a
+  // responder, a carência esgotou, e o `instrucoes` acima continua intacto para reativar quando
+  // o escritório voltar a pagar" (§7).
+  estado String @default("DESATIVADO")
+
+  provisionadoEm DateTime? // quando `provisionarNoHermes` confirmou o perfil no ar
+  desativadoEm   DateTime? // quando a carência esgotou e o perfil parou de responder (§7)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CampanhaSlotPago {
+  id String @id @default(cuid())
+
+  // Denormalizado de propósito (a assinatura e a campanha já levam até o escritório) — mesmo
+  // padrão de AccessRequest.officeId: é o painel mestre listando/filtrando slots POR
+  // ESCRITÓRIO que precisa disto direto, sem atravessar duas relações a cada consulta.
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  assinaturaId String
+  assinatura   AssinaturaModuloCampanhas @relation(fields: [assinaturaId], references: [id], onDelete: Cascade)
+
+  // A campanha que ocupa este slot. Único porque uma campanha ocupa NO MÁXIMO um slot pago —
+  // nunca existiu campanha "básica" para migrar (§8), então toda Campanha de um escritório com
+  // módulo pago que não seja a 1ª ativa no momento passa por aqui.
+  campanhaId String   @unique
+  campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+
+  // SOLICITADO → APROVADO → ATIVO → FINALIZADO (§6), mais RECUSADO — a especificação não
+  // descreve recusa, mas o painel mestre precisa poder negar um pedido sem apagar o registro
+  // dele. Fail-closed: lib/moduloCampanhas.ts nunca conta um estado desconhecido como slot
+  // ativo ao calcular quantas campanhas simultâneas pagas existem agora.
+  estado String @default("SOLICITADO")
+
+  // Escolhida no mesmo pop-up de solicitação (§6.2), ANTES da aprovação — pode ser diferente da
+  // forma de pagamento da mensalidade do módulo (mesma razão de
+  // AssinaturaModuloCampanhas.formaDePagamento).
+  formaDePagamento String?
+
+  solicitadoEm DateTime @default(now())
+
+  // Quem aprovou e quando (§6.3-6.4). QUALQUER PlatformMember com login no painel mestre serve —
+  // a especificação é explícita em NÃO implementar permissão granular agora ("login no painel
+  // mestre já é suficiente"; PlatformRole.canManageBilling e afins não são checados aqui). Este
+  // par é só o REGISTRO de quem clicou, nunca um portão de autorização por papel.
+  aprovadoPorId String?
+  aprovadoPor   PlatformMember? @relation(fields: [aprovadoPorId], references: [id])
+  aprovadoEm    DateTime?
+
+  ativadoEm    DateTime? // início da cobrança recorrente mensal deste slot (§6.5)
+  finalizadoEm DateTime? // a cobrança do slot para aqui (§2) — e a numeração relativa (§6.1)
+  // deixa de contar este slot como ativo a partir deste instante, sem precisar apagar a linha
+
+  // Mesma carência de 10 dias corridos do módulo base (§7), mas com relógio PRÓPRIO: um slot
+  // pode ficar inadimplente enquanto a mensalidade do módulo está em dia, e vice-versa — as duas
+  // cobranças são independentes (§6.6 remete à mesma REGRA, não ao mesmo relógio).
+  entradaEmCarenciaEm DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId, estado])
+}
+
+// Preço configurável do módulo pago de campanhas — MESMO padrão de ModulePrice acima (uma linha
+// por parâmetro, `preco` nasce nulo). A especificação marca os dois valores como EM ABERTO (§2):
+// NENHUM R$ é inventado aqui — o painel mestre preenche depois, e lib/moduloCampanhas.ts trata
+// preço nulo como uma OMISSÃO EXPLÍCITA para quem pergunta (nunca R$ 0,00, que mentiria para o
+// cliente sobre o módulo ser de graça).
+model CampanhaPrecoParametro {
+  chave     String   @id // MENSALIDADE_MODULO | SLOT_EXTRA
+  label     String // rótulo que a tela do painel mestre mostra ao lado do campo
+  preco     Float?
+  updatedAt DateTime @updatedAt
 }
 
 model WhatsappConfig {
@@ -3426,6 +3594,10 @@ model PlatformMember {
   accessApprovals AccessRequest[]  @relation("AccessRequestApprover")
   accessSessions  AccessSession[]
   auditEntries    AccessAuditLog[]
+
+  // Slots de campanha simultânea paga que este membro aprovou (§6.4 da especificação de
+  // campanhas) — ver CampanhaSlotPago.aprovadoPor.
+  campanhaSlotsAprovados CampanhaSlotPago[]
 }
 
 model PlatformRole {
