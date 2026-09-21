@@ -258,7 +258,15 @@ export async function confirmarPagamentoMensalidade(assinaturaId: string, paidAt
   });
 
   if (assinatura.perfil && normalizarEstadoDoPerfil(assinatura.perfil.estado) === "DESATIVADO") {
-    await prisma.perfilCampanhaHermes.update({ where: { id: assinatura.perfil.id }, data: { precisaReprovisionar: true } });
+    // `aguardandoProvisionamentoDesde` é a Frente C ligando o que esta função já registra: o
+    // MESMO instante do pagamento confirmado, gravado junto com `precisaReprovisionar` (não uma
+    // segunda régua) — é a primeira das duas datas que tornam o SLA de provisionamento medível
+    // (a segunda é PerfilCampanhaHermes.provisionadoEm, gravada só quando o Hermes confirmar de
+    // verdade — ver lib/actions/provisionamentoCampanhas.ts).
+    await prisma.perfilCampanhaHermes.update({
+      where: { id: assinatura.perfil.id },
+      data: { precisaReprovisionar: true, aguardandoProvisionamentoDesde: paidAt },
+    });
   }
 
   revalidatePath("/painel-mestre");

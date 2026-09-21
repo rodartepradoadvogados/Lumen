@@ -154,6 +154,50 @@ export async function desprovisionarNoHermes(slug: string): Promise<unknown> {
   return chamar("/desprovisionar", { corpo: { slug }, esperaMs: 60_000 });
 }
 
+// ── O PERFIL DE CAMPANHA (módulo pago, Frente C) ────────────────────────────────────────────
+//
+// Diferente de `perfilDoEscritorio` (atendimento normal, ainda preso ao perfil único
+// "atendimento-lumen" da instalação de hoje — ver o comentário lá em cima), o perfil de campanha
+// NÃO TEM legado nenhum para dar ponte: ele só passa a existir a partir da assinatura do módulo
+// pago (§8 da especificação de campanhas — "hoje não existe nenhuma campanha sem o módulo pago").
+// Por isso a convenção nasce direto no desenho final, "um perfil por escritório", sem a variável
+// de ambiente de escape que `perfilDoEscritorio` precisa.
+export function perfilDeCampanha(slug: string): string {
+  return `lumen-campanha-${slug}`;
+}
+
+// ── MEMÓRIA DA MÁQUINA (não de um perfil) — alerta de VPS, §4 ──────────────────────────────
+//
+// NÃO CONFUNDIR com `EstadoDoPerfil.memoriaKB` (abaixo): aquele é o tamanho em disco do state.db
+// de UM perfil; isto é RAM disponível + swap livre da MÁQUINA INTEIRA que hospeda o Hermes. Os
+// dois vêm de rotas diferentes da ponte porque são perguntas diferentes — a de perfil já existia
+// (lida pelo painel mestre para saber se um escritório está provisionado); esta é NOVA (rota
+// `/memoria` em servidor-hermes/servidor.py), criada para o alerta de memória da §4. Exige a
+// atualização do servidor da ponte na VPS — ver o passo a passo no relatório desta frente.
+export type MemoriaDaMaquina = {
+  /** MemAvailable de /proc/meminfo, em KB — o que o próprio kernel considera "livre para uso sem
+   *  trocar para o swap" (mais correto que MemFree sozinho, que conta como ocupado boa parte do
+   *  cache de disco que o kernel devolve na hora se um processo precisar). */
+  ramDisponivelKB: number;
+  ramTotalKB: number;
+  /** SwapFree de /proc/meminfo, em KB. */
+  swapLivreKB: number;
+  swapTotalKB: number;
+};
+
+export async function memoriaDaMaquina(): Promise<MemoriaDaMaquina> {
+  const corpo = (await chamar("/memoria", { metodo: "GET", esperaMs: 15_000 })) as Partial<
+    Record<keyof MemoriaDaMaquina, unknown>
+  >;
+  const numero = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  return {
+    ramDisponivelKB: numero(corpo.ramDisponivelKB),
+    ramTotalKB: numero(corpo.ramTotalKB),
+    swapLivreKB: numero(corpo.swapLivreKB),
+    swapTotalKB: numero(corpo.swapTotalKB),
+  };
+}
+
 export type EstadoDoPerfil = {
   perfil: string;
   existe: boolean;

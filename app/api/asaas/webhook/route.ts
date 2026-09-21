@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyAsaasWebhookToken, markTenantInvoicePaidByAsaasPaymentId } from "@/lib/asaas";
 import { confirmarPagamentoCampanhaPorAsaasId } from "@/lib/actions/campanhasCobranca";
+import { dispararProvisionamentoAssincrono } from "@/lib/actions/provisionamentoCampanhas";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,13 @@ async function processEvent(eventType: string, payload: AsaasWebhookPayload): Pr
       // Pode ser um evento de teste do sandbox Asaas sem fatura real correspondente — aviso,
       // não erro (não deve fazer a Asaas reenviar indefinidamente).
       console.warn(`[asaas webhook] evento ${eventType} para asaasPaymentId ${asaasPaymentId} sem TenantInvoice/cobrança de campanha correspondente.`);
+    } else if (campanha.tipo === "MODULO") {
+      // FRENTE C (§3): NUNCA um `await` aqui — `provisionarNoHermes` pode levar até 120s, e este
+      // webhook precisa responder rápido (a Asaas reenvia/considera falho um webhook lento). O
+      // disparo é fogo-e-esquece; a rede de segurança por cron
+      // (app/api/cron/campanhas-provisionamento) garante que o perfil sobe mesmo que este
+      // disparo se perca.
+      dispararProvisionamentoAssincrono(campanha.officeId);
     }
     return;
   }

@@ -641,6 +641,84 @@ export async function sendCampanhaDesativadaEmail(to: string, officeName: string
 }
 
 // ============================================================================
+// ALERTAS TÉCNICOS DA MÁQUINA DO HERMES (Frente C do módulo pago de campanhas) — só para Jairo e
+// Rodrigo (lib/platformMember.ts:donosDaPlataforma), nunca para o escritório-cliente: o
+// escritório não opera a VPS e não pode fazer nada com um "provisionamento esgotou as
+// tentativas" ou "memória da máquina baixa". Reusa `sendSimpleEmail` seria possível, mas os dois
+// avisos têm conteúdo estruturado o bastante (motivo técnico, contagem de tentativas) para
+// justificar um template próprio, no MESMO estilo visual dos dois e-mails acima.
+// ============================================================================
+
+/** §3 — disparado quando o provisionamento de um perfil de campanha esgota as tentativas
+ * (LIMITE_DE_TENTATIVAS_DE_PROVISIONAMENTO, ver lib/provisionamentoCampanhas.ts). */
+export async function sendProvisionamentoFalhouEmail(
+  to: string,
+  officeName: string,
+  tentativas: number,
+  motivo: string,
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">PROVISIONAMENTO DE CAMPANHA — FALHOU DEFINITIVAMENTE</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">O perfil de campanha do escritório <strong>${officeName}</strong> não subiu no Hermes depois de <strong>${tentativas} tentativas</strong>. O pagamento foi confirmado, mas o perfil segue fora do ar — a régua automática parou de tentar.</p>
+      <p style="font-size:14px;color:#14161a;">Motivo da última tentativa: <strong>${motivo}</strong></p>
+      <p style="font-size:13px;color:#585c63;">Verifique a máquina do Hermes (espaço, memória, o serviço da ponte de pé) e, se corrigir o problema, reabra o provisionamento pelo painel mestre.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject: `Provisionamento de campanha falhou — Lúmen — ${officeName}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+/** §4 — disparado quando a memória livre (RAM disponível + swap livre) da VPS do Hermes cruza o
+ * limiar configurado. NÍVEL ÚNICO: não existe uma versão "crítica" mais grave deste e-mail. */
+export async function sendAlertaMemoriaHermesEmail(
+  to: string,
+  livreKB: number,
+  limiarKB: number,
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const livreMB = (livreKB / 1024).toFixed(0);
+  const limiarMB = (limiarKB / 1024).toFixed(0);
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">MEMÓRIA DA VPS DO HERMES</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">A memória livre da máquina do Hermes (RAM disponível + swap livre) caiu para <strong>${livreMB} MB</strong>, abaixo do limiar configurado de <strong>${limiarMB} MB</strong>.</p>
+      <p style="font-size:13px;color:#585c63;">Sem teto rígido de escritórios/perfis por enquanto — este é só o aviso de que a máquina está apertada. Vale olhar o que está consumindo memória e considerar liberar espaço ou aumentar a máquina.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject: `Memória baixa na VPS do Hermes — Lúmen`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+// ============================================================================
 // Resumo diário por e-mail (7h, cron em app/api/cron/resumo-diario) — pessoal por advogado,
 // bem diferente de buildDailyAgendaHtml/sendDailyAgendaEmail acima (que é por ESCRITÓRIO
 // inteiro e só vai pros administradores): aqui todo usuário ativo recebe o PRÓPRIO resumo —

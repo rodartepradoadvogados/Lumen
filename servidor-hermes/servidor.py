@@ -198,6 +198,38 @@ def estado_do_perfil(perfil: str) -> dict:
     return {"perfil": perfil, "existe": existe, "memoriaKB": memoria_kb, "sessoes": sessoes}
 
 
+def memoria_da_maquina() -> dict:
+    """RAM e swap livres da MAQUINA (nao de um perfil) — para o alerta do Lumen (Sec 4 da
+    especificacao do modulo pago de campanhas).
+
+    So biblioteca padrao, lendo /proc/meminfo (Linux). MemAvailable e o numero que o proprio
+    kernel calcula como "livre para uso sem precisar trocar para o swap" — mais correto que
+    MemFree sozinho, que conta como ocupado boa parte do cache de disco que o kernel devolve na
+    hora se algum processo precisar. SwapFree e direto.
+    """
+    valores: dict[str, int] = {}
+    with open("/proc/meminfo", "r", encoding="utf-8") as arquivo:
+        for linha in arquivo:
+            partes = linha.split(":")
+            if len(partes) != 2:
+                continue
+            chave = partes[0].strip()
+            if chave not in ("MemAvailable", "MemTotal", "SwapFree", "SwapTotal"):
+                continue
+            numero = partes[1].strip().split()[0]  # "12345 kB" -> "12345"
+            try:
+                valores[chave] = int(numero)
+            except ValueError:
+                continue
+
+    return {
+        "ramDisponivelKB": valores.get("MemAvailable", 0),
+        "ramTotalKB": valores.get("MemTotal", 0),
+        "swapLivreKB": valores.get("SwapFree", 0),
+        "swapTotalKB": valores.get("SwapTotal", 0),
+    }
+
+
 class Ponte(BaseHTTPRequestHandler):
     server_version = "ponte-hermes"
     sys_version = ""  # não anuncia a versão do Python para quem bater na porta
@@ -238,6 +270,17 @@ class Ponte(BaseHTTPRequestHandler):
             except Exception as erro:  # noqa: BLE001
                 log.error("falha ao listar perfis: %s", erro)
                 self._responder(500, {"erro": "falha ao listar perfis"})
+            return
+
+        if self.path == "/memoria":
+            if not self._autorizado():
+                self._responder(401, {"erro": "não autorizado"})
+                return
+            try:
+                self._responder(200, memoria_da_maquina())
+            except OSError as erro:
+                log.error("falha ao ler /proc/meminfo: %s", erro)
+                self._responder(500, {"erro": "falha ao ler memória da máquina"})
             return
 
         self._responder(404, {"erro": "rota desconhecida"})
