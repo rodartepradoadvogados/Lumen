@@ -97,6 +97,11 @@ teste("HARD GATE: confirmarExportacao recusa sem avaliarExportacao().pode, e rec
   const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarExportacao"));
   verdade(corpo.length > 300, "corpoDaFuncao não encontrou confirmarExportacao");
   verdade(corpo.includes("avaliarExportacao("), "deveria checar avaliarExportacao (só advogado com OAB)");
+  // CHAMAR NÃO É OBEDECER. A primeira versão desta asserção só exigia que `avaliarExportacao(`
+  // aparecesse no corpo: trocar a linha seguinte por `void avaliacao;` passava verde, e estagiário
+  // e advogado sem OAB exportavam. O veredito tem de DESVIAR a execução.
+  verdade(/if \(!avaliacao\.pode\) return \{ error: avaliacao\.motivo!? \};/.test(corpo),
+    "o veredito de avaliarExportacao precisa interromper a exportação, não só ser calculado");
   verdade(corpo.includes("if (!confirmouCheckbox)"), "deveria recusar explicitamente quando o checkbox não foi marcado");
   const idxAvaliacao = corpo.indexOf("avaliarExportacao(");
   const idxDocx = corpo.indexOf("montarPeticaoWord(");
@@ -114,6 +119,12 @@ teste("HARD GATE: toda exportação registra quem confirmou e quando (Peticionam
   const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarExportacao"));
   verdade(corpo.includes("peticionamentoExportacao.create("), "deveria criar o registro de auditoria da exportação");
   verdade(corpo.includes("confirmadoPorId: user.id"), "o registro precisa gravar QUEM confirmou");
+  // O REGISTRO NÃO PODE SER CONDICIONAL. Só `includes` deixava passar `if (false) await prisma.
+  // peticionamentoExportacao.create(...)`: a auditoria morria e a suíte continuava verde. Exigir a
+  // linha no nível do corpo da função (dois espaços de indentação, começando em `await`) fecha isso
+  // — dentro de qualquer `if`/`try` a indentação seria maior.
+  verdade(/\n  await prisma\.peticionamentoExportacao\.create\(/.test(corpo),
+    "o registro de auditoria precisa ser incondicional, no corpo da ação — nunca dentro de um if");
 });
 
 teste("HARD GATE: o metadado de rascunho de IA é sempre passado ao gerar o .docx", () => {
