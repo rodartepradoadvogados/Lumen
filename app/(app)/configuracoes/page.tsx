@@ -41,6 +41,8 @@ import { lerParametros } from "@/lib/actions/parametrosDaAna";
 import { DIAS_PARA_O_DOCUMENTO_PADRAO } from "@/lib/parametrosDaAna";
 import { motivosDoEscritorio } from "@/lib/motivosDeRecusa";
 import { transcricaoConfigurada } from "@/lib/transcricao";
+import { normalizarEstadoDaAssinatura, normalizarEstadoDoPerfil, diasCorridosVencidos, DIAS_DE_CARENCIA, precoAMostrar, quantasCampanhasAtivasAgora, type EstadoDoSlot } from "@/lib/moduloCampanhas";
+import { situacaoDoProvisionamento } from "@/lib/provisionamentoCampanhas";
 
 export const dynamic = "force-dynamic";
 
@@ -254,6 +256,27 @@ export default async function ConfiguracoesPage({
   });
 
   const requestedSecao = searchParams.secao || "geral";
+
+  // ── Módulo pago de campanhas (Frente D, §1) — GATEADO por isAdmin && modules.whatsapp E pela
+  // ABA PEDIDA (diferente de `atendente`/`campanhasRaw` acima, que a casa já busca em toda
+  // navegação por serem tabelas antigas e baratas): três tabelas NOVAS só valem a pena buscar
+  // quando a pessoa está de fato olhando a aba que as usa — sem isso, um admin com WhatsApp veria
+  // Financeiro, Equipe ou Geral quebrarem por causa de uma tabela do módulo de campanhas, que ele
+  // nem abriu. Tudo aqui é LEITURA: as regras são das Frentes A/B/C (lib/moduloCampanhas.ts,
+  // lib/provisionamentoCampanhas.ts), nunca recalculadas.
+  const podeVerModuloDeCampanhas = isAdmin && modules.whatsapp && requestedSecao === "atendente";
+  const [assinaturaCampanhas, precoParametrosRaw, slotsPorCampanha] = podeVerModuloDeCampanhas
+    ? await Promise.all([
+        prisma.assinaturaModuloCampanhas.findUnique({
+          where: { officeId },
+          include: { perfil: true, slots: { select: { estado: true } } },
+        }),
+        prisma.campanhaPrecoParametro.findMany({ where: { chave: { in: ["MENSALIDADE_MODULO", "SLOT_EXTRA"] } } }),
+        prisma.campanhaSlotPago.findMany({ where: { officeId }, select: { campanhaId: true, estado: true } }),
+      ])
+    : [null, [], []];
+  const estadoDoSlotPorCampanhaId = new Map(slotsPorCampanha.map((s) => [s.campanhaId, s.estado as EstadoDoSlot]));
+
   // O formato da tela é o mesmo do formulário, para editar não precisar traduzir nada: o item da
   // lista É o rascunho que abre no wizard.
   const campanhas: CampanhaNaLista[] = campanhasRaw.map((c) => ({
@@ -276,7 +299,34 @@ export default async function ConfiguracoesPage({
     destino: c.destino,
     motivosDeRecusa: c.motivosDeRecusa,
     leads: c._count.atendimentos,
+    estadoDoSlot: estadoDoSlotPorCampanhaId.get(c.id) ?? null,
   }));
+
+  const parametrosDePreco = {
+    mensalidadeModulo: precoParametrosRaw.find((p) => p.chave === "MENSALIDADE_MODULO")?.preco ?? null,
+    precoSlotExtra: precoParametrosRaw.find((p) => p.chave === "SLOT_EXTRA")?.preco ?? null,
+  };
+  const estadosDosSlotsExistentes = (assinaturaCampanhas?.slots.map((s) => s.estado) ?? []) as EstadoDoSlot[];
+  const slotsExtrasAtivosAgora = estadosDosSlotsExistentes.filter((e) => e === "SOLICITADO" || e === "APROVADO" || e === "ATIVO").length;
+  const precoDoModulo = precoAMostrar(parametrosDePreco, slotsExtrasAtivosAgora);
+  const quantasCampanhasAtivas = quantasCampanhasAtivasAgora({
+    campanhaBaseAtiva: campanhas.some((c) => c.ativa && !c.estadoDoSlot),
+    estadosDosSlots: estadosDosSlotsExistentes,
+  });
+  const estadoDaAssinaturaCampanhas = assinaturaCampanhas ? normalizarEstadoDaAssinatura(assinaturaCampanhas.estado) : null;
+  const diasRestantesDeCarenciaCampanhas =
+    estadoDaAssinaturaCampanhas === "CARENCIA"
+      ? DIAS_DE_CARENCIA - diasCorridosVencidos(assinaturaCampanhas!.vencimento, new Date())
+      : null;
+  const situacaoDoPerfilDeCampanha = assinaturaCampanhas?.perfil
+    ? situacaoDoProvisionamento({
+        estaProvisionado: normalizarEstadoDoPerfil(assinaturaCampanhas.perfil.estado) === "PROVISIONADO",
+        precisaReprovisionar: assinaturaCampanhas.perfil.precisaReprovisionar,
+        numeroDeTentativas: assinaturaCampanhas.perfil.numeroDeTentativasDeProvisionamento,
+        falhouDefinitivamente: assinaturaCampanhas.perfil.provisionamentoFalhouDefinitivamente,
+        ultimoErro: assinaturaCampanhas.perfil.ultimoErroDeProvisionamento,
+      })
+    : null;
 
   // Os dois andares do catálogo de motivos, resolvidos para este escritório (ver
   // lib/motivosDeRecusa.ts). Só lido quando a seção existe: uma consulta a mais numa tela que
@@ -853,6 +903,16 @@ export default async function ConfiguracoesPage({
               }}
               campanhas={campanhas}
               transcricao={{ configurada: transcricaoConfigurada(), url: process.env.TRANSCRICAO_URL || null }}
+              moduloDeCampanhas={{
+                assinado: Boolean(assinaturaCampanhas),
+                estadoDaAssinatura: estadoDaAssinaturaCampanhas,
+                diasRestantesDeCarencia: diasRestantesDeCarenciaCampanhas,
+                situacaoDoPerfil: situacaoDoPerfilDeCampanha,
+                instrucoesDoPerfil: assinaturaCampanhas?.perfil?.instrucoes ?? "",
+                quantasCampanhasAtivas,
+                precoDoModulo,
+                precoSlotExtraConfigurado: parametrosDePreco.precoSlotExtra != null,
+              }}
             />
           </div>
         </Card>

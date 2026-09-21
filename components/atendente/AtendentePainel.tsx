@@ -2,16 +2,29 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Megaphone, Mic, Pencil, Power, Trash2 } from "lucide-react";
+import { AlertCircle, Megaphone, Mic, Pencil, Power, Radio, Trash2 } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
 import CampanhaWizard from "@/components/atendente/CampanhaWizard";
+import SolicitarCampanhaModal from "@/components/atendente/SolicitarCampanhaModal";
 import {
   alternarCampanha,
   excluirCampanha,
   salvarAtendimentoGeral,
   type DadosDaCampanha,
 } from "@/lib/actions/campanhas";
+import { assinarModulo, salvarInstrucoesDoPerfilDeCampanha } from "@/lib/actions/campanhasTela";
 import { rotuloDeTranscricaoNasConfiguracoes } from "@/lib/transcricaoDeAudio";
+import {
+  ordinal,
+  podeSolicitarNovaCampanha,
+  rotuloDoEstadoDaAssinatura,
+  rotuloDaSituacaoDoProvisionamento,
+  rotuloDoEstadoDoSlot,
+  type EstadoParaSolicitacao,
+} from "@/lib/telaCampanhas";
+import { numeroDaProximaCampanha, type EstadoDaAssinatura, type EstadoDoSlot, type PrecoDoModulo, type PrecoOmitido } from "@/lib/moduloCampanhas";
+import type { SituacaoDoProvisionamento } from "@/lib/provisionamentoCampanhas";
+import { formatCurrency } from "@/components/ui";
 
 // ============================================================================
 // A ABA "ATENDENTE" — o atendimento geral e as campanhas do escritório.
@@ -27,13 +40,36 @@ import { rotuloDeTranscricaoNasConfiguracoes } from "@/lib/transcricaoDeAudio";
 export type CampanhaNaLista = DadosDaCampanha & {
   id: string;
   leads: number;
+  /** O estado do slot pago desta campanha (§6), ou null quando ela é a 1ª ativa — de graça,
+   * dentro da mensalidade, sem CampanhaSlotPago nenhum. */
+  estadoDoSlot: EstadoDoSlot | null;
 };
+
+/** O que a tela do módulo (Frente D, §1) precisa para se mostrar sozinha, sem sino nenhum —
+ * tudo já calculado pelas regras puras das Frentes A/B/C, nunca recalculado aqui. */
+export type ModuloDeCampanhasNaTela = {
+  assinado: boolean;
+  estadoDaAssinatura: EstadoDaAssinatura | null;
+  diasRestantesDeCarencia: number | null;
+  situacaoDoPerfil: SituacaoDoProvisionamento | null;
+  instrucoesDoPerfil: string;
+  quantasCampanhasAtivas: number;
+  precoDoModulo: PrecoDoModulo | PrecoOmitido;
+  precoSlotExtraConfigurado: boolean;
+};
+
+const FORMAS_DE_PAGAMENTO_DO_MODULO = [
+  { valor: "BOLETO", rotulo: "Boleto" },
+  { valor: "PIX_QRCODE", rotulo: "Pix (QR Code)" },
+  { valor: "PIX_AUTOMATICO", rotulo: "Pix automático recorrente" },
+] as const;
 
 export default function AtendentePainel({
   temWhatsapp,
   geral,
   campanhas,
   transcricao,
+  moduloDeCampanhas,
 }: {
   temWhatsapp: boolean;
   geral: {
@@ -49,6 +85,7 @@ export default function AtendentePainel({
   campanhas: CampanhaNaLista[];
   /** Se a transcrição de áudio (TRANSCRICAO_URL/TOKEN) está configurada — ver lib/transcricao.ts. */
   transcricao: { configurada: boolean; url: string | null };
+  moduloDeCampanhas: ModuloDeCampanhasNaTela;
 }) {
   const router = useRouter();
   const [g, setG] = useState(geral);
@@ -56,7 +93,38 @@ export default function AtendentePainel({
   const [aviso, setAviso] = useState<string | null>(null);
   const [editando, setEditando] = useState<DadosDaCampanha | null>(null);
   const [aberto, setAberto] = useState(false);
+  const [solicitando, setSolicitando] = useState(false);
   const [pendente, comecar] = useTransition();
+
+  const [formaDeAssinatura, setFormaDeAssinatura] = useState<string>("BOLETO");
+  const [instrucoesDoPerfil, setInstrucoesDoPerfil] = useState(moduloDeCampanhas.instrucoesDoPerfil);
+  const [avisoPerfil, setAvisoPerfil] = useState<string | null>(null);
+
+  const estadoParaSolicitacao: EstadoParaSolicitacao = moduloDeCampanhas.assinado
+    ? (moduloDeCampanhas.estadoDaAssinatura ?? "DESATIVADO")
+    : "SEM_ASSINATURA";
+  const decisaoDeSolicitar = podeSolicitarNovaCampanha(estadoParaSolicitacao);
+  const proximaPosicao = numeroDaProximaCampanha(moduloDeCampanhas.quantasCampanhasAtivas);
+
+  function assinar() {
+    setErro(null);
+    comecar(async () => {
+      const r = await assinarModulo(formaDeAssinatura);
+      if (r.error) setErro(r.error);
+      router.refresh();
+    });
+  }
+
+  function salvarTreinamentoDoPerfil() {
+    setErro(null);
+    setAvisoPerfil(null);
+    comecar(async () => {
+      const r = await salvarInstrucoesDoPerfilDeCampanha(instrucoesDoPerfil);
+      if (r.error) setErro(r.error);
+      else setAvisoPerfil("Treinamento do perfil de campanha salvo.");
+      router.refresh();
+    });
+  }
 
   if (!temWhatsapp) {
     return (
@@ -252,6 +320,100 @@ export default function AtendentePainel({
         </button>
       </section>
 
+      {/* ── O módulo pago de campanhas (Frente D, §1 e §5) ──────────────────── */}
+      <section className="space-y-4 border-t border-regua pt-8">
+        <div className="flex items-center gap-2">
+          <Radio size={20} className="text-tx-2" />
+          <h3 className="text-destaque font-semibold text-tx">Perfil de campanha (módulo pago)</h3>
+        </div>
+        <p className="max-w-[70ch] text-corpo leading-relaxed text-tx-2">
+          O módulo pago destrava um <strong>perfil próprio</strong> no Hermes, treinável e reaproveitado entre
+          campanhas — diferente do atendimento geral acima, ele responde SÓ a quem chega por campanha e{" "}
+          <strong>pode falar de preço, condições e fazer uma chamada para ação (CTA)</strong>.
+        </p>
+
+        {!moduloDeCampanhas.assinado ? (
+          <div className="space-y-3 border border-regua bg-sf-apoio p-4">
+            {!moduloDeCampanhas.precoDoModulo.configurado ? (
+              <p className="border border-linha-aviso bg-aviso-bg px-3 py-2 text-corpo text-aviso">
+                {moduloDeCampanhas.precoDoModulo.motivo}
+              </p>
+            ) : (
+              <p className="text-corpo text-tx">
+                Mensalidade de <strong>{formatCurrency(moduloDeCampanhas.precoDoModulo.mensalidadeModulo)}/mês</strong>{" "}
+                — inclui a 1ª campanha ativa. Campanhas simultâneas adicionais são cobradas à parte, no pop-up de cada
+                solicitação.
+              </p>
+            )}
+            <div>
+              <label className="mb-1 block text-etiqueta font-semibold text-tx">Forma de pagamento</label>
+              <select
+                className="cfg-input w-full max-w-xs"
+                value={formaDeAssinatura}
+                onChange={(e) => setFormaDeAssinatura(e.target.value)}
+                disabled={!moduloDeCampanhas.precoDoModulo.configurado}
+              >
+                {FORMAS_DE_PAGAMENTO_DO_MODULO.map((f) => (
+                  <option key={f.valor} value={f.valor}>
+                    {f.rotulo}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={assinar}
+              disabled={pendente || !moduloDeCampanhas.precoDoModulo.configurado}
+              className="inline-flex min-h-11 items-center gap-1.5 bg-acao px-4 text-etiqueta font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-50"
+            >
+              {pendente ? "Assinando…" : "Assinar módulo de campanhas"}
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {(() => {
+                const r = rotuloDoEstadoDaAssinatura(
+                  moduloDeCampanhas.estadoDaAssinatura ?? "DESATIVADO",
+                  moduloDeCampanhas.diasRestantesDeCarencia ?? undefined,
+                );
+                return <EstadoPill texto={r.texto} tom={r.tom} />;
+              })()}
+              {moduloDeCampanhas.situacaoDoPerfil &&
+                (() => {
+                  const r = rotuloDaSituacaoDoProvisionamento(moduloDeCampanhas.situacaoDoPerfil);
+                  return <EstadoPill texto={r.texto} tom={r.tom} />;
+                })()}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-etiqueta font-semibold text-tx">Treinamento do perfil de campanha</label>
+              <textarea
+                className="cfg-input w-full"
+                rows={6}
+                value={instrucoesDoPerfil}
+                onChange={(e) => setInstrucoesDoPerfil(e.target.value)}
+                placeholder="Ex.: fale do valor da consulta inicial, ofereça agendar pelo link e mencione o desconto da campanha atual."
+              />
+              <p className="mt-1 text-etiqueta text-tx-3">
+                Os limites — não fechar contrato, não dar solução jurídica, não prometer resultado — valem sempre,{" "}
+                <strong>mesmo aqui</strong>, e o escritório não pode revogá-los por esta instrução. A diferença deste
+                perfil para o atendimento geral acima: ele PODE falar de preço, condições e fazer CTA.
+              </p>
+            </div>
+            {avisoPerfil && <p className="border border-regua bg-sf-apoio px-3 py-2 text-corpo text-tx-2">{avisoPerfil}</p>}
+            <button
+              type="button"
+              onClick={salvarTreinamentoDoPerfil}
+              disabled={pendente}
+              className="inline-flex min-h-11 items-center gap-1.5 bg-acao px-4 text-etiqueta font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-50"
+            >
+              {pendente ? "Salvando…" : "Salvar treinamento do perfil"}
+            </button>
+          </>
+        )}
+      </section>
+
       {/* ── As campanhas ──────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -259,21 +421,39 @@ export default function AtendentePainel({
             <Megaphone size={20} className="text-tx-2" />
             <h3 className="text-destaque font-semibold text-tx">Campanhas</h3>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setEditando(null);
-              setAberto(true);
-            }}
-            className="inline-flex min-h-11 items-center gap-1.5 border border-regua px-3 text-etiqueta font-semibold text-tx hover:bg-sf-apoio"
-          >
-            Nova campanha
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEditando(null);
+                setAberto(true);
+              }}
+              className="inline-flex min-h-11 items-center gap-1.5 border border-regua px-3 text-etiqueta font-semibold text-tx hover:bg-sf-apoio"
+            >
+              Nova campanha
+            </button>
+            <button
+              type="button"
+              onClick={() => setSolicitando(true)}
+              disabled={!decisaoDeSolicitar.pode}
+              title={decisaoDeSolicitar.pode ? undefined : decisaoDeSolicitar.motivo}
+              className="inline-flex min-h-11 items-center gap-1.5 bg-acao px-3 text-etiqueta font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-50"
+            >
+              Solicitar campanha
+            </button>
+          </div>
         </div>
         <p className="max-w-[70ch] text-corpo leading-relaxed text-tx-2">
           Quem chega por um anúncio segue o roteiro da campanha, e só o assunto dela. Quem chega por conta própria cai
           no atendimento geral acima.
         </p>
+        {moduloDeCampanhas.assinado && (
+          <p className="text-etiqueta text-tx-3">
+            {moduloDeCampanhas.quantasCampanhasAtivas} campanha(s) ativa(s) agora — a próxima solicitação seria a{" "}
+            {ordinal(proximaPosicao)}.
+            {!decisaoDeSolicitar.pode && <> {decisaoDeSolicitar.motivo}</>}
+          </p>
+        )}
 
         {campanhas.length === 0 ? (
           <p className="border border-regua bg-sf-apoio px-4 py-6 text-center text-corpo text-tx-2">
@@ -293,6 +473,14 @@ export default function AtendentePainel({
                     >
                       {c.ativa ? "no ar" : "desligada"}
                     </span>
+                    {c.estadoDoSlot ? (
+                      (() => {
+                        const r = rotuloDoEstadoDoSlot(c.estadoDoSlot!);
+                        return <EstadoPill texto={r.texto} tom={r.tom} pequeno />;
+                      })()
+                    ) : (
+                      <EstadoPill texto="incluída na mensalidade" tom="neutro" pequeno />
+                    )}
                   </div>
                   <div className="text-etiqueta text-tx-2">
                     {c.area}
@@ -339,6 +527,30 @@ export default function AtendentePainel({
       </section>
 
       {aberto && <CampanhaWizard inicial={editando ?? undefined} aoFechar={() => setAberto(false)} />}
+      {solicitando && (
+        <SolicitarCampanhaModal
+          numeroDaProximaCampanha={proximaPosicao}
+          precoDoModulo={moduloDeCampanhas.precoDoModulo}
+          aoFechar={() => setSolicitando(false)}
+        />
+      )}
     </div>
+  );
+}
+
+// Selo de estado do módulo pago de campanhas — mesmo vocabulário de risco da casa
+// (--concluido/--aviso/--urgente), nunca cor crua do Tailwind (ver DESIGN.md). "neutro" cobre os
+// casos sem carga de risco (perfil desativado sem pendência, slot finalizado).
+function EstadoPill({ texto, tom, pequeno }: { texto: string; tom: "ok" | "warn" | "risk" | "neutro"; pequeno?: boolean }) {
+  const cls = {
+    ok: "bg-concluido-bg text-concluido",
+    warn: "bg-aviso-bg text-aviso",
+    risk: "bg-urgente-bg text-urgente",
+    neutro: "bg-sf text-tx-3",
+  }[tom];
+  return (
+    <span className={`inline-flex items-center ${pequeno ? "px-1.5 py-0.5" : "px-2 py-1"} text-etiqueta font-semibold ${cls}`}>
+      {texto}
+    </span>
   );
 }
