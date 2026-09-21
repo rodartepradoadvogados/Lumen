@@ -8,12 +8,16 @@
    ============================================================ */
 .peticionamento {
   color-scheme: dark;
-  --bg-0: #0a0c0f;
-  --bg-1: #12151a;
-  --bg-2: #1a1e24;
-  --bg-3: #21262e;
-  --border: #262c34;
-  --border-strong: #333a44;
+  /* "Ardósia fria" — decisão do dono entre quatro opções (adequação de 21/09/2026, espec.
+     §0): quase preto, frio, fechado, inclinado para o azul (~218° de matiz). Troca de TOKEN
+     só, aqui — nada além destes seis muda; --accent, --warn, --danger, --ok e --paper-bg
+     continuam os mesmos de antes da troca. */
+  --bg-0: #090d14;
+  --bg-1: #0e131c;
+  --bg-2: #151b26;
+  --bg-3: #1c2330;
+  --border: #202838;
+  --border-strong: #2a3446;
   --tx-0: #e7eaed;
   --tx-1: #aab1ba;
   --tx-2: #838d97;
@@ -62,12 +66,15 @@
 }
 .peticionamento[data-theme="light"] {
   color-scheme: light;
-  --bg-0: #eef0f2;
-  --bg-1: #e5e8eb;
-  --bg-2: #dadde1;
+  /* Mesma inclinação de matiz (~218°) da "Ardósia fria" acima, derivada dos tons claros
+     anteriores em HSL (matiz trocado, saturação escalada na mesma proporção do lado escuro,
+     luminosidade INTACTA) — o contraste desta folha não muda, só a temperatura da cor. */
+  --bg-0: #eceff4;
+  --bg-1: #e3e6ed;
+  --bg-2: #d7dce4;
   --bg-3: #ffffff;
-  --border: #c9ced4;
-  --border-strong: #aab1ba;
+  --border: #c5ccd8;
+  --border-strong: #a4aec0;
   --tx-0: #14171b;
   --tx-1: #454d56;
   --tx-2: #525a62;
