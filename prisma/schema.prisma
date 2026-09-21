@@ -261,6 +261,11 @@ model Office {
   // Os parâmetros que dizem QUANDO a Ana pode recusar sozinha — ver lib/parametrosDaAna.ts.
   parametrosDeRecusa ParametrosDeRecusa?
   criteriosDeRecusa  CriterioDeRecusa[]
+
+  // Aba de Peticionamento — ver bloco de models PeticionamentoSessao/PeticionamentoMateria mais
+  // abaixo.
+  peticionamentoMaterias PeticionamentoMateria[]
+  peticionamentoSessoes  PeticionamentoSessao[]
 }
 
 // Catálogo de planos (Painel Mestre → Preços) — 5 linhas fixas (Standard/Silver/Gold/Diamond/Sob
@@ -453,6 +458,13 @@ model User {
   // Pendências do Atendimento (Fase 5) atribuídas a esta pessoa como responsável — ver model
   // AtendimentoPendencia mais abaixo.
   atendimentoPendenciasResponsible AtendimentoPendencia[] @relation("AtendimentoPendenciaResponsible")
+
+  // Aba de Peticionamento — três papéis distintos de propósito (quem criou a matéria do
+  // escritório, quem criou a sessão, quem confirmou uma exportação), mesmo raciocínio de
+  // payablesResponsible/payablesAsPayee acima: nunca a mesma pessoa por acaso.
+  peticionamentoMateriasCriadas        PeticionamentoMateria[]    @relation("PeticionamentoMateriaCriadoPor")
+  peticionamentoSessoesCriadas         PeticionamentoSessao[]     @relation("PeticionamentoSessaoCriadoPor")
+  peticionamentoExportacoesConfirmadas PeticionamentoExportacao[] @relation("PeticionamentoExportacaoConfirmadoPor")
 
   @@unique([officeId, username])
 }
@@ -1329,14 +1341,14 @@ model AtendimentoPendencia {
 // ============ WHATSAPP (mensagens da integração com a Cloud API da Meta) ============
 
 model WhatsappMessage {
-  id           String     @id @default(cuid())
-  attendanceId String
-  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  direction    String // "IN" (do cliente) | "OUT" (do escritório)
+  id                           String     @id @default(cuid())
+  attendanceId                 String
+  attendance                   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  direction                    String // "IN" (do cliente) | "OUT" (do escritório)
   // Quem escreveu a mensagem de saída: o atendente de IA ou uma pessoa. É o que permite marcar a
   // conversa com "respondido pelo atendente" na tela, e é o que faz a regra do silêncio funcionar
   // — a resposta da máquina não pode calar a própria máquina.
-  porAgente    Boolean    @default(false)
+  porAgente                    Boolean    @default(false)
   // TRUE só na frase fixa de "recebi seu áudio" (lib/confirmacaoDeAudio.ts). Achado real (não
   // teórico — reproduzido e corrigido depois de um relatório): sem esta marca, a própria
   // confirmação virava "a última mensagem", e a checagem "a última tem que ser do cliente" (mais
@@ -1345,12 +1357,12 @@ model WhatsappMessage {
   // `atendenteResponde` ignorar a confirmação automática ao decidir se há uma pergunta pendente,
   // sem abrir mão da trava para qualquer OUTRA mensagem de saída (inclusive uma resposta anterior
   // de verdade da própria Ana, que continua bloqueando corretamente — só a confirmação some).
-  confirmacaoAutomaticaDeAudio Boolean @default(false)
-  body         String
-  waMessageId  String?    @unique // id da mensagem na Meta (dedupe)
-  status       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
-  fromNumber   String? // telefone do cliente (E.164)
-  createdAt    DateTime   @default(now())
+  confirmacaoAutomaticaDeAudio Boolean    @default(false)
+  body                         String
+  waMessageId                  String?    @unique // id da mensagem na Meta (dedupe)
+  status                       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
+  fromNumber                   String? // telefone do cliente (E.164)
+  createdAt                    DateTime   @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -1387,14 +1399,14 @@ model TranscricaoDeAudio {
   // configurados: ver lib/transcricaoDeAudio.ts:ERRO_TRANSCRICAO_NAO_CONFIGURADA — "não configurado"
   // NÃO é um quarto estado, é um MOTIVO de falha, para a tela e o agente sempre terem uma resposta
   // honesta em só três estados possíveis).
-  status String @default("PENDENTE")
+  status String  @default("PENDENTE")
   // O que a Ana lê no lugar da mensagem de áudio (lib/atendenteResponde.ts) e o que a tela mostra
   // na bolha, para quem tem acesso ao atendimento — nunca enviado ao cliente por nenhum caminho.
-  texto String?
+  texto  String?
   // Motivo da falha, em linguagem de gente. NUNCA o corpo bruto da resposta do serviço de
   // transcrição: um serviço mal configurado pode ecoar de volta o que recebeu (inclusive o
   // cabeçalho Authorization), e aquele valor é o TOKEN — ver lib/transcricaoDeAudio.ts:lerRespostaDeTranscricao.
-  erro String?
+  erro   String?
 
   // ONDE O ÁUDIO FICA GUARDADO DE VERDADE — o MESMO arquivo que processarMidiaRecebida (F5) já
   // sobe pro Drive/OneDrive/Dropbox do escritório, gravado aqui na hora em que o upload termina.
@@ -3954,4 +3966,171 @@ model EmailTemplate {
   office   Office @relation(fields: [officeId], references: [id])
 
   @@unique([officeId, event])
+}
+
+// ============ PETICIONAMENTO (aba de peticionamento, perfil Hermes "peticionamento-lumen") ============
+//
+// Fonte da verdade de produto: especificacao-peticionamento-lumen.md (entrevista fechada com o
+// dono) + os mockups aprovados em .../mockups-peticionamento/ (decisions.md e
+// contrato-com-o-agente.md). Este bloco guarda só o ESTADO da sessão de peticionamento — as
+// regras de negócio (o que é mínimo, que combinação de contexto é proibida, quem pode exportar,
+// como se monta o nome do arquivo) vivem em módulos PUROS sob lib/peticionamento*.ts, testados
+// em lib/testes/, nunca aqui.
+
+// Matéria adicionada por UM escritório específico ("+ Adicionar matéria" da tela de contexto).
+// Decisão do dono, literal: uma matéria nova vale só para aquele escritório, nunca vira opção
+// global do Lúmen — por isso não existe tabela "matéria global editável", só esta, sempre presa
+// a um officeId. A lista global (matérias "do Lúmen") continua vivendo em código
+// (lib/peticionamentoMateria.ts), sem tabela — não muda por escritório.
+model PeticionamentoMateria {
+  id          String   @id @default(cuid())
+  officeId    String
+  office      Office   @relation(fields: [officeId], references: [id])
+  nome        String
+  criadoPorId String?
+  criadoPor   User?    @relation("PeticionamentoMateriaCriadoPor", fields: [criadoPorId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([officeId, nome])
+  @@index([officeId])
+}
+
+// Uma sessão de peticionamento — do primeiro passo (contexto) até a minuta editável. Nasce ao
+// abrir a aba e é salva automaticamente a cada mudança (seção 7 da especificação: "contexto
+// preenchido pela metade e abandonado é salvo automaticamente como rascunho reaproveitável,
+// nunca perdido ao fechar a aba").
+model PeticionamentoSessao {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  criadoPorId String
+  criadoPor   User   @relation("PeticionamentoSessaoCriadoPor", fields: [criadoPorId], references: [id])
+
+  // A TRAVA DE CLIENTE mora aqui: nula numa sessão avulsa (sem vínculo, seção 10 da
+  // especificação); preenchida no primeiro vínculo escolhido, e todo vínculo seguinte precisa
+  // pertencer a este MESMO cliente (validado em lib/peticionamentoContexto.ts antes de qualquer
+  // escrita — nunca só na tela). Não é preferência de organização, é sigilo profissional (seção
+  // 8): dois clientes diferentes nunca coexistem numa sessão.
+  clienteId   String?
+  clienteNome String?
+
+  // Vínculos escolhidos nesta sessão — ids em JSON, não relação de banco. De propósito: um
+  // processo/atendimento/assessoria apagado depois não pode deixar esta sessão com uma foreign
+  // key quebrada, e a trava de mesmo cliente já foi validada no momento da escolha (ver acima),
+  // não depende de o banco garantir isso por relação.
+  vinculoCaseIds       Json    @default("[]")
+  vinculoAttendanceIds Json    @default("[]")
+  vinculoAssessoriaIds Json    @default("[]")
+  // Quando há mais de um vínculo, qual delas é a "pasta principal" para salvar anexo e minuta
+  // final (seção 10) — formato "case:<id>" | "attendance:<id>" | "assessoria:<id>".
+  pastaPrincipal       String?
+
+  // Matéria — do Lúmen (lib/peticionamentoMateria.ts) ou do escritório (PeticionamentoMateria
+  // acima); materiaEhDoEscritorio só marca QUAL das duas listas, nunca muda o tratamento do
+  // agente (contrato-com-o-agente.md §1: "não distinga o tratamento entre as duas").
+  materiaNome           String?
+  materiaEhDoEscritorio Boolean @default(false)
+
+  // Tipo de peça — lista fechada da seção 9, ou "Outra" com texto livre em tipoPecaOutro.
+  // tipoPecaInferido marca quando NINGUÉM escolheu e o sistema tentou inferir pelo andamento do
+  // vínculo (contrato-com-o-agente.md §1) — precisa aparecer na nota de destaque, nunca em
+  // silêncio.
+  tipoPeca         String?
+  tipoPecaOutro    String?
+  tipoPecaInferido Boolean @default(false)
+
+  // O MÍNIMO PARA GERAR (decisão do dono): fatos + pedidos. Os demais campos abaixo são
+  // enriquecimento — a ausência deles nunca bloqueia a geração (ver lib/peticionamentoMinimo.ts).
+  fatos                 String?
+  pedidos               Json      @default("[]")
+  prazoFatal            DateTime?
+  valorCausa            String?
+  descumprimentoLiminar String?
+  teses                 Json      @default("[]")
+  observacoes           String?
+
+  // Documentos JÁ existentes no Lúmen, selecionados para esta sessão (ids de Attachment, sem
+  // relação de banco pelo mesmo motivo do vínculo acima). Os anexos NOVOS desta sessão vivem em
+  // PeticionamentoAnexo, abaixo.
+  documentosExistentesIds Json @default("[]")
+
+  // CONTEXTO (wizard em andamento) | AGUARDANDO_CONFIRMACAO (modal de triagem aberto) |
+  // GERANDO | GERADA | FALHA_GERACAO | EXPORTADA.
+  status String @default("CONTEXTO")
+
+  // Seção 8: nunca trunca em silêncio. Preenchido quando o contexto foi resumido automaticamente
+  // (o que foi condensado) ou bloqueado (o que falta decidir) — null quando o contexto sempre
+  // coube inteiro.
+  contextoResumoAviso     String?
+  contextoBloqueadoMotivo String?
+
+  // O que o agente devolveu (contrato-com-o-agente.md §2): corpo completo da minuta já com o
+  // fecho literal garantido por código (lib/peticionamentoFecho.ts) — nunca confiado só ao
+  // modelo. As três listas abaixo alimentam a nota de destaque obrigatória
+  // (lib/peticionamentoNotaObrigatoria.ts), montada pelo SISTEMA, nunca copiada do texto livre
+  // que o modelo escreveu.
+  minutaTexto               String?
+  notaRiscos                Json    @default("[]")
+  jurisprudenciaCitada      Json    @default("[]")
+  documentosBaseConsultados Json    @default("[]")
+
+  hermesSessionId String?
+  geradoEm        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  anexos      PeticionamentoAnexo[]
+  exportacoes PeticionamentoExportacao[]
+
+  @@index([officeId, criadoPorId])
+  @@index([officeId, status])
+}
+
+// Anexo NOVO desta sessão (upload — seção 10 da especificação), distinto dos documentos que já
+// existiam no Lúmen (esses ficam só como id em PeticionamentoSessao.documentosExistentesIds).
+model PeticionamentoAnexo {
+  id       String               @id @default(cuid())
+  sessaoId String
+  sessao   PeticionamentoSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  nome          String
+  driveUrl      String?
+  storageFileId String?
+  tamanhoBytes  Int?
+
+  // Markdown é sempre SUGERIDO, nunca obrigatório (seção 1) — os dois campos abaixo são
+  // mutuamente exclusivos na prática (a tela só marca um deles), nunca os dois juntos.
+  markdownConvertido Boolean @default(false)
+  markdownRecusado   Boolean @default(false)
+
+  // Ao fim da sessão, o sistema oferece promover este anexo a anexo oficial do processo/caso
+  // (seção 10) — nada é apagado automaticamente se recusado, ele só continua em "peticionamento/".
+  promovidoOficial Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessaoId])
+}
+
+// O REGISTRO da trava técnica de exportação (seção 5): quem confirmou o checkbox de ciência e
+// quando — nos metadados do próprio .docx (lib/peticionamentoDocx.ts) E aqui, para auditoria do
+// escritório sobreviver mesmo que o arquivo gerado seja perdido/editado depois.
+model PeticionamentoExportacao {
+  id       String               @id @default(cuid())
+  sessaoId String
+  sessao   PeticionamentoSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  confirmadoPorId String
+  confirmadoPor   User     @relation("PeticionamentoExportacaoConfirmadoPor", fields: [confirmadoPorId], references: [id])
+  confirmadoEm    DateTime @default(now())
+
+  arquivoNome      String
+  driveUrl         String?
+  timbradoAplicado Boolean
+
+  createdAt DateTime @default(now())
+
+  @@index([sessaoId])
 }
