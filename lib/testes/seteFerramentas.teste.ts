@@ -148,9 +148,16 @@ teste("consultar_historico_cliente só devolve os agregados financeiros através
   verdade(corpo.includes('podeVerNivel("registro", quem)'), "não usa podeVerNivel(\"registro\", quem) para decidir se consulta o banco");
 });
 
-teste("o histórico do cliente nunca devolve estimatedValue do atendimento (dinheiro fora da régua)", () => {
+teste("o histórico do cliente VOLTOU a devolver o valor estimado do atendimento — decisão revista", () => {
+  // Até 2026-09-21 este teste exigia o contrário (nunca mencionar `estimatedValue`): a regra
+  // antiga tratava qualquer valor em dinheiro dentro do histórico como financeiro, e excluía o
+  // campo inteiro por ser "mais simples que lembrar de omiti-lo depois". O dono revisou: o valor
+  // estimado de UM atendimento é registro da negociação em curso, não dinheiro do financeiro — a
+  // mesma régua que já libera `subject`/`stage`/`channel` sem checar `quem`. Ver lib/valorEstimado.ts
+  // e lib/testes/valorEstimado.teste.ts, que cobrem a régua nova por inteiro.
   const corpo = corpoDaFuncao(FONTE_TOOLS, "executarHistoricoCliente");
-  verdade(!/\bestimatedValue\b/.test(corpo), "executarHistoricoCliente menciona estimatedValue");
+  verdade(corpo.includes("estimatedValue: true"), "o select de atendimentos parou de buscar estimatedValue");
+  verdade(corpo.includes("valorEstimadoIndividual(a.estimatedValue)"), "o valor do atendimento parou de passar pela régua de valorEstimado");
 });
 
 // executarHistoricoCliente consulta SEIS tabelas (client, case, attendance, task, attachment,

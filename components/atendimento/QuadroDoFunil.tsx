@@ -8,6 +8,7 @@ import { Badge, formatCurrency } from "@/components/ui";
 import FunnelStageSelect from "@/components/FunnelStageSelect";
 import { setAttendanceStage } from "@/lib/actions/attendance";
 import { stageOptions, stageLabels, stageDot, ESTAGIOS_DECIDIDOS } from "@/lib/funil";
+import { somaEstimadaOuOmissao } from "@/lib/valorEstimado";
 
 // ============================================================================
 // O QUADRO DO FUNIL — agora se arrasta.
@@ -33,6 +34,11 @@ import { stageOptions, stageLabels, stageDot, ESTAGIOS_DECIDIDOS } from "@/lib/f
 // A BOLINHA QUE PISCA É OUTRA COISA QUE A COLUNA. Ver a nota em lib/funil.ts: a coluna é estágio
 // (alguém pôs ali), a bolinha é fato (o cliente escreveu e ninguém respondeu). Um card pode piscar
 // em qualquer coluna.
+//
+// O VALOR ESTIMADO DE UM CARD É REGISTRO; A SOMA DA COLUNA É INDICADOR (ver lib/valorEstimado.ts).
+// Quem enxerga o quadro continua vendo o valor de cada card — é a negociação que está conduzindo.
+// A soma por coluna é projeção de receita ainda não fechada, e só aparece para administrador; para
+// os demais, a coluna diz que a soma está omitida (nunca R$ 0,00 no lugar dela).
 // ============================================================================
 
 export type CardDoFunil = {
@@ -62,7 +68,7 @@ const leadSourceLabels: Record<string, string> = {
   OUTRO: "Outro",
 };
 
-export default function QuadroDoFunil({ cards }: { cards: CardDoFunil[] }) {
+export default function QuadroDoFunil({ cards, isAdmin }: { cards: CardDoFunil[]; isAdmin: boolean }) {
   const router = useRouter();
   const [, comecar] = useTransition();
   const [colunaAlvo, setColunaAlvo] = useState<string | null>(null);
@@ -114,7 +120,12 @@ export default function QuadroDoFunil({ cards }: { cards: CardDoFunil[] }) {
       <div className="flex items-start gap-4 overflow-x-auto pb-4">
         {stageOptions.map((stage) => {
           const doEstagio = cards.filter((c) => estagioDe(c) === stage);
-          const soma = doEstagio.reduce((acc, c) => acc + (c.estimatedValue || 0), 0);
+          // Indicador, não registro (ver o comentário de topo e lib/valorEstimado.ts): a soma da
+          // coluna só é calculada para administrador; para os demais vem omitida, com o motivo.
+          const somaEstimada = somaEstimadaOuOmissao(
+            doEstagio.map((c) => c.estimatedValue),
+            { isAdmin },
+          );
           const aceitaSoltar = stage !== "PERDIDO";
 
           return (
@@ -154,7 +165,14 @@ export default function QuadroDoFunil({ cards }: { cards: CardDoFunil[] }) {
                     {doEstagio.length}
                   </span>
                 </div>
-                {soma > 0 && <p className="mt-1 text-xs text-tx-3">{formatCurrency(soma)} estimado</p>}
+                {!somaEstimada.omitido && somaEstimada.total > 0 && (
+                  <p className="mt-1 text-xs text-tx-3">{formatCurrency(somaEstimada.total)} estimado</p>
+                )}
+                {somaEstimada.omitido && doEstagio.length > 0 && (
+                  <p className="mt-1 text-xs italic text-tx-3" title={somaEstimada.motivo}>
+                    Total estimado: só para administrador
+                  </p>
+                )}
                 {stage === "AGUARDANDO" && (
                   <p className="mt-1 text-etiqueta leading-snug text-tx-3">
                     Quem ninguém respondeu no prazo cai aqui sozinho. Também dá para pôr à mão.
