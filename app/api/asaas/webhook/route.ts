@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyAsaasWebhookToken, markTenantInvoicePaidByAsaasPaymentId } from "@/lib/asaas";
+import { confirmarPagamentoCampanhaPorAsaasId } from "@/lib/actions/campanhasCobranca";
 
 export const dynamic = "force-dynamic";
 
@@ -89,14 +90,22 @@ async function processEvent(eventType: string, payload: AsaasWebhookPayload): Pr
   if (eventType === "PAYMENT_RECEIVED" || eventType === "PAYMENT_CONFIRMED") {
     const asaasPaymentId = payload.payment?.id;
     if (!asaasPaymentId) return;
+    const paidAt = new Date();
     const result = await markTenantInvoicePaidByAsaasPaymentId(asaasPaymentId, {
       externalStatus: payload.payment?.status ?? eventType,
-      paidAt: new Date(),
+      paidAt,
     });
-    if (!result.found) {
+    if (result.found) return;
+
+    // Não é a mensalidade base do Lúmen (TenantInvoice) — pode ser a cobrança do módulo pago de
+    // campanhas (mensalidade do módulo ou slot extra, Frente B da especificação de campanhas),
+    // que vive num espaço de id à parte (AssinaturaModuloCampanhas.cobrancaAsaasId /
+    // CampanhaSlotPago.cobrancaAsaasId). Os dois nunca colidem (são ids da própria Asaas).
+    const campanha = await confirmarPagamentoCampanhaPorAsaasId(asaasPaymentId, paidAt);
+    if (!campanha.encontrado) {
       // Pode ser um evento de teste do sandbox Asaas sem fatura real correspondente — aviso,
       // não erro (não deve fazer a Asaas reenviar indefinidamente).
-      console.warn(`[asaas webhook] evento ${eventType} para asaasPaymentId ${asaasPaymentId} sem TenantInvoice correspondente.`);
+      console.warn(`[asaas webhook] evento ${eventType} para asaasPaymentId ${asaasPaymentId} sem TenantInvoice/cobrança de campanha correspondente.`);
     }
     return;
   }

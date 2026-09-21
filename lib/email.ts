@@ -555,6 +555,92 @@ export async function sendOfficeSuspendedEmail(to: string, officeName: string): 
 }
 
 // ============================================================================
+// Módulo pago de campanhas — cobrança e carência (Frente B da especificação de campanhas, §7).
+// Mesmo estilo/tom dos três e-mails de cobrança acima (sendPaymentReminderEmail/
+// sendOverdueReminderEmail/sendOfficeSuspendedEmail) — reaproveitando pixHtmlBlock —, só que
+// para a mensalidade/slot do MÓDULO DE CAMPANHAS, não a mensalidade base do Lúmen. Chamados por
+// lib/actions/campanhasCobranca.ts, nunca direto por uma tela.
+// ============================================================================
+
+/** Disparado UMA VEZ POR DIA durante os 10 dias corridos de carência (lib/campanhasCobranca.ts:
+ * deveEnviarAvisoHoje decide o "uma vez por dia" — este e-mail em si não tem trava própria). */
+export async function sendCampanhaCarenciaEmail(
+  to: string,
+  officeName: string,
+  descricaoDaCobranca: string,
+  valor: number,
+  diasRestantesDeCarencia: number,
+  opts?: PixEmailOpts & { boletoUrl?: string | null }
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const amountLabel = valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const prazoLabel =
+    diasRestantesDeCarencia <= 0
+      ? "hoje é o último dia antes do perfil de campanha ser desativado"
+      : `faltam ${diasRestantesDeCarencia} dia${diasRestantesDeCarencia === 1 ? "" : "s"} até o perfil de campanha ser desativado`;
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">MÓDULO DE CAMPANHAS — PAGAMENTO EM ATRASO</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">${descricaoDaCobranca} do escritório <strong>${officeName}</strong> está em atraso.</p>
+      <p style="font-size:14px;color:#14161a;">Valor: <strong>${amountLabel}</strong></p>
+      <p style="font-size:14px;color:#14161a;font-weight:700;">${prazoLabel}.</p>
+      ${pixHtmlBlock(opts)}
+      ${
+        opts?.boletoUrl
+          ? `<p style="text-align:center;margin:24px 0;"><a href="${opts.boletoUrl}" style="background:#181b1f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
+          : ""
+      }
+      <p style="font-size:13px;color:#585c63;">Se o pagamento já foi feito, pode ignorar este lembrete — a confirmação pode levar algumas horas para refletir aqui.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`, to, subject: `Módulo de Campanhas em atraso — Lúmen — ${officeName}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+/** Disparado UMA VEZ, no instante em que a carência de 10 dias se esgota e o perfil de campanha
+ * é desativado (§7/§8) — nunca repetido diariamente depois disso. */
+export async function sendCampanhaDesativadaEmail(to: string, officeName: string): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">MÓDULO DE CAMPANHAS DESATIVADO</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">O perfil de campanha do escritório <strong>${officeName}</strong> foi desativado após 10 dias corridos sem confirmação de pagamento — ele parou de responder e de disparar mensagens, e qualquer campanha em andamento foi interrompida.</p>
+      <p style="font-size:14px;color:#14161a;">O treinamento configurado para o perfil continua salvo. Ao regularizar o pagamento, o perfil volta a subir com o mesmo treinamento — nada precisa ser refeito.</p>
+      <p style="font-size:13px;color:#585c63;">Entre em contato com o Rodarte Prado Advogados para regularizar a situação.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`, to, subject: `Perfil de campanha desativado — Lúmen — ${officeName}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+// ============================================================================
 // Resumo diário por e-mail (7h, cron em app/api/cron/resumo-diario) — pessoal por advogado,
 // bem diferente de buildDailyAgendaHtml/sendDailyAgendaEmail acima (que é por ESCRITÓRIO
 // inteiro e só vai pros administradores): aqui todo usuário ativo recebe o PRÓPRIO resumo —
