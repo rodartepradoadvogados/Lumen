@@ -14,6 +14,7 @@
 
 export type DadosParaPrompt = {
   materia: string;
+  categoriaPeca: string | null; // Petição | Contrato | Parecer | Notificação Extrajudicial (espec. §7)
   tipoPeca: string | null;
   tipoPecaOutro: string | null;
   contextoDescricao: string | null; // null = sessão avulsa
@@ -39,10 +40,14 @@ export { MARCADORES as MARCADORES_RESPOSTA_HERMES };
 export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   const partes: string[] = [];
 
+  // A categoria (espec. §7) muda o SUBSTANTIVO da instrução — "petição", "contrato", "parecer" ou
+  // "notificação extrajudicial" pedem estrutura diferente, e dizer isso já na primeira frase
+  // evita que o texto saia com cara de petição quando o advogado pediu um parecer.
+  const substantivoDaPeca = dados.categoriaPeca ? dados.categoriaPeca.toLowerCase() : "petição";
   partes.push(
-    "Você é o agente de peticionamento do Lúmen (perfil peticionamento-lumen). Redija uma minuta " +
-      "de petição COMPLETA, em rascunho — nunca pronta para protocolar sem revisão. Regras que " +
-      "NUNCA podem ser quebradas nesta resposta:",
+    `Você é o agente de peticionamento do Lúmen. Redija uma minuta de ${substantivoDaPeca} COMPLETA, ` +
+      "em rascunho — nunca pronta para protocolar/assinar sem revisão. Regras que NUNCA podem ser " +
+      "quebradas nesta resposta:",
   );
   partes.push("- Nunca afirme chance ou probabilidade de êxito, nem prognostique o resultado do caso.");
   partes.push("- Toda jurisprudência citada precisa vir com fonte real (tribunal/link) — nunca invente número de processo, ementa ou Tema. Se não tiver certeza de que um precedente existe exatamente como descrito, não cite: descreva a tese sem número, ou diga que precisa ser localizada e conferida.");
@@ -52,6 +57,7 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
 
   partes.push("");
   partes.push(`Matéria: ${dados.materia}`);
+  partes.push(`Categoria da peça: ${dados.categoriaPeca ?? "Petição"}`);
   partes.push(`Tipo de peça: ${dados.tipoPeca ?? "(não informado — infira pelo contexto vinculado, se houver, e diga que inferiu)"}${dados.tipoPecaOutro ? ` (${dados.tipoPecaOutro})` : ""}`);
   partes.push(`Contexto vinculado: ${dados.contextoDescricao ?? "sem vínculo — petição avulsa"}`);
   partes.push(`Fatos (texto do advogado): ${dados.fatos}`);
