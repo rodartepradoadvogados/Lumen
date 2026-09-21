@@ -8,6 +8,7 @@ import ProvisionamentoCampanhasPainel, { type ProvisionamentoDeEscritorio } from
 import { normalizarEstadoDoPerfil } from "@/lib/moduloCampanhas";
 import { situacaoDoProvisionamento } from "@/lib/provisionamentoCampanhas";
 import { ROTULO_DO_PRECO_POR_CHAVE } from "@/lib/telaCampanhas";
+import { podeAprovarCampanha, MOTIVO_PAPEL_SEM_APROVACAO } from "@/lib/aprovacaoDeCampanha";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,10 @@ export const dynamic = "force-dynamic";
 // ============================================================================
 
 export default async function CampanhasPainelMestrePage() {
-  await requirePlatformAccess();
+  const acesso = await requirePlatformAccess();
+  // Dono da plataforma (Jairo, Rodrigo) decide sempre — é o papel Sócio, mesmo quando a linha de
+  // PlatformMember ainda não foi espelhada. Para o resto da equipe, vale o papel.
+  const podeDecidirCampanha = acesso.isOwner || podeAprovarCampanha(acesso.member?.roleKey);
 
   const [precoRows, limiar, slotsSolicitados, perfis] = await Promise.all([
     prisma.campanhaPrecoParametro.findMany({ where: { chave: { in: ["MENSALIDADE_MODULO", "SLOT_EXTRA"] } } }),
@@ -93,9 +97,13 @@ export default async function CampanhasPainelMestrePage() {
       <LumenPanel>
         <LumenPanelHeader
           title="Liberar campanha"
-          subtitle={`${solicitacoes.length} solicitação(ões) de campanha simultânea aguardando aprovação`}
+          subtitle={
+            podeDecidirCampanha
+              ? `${solicitacoes.length} solicitação(ões) de campanha simultânea aguardando aprovação`
+              : `${solicitacoes.length} solicitação(ões) aguardando aprovação — ${MOTIVO_PAPEL_SEM_APROVACAO}`
+          }
         />
-        <SolicitacoesDeCampanhaPainel solicitacoes={solicitacoes} />
+        <SolicitacoesDeCampanhaPainel solicitacoes={solicitacoes} podeDecidir={podeDecidirCampanha} />
       </LumenPanel>
 
       <LumenPanel>
