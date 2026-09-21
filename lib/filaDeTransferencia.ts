@@ -17,7 +17,19 @@
 // ============================================================================
 
 /** Os papéis que atendem lead triado. "Sócio" entra: sócio é advogado do escritório. */
-export const PAPEIS_ADVOGADO = ["advogado", "sócio", "socio"];
+// AS DUAS FORMAS DE CADA PAPEL, e isto não é detalhe de redação — é quem recebe lead e quem entra
+// no Atendimento. A lista tinha só o masculino, enquanto a de recepção logo abaixo já trazia
+// "secretária" com acento e no feminino: sinal de que as formas femininas foram acrescentadas onde
+// alguém por acaso lembrou.
+//
+// O ESTRAGO ERA SILENCIOSO E DOBRADO. Uma pessoa cadastrada como "Advogada" ou "Sócia" não casava
+// com nenhum item daqui, então (1) a fila de transferência a pulava — o lead do WhatsApp caía
+// sempre nos homens do escritório, sem erro em lugar nenhum, e o sintoma não apontava para cá; e
+// (2) lib/acessoAtendimento.ts, que usa ESTA MESMA LISTA para decidir o nível de acesso, devolvia
+// "nenhum" para ela: advogada do escritório sem acesso ao Atendimento, por causa de uma letra.
+//
+// Num escritório onde há sócia e advogadas, isso não é hipótese.
+export const PAPEIS_ADVOGADO = ["advogado", "advogada", "sócio", "socio", "sócia", "socia"];
 
 /**
  * Os papéis de recepção.
@@ -26,7 +38,18 @@ export const PAPEIS_ADVOGADO = ["advogado", "sócio", "socio"];
  * estava cadastrado continua com o valor antigo no banco. Aceitar os dois evita uma migração de
  * dados para um ganho de zero — e evita o dia em que a migração falha e a recepção some da fila.
  */
-export const PAPEIS_RECEPCAO = ["recepcionista", "recepcionista/secretária", "recepcionista/secretaria", "secretária", "secretaria"];
+// "recepcionista" serve aos dois gêneros; "secretário" faltava, pelo motivo inverso do de cima.
+export const PAPEIS_RECEPCAO = [
+  "recepcionista",
+  "recepcionista/secretária",
+  "recepcionista/secretaria",
+  "recepcionista/secretário",
+  "recepcionista/secretario",
+  "secretária",
+  "secretaria",
+  "secretário",
+  "secretario",
+];
 
 export type PessoaDaFila = {
   id: string;
