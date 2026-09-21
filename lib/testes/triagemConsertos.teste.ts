@@ -135,4 +135,32 @@ teste("segue o mesmo padrão de convertAttendanceToCase: best-effort e comentado
   verdade(conversao.includes("try {") && conversao.includes("catch"), "convertAttendanceToCase perdeu o próprio best-effort");
 });
 
+teste("o assunto é GRAVADO antes de a pasta ser renomeada", () => {
+  // A ordem é a garantia. Renomear a pasta primeiro e gravar depois abre a janela em que o Drive
+  // já tem o nome novo e o banco ainda tem o velho — e se a gravação falhar ali, a pasta fica
+  // batizada com um assunto que o atendimento nunca teve. Do jeito certo, o pior caso é o oposto
+  // e é o barato: o assunto corrigido e a pasta com o nome antigo até a próxima edição.
+  const fonte = codigoDe(readFileSync("lib/actions/attendance.ts", "utf8"));
+  const corpo = corpoDaFuncao(fonte, "updateAttendanceSubject");
+  verdade(corpo.length > 0, "updateAttendanceSubject sumiu");
+
+  const gravou = corpo.indexOf("prisma.attendance.update(");
+  const renomeou = corpo.indexOf("renameDriveFolder(");
+  verdade(gravou > 0, "o assunto deixou de ser gravado no banco");
+  verdade(renomeou > 0, "a pasta deixou de ser renomeada");
+  verdade(gravou < renomeou, "a pasta passou a ser renomeada ANTES de o assunto ser gravado");
+});
+
+teste("renameDriveFolder recebe o ID da pasta primeiro, e o nome novo depois", () => {
+  // OS DOIS PARÂMETROS SÃO `string`, então trocar um pelo outro compila sem um pio: o TypeScript
+  // não tem como saber que um é id e o outro é nome. Trocados, o Lúmen pediria ao Drive para
+  // renomear uma pasta cujo "id" é o texto do assunto — não existe, a chamada falha, e o
+  // best-effort engole o erro em silêncio. A renomeação simplesmente nunca aconteceria, e ninguém
+  // veria nada. Esta asserção existe só para travar a ordem.
+  const fonte = codigoDe(readFileSync("lib/actions/attendance.ts", "utf8"));
+  const corpo = corpoDaFuncao(fonte, "updateAttendanceSubject");
+  verdade(/renameDriveFolder\(\s*existing\.driveFolderId\s*,\s*trimmed\s*,/.test(corpo),
+    "os argumentos de renameDriveFolder saíram da ordem (id da pasta, nome novo, escritório)");
+});
+
 resumo("Triagem: linha clicável e renomear a pasta do Drive junto com o assunto");
