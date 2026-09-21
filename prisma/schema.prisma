@@ -2303,8 +2303,79 @@ model PerfilCampanhaHermes {
   // chegou a ser desativado) nunca liga este campo.
   precisaReprovisionar Boolean @default(false)
 
+  // ============================================================================
+  // FRENTE C — O PROVISIONAMENTO EM SI (§3). `precisaReprovisionar` acima é só a INTENÇÃO,
+  // gravada pelo caminho de pagamento (Frente B); os campos abaixo são o que o caminho de
+  // NOVA TENTATIVA (lib/actions/provisionamentoCampanhas.ts, chamado pelo cron
+  // app/api/cron/campanhas-provisionamento) grava a cada rodada — nunca um silêncio que pareça
+  // sucesso. Ver a nota técnica que desenhou isto: `provisionarNoHermes` é uma chamada HTTP de
+  // até 120s, sem fila e sem estado intermediário própria — o estado intermediário É este aqui.
+  // ============================================================================
+
+  // O instante em que `precisaReprovisionar` virou true (pagamento confirmado, aguardando subir
+  // no Hermes) — a PRIMEIRA das duas datas que tornam o SLA de provisionamento MEDÍVEL (a segunda
+  // é `provisionadoEm`, acima). Gravado por lib/actions/campanhasCobranca.ts:
+  // confirmarPagamentoMensalidade, junto com `precisaReprovisionar: true` (mesmo instante, mesma
+  // escrita — não é uma segunda régua). Nulo enquanto não há nada pendente; volta a nulo SÓ
+  // quando o provisionamento é confirmado (o intervalo já foi medido nesse momento) — continua
+  // preenchido mesmo depois de `provisionamentoFalhouDefinitivamente` virar true, porque a espera
+  // real do escritório não parou só porque a régua automática desistiu de tentar sozinha.
+  aguardandoProvisionamentoDesde DateTime?
+
+  // Quantas tentativas JÁ RODARAM neste ciclo (reinicia para 0 a cada novo
+  // `precisaReprovisionar: true`) — o número que decide quando parar (ver
+  // LIMITE_DE_TENTATIVAS_DE_PROVISIONAMENTO em lib/provisionamentoCampanhas.ts).
+  numeroDeTentativasDeProvisionamento Int @default(0)
+
+  ultimaTentativaDeProvisionamentoEm DateTime?
+  // O motivo LEGÍVEL da última falha (FalhaDoHermes.motivo, incluindo o prefixo "DEMORA:" quando
+  // for o caso) — para a tela (Frente D) mostrar "falhou, tentando de novo: <motivo>" em vez de
+  // um silêncio. Limpo (null) assim que uma tentativa tem sucesso.
+  ultimoErroDeProvisionamento String?
+
+  // Verdadeiro depois que o número de tentativas acima esgotou
+  // LIMITE_DE_TENTATIVAS_DE_PROVISIONAMENTO — é o que faz a régua PARAR de tentar (nunca em
+  // loop eterno) e é o que já disparou o e-mail para Jairo e Rodrigo. `precisaReprovisionar`
+  // continua true (o perfil ainda não subiu), mas este campo é o sinal de "já desistiu sozinho,
+  // só um novo pagamento confirmado (que zera os dois campos acima) reabre a tentativa".
+  provisionamentoFalhouDefinitivamente Boolean @default(false)
+
+  // O registro de CADA tentativa (quando, resultado, motivo da falha) — nunca sobrescrito, ao
+  // contrário dos campos "última tentativa" acima (que são só o resumo mais rápido de ler).
+  tentativasDeProvisionamento PerfilCampanhaProvisionamentoTentativa[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Uma linha por TENTATIVA de provisionamento (§3, Frente C) — o "cada tentativa grava o que
+// aconteceu" da nota técnica. Nunca apagada nem sobrescrita: é o histórico completo, para quando
+// alguém precisar entender por que um perfil demorou para subir (ou nunca subiu). O resumo mais
+// rápido de ler (a última tentativa, o motivo, se já falhou definitivamente) fica em
+// PerfilCampanhaHermes mesmo, para a tela não precisar agregar esta tabela toda vez.
+model PerfilCampanhaProvisionamentoTentativa {
+  id String @id @default(cuid())
+
+  perfilId String
+  perfil   PerfilCampanhaHermes @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  // A posição desta tentativa DENTRO DO CICLO ATUAL (1ª, 2ª, 3ª...) — espelha
+  // PerfilCampanhaHermes.numeroDeTentativasDeProvisionamento no momento em que rodou; reinicia a
+  // cada novo ciclo de `precisaReprovisionar`, não é um contador global do perfil.
+  numero Int
+
+  // SUCESSO | FALHA — fail-closed na leitura, como o resto do schema: um texto desconhecido
+  // nunca deveria aparecer aqui (só estas duas strings são gravadas), mas quem ler não deve
+  // supor sucesso por omissão.
+  resultado String
+
+  // Preenchido só quando resultado = FALHA — o `FalhaDoHermes.motivo` de lib/hermesPonte.ts, que
+  // já distingue DEMORA (o Hermes não respondeu a tempo) de queda de verdade. Nulo em SUCESSO.
+  motivo String?
+
+  ocorridaEm DateTime @default(now())
+
+  @@index([perfilId, ocorridaEm])
 }
 
 model CampanhaSlotPago {
@@ -2390,6 +2461,35 @@ model CampanhaPrecoParametro {
   chave     String   @id // MENSALIDADE_MODULO | SLOT_EXTRA
   label     String // rótulo que a tela do painel mestre mostra ao lado do campo
   preco     Float?
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// ALERTA DE MEMÓRIA DA VPS DO HERMES (§4 da especificação de campanhas — Frente C). MESMO
+// padrão de CampanhaPrecoParametro acima: uma linha só, chave fixa (funciona como singleton sem
+// inventar uma segunda convenção de "linha única" no schema), e o número nasce NULO.
+//
+// A especificação marca o limiar como EM ABERTO — "valor numérico exato... não foi decidido". O
+// dono NÃO decidiu o número, e nulo aqui significa literalmente isso: o alerta fica DESLIGADO até
+// alguém preencher, nunca um "padrão razoável" inventado que pareceria uma decisão de negócio que
+// ninguém tomou (ver lib/alertaMemoriaHermes.ts:situacaoDeMemoria, que trata limiar nulo como
+// `dispara: false` sempre, com motivo legível).
+// ============================================================================
+model AlertaMemoriaHermesParametro {
+  chave String @id @default("LIMIAR_MEMORIA_LIVRE_KB")
+
+  // RAM disponível + swap livre da MÁQUINA (não de um perfil — ver
+  // lib/hermesPonte.ts:memoriaDaMaquina), somadas, em KB. Abaixo (ou igual) disto dispara o
+  // alerta. NÍVEL ÚNICO — a especificação é explícita: não existem dois patamares de "atenção" e
+  // "crítico", só ligado/desligado.
+  limiarKB Int?
+
+  // Mesmo padrão de AssinaturaModuloCampanhas.ultimoAvisoDiarioEm: o dia de calendário (fuso do
+  // escritório, formato "AAAA-MM-DD") do último alerta disparado — "um alerta por dia, não um
+  // por execução do cron" (ver lib/campanhasCobranca.ts:deveEnviarAvisoHoje, reaproveitada por
+  // lib/alertaMemoriaHermes.ts:deveAlertarMemoriaHoje).
+  ultimoAlertaDiarioEm String?
+
   updatedAt DateTime @updatedAt
 }
 
