@@ -134,4 +134,40 @@ teste("servidor-hermes/servidor.py: memoria_da_maquina lê MemAvailable e SwapFr
   verdade(corpo.includes("SwapFree"), "memoria_da_maquina não lê SwapFree (swap livre)");
 });
 
+// ── ACHADOS DA SUPERVISÃO ────────────────────────────────────────────────────────────────────
+// Três mutações no nível das ações passavam verdes: o alerta medindo só a RAM (a especificação diz
+// RAM **+ swap**), o resultado da trava do dia sendo ignorado, e o alerta técnico indo para TODO
+// usuário ativo do SaaS em vez de só Jairo e Rodrigo. A última é a de maior alcance: um aviso de
+// memória da VPS do Hermes chegando na caixa de entrada de clientes de todos os escritórios é
+// estado de infraestrutura interna vazando para fora.
+
+teste("o alerta soma RAM disponível E swap livre — a especificação §4 diz memória (RAM + swap)", () => {
+  const corpo = corpoDaFuncao(CODIGO_ACOES, "verificarMemoriaDoHermesEAlertar");
+  verdade(corpo.length > 200, `corpoDaFuncao devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/ramDisponivelKB\s*\+\s*memoria\.swapLivreKB/.test(corpo),
+    "a memória livre deixou de somar o swap — numa máquina de 3 GB com 4 GB de swap isso muda completamente quando o alerta dispara");
+});
+
+teste("a trava de um-por-dia é OBEDECIDA, não só executada: o resultado do updateMany desvia a execução", () => {
+  const corpo = corpoDaFuncao(CODIGO_ACOES, "verificarMemoriaDoHermesEAlertar");
+  verdade(corpo.length > 200, `corpoDaFuncao devolveu ${corpo.length} caracteres — varredura cega`);
+  // Gravar a trava e seguir em frente sem olhar o resultado é o mesmo que não ter trava: duas
+  // execuções simultâneas do cron mandariam o e-mail em dobro.
+  verdade(/if\s*\(marcou\.count === 0\)\s*return/.test(corpo),
+    "o resultado da trava (marcou.count) deixou de interromper o envio");
+  const posTrava = corpo.indexOf("marcou.count === 0");
+  const posEnvio = corpo.indexOf("sendAlertaMemoriaHermesEmail");
+  verdade(posTrava >= 0 && posEnvio >= 0 && posTrava < posEnvio, "a checagem da trava precisa vir ANTES do envio");
+});
+
+teste("alerta TÉCNICO vai só para Jairo e Rodrigo (isPlatformOwner), nunca para todo usuário ativo", () => {
+  const corpo = corpoDaFuncao(codigoDe(readFileSync("lib/platformMember.ts", "utf8")), "donosDaPlataforma");
+  verdade(corpo.length > 100, `corpoDaFuncao devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/isPlatformOwner:\s*true/.test(corpo),
+    "donosDaPlataforma deixou de filtrar por isPlatformOwner — o alerta de infraestrutura passaria a ir para clientes de todos os escritórios");
+  // E quem manda o alerta tem de usar ESSA função, não uma busca própria de usuários.
+  verdade(/donosDaPlataforma\(\)/.test(CODIGO_ACOES), "o alerta de memória não usa donosDaPlataforma");
+  verdade(!/prisma\.user\.findMany/.test(CODIGO_ACOES), "o alerta de memória monta a própria lista de destinatários em vez de usar donosDaPlataforma");
+});
+
 void resumo("módulo pago de campanhas — alerta de memória da VPS (Frente C, §4)");
