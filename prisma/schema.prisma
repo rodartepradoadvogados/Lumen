@@ -2237,6 +2237,25 @@ model AssinaturaModuloCampanhas {
   // zero — carência não acumula de um ciclo para o outro.
   entradaEmCarenciaEm DateTime?
 
+  // FRENTE B — RÉGUA DE CARÊNCIA (§7). O dia de calendário (fuso do escritório, formato
+  // "AAAA-MM-DD" de lib/horaDeBrasilia.ts:diaDeBrasilia) em que o último aviso diário automático
+  // (e-mail + WhatsApp + notificação interna + reenvio do boleto) foi disparado para ESTA
+  // assinatura. Guarda "um aviso por dia, não um por execução do cron": rodar a régua duas vezes
+  // no mesmo dia lê o mesmo valor aqui e não dispara de novo (ver
+  // lib/campanhasCobranca.ts:deveEnviarAvisoHoje). Nulo enquanto em dia (nada a avisar) e volta a
+  // nulo quando o pagamento é confirmado, pelo mesmo motivo de entradaEmCarenciaEm — o PRÓXIMO
+  // atraso conta do zero.
+  ultimoAvisoDiarioEm String?
+
+  // Referência da cobrança em aberto do CICLO ATUAL da mensalidade na Asaas — o que a régua
+  // diária REENVIA (a régua nunca gera uma cobrança nova por dia; a Asaas tem uma só por ciclo,
+  // criada em lib/actions/campanhasCobranca.ts:gerarCobrancaMensalidade). Nulos até a primeira
+  // cobrança do ciclo ser criada; voltam a nulo a cada novo ciclo, para o próximo reenvio apontar
+  // para a cobrança certa, não para a do mês passado.
+  cobrancaAsaasId    String?
+  cobrancaBoletoUrl  String?
+  cobrancaPixPayload String? // "copia e cola" do Pix QR Code dinâmico do ciclo atual, se a forma escolhida for PIX_QRCODE
+
   perfil PerfilCampanhaHermes?
   slots  CampanhaSlotPago[]
 
@@ -2273,6 +2292,16 @@ model PerfilCampanhaHermes {
 
   provisionadoEm DateTime? // quando `provisionarNoHermes` confirmou o perfil no ar
   desativadoEm   DateTime? // quando a carência esgotou e o perfil parou de responder (§7)
+
+  // FRENTE B — REATIVAÇÃO APÓS DESATIVAÇÃO. Verdadeiro quando o escritório pagou DEPOIS de
+  // esgotada a carência (perfil já DESATIVADO): a assinatura volta a `estado: "ATIVO"`, mas o
+  // perfil PERMANECE `DESATIVADO` aqui — reprovisionar de verdade no Hermes é a Frente C, e
+  // marcar `estado: "PROVISIONADO"` sem o perfil estar de fato no ar mentiria para
+  // perfilPodeResponder (lib/moduloCampanhas.ts), que passaria a liberar mensagem para um perfil
+  // que não existe na VPS. Este campo é só o REGISTRO de "precisa subir de novo" que a Frente C
+  // consome e desliga ao confirmar o reprovisionamento; pagar DURANTE a carência (perfil nunca
+  // chegou a ser desativado) nunca liga este campo.
+  precisaReprovisionar Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2321,10 +2350,30 @@ model CampanhaSlotPago {
   finalizadoEm DateTime? // a cobrança do slot para aqui (§2) — e a numeração relativa (§6.1)
   // deixa de contar este slot como ativo a partir deste instante, sem precisar apagar a linha
 
+  // FRENTE B — LACUNA DE SCHEMA DA FRENTE A, PREENCHIDA AQUI. lib/moduloCampanhas.ts trata a
+  // carência do módulo e a do slot como "a mesma função, dois relógios diferentes" (ver o teste
+  // de mesmo nome em lib/testes/moduloCampanhas.teste.ts) — mas só AssinaturaModuloCampanhas
+  // tinha um `vencimento` para alimentar esse relógio; o slot só tinha `entradaEmCarenciaEm`
+  // (quando a carência dele COMEÇOU), sem nenhum campo do PRÓXIMO vencimento para calcular se
+  // ela já deveria ter começado. Sem este campo, a régua diária (lib/campanhasCobranca.ts) não
+  // tem como saber quando a cobrança mensal do slot venceu — nasce nulo até `ativadoEm` (a
+  // aprovação cria a primeira cobrança e preenche o primeiro vencimento) e cada pagamento
+  // confirmado empurra este campo um ciclo à frente, exatamente como
+  // AssinaturaModuloCampanhas.vencimento.
+  vencimento DateTime?
+
   // Mesma carência de 10 dias corridos do módulo base (§7), mas com relógio PRÓPRIO: um slot
   // pode ficar inadimplente enquanto a mensalidade do módulo está em dia, e vice-versa — as duas
   // cobranças são independentes (§6.6 remete à mesma REGRA, não ao mesmo relógio).
   entradaEmCarenciaEm DateTime?
+
+  // Mesmo par de campos de AssinaturaModuloCampanhas, um nível abaixo (por slot): guarda o dia
+  // do último aviso diário (evita reenviar duas vezes no mesmo dia) e a referência da cobrança
+  // do ciclo atual na Asaas, para a régua reenviar em vez de gerar cobrança nova.
+  ultimoAvisoDiarioEm String?
+  cobrancaAsaasId     String?
+  cobrancaBoletoUrl   String?
+  cobrancaPixPayload  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
