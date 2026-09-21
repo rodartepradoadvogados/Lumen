@@ -237,4 +237,67 @@ teste("o cron de campanhas-carencia é fail-closed: sem CRON_SECRET configurado,
   verdade(/if\s*\(\s*!secret\s*\|\|/.test(corpo), "o cron não recusa explicitamente quando CRON_SECRET está ausente — pode estar tratando \"sem segredo\" como \"aceita\"");
 });
 
+// ACHADOS DA SUPERVISÃO — o valor e a forma de pagamento do SLOT não tinham teste nenhum.
+// A cobrança da mensalidade tinha os dois; a do slot extra, nenhum dos dois. Cobertura assimétrica
+// entre duas funções gêmeas é onde o defeito se esconde: trocar `preco.precoSlotExtra` por
+// `preco.mensalidadeModulo` cobrava o valor ERRADO do escritório e a suíte passava verde.
+teste("o slot extra cobra o PREÇO DO SLOT, nunca o valor da mensalidade do módulo", () => {
+  const parametros = { mensalidadeModulo: 400, precoSlotExtra: 120 };
+  const pedido = prepararCobrancaDoSlotExtra(parametros, 1, "BOLETO", "Escritório Teste");
+  verdade(!pedido.recusado, "não deveria recusar com preço e forma de pagamento presentes");
+  if (!pedido.recusado) {
+    igual(pedido.valor, 120);
+    verdade(pedido.valor !== 400, "cobrou o valor da mensalidade no lugar do preço do slot");
+    verdade(pedido.valor !== 520, "cobrou a soma (mensalidade + slot) na cobrança do slot");
+  }
+});
+
+teste("o slot extra NÃO é cobrado sem forma de pagamento escolhida — mesma régua da mensalidade", () => {
+  const parametros = { mensalidadeModulo: 400, precoSlotExtra: 120 };
+  const pedido = prepararCobrancaDoSlotExtra(parametros, 1, null, "Escritório Teste");
+  igual(pedido.recusado, true);
+  if (pedido.recusado) igual(pedido.motivo, MOTIVO_FORMA_DE_PAGAMENTO_AUSENTE);
+});
+
+// Mesma classe de achado da Frente A: a trava diária é um DIA DE CALENDÁRIO, e nenhum teste caía
+// na janela de três horas em que Brasília e UTC estão em dias diferentes — trocar o fuso padrão
+// por UTC passava verde. Na prática: um escritório avisado às 20h receberia o MESMO aviso de novo
+// às 21h30, porque em UTC já teria virado o dia.
+teste("FUSO: aviso já enviado às 20h de Brasília não sai de novo às 23h do mesmo dia", () => {
+  const noiteDoMesmoDia = new Date("2026-09-12T02:00:00Z"); // 11/09 23h em Brasília, 12/09 em UTC
+  igual(deveEnviarAvisoHoje("2026-09-11", noiteDoMesmoDia), false);
+  // O contraste que prova que o relógio escolhido muda a resposta — não é decoração:
+  igual(deveEnviarAvisoHoje("2026-09-11", noiteDoMesmoDia, "UTC"), true);
+});
+
+// ACHADO DA SUPERVISÃO, provado por execução: `setUTCMonth(mes + 1)` sozinho pedia "31 de
+// fevereiro", que o JavaScript normaliza para 3 de março. Um escritório que pagasse em 31/01
+// ganhava três dias de graça, e o dia do vencimento andava para frente a cada mês curto
+// (31/08 virava 01/10). A casa já conhecia a armadilha — `Office.billingDueDay` é documentado
+// no schema como "1-28, pra não cair em mês sem o dia" — e esta função a repetia.
+teste("FRONTEIRA DE MÊS: quem paga em 31/01 vence em 28/02, nunca em março", () => {
+  igual(proximoVencimentoMensal(new Date("2026-01-31T12:00:00Z")).toISOString(), "2026-02-28T12:00:00.000Z");
+});
+
+teste("FRONTEIRA DE MÊS: ano bissexto usa o dia 29, não o 28 nem o 1º de março", () => {
+  igual(proximoVencimentoMensal(new Date("2028-01-31T12:00:00Z")).toISOString(), "2028-02-29T12:00:00.000Z");
+});
+
+teste("FRONTEIRA DE MÊS: 31 de agosto vence em 30 de setembro, e 31/12 vira 31/01 do ano seguinte", () => {
+  igual(proximoVencimentoMensal(new Date("2026-08-31T12:00:00Z")).toISOString(), "2026-09-30T12:00:00.000Z");
+  igual(proximoVencimentoMensal(new Date("2026-12-31T12:00:00Z")).toISOString(), "2027-01-31T12:00:00.000Z");
+});
+
+teste("o dia do mês NUNCA anda para frente em doze meses seguidos de cobrança", () => {
+  // O defeito não aparece num mês só: ele acumula. Partindo do dia 31, um ano de cobranças
+  // seguidas não pode deixar o vencimento escorregar para o começo do mês seguinte.
+  let d = new Date("2026-01-31T12:00:00Z");
+  for (let i = 0; i < 12; i++) {
+    d = proximoVencimentoMensal(d);
+    const dia = d.getUTCDate();
+    const ultimoDoMes = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+    verdade(dia >= 28 || dia === ultimoDoMes, `mês ${i + 1}: vencimento caiu no dia ${dia} (${d.toISOString()})`);
+  }
+});
+
 void resumo("módulo pago de campanhas — cobrança e carência (Frente B)");

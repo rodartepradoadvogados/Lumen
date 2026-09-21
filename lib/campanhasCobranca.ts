@@ -137,8 +137,25 @@ export function slotPrecisaSerInterrompido(estado: EstadoDoSlot): boolean {
 // nasceria automaticamente vencida.
 // ============================================================================
 
+/**
+ * UM MÊS À FRENTE **SEM TRANSBORDAR PARA O MÊS SEGUINTE.** `setUTCMonth(mes + 1)` sozinho é a
+ * armadilha clássica: em 31 de janeiro ele pede "31 de fevereiro", que o JavaScript normaliza
+ * para 3 de março — o escritório ganha três dias de graça e o dia do vencimento anda para frente
+ * a cada mês curto (31/08 vira 01/10). A própria casa já sabia disso: o schema define
+ * `Office.billingDueDay` como "1-28, pra não cair em mês sem o dia".
+ *
+ * A regra aqui é a de cobrança mensal de sempre: quando o mês de destino não tem aquele dia, o
+ * vencimento é o ÚLTIMO dia do mês de destino — 31/01 vence em 28/02 (ou 29 em ano bissexto),
+ * nunca em março.
+ */
 export function proximoVencimentoMensal(agora: Date): Date {
   const d = new Date(agora.getTime());
+  const diaDesejado = d.getUTCDate();
+  // Ancorar no dia 1 antes de somar o mês: sem isso a soma já transborda antes de dar tempo de
+  // corrigir, e não há como saber que mês era o pretendido.
+  d.setUTCDate(1);
   d.setUTCMonth(d.getUTCMonth() + 1);
+  const ultimoDiaDoMesDestino = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(diaDesejado, ultimoDiaDoMesDestino));
   return d;
 }
