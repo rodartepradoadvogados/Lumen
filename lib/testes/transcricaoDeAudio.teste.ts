@@ -9,6 +9,7 @@ import {
   rotuloDeTranscricaoNasConfiguracoes,
   mensagensReaisEUltima,
   ERRO_TRANSCRICAO_NAO_CONFIGURADA,
+  normalizarEndereco,
   MODELO_PADRAO_DE_TRANSCRICAO,
 } from "@/lib/transcricaoDeAudio";
 import { chamarServicoDeTranscricao, transcricaoConfigurada } from "@/lib/transcricao";
@@ -590,4 +591,30 @@ teste("MUTAÇÃO-ALVO: a tela de Configurações mostra o estado da transcriçã
   }
 });
 
-void resumo("transcrição de áudio do WhatsApp");
+void teste("o endereço vale com ou sem /v1 no fim — as duas formas do mundo real", () => {
+  // A ARMADILHA QUE JÁ MORDEU. Quem chama monta `${url}/v1/audio/transcriptions`, mas a Groq e a
+  // OpenAI documentam a própria base JÁ COM o /v1 dentro. Colar o endereço da documentação — que é
+  // o que qualquer pessoa faz — gerava `.../openai/v1/v1/audio/transcriptions`, 404, e na tela só
+  // "não foi possível transcrever". Não havia como adivinhar a causa pelo sintoma.
+  igual(normalizarEndereco("https://api.groq.com/openai/v1"), "https://api.groq.com/openai");
+  igual(normalizarEndereco("https://api.groq.com/openai"), "https://api.groq.com/openai");
+  igual(normalizarEndereco("https://api.openai.com/v1"), "https://api.openai.com");
+  // Whisper do próprio escritório: servido sem /v1, e continua intacto.
+  igual(normalizarEndereco("https://lumen-lumen.duckdns.org/transcricao"), "https://lumen-lumen.duckdns.org/transcricao");
+  // Barra final, sozinha ou junto do /v1.
+  igual(normalizarEndereco("https://api.groq.com/openai/v1/"), "https://api.groq.com/openai");
+  igual(normalizarEndereco("  https://api.groq.com/openai///  "), "https://api.groq.com/openai");
+  // SÓ O /v1 DO FIM SAI. Um proxy que sirva a API sob um prefixo com v1 no meio fica intacto —
+  // cortar ali quebraria um endereço que estava certo.
+  igual(normalizarEndereco("https://proxy.exemplo.com/v1/transcricao"), "https://proxy.exemplo.com/v1/transcricao");
+  // E não corta nome que apenas TERMINA com v1 sem ser segmento de caminho.
+  igual(normalizarEndereco("https://exemplo.com/apiv1"), "https://exemplo.com/apiv1");
+});
+
+teste("a normalização chega à config, e não fica só na função solta", () => {
+  // Uma normalização que ninguém chama é uma normalização que não existe.
+  const cfg = lerConfigDeTranscricao({ url: "https://api.groq.com/openai/v1/", token: "t", modelo: null });
+  igual(cfg?.url, "https://api.groq.com/openai");
+});
+
+resumo("transcrição de áudio do WhatsApp");
