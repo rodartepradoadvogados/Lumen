@@ -4,9 +4,15 @@
 //
 // Não confundir com lib/peticionamentoTipoPeca.ts: aquele é a sublista (Inicial, Contestação,
 // Réplica, Apelação...) que só faz sentido quando a categoria escolhida aqui é "Petição" — as
-// demais categorias (Contrato, Parecer, Notificação Extrajudicial) não têm essa sublista.
+// demais categorias (Contrato, Parecer, Notificação Extrajudicial, Geral) não têm essa sublista.
+//
+// "Geral" (decisão do dono, 22/09/2026): a QUINTA categoria, para quando o próprio advogado não
+// sabe classificar o que precisa. É o caso PRINCIPAL desta categoria, não sobra — palavras do
+// dono: "o geral deve ter mais orientações para o agente identificar melhor". Por isso o
+// questionário dela (lib/peticionamentoQuestionario.ts) pergunta MAIS, nunca menos, e o prompt ao
+// agente (lib/peticionamentoPrompt.ts) carrega orientação extra para deduzir o tipo certo.
 
-export const CATEGORIAS_DE_PECA = ["Petição", "Contrato", "Parecer", "Notificação Extrajudicial"] as const;
+export const CATEGORIAS_DE_PECA = ["Petição", "Contrato", "Parecer", "Notificação Extrajudicial", "Geral"] as const;
 
 export type CategoriaDePeca = (typeof CATEGORIAS_DE_PECA)[number];
 

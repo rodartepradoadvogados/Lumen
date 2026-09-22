@@ -81,4 +81,25 @@ teste("aviso de contexto resumido só aparece quando contextoFoiResumido é true
   verdade(comResumo.includes("ATENÇÃO: parte do contexto") && comResumo.includes("Resumimos o Anexo X."), "aviso de resumo deveria aparecer com o texto informado");
 });
 
+// ── "Geral" — decisão do dono (22/09/2026): mais orientação, nunca menos ───────────────────────
+
+teste("HARD GATE: categoria 'Geral' NUNCA vira 'Redija uma minuta de geral' — a instrução muda de forma, não só de substantivo", () => {
+  const msg = montarMensagemParaHermes({ ...base, categoriaPeca: "Geral" });
+  verdade(!/minuta de geral/i.test(msg), "a mensagem não deveria tratar 'Geral' como um substantivo de peça");
+  verdade(/DEDUZIR/.test(msg), "a categoria Geral deveria instruir o agente a deduzir o tipo de documento");
+  verdade(msg.includes("###TIPO_PECA_INFERIDO###"), "Geral deveria sempre pedir a seção de tipo inferido");
+});
+
+teste("categoria 'Geral' rotula a lista de teses como pistas, não como teses jurídicas de petição", () => {
+  const msg = montarMensagemParaHermes({ ...base, categoriaPeca: "Geral", teses: ["Vai a um juiz/tribunal (existe processo)"] });
+  verdade(msg.includes("Pistas fornecidas pelo advogado sobre a natureza deste documento"), "rótulo de pistas ausente para Geral");
+  verdade(!msg.includes("Teses já marcadas pelo advogado"), "Geral não deveria usar o rótulo de teses da Petição");
+});
+
+teste("categorias diferentes de 'Geral' continuam com a instrução normal, sem a orientação extra de dedução", () => {
+  const msg = montarMensagemParaHermes({ ...base, categoriaPeca: "Contrato" });
+  verdade(msg.includes("Redija uma minuta de contrato"), "Contrato deveria manter a frase normal com o substantivo da categoria");
+  verdade(!/DEDUZIR/.test(msg), "categorias que não são Geral não deveriam carregar a instrução de dedução");
+});
+
 resumo("Peticionamento — mensagem ao Hermes (prioridade 1)");

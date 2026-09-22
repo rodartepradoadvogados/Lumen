@@ -135,6 +135,103 @@ teste("HARD GATE: o metadado de rascunho de IA é sempre passado ao gerar o .doc
   verdade(chamaMetadados, "montarPeticaoWord deveria sempre acrescentar os metadados obrigatórios");
 });
 
+// ── Citações: uma a uma, sem atalho — decisão do dono (22/09/2026) ─────────────────────────────
+
+teste("HARD GATE: confirmarExportacao recusa exportar com citação pendente, ANTES de montar o .docx", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarExportacao"));
+  verdade(corpo.length > 300, "corpoDaFuncao não encontrou confirmarExportacao");
+  verdade(corpo.includes("sincronizarCitacoes("), "deveria resincronizar a lista de citações antes de contar as pendentes");
+  verdade(/peticionamentoCitacao\.count\(\{\s*where:\s*\{\s*sessaoId,\s*confirmadaPorId:\s*null\s*\}/.test(corpo), "deveria contar citações com confirmadaPorId nulo desta sessão");
+  // CHAMAR NÃO É OBEDECER (mesma armadilha já documentada acima para avaliarExportacao): o veredito
+  // precisa DESVIAR a execução, não só ser calculado e ignorado.
+  verdade(/if \(citacoesPendentes > 0\) \{/.test(corpo), "o veredito de citações pendentes precisa interromper a exportação, não só ser calculado");
+  const idxContagem = corpo.indexOf("peticionamentoCitacao.count(");
+  const idxDocx = corpo.indexOf("montarPeticaoWord(");
+  verdade(idxContagem !== -1 && idxDocx !== -1 && idxContagem < idxDocx, "a checagem de citações pendentes precisa vir ANTES de montar o arquivo");
+});
+
+teste("HARD GATE: NÃO existe ação de 'confirmar todas as citações' — é uma por vez, sempre", () => {
+  // Varre TODO o arquivo (não só uma função) porque o ponto desta trava é a AUSÊNCIA de uma
+  // funcionalidade inteira — não há uma função específica para isolar e conferir por dentro.
+  const codigo = codigoDe(FONTE_ACOES);
+  const proibido = /confirmarTodas|confirmarcitacoes\(|marcarTodasComoLidas|revisarTodas/i;
+  verdade(!proibido.test(codigo.replace(/\s+/g, "")), "não deveria existir nenhuma rotina de confirmação em lote das citações");
+  // A ÚNICA escrita em PeticionamentoCitacao.confirmadaPorId é dentro de confirmarCitacaoIndividual,
+  // sempre por UM id específico (`where: { id: citacaoId }`) — nunca um updateMany.
+  verdade(!codigo.includes("peticionamentoCitacao.updateMany("), "confirmação de citação nunca pode ser um updateMany (confirmaria mais de uma de uma vez)");
+});
+
+teste("HARD GATE: confirmarCitacaoIndividual grava quem confirmou e quando, uma citação por chamada", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarCitacaoIndividual"));
+  verdade(corpo.length > 150, "corpoDaFuncao não encontrou confirmarCitacaoIndividual");
+  verdade(corpo.includes("confirmadaPorId: user.id"), "deveria gravar quem confirmou");
+  verdade(corpo.includes("confirmadaEm: new Date()"), "deveria gravar quando confirmou");
+  verdade(corpo.includes("hashDoTexto: hashDeTexto("), "deveria gravar a impressão do texto no momento da confirmação");
+});
+
+teste("HARD GATE: sincronizarCitacoes apaga a citação cuja identidade não bate mais — é assim que editar invalida a confirmação", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  verdade(corpo.length > 300, "corpoDaFuncao não encontrou sincronizarCitacoes");
+  verdade(corpo.includes("peticionamentoCitacao.delete("), "deveria apagar citação cujo texto (na forma normalizada) não existe mais na lista atual");
+  verdade(
+    /if \(!chavesMantidas\.has\(chave\)\) operacoes\.push\(prisma\.peticionamentoCitacao\.delete\(/.test(corpo),
+    "a exclusão precisa ser condicionada a 'não estar mais entre as chaves mantidas' — sem isso, apagaria tudo ou nada",
+  );
+});
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA REVISÃO — O "LI E REVISEI" PODIA PASSAR A RESPONDER POR UM LINK NUNCA ABERTO.
+//
+// O teste que estava aqui exigia que o update de sincronização NUNCA tocasse em
+// confirmadaPorId/confirmadaEm. Ele guardava uma coisa de verdade — uma confirmação que deve
+// sobreviver (só a FORMA do texto mudou) não pode ser apagada por engano — mas enunciava a regra
+// de forma absoluta demais, e por isso deixava passar o caso inverso: o mesmo update trocava
+// `fonteUrl`/`fonteSecundariaUrl` e mantinha a confirmação de pé.
+//
+// A decisão do dono é explícita sobre o objeto da confirmação: "os links utilizados na dupla
+// validação para conferência, uma a uma". O "li e revisei" é sobre a citação E os links por onde
+// ela foi conferida. `jurisprudenciaCitada` é repovoada a cada geração do Hermes, então a MESMA
+// ementa pode voltar com outra fonte secundária (ou com uma que antes não existia) sem uma
+// vírgula do texto mudar — e a confirmação de ontem passava a valer por um link que o advogado
+// nunca viu. hashDoTexto não pega isso: ele é impressão do TEXTO, e o texto não mudou.
+//
+// Os dois testes abaixo são as duas metades da regra. Nenhum deles afrouxa o anterior: o primeiro
+// é a garantia que o teste antigo dava, agora dita com precisão; o segundo é a que faltava.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("HARD GATE: mudança só na FORMA do texto preserva a confirmação — a invalidação é condicionada, nunca automática", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  verdade(corpo.length > 300, "corpoDaFuncao não encontrou sincronizarCitacoes");
+  const inicioUpdate = corpo.indexOf("prisma.peticionamentoCitacao.update(");
+  verdade(inicioUpdate !== -1, "sincronizarCitacoes deveria ter um update para citação já existente");
+  const fimUpdate = corpo.indexOf("})),", inicioUpdate);
+  const trechoUpdate = corpo.slice(inicioUpdate, fimUpdate === -1 ? undefined : fimUpdate);
+  // Se confirmadaPorId aparecer SEM condição, uma confirmação válida cai a cada resincronização —
+  // e como listarCitacoesParaValidacao resincroniza a CADA abertura da tela, o advogado nunca
+  // conseguiria terminar de confirmar.
+  if (trechoUpdate.includes("confirmadaPorId")) {
+    verdade(/\.\.\.\(\s*mudaramOsLinks\s*\?/.test(trechoUpdate),
+      "o update zera confirmadaPorId sem condicionar à mudança dos links — toda resincronização apagaria confirmação válida, e a tela resincroniza a cada abertura");
+  }
+});
+
+teste("HARD GATE: mudança nos LINKS derruba a confirmação — o \"li e revisei\" não pode responder por um link que ninguém abriu", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  verdade(/const mudaramOsLinks\s*=/.test(corpo),
+    "sumiu a distinção entre mudou-a-forma-do-texto e mudaram-os-links — sem ela a confirmação sobrevive a uma troca de fonte");
+  verdade(/existente\.fonteUrl !== item\.fonteUrl/.test(corpo) && /existente\.fonteSecundariaUrl !== item\.fonteSecundariaUrl/.test(corpo),
+    "a comparação de links deixou de cobrir as DUAS fontes (a original e a secundária da dupla validação)");
+  const inicioUpdate = corpo.indexOf("prisma.peticionamentoCitacao.update(");
+  const fimUpdate = corpo.indexOf("})),", inicioUpdate);
+  const trechoUpdate = corpo.slice(inicioUpdate, fimUpdate === -1 ? undefined : fimUpdate);
+  verdade(/mudaramOsLinks\s*\?/.test(trechoUpdate),
+    "o update não usa mudaramOsLinks — os links seriam trocados com a confirmação de pé");
+  for (const campo of ["confirmadaPorId: null", "confirmadaEm: null", "hashDoTexto: null"]) {
+    verdade(trechoUpdate.includes(campo),
+      `a invalidação por troca de link não zera ${campo} — sobraria rastro de uma confirmação que já não vale`);
+  }
+});
+
 // ── Clientes diferentes nunca se misturam ────────────────────────────────────────────────────
 
 teste("HARD GATE: alternarVinculo valida o cliente ANTES de gravar qualquer vínculo novo", () => {

@@ -50,8 +50,11 @@ export function interpretarRespostaHermes(textoBruto: string): RespostaHermesEst
 
   const jurisprudenciaLinhas = linhasNaoVazias(extrairSecao(textoBruto, M.jurisprudencia, todosMarcadores));
   const jurisprudencia: PrecedenteCitado[] = jurisprudenciaLinhas.map((linha) => {
-    const [texto, fonte] = linha.split("||").map((p) => p.trim());
-    return { texto: texto || linha, fonte: fonte || null };
+    // Terceiro campo opcional, separado pelo mesmo "||": a fonte SECUNDÁRIA da dupla validação
+    // (lista de validação de citações, decisão do dono de 22/09/2026) — ausente na maioria das
+    // respostas, e sua ausência é um fato ("o agente não informou"), nunca um erro de formato.
+    const [texto, fonte, fonteSecundaria] = linha.split("||").map((p) => p.trim());
+    return { texto: texto || linha, fonte: fonte || null, fonteSecundaria: fonteSecundaria || null };
   });
 
   const riscos = linhasNaoVazias(extrairSecao(textoBruto, M.riscos, todosMarcadores));

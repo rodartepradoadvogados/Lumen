@@ -29,6 +29,7 @@ import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, 
 import { passoParaRetomar, ehPassoValido, hrefDoPasso, ROTULO_DO_PASSO, sessaoTemTrabalhoEmAndamento } from "@/lib/peticionamentoPasso";
 import { montarMensagemParaHermes } from "@/lib/peticionamentoPrompt";
 import { interpretarRespostaHermes } from "@/lib/peticionamentoRespostaHermes";
+import { montarListaDeCitacoes, normalizarTextoCitacao, hashDeTexto, type PrecedenteParaCitacao } from "@/lib/peticionamentoCitacoes";
 import { garantirFecho } from "@/lib/peticionamentoFecho";
 import { filtrarNotaDeRiscos, comAvisoDeContextoResumido } from "@/lib/peticionamentoRiscos";
 import { montarNotaObrigatoria } from "@/lib/peticionamentoNotaObrigatoria";
@@ -711,6 +712,151 @@ async function descricaoDoContexto(sessaoId: string, officeId: string): Promise<
   return partes.length > 0 ? partes.join(" · ") : null;
 }
 
+// ── CITAÇÕES — validação uma a uma antes de exportar (decisão do dono, 22/09/2026) ─────────────
+
+/**
+ * Recalcula as linhas de PeticionamentoCitacao a partir do estado ATUAL da sessão (jurisprudência
+ * estruturada + corpo da minuta) — chamada depois de toda geração e de toda edição do corpo, para
+ * a lista nunca ficar desatualizada.
+ *
+ * IDENTIDADE de uma citação = (tipo, texto normalizado). Uma citação cujo texto mudou é, por
+ * definição, OUTRA citação: a linha antiga (com a confirmação que carregava) é apagada, e a nova
+ * entra sem confirmação nenhuma. É assim que "editar a minuta invalida a confirmação das citações
+ * que mudaram" (decisão do dono) vira código — hashDoTexto é a impressão do texto gravada NA
+ * confirmação, para auditoria; a invalidação em si acontece aqui, pela identidade deixar de bater.
+ */
+async function sincronizarCitacoes(sessaoId: string, officeId: string): Promise<void> {
+  const sessao = await carregarSessaoOuFalhar(sessaoId, officeId);
+  const atuais = montarListaDeCitacoes({
+    jurisprudenciaCitada: ((sessao.jurisprudenciaCitada as PrecedenteParaCitacao[] | null) ?? []) as PrecedenteParaCitacao[],
+    minutaTexto: sessao.minutaTexto,
+  });
+
+  const existentes = await prisma.peticionamentoCitacao.findMany({ where: { sessaoId } });
+  const porChave = new Map(existentes.map((c) => [`${c.tipo}::${normalizarTextoCitacao(c.texto)}`, c]));
+  const chavesMantidas = new Set<string>();
+
+  const operacoes: Promise<unknown>[] = [];
+  for (const item of atuais) {
+    const chave = `${item.tipo}::${normalizarTextoCitacao(item.texto)}`;
+    chavesMantidas.add(chave);
+    const existente = porChave.get(chave);
+    if (existente) {
+      // Mesma identidade de TEXTO. Duas mudanças possíveis aqui, e elas NÃO valem o mesmo:
+      //
+      //  · só a FORMA do texto mudou (um espaço, uma quebra de linha, uma maiúscula — tudo que a
+      //    normalização já ignora): a confirmação SOBREVIVE. É para isso que a identidade é a
+      //    forma normalizada, e não a string crua.
+      //
+      //  · mudaram os LINKS: a confirmação CAI. Achado da revisão — antes, `fonteUrl` e
+      //    `fonteSecundariaUrl` eram atualizados junto com o texto e a confirmação seguia de pé.
+      //    A decisão do dono é explícita sobre o que o advogado está confirmando: "os links
+      //    utilizados na dupla validação para conferência, uma a uma". O "li e revisei" é sobre
+      //    a citação E os links por onde ela foi conferida. Como `jurisprudenciaCitada` é
+      //    repovoada a cada geração do Hermes, uma mesma ementa pode voltar com outra fonte
+      //    secundária (ou com uma que antes não existia) sem uma vírgula do texto mudar — e, com
+      //    o comportamento antigo, o "li e revisei" de ontem passava a responder por um link que
+      //    o advogado nunca abriu. É exatamente a responsabilidade que esta tela existe para
+      //    criar ("ninguém poderá dizer que não viu"), assinada em branco.
+      //
+      // hashDoTexto não socorre aqui: ele é impressão do TEXTO, e o texto não mudou.
+      const mudouAFormaDoTexto = existente.texto !== item.texto;
+      const mudaramOsLinks =
+        existente.fonteUrl !== item.fonteUrl || existente.fonteSecundariaUrl !== item.fonteSecundariaUrl;
+      if (mudouAFormaDoTexto || mudaramOsLinks) {
+        operacoes.push(
+          prisma.peticionamentoCitacao.update({
+            where: { id: existente.id },
+            data: {
+              texto: item.texto,
+              fonteUrl: item.fonteUrl,
+              fonteSecundariaUrl: item.fonteSecundariaUrl,
+              ...(mudaramOsLinks ? { confirmadaPorId: null, confirmadaEm: null, hashDoTexto: null } : {}),
+            },
+          }),
+        );
+      }
+    } else {
+      operacoes.push(
+        prisma.peticionamentoCitacao.create({
+          data: { sessaoId, tipo: item.tipo, texto: item.texto, fonteUrl: item.fonteUrl, fonteSecundariaUrl: item.fonteSecundariaUrl },
+        }),
+      );
+    }
+  }
+  // Sobrou no mapa quem não está mais na lista atual — a citação mudou de texto ou desapareceu; dos
+  // dois jeitos, uma confirmação antiga (se houver) não pode continuar valendo por um texto que já
+  // não existe mais na minuta.
+  for (const [chave, existente] of porChave) {
+    if (!chavesMantidas.has(chave)) operacoes.push(prisma.peticionamentoCitacao.delete({ where: { id: existente.id } }));
+  }
+  await Promise.all(operacoes);
+}
+
+export type CitacaoParaValidacao = {
+  id: string;
+  tipo: "EMENTA" | "TRECHO";
+  texto: string;
+  fonteUrl: string | null;
+  fonteSecundariaUrl: string | null;
+  confirmada: boolean;
+  confirmadaPorNome: string | null;
+  confirmadaEm: Date | null;
+};
+
+/**
+ * A lista de validação (decisão do dono, 22/09/2026): ementas citadas + trechos soltos, sempre
+ * recalculada a partir do estado ATUAL da minuta antes de responder — nunca uma foto velha.
+ */
+export async function listarCitacoesParaValidacao(sessaoId: string): Promise<CitacaoParaValidacao[]> {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  await sincronizarCitacoes(sessaoId, user.officeId);
+  const linhas = await prisma.peticionamentoCitacao.findMany({
+    where: { sessaoId },
+    include: { confirmadaPor: { select: { name: true } } },
+    orderBy: [{ tipo: "asc" }, { createdAt: "asc" }],
+  });
+  return linhas.map((c) => ({
+    id: c.id,
+    tipo: c.tipo as "EMENTA" | "TRECHO",
+    texto: c.texto,
+    fonteUrl: c.fonteUrl,
+    fonteSecundariaUrl: c.fonteSecundariaUrl,
+    confirmada: !!c.confirmadaPorId,
+    confirmadaPorNome: c.confirmadaPor?.name ?? null,
+    confirmadaEm: c.confirmadaEm,
+  }));
+}
+
+/**
+ * O botão INDIVIDUAL "li e revisei" — não existe "confirmar todas" (decisão do dono é explícita:
+ * o ponto da mudança é obrigar a olhar uma por uma). Cada chamada confirma UMA única citação.
+ */
+export async function confirmarCitacaoIndividual(sessaoId: string, citacaoId: string): Promise<{ ok: true } | { error: string }> {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  // A citação pende de uma sessão JÁ conferida — mesmo padrão de PeticionamentoAnexo/
+  // PeticionamentoExportacao (ver lib/testes/peticionamentoIsolamento.teste.ts): o corte por
+  // sessaoId basta, porque sessaoId já foi validado contra o officeId de quem pediu.
+  const citacao = await prisma.peticionamentoCitacao.findFirst({ where: { id: citacaoId, sessaoId } });
+  if (!citacao) return { error: "Citação não encontrada nesta sessão." };
+  await prisma.peticionamentoCitacao.update({
+    where: { id: citacaoId },
+    data: { confirmadaPorId: user.id, confirmadaEm: new Date(), hashDoTexto: hashDeTexto(citacao.texto) },
+  });
+  revalidatePath(`/peticionamento/${sessaoId}/minuta`);
+  return { ok: true };
+}
+
+/** Quantas citações ainda faltam confirmar — o botão de exportar usa isto para dizer "faltam N". */
+export async function contarCitacoesPendentes(sessaoId: string): Promise<number> {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  await sincronizarCitacoes(sessaoId, user.officeId);
+  return prisma.peticionamentoCitacao.count({ where: { sessaoId, confirmadaPorId: null } });
+}
+
 /**
  * O resumo da tela de confirmação (confirmar-geracao.html). CORREÇÃO PEDIDA PELO PRÓPRIO AUTOR
  * DOS MOCKUPS (ver decisions.md §10, último item): a linha "Fatos" mostra o TEXTO LITERAL do
@@ -833,6 +979,9 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
         geradoEm: new Date(),
       },
     });
+    // Popula a lista de validação de citações (decisão do dono, 22/09/2026) já na primeira
+    // geração — nunca deixa a tela de minuta abrir com a lista vazia por falta de sincronizar.
+    await sincronizarCitacoes(sessaoId, user.officeId);
     revalidatePath(`/peticionamento/minuta`);
     return { ok: true };
   } catch (e) {
@@ -848,6 +997,10 @@ export async function atualizarCorpoDaMinuta(sessaoId: string, texto: string): P
   // O fecho é reconferido em toda gravação — mesmo edição manual não sai sem ele; ver export,
   // que reconfere de novo por segurança (defesa em profundidade, nunca confiar numa trava só).
   await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { minutaTexto: garantirFecho(texto) } });
+  // Decisão do dono (22/09/2026): editar a minuta invalida a confirmação das citações que
+  // mudaram — recalculado AQUI, no momento da edição, para a lista nunca ficar atrasada em
+  // relação ao texto que o advogado acabou de salvar.
+  await sincronizarCitacoes(sessaoId, user.officeId);
   return { ok: true };
 }
 
@@ -868,6 +1021,18 @@ export async function confirmarExportacao(
   // na tela; aqui é onde ele é de fato exigido, não confiado ao estado do botão no cliente.
   if (!confirmouCheckbox) {
     return { error: 'É preciso marcar "Li e estou ciente de que este é um rascunho gerado por IA e requer revisão profissional integral antes de qualquer protocolo." antes de exportar.' };
+  }
+
+  // HARD GATE 3 (decisão do dono, 22/09/2026): toda citação — ementa ou trecho solto — precisa
+  // estar confirmada, uma a uma, antes de exportar. Resincroniza a partir do texto ATUAL da minuta
+  // primeiro (defesa em profundidade: mesmo que a tela de validação não tenha sido revisitada
+  // depois da última edição, a exportação nunca deixa passar uma citação cujo texto mudou).
+  await sincronizarCitacoes(sessaoId, user.officeId);
+  const citacoesPendentes = await prisma.peticionamentoCitacao.count({ where: { sessaoId, confirmadaPorId: null } });
+  if (citacoesPendentes > 0) {
+    return {
+      error: `Ainda falta${citacoesPendentes === 1 ? "" : "m"} confirmar ${citacoesPendentes} cita${citacoesPendentes === 1 ? "ção" : "ções"} antes de exportar — cada uma precisa da marca "li e revisei" individual, na tela da minuta.`,
+    };
   }
 
   if (!sessao.minutaTexto) return { error: "Esta sessão ainda não tem minuta gerada." };
