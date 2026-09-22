@@ -35,7 +35,7 @@ import { chamarServicoDeTranscricao, transcricaoConfigurada } from "@/lib/transc
 // específico.
 // ============================================================================
 
-// ── 1. Configuração e decisões puras ────────────────────────────────────────────────────────
+// ── 1. Configuração e decisões puras ───────────────────────────────────────────
 
 teste("sem URL, sem token, ou sem os dois: fail-closed, nunca um meio-termo", () => {
   igual(lerConfigDeTranscricao({}), null, "nada configurado: ");
@@ -238,7 +238,7 @@ teste("MUTAÇÃO-ALVO: mensagensReaisEUltima NÃO PODE filtrar por `direction` �
   verdade(ultima?.direction === "OUT", "uma mensagem OUT que NÃO é a confirmação automática sumiu da decisão — a trava contra falar sozinho ficaria furada para qualquer resposta de verdade, não só a confirmação");
 });
 
-// ── 2. A chamada de verdade, contra um servidor de mentira local ───────────────────────────
+// ── 2. A chamada de verdade, contra um servidor de mentira local ──────────────────────
 //
 // AVISO HONESTO: nenhum destes três testes fala com um serviço de transcrição de verdade — este
 // ambiente não tem acesso a um Whisper auto-hospedado, à Groq nem à OpenAI. O servidor abaixo fala
@@ -334,7 +334,7 @@ teste("transcricaoConfigurada() reflete as duas variáveis de ambiente, fail-clo
   }
 });
 
-// ── 3. As travas de IO que não dão pra testar na mesa (varredura de código-fonte) ───────────
+// ── 3. As travas de IO que não dão pra testar na mesa (varredura de código-fonte) ─────────
 //
 // Mesmas duas armadilhas de lib/testes/whatsappMidia.teste.ts: nenhuma checagem abaixo procura um
 // trecho que só existe em COMENTÁRIO (codigoDe tira comentário antes de qualquer busca), e nenhuma
@@ -476,7 +476,7 @@ teste("MUTAÇÃO-ALVO: ao FALHAR, transcreverAudioRecebido grava FALHOU (nunca P
   verdade(!/status:\s*"PRONTA"/.test(ramoDeFalha), "o ramo de falha está gravando PRONTA — a Ana leria isto como sucesso");
 });
 
-// ── O restante do pedido: histórico do agente e a tela ──────────────────────────────────────
+// ── O restante do pedido: histórico do agente e a tela ─────────────────────────────
 //
 // As duas checagens abaixo são a garantia de que as peças que ESTE teste não consegue exercitar
 // de ponta a ponta (a chamada de verdade ao Hermes, a renderização de React) pelo menos não
@@ -494,8 +494,17 @@ teste("MUTAÇÃO-ALVO: atendenteResponde.ts busca a transcrição no banco E a u
     /transcricao:\s*\{\s*select:/.test(corpo),
     "a consulta das mensagens parou de trazer a transcrição junto (select sem `transcricao`) — o histórico nunca vai vê-la",
   );
-  verdade(/texto:\s*textoParaAgente\(m\)/.test(corpo), "o histórico (historico.map) parou de passar cada mensagem por textoParaAgente");
-  verdade(/mensagem:\s*textoParaAgente\(ultima\)/.test(corpo), "a MENSAGEM DE AGORA parou de passar por textoParaAgente — se a ÚLTIMA mensagem for o áudio, a Ana perguntaria sem ter ouvido nada");
+  // F-figurinha (lib/avisoFigurinha.ts) passou a tratar a figurinha ANTES de textoParaAgente (que
+  // é escopo só de áudio) — mas para qualquer mensagem que NÃO seja o rótulo de figurinha, a
+  // chamada a textoParaAgente continua exatamente a mesma, e é isso que os regex abaixo exigem.
+  verdade(
+    /texto:\s*m\.body === ROTULO_FIGURINHA \? TEXTO_FIGURINHA_PARA_AGENTE : textoParaAgente\(m\)/.test(corpo),
+    "o histórico (historico.map) parou de passar cada mensagem por textoParaAgente (fora do caso de figurinha)",
+  );
+  verdade(
+    /mensagem:\s*ultima\.body === ROTULO_FIGURINHA \? TEXTO_FIGURINHA_PARA_AGENTE : textoParaAgente\(ultima\)/.test(corpo),
+    "a MENSAGEM DE AGORA parou de passar por textoParaAgente (fora do caso de figurinha) — se a ÚLTIMA mensagem for o áudio, a Ana perguntaria sem ter ouvido nada",
+  );
 });
 
 teste("MUTAÇÃO-ALVO: atendenteResponde.ts decide 'a última mensagem' através de mensagensReaisEUltima, não de novo inline", () => {
@@ -547,7 +556,7 @@ teste("MUTAÇÃO-ALVO: a bolha do áudio mostra a transcrição visualmente DIST
   );
 });
 
-// ── A indicação em Configurações ─────────────────────────────────────────────────────────────
+// ── A indicação em Configurações ────────────────────────────────────────────
 
 teste("rotuloDeTranscricaoNasConfiguracoes: diz o estado, e o áudio continua indo pro Drive mesmo sem transcrição", () => {
   const semConfig = rotuloDeTranscricaoNasConfiguracoes(false, null);
