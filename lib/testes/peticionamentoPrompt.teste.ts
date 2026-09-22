@@ -59,8 +59,14 @@ teste("dois documentos: os DOIS textos aparecem, cada um sob o próprio nome", (
       { nome: "b.docx", texto: "Conteúdo do documento B." },
     ],
   });
-  verdade(msg.includes("--- a.pdf ---") && msg.includes("Conteúdo do documento A."), "documento A ausente ou sem separador");
-  verdade(msg.includes("--- b.docx ---") && msg.includes("Conteúdo do documento B."), "documento B ausente ou sem separador");
+  // O separador ganhou INÍCIO/FIM explícitos quando a cerca de "documento é dado, não instrução"
+  // entrou (ver lib/testes/peticionamentoDocumentoEDado.teste.ts). A intenção deste caso não
+  // mudou — os dois textos aparecem, cada um sob o próprio nome —, só o formato do separador.
+  verdade(msg.includes("--- INÍCIO DO DOCUMENTO: a.pdf ---") && msg.includes("Conteúdo do documento A."), "documento A ausente ou sem separador");
+  verdade(msg.includes("--- INÍCIO DO DOCUMENTO: b.docx ---") && msg.includes("Conteúdo do documento B."), "documento B ausente ou sem separador");
+  // E cada um fecha o seu — sem o fim, o texto de um documento se funde com o começo do outro.
+  verdade(msg.includes("--- FIM DO DOCUMENTO: a.pdf ---") && msg.includes("--- FIM DO DOCUMENTO: b.docx ---"),
+    "faltou a marca de fim de um dos documentos");
 });
 
 teste("fecho literal continua exigido na mensagem (regra pré-existente, não pode regredir)", () => {
