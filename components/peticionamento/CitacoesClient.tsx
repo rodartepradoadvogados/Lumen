@@ -128,13 +128,14 @@ export function CitacoesClient({
     <div className="note-box" style={{ marginBottom: 20 }}>
       <div className="head">
         <div className="ttl">Citações desta minuta — uma a uma</div>
-        <div className="lockline">{totalPendentes > 0 ? `faltam ${totalPendentes}` : "todas revisadas"}</div>
+        <div className="lockline">{totalPendentes > 0 ? (totalPendentes === 1 ? "falta 1" : `faltam ${totalPendentes}`) : "todas revisadas"}</div>
       </div>
       <p className="quiet" style={{ margin: "0 0 14px", fontSize: 12.5, lineHeight: 1.6 }}>
         <strong>O Lúmen não verificou nenhuma destas citações.</strong> O sistema continua sem saber se a jurisprudência abaixo existe de verdade, com a
         redação exata ou no tribunal indicado — confirmar aqui não é uma checagem técnica. É o registro de que <em>você</em> abriu os links, conferiu cada
         citação pessoalmente e assumiu a responsabilidade por ela antes de a peça sair. Editar o corpo da minuta desfaz a confirmação das citações cujo texto
-        mudar.
+        mudar — e, se uma nova geração trouxer outro link para uma citação já confirmada, a confirmação dela também cai: ela valia pelos links que você
+        abriu, não só pelo texto.
       </p>
       {erro && (
         <div className="callout callout-danger" style={{ marginBottom: 12 }}>
