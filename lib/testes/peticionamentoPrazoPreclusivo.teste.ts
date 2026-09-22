@@ -197,4 +197,31 @@ teste("sem prazo preclusivo, a nota não ganha linha nenhuma (não polui o caso 
   igual(comNulo, semCampo, "passar null deveria dar exatamente a nota de sempre: ");
 });
 
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA REVISÃO — A NOTA PODIA DECLARAR PRECLUSÃO QUE NINGUÉM MARCOU.
+//
+// A suíte provava muito bem que `montarNotaObrigatoria` só escreve a linha quando recebe
+// `prazoPreclusivoEm` — e provava igualmente bem o prompt. O que não estava coberto era o LUGAR
+// QUE DECIDE: a chamada, em confirmarTriagemEGerar, que traduz o par (prazoFatal, prazoPreclusivo)
+// do banco no argumento. Tirei o `sessao.prazoPreclusivo ?` de lá e as 72 suítes ficaram VERDES.
+//
+// Consequência da mutação: um prazo lançado como simples lembrete administrativo sairia na minuta,
+// escrito pelo CÓDIGO, como "PRAZO PRECLUSIVO informado pelo advogado — perdido o prazo, perde-se
+// o direito de praticar o ato". Uma afirmação jurídica falsa, na única parte do documento que
+// existe para ser confiável porque o modelo não a escreveu. É o padrão de sempre nesta casa: o
+// módulo puro bem testado e a camada que o chama sem nada.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("TRAVA: a nota só recebe a data quando a MARCA está no banco — nunca o prazoFatal sozinho", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarExportacao"));
+  const alvo = corpo.includes("prazoPreclusivoEm") ? corpo : codigoDe(FONTE_ACOES);
+  const atribuicao = alvo.match(/prazoPreclusivoEm:\s*([^,\n]+)/);
+  verdade(!!atribuicao, "sumiu o argumento prazoPreclusivoEm da montagem da nota obrigatória");
+  const origem = atribuicao![1].trim();
+  verdade(/prazoPreclusivo/.test(origem),
+    `a nota passou a receber a data sem conferir a marca: \`${origem}\` — um prazo que o advogado lançou como lembrete sairia na minuta declarado preclusivo, escrito pelo código`);
+  verdade(/\?/.test(origem) && /null/.test(origem),
+    `a decisão deixou de ser condicional com queda para null: \`${origem}\``);
+});
+
 resumo("Peticionamento — prazo preclusivo ganha tópico próprio (pedido do dono, 22/09/2026)");
