@@ -660,4 +660,53 @@ teste("TRAVA: a ação de acompanhamento confere acesso e escritório ANTES de o
   verdade(posGuarda < posColheita, "a colheita roda antes da guarda de escritório — um id de outro escritório leria a geração alheia");
 });
 
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA REVISÃO — A FALHA TAMBÉM PRECISA REIVINDICAR, E SÓ A GRAVAÇÃO ESTAVA PROVADA.
+//
+// A mutação M10 desta entrega tirou `status: "GERANDO"` do `where` da GRAVAÇÃO e caiu em
+// vermelho, como devia. Tirei o mesmo do `where` da MARCAÇÃO DE FALHA e as 77 suítes ficaram
+// VERDES. É a assimetria clássica: prova-se o caminho feliz da reivindicação e esquece-se o
+// triste, que é justamente o que roda quando algo já deu errado.
+//
+// O estrago é grande e silencioso. Quem chega DEPOIS — a segunda aba aberta na mesma sessão, ou
+// o cron passando logo após a tela ter colhido — lê a tarefa que já foi consumida (`ler_tarefa`
+// faz `pop`), recebe "desconhecida" da ponte e conclui, corretamente do seu ponto de vista, que a
+// geração se perdeu. Sem a reivindicação, essa conclusão sobrescreve uma sessão que já está
+// GERADA: o advogado lê "a geração se perdeu" diante de uma minuta que existe, inteira, no banco.
+// O texto não é apagado — o que se perde é a capacidade de chegar até ele, que dá no mesmo para
+// quem está usando.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("TRAVA: marcar falha REIVINDICA — nunca sobrescreve uma sessão que já saiu de GERANDO", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_GERACAO, "marcarFalhaDaGeracao"));
+  verdade(corpo.length > 150, `corpoDaFuncao("marcarFalhaDaGeracao") devolveu ${corpo.length} caracteres — varredura cega`);
+
+  // Não exijo grafia: exijo que o `where` do updateMany que escreve FALHA_GERACAO condicione ao
+  // estado anterior. Qualquer forma de escrever isso passa; nenhuma forma de omitir passa.
+  const posUpdate = corpo.indexOf("updateMany(");
+  verdade(posUpdate >= 0, "a marcação de falha deixou de usar updateMany — sem ele não há reivindicação possível");
+  const posWhere = corpo.indexOf("where:", posUpdate);
+  const posData = corpo.indexOf("data:", posUpdate);
+  verdade(posWhere >= 0 && posData > posWhere, "não achei o where/data da marcação de falha");
+  const clausula = corpo.slice(posWhere, posData);
+  verdade(/status:\s*"GERANDO"/.test(clausula),
+    `o where da marcação de falha não exige o estado anterior: \`${clausula.trim()}\` — a segunda aba (ou o cron) viraria uma sessão JÁ GERADA em "falhou", e o advogado leria "a geração se perdeu" sobre uma minuta que existe`);
+
+  // E o resultado da reivindicação tem de ser DEVOLVIDO, senão quem chama não sabe se foi ele que
+  // marcou — que é exatamente o que M11 provou para a gravação.
+  verdade(/count\s*>\s*0/.test(corpo),
+    "a marcação de falha não devolve mais se FOI ELA que marcou — quem chama não tem como saber que perdeu a corrida");
+});
+
+teste("TRAVA: quem decide 'perdida' respeita a resposta da reivindicação", () => {
+  // Não basta reivindicar: o ramo que declara a geração perdida precisa OLHAR o resultado. Se
+  // ignorar, ele conta ao advogado uma história que não aconteceu no banco.
+  const corpo = codigoDe(corpoDaFuncao(FONTE_GERACAO, "colherGeracaoDaMinuta"));
+  const pos = corpo.indexOf("MOTIVO_GERACAO_PERDIDA");
+  verdade(pos >= 0, "sumiu o ramo de geração perdida");
+  const trecho = corpo.slice(Math.max(0, pos - 400), pos + 400);
+  verdade(/const\s+marcou\s*=|marcou\s*\?|if\s*\(\s*marcou/.test(trecho),
+    "o ramo de geração perdida ignora o resultado da reivindicação — declararia perdida uma geração que outro caminho já concluiu");
+});
+
 resumo("Peticionamento — a geração sai de dentro da requisição web");
