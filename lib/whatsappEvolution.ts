@@ -149,7 +149,7 @@ export async function desconectar(config: ConfigEvolution): Promise<void> {
   await pedir(config, "DELETE", `/instance/logout/${encodeURIComponent(config.instancia)}`);
 }
 
-// ── Envio ────────────────────────────────────────────────────────────────────────────────────
+// ── Envio ────────────────────────────────────────────────────────────────────────────────
 
 export async function enviarTexto(config: ConfigEvolution, paraE164: string, texto: string): Promise<string> {
   const d = (await pedir(config, "POST", `/message/sendText/${encodeURIComponent(config.instancia)}`, {
@@ -176,7 +176,7 @@ export async function baixarMidiaEvolution(
   return { buffer: Buffer.from(d.base64, "base64"), mimeType: d.mimetype || "application/octet-stream" };
 }
 
-// ── Entrada ──────────────────────────────────────────────────────────────────────────────────
+// ── Entrada ────────────────────────────────────────────────────────────────────────────────
 
 export function somenteDigitos(numero: string): string {
   return (numero || "").replace(/\D+/g, "");
