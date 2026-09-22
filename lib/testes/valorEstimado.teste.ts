@@ -5,6 +5,7 @@ import {
   somaEstimadaAgregadaOuOmissao,
   valorEstimadoIndividual,
   MOTIVO_SOMA_ESTIMADA_OMITIDA,
+  AVISO_AO_AGENTE_NAO_SOMAR,
 } from "@/lib/valorEstimado";
 
 // ============================================================================
@@ -138,5 +139,41 @@ teste("as duas ferramentas usam a MESMA régua — não duas funções que podem
   const ocorrencias = (fonte.match(/from "@\/lib\/valorEstimado"/g) || []).length;
   verdade(ocorrencias === 1, "lib/assistantTools.ts importa lib/valorEstimado mais de uma vez — sinal de régua duplicada");
 });
+
+// ── ACHADOS DA SUPERVISÃO ────────────────────────────────────────────────────────────────────
+
+teste("agregação que NÃO rodou nunca vira R$ 0,00 — nem para administrador", () => {
+  // O caso que faltava: administrador (portanto com direito ao total) + agregação ausente.
+  // Trocar a guarda por `agregado?.total ?? 0` passava verde e mostrava "R$ 0,00" a um
+  // administrador como se fosse um total de verdade. "Não sei" e "é zero" são respostas
+  // diferentes, e confundi-las aqui é dizer ao sócio que o funil não vale nada.
+  const r = somaEstimadaAgregadaOuOmissao(null, { isAdmin: true });
+  igual(r.omitido, true, "administrador com agregação ausente deveria receber omissão, não zero — ");
+});
+
+teste("o motivo da omissão EXPLICA — mensagem vaga é tão ruim quanto silêncio", () => {
+  // Trocar o motivo por "Indisponível." passava verde. Quem lê "Indisponível" abre chamado;
+  // quem lê a frase inteira entende que não é defeito, é régua.
+  for (const palavra of ["projeção", "indicador", "administrador"]) {
+    verdade(MOTIVO_SOMA_ESTIMADA_OMITIDA.toLowerCase().includes(palavra.toLowerCase()),
+      `o motivo da omissão não diz "${palavra}"`);
+  }
+});
+
+teste("TRAVA: a proibição de o AGENTE somar por conta própria viaja junto com a omissão", () => {
+  // A régua trava o SISTEMA de somar. Mas a ferramenta devolve até vinte valores individuais —
+  // cada um legítimo por si — e nada impede o agente de somá-los e apresentar o total a quem não
+  // é administrador. Numa tela isso exigiria somar à mão, card por card; para o agente é de
+  // graça. Por isso a instrução acompanha o dado que ele lê.
+  verdade(AVISO_AO_AGENTE_NAO_SOMAR.includes(MOTIVO_SOMA_ESTIMADA_OMITIDA.slice(0, 40)),
+    "o aviso ao agente perdeu o motivo original da omissão");
+  verdade(/[Nn]ão some/.test(AVISO_AO_AGENTE_NAO_SOMAR), "o aviso ao agente deixou de proibir a soma por conta própria");
+  verdade(/administrador/i.test(AVISO_AO_AGENTE_NAO_SOMAR), "o aviso não diz ao agente o que responder se pedirem o total");
+
+  const fonte = codigoDe(readFileSync("lib/assistantTools.ts", "utf8"));
+  verdade(fonte.includes("AVISO_AO_AGENTE_NAO_SOMAR"),
+    "a ferramenta parou de mandar o aviso junto com a omissão — a régua volta a valer só para o sistema");
+});
+
 
 resumo("Valor estimado — registro do card, indicador da soma");

@@ -34,6 +34,24 @@ export const MOTIVO_SOMA_ESTIMADA_OMITIDA =
   "Soma de valores estimados é projeção de receita futura (indicador) e só aparece para administradores.";
 
 /**
+ * O MESMO motivo, mais a instrução que só faz sentido para o agente — e que fecha um buraco que a
+ * régua sozinha não fecha.
+ *
+ * O buraco: a régua impede o SISTEMA de somar, mas a ferramenta devolve até vinte valores
+ * individuais (cada um legítimo por si, ver acima), e nada impede o agente de somá-los por conta
+ * própria e apresentar o total a quem não é administrador. Numa tela isso exigiria alguém somando
+ * à mão, card por card; para o agente a soma é de graça.
+ *
+ * Por isso a proibição viaja JUNTO com a omissão, dentro do próprio dado que o agente lê: é ali
+ * que ela é útil. Não é garantia técnica — é da mesma natureza das outras instruções de
+ * comportamento — e por isso ela acompanha a régua, nunca a substitui.
+ */
+export const AVISO_AO_AGENTE_NAO_SOMAR =
+  `${MOTIVO_SOMA_ESTIMADA_OMITIDA} ` +
+  "Não some você mesmo os valores individuais desta resposta para chegar a um total: quem perguntou " +
+  "não pode receber essa soma. Se pedirem o total, diga que ele só aparece para administradores.";
+
+/**
  * O portão, sozinho: fechado por padrão, e sem olhar valor nenhum antes de checar o perfil — quem
  * não é administrador nunca vê o total, nem para uma lista vazia, nem para uma soma já calculada
  * por fora (agregação no banco).

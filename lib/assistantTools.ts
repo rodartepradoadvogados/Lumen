@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import type { NivelFinanceiro, QuemPergunta } from "@/lib/nivelFinanceiro";
 import { podeVerNivel, valoresOuOmissao } from "@/lib/nivelFinanceiro";
-import { somaEstimadaAgregadaOuOmissao, valorEstimadoIndividual } from "@/lib/valorEstimado";
+import { somaEstimadaAgregadaOuOmissao, valorEstimadoIndividual, AVISO_AO_AGENTE_NAO_SOMAR } from "@/lib/valorEstimado";
 import { calcularDre, periodoAnterior, variacaoPercentual } from "@/lib/dreCalculo";
 import { inicioDoMesEmBrasilia, inicioDoProximoMesEmBrasilia, dataDeBrasilia, lerPeriodoEmBrasilia } from "@/lib/horaDeBrasilia";
 import { valorLiquido } from "@/lib/financeCalc";
@@ -423,10 +423,16 @@ async function executarConsultarAtendimento(input: ToolInput, officeId: string, 
     const agregado = isAdmin
       ? await prisma.attendance.aggregate({ where: filtro, _sum: { estimatedValue: true }, _count: { estimatedValue: true } })
       : null;
-    const valorEstimadoTotal = somaEstimadaAgregadaOuOmissao(
+    const totalBruto = somaEstimadaAgregadaOuOmissao(
       agregado ? { total: agregado._sum.estimatedValue ?? 0, quantidade: agregado._count.estimatedValue } : null,
       { isAdmin },
     );
+    // A proibição de somar por conta própria viaja junto com a omissão — ver
+    // lib/valorEstimado.ts:AVISO_AO_AGENTE_NAO_SOMAR. A régua trava o sistema; esta linha é o que
+    // fala com quem lê os vinte valores individuais logo abaixo.
+    const valorEstimadoTotal = totalBruto.omitido
+      ? { omitido: true as const, motivo: AVISO_AO_AGENTE_NAO_SOMAR }
+      : totalBruto;
 
     return JSON.stringify(comAviso({
       total: totalNoBanco,
