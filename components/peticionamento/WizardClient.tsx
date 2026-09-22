@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { salvarWizard } from "@/lib/actions/peticionamento";
 import { avaliarProntidao, fraseDoQueFalta } from "@/lib/peticionamentoMinimo";
 import { TIPOS_DE_PECA } from "@/lib/peticionamentoTipoPeca";
+import { usaSublistaDeTipoDePeticao } from "@/lib/peticionamentoCategoriaPeca";
+import { useSaidaDoPeticionamento } from "./SaidaContext";
 
 type Estado = {
   tipoPeca: string | null;
@@ -21,10 +23,15 @@ type Estado = {
 const PEDIDOS_SUGERIDOS = ["Manutenção da tutela deferida", "Multa por descumprimento", "Inversão do ônus da prova (CDC)", "Condenação em honorários"];
 const TESES_SUGERIDAS = ["Rol da ANS é exemplificativo (Tema 990/1069 STJ)", "Urgência/emergência (Lei 9.656/98, art. 12)", "Abusividade de cláusula (CDC, art. 51)"];
 
-export function WizardClient({ sessaoId, inicial }: { sessaoId: string; inicial: Estado }) {
+export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: string; categoriaPeca: string | null; inicial: Estado }) {
   const router = useRouter();
+  const { marcarTrabalho } = useSaidaDoPeticionamento();
+  const mostraSublistaDeTipo = usaSublistaDeTipoDePeticao(categoriaPeca);
   const [estado, setEstado] = useState<Estado>(inicial);
-  const [passo, setPasso] = useState(0); // 0=tipo, 1=fatos, 2=pedido/urgência, 3=teses
+  // Espec. §7: "o tipo muda o que é perguntado adiante" — a sublista de tipo de petição
+  // (Inicial/Contestação/...) só faz sentido para a categoria "Petição"; nas demais, o
+  // questionário já começa direto em "fatos" (passo 1 vira o primeiro exibido).
+  const [passo, setPasso] = useState(mostraSublistaDeTipo ? 0 : 1);
 
   // Autosave "de verdade" (especificação §7: nunca perdido ao fechar a aba) — debounced, para não
   // disparar uma escrita a cada tecla.
@@ -45,6 +52,14 @@ export function WizardClient({ sessaoId, inicial }: { sessaoId: string; inicial:
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado]);
+
+  // Espec. §4: assim que fatos/pedidos ganham conteúdo de verdade, a sessão passa a ter "trabalho
+  // em andamento" — o pop-up de saída (SaidaContext) passa a valer a partir daqui, sem esperar o
+  // próximo carregamento de página (que só saberia disso depois do autosave acima).
+  useEffect(() => {
+    if (estado.fatos.trim() || estado.pedidos.some((p) => p.trim())) marcarTrabalho();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estado.fatos, estado.pedidos]);
 
   const prontidao = useMemo(() => avaliarProntidao({ fatos: estado.fatos, pedidos: estado.pedidos }), [estado.fatos, estado.pedidos]);
 
@@ -202,7 +217,7 @@ export function WizardClient({ sessaoId, inicial }: { sessaoId: string; inicial:
         use os botões abaixo para navegar entre os passos
       </div>
       <div className="deck-actions">
-        <button className="btn btn-ghost" onClick={() => setPasso((p) => Math.max(0, p - 1))} disabled={passo === 0}>
+        <button className="btn btn-ghost" onClick={() => setPasso((p) => Math.max(mostraSublistaDeTipo ? 0 : 1, p - 1))} disabled={passo === (mostraSublistaDeTipo ? 0 : 1)}>
           Voltar
         </button>
         {passo < totalPassos - 1 ? (
