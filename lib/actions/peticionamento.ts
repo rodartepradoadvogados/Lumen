@@ -211,7 +211,27 @@ export async function gravarPassoDaSessao(sessaoId: string, passo: string): Prom
   const user = await exigirAcessoAba();
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
   if (!ehPassoValido(passo)) return { error: "Passo de sessão desconhecido." };
-  await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { passoAtual: passo } });
+
+  // ESCREVE SÓ QUANDO O PASSO DE FATO MUDOU — achado da revisão, e o motivo não é economia de
+  // consulta: `PeticionamentoSessao.updatedAt` é `@updatedAt` (prisma/schema.prisma), e a lista de
+  // rascunhos ORDENA por ele e MOSTRA "atualizado em {data}" (listarRascunhos, logo acima, e
+  // components/peticionamento/RascunhosClient.tsx). Como esta gravação roda no carregamento das
+  // SEIS páginas de passo, um `update` incondicional fazia ABRIR — ou só recarregar — um rascunho
+  // reescrever "atualizado em" para agora e pular o rascunho para o topo da lista, como se alguém
+  // o tivesse editado. A tela passava a afirmar uma coisa falsa sobre quem mexeu em quê e quando,
+  // justamente na tela que existe para retomar trabalho.
+  //
+  // `updateMany` com o passo no `where` é o que torna a gravação um NADA quando não há mudança:
+  // zero linhas casadas, zero escrita, `updatedAt` intocado.
+  //
+  // O `OR` com `passoAtual: null` NÃO é enfeite: em SQL, `passoAtual != 'contexto'` é NULL (nunca
+  // verdadeiro) para uma linha com passoAtual nulo — sem este ramo, toda sessão ANTIGA (as que
+  // nasceram antes de existir `passoAtual`) jamais teria o passo gravado, e a dedução de
+  // lib/peticionamentoPasso.ts seguiria sendo o único caminho para elas, para sempre.
+  await prisma.peticionamentoSessao.updateMany({
+    where: { id: sessaoId, OR: [{ passoAtual: null }, { passoAtual: { not: passo } }] },
+    data: { passoAtual: passo },
+  });
   return { ok: true };
 }
 

@@ -53,4 +53,39 @@ teste("listarRascunhos passa s.passoAtual (o valor GRAVADO) para passoParaRetoma
   verdade(/passoParaRetomar\(\s*\{[\s\S]*?\},\s*s\.passoAtual\s*,?\s*\)/.test(corpo), "listarRascunhos deixou de passar s.passoAtual para passoParaRetomar — voltaria a ser dedução pura");
 });
 
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA REVISÃO — ABRIR UM RASCUNHO O MARCAVA COMO EDITADO.
+//
+// A gravação do passo roda no carregamento das SEIS páginas de passo. Como
+// `PeticionamentoSessao.updatedAt` é `@updatedAt`, um `update` incondicional fazia cada
+// carregamento (inclusive um F5 na mesma página) reescrever `updatedAt` — e esta lista ORDENA por
+// ele e ESCREVE "atualizado em {data}" na tela. Resultado: só olhar um rascunho o punha no topo,
+// dizendo que alguém o tinha editado agora. A tela mentia sobre quem mexeu em quê e quando.
+//
+// As duas travas abaixo guardam as duas metades da correção — e a segunda existe porque a forma
+// ÓBVIA de escrever a primeira (`passoAtual: { not: passo }` sozinho) teria um defeito silencioso
+// e pior: em SQL, `passoAtual != 'contexto'` é NULL para uma linha com passoAtual nulo, então
+// TODA sessão antiga (nascida antes do campo existir) nunca mais teria o passo gravado.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("TRAVA: gravarPassoDaSessao não escreve quando o passo não mudou — abrir (ou recarregar) um rascunho não pode marcá-lo como editado", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE, "gravarPassoDaSessao"));
+  verdade(corpo.length > 120, 'corpoDaFuncao("gravarPassoDaSessao") varredura cega');
+  verdade(!/prisma\.peticionamentoSessao\.update\(/.test(corpo),
+    "gravarPassoDaSessao voltou ao `update` incondicional — todo carregamento de página reescreveria updatedAt e o rascunho pularia para o topo da lista como se tivesse sido editado");
+  verdade(/prisma\.peticionamentoSessao\.updateMany\(/.test(corpo),
+    "gravarPassoDaSessao deixou de usar updateMany — é o `where` dele que torna a gravação um nada quando o passo não mudou");
+  verdade(/not:\s*passo/.test(corpo),
+    "sumiu a condição de que o passo GRAVADO é diferente do que se quer gravar — a escrita voltaria a acontecer sempre");
+});
+
+teste("TRAVA: a condição cobre a sessão ANTIGA, de passoAtual nulo — senão ela nunca gravaria passo nenhum", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE, "gravarPassoDaSessao"));
+  verdade(/passoAtual:\s*null/.test(corpo),
+    "sumiu o ramo `passoAtual: null` do filtro — em SQL `passoAtual != 'x'` é NULL para linha nula, então a sessão antiga jamais casaria e ficaria presa na dedução para sempre");
+  // E os dois ramos têm de estar em OR: em AND, nenhuma linha casaria nunca.
+  verdade(/OR:\s*\[/.test(corpo),
+    "os dois ramos do filtro não estão em OR — em AND (passoAtual nulo E passoAtual diferente) nenhuma linha casa, e o passo nunca seria gravado para ninguém");
+});
+
 resumo("Peticionamento — lista de rascunhos: corte por escritório e exclusão do já exportado");
