@@ -213,7 +213,12 @@ teste("a trava de BYTES do Lúmen dispara antes do 413 da ponte, e mede o corpo 
 const TETO_DE_ARGUMENTO_BYTES = 32 * 4096;
 
 teste("O TESTE QUE FALTAVA (segunda parte): a pergunta NÃO vai no argv — vai pela entrada padrão", () => {
-  const argv = CODIGO_PONTE.match(/argumentos = \[HERMES_BIN[^\]]*\]/);
+  // ADAPTADO NA ENTREGA DA GERAÇÃO ASSÍNCRONA: o argv passou a ser montado em VÁRIAS LINHAS,
+  // porque ganhou `--run-budget` e `--max-turns` (o agente precisa SABER que há prazo, em vez de
+  // ser morto no meio da redação). A regra não mudou — a pergunta continua fora do argv —, mas a
+  // busca presa a `[HERMES_BIN` numa linha só deixou de achar a montagem e passou a acusar
+  // "varredura cega". Agora ela encontra a lista inteira, em quantas linhas ela estiver.
+  const argv = CODIGO_PONTE.match(/argumentos = \[[\s\S]*?\]/);
   verdade(Boolean(argv), "não achei a montagem do argv em servidor.py — varredura cega");
   const linha = argv![0];
 
@@ -262,6 +267,14 @@ teste("a conta explícita: o argv que sobrou cabe com folga em MAX_ARG_STRLEN", 
     { o_que: '"-" (entrada padrão)', bytes: 1 },
     { o_que: '"--oneshot"', bytes: 9 },
     { o_que: '"-Q"', bytes: 2 },
+    // ACRESCENTADOS NA ENTREGA DA GERAÇÃO ASSÍNCRONA: `--run-budget` faz o agente CONCLUIR em vez
+    // de ser morto no meio da redação, e `--max-turns` impede uma ferramenta em laço de consumir
+    // o orçamento inteiro sem escrever nada. Entram nesta conta porque ela é a conta do argv REAL
+    // — deixá-los de fora faria este caso medir um comando que não existe mais.
+    { o_que: '"--run-budget"', bytes: 13 },
+    { o_que: "o número de segundos do orçamento", bytes: 6 },
+    { o_que: '"--max-turns"', bytes: 12 },
+    { o_que: "o número de iterações", bytes: 6 },
     // O ESQUECIDO: só aparece ao CONTINUAR uma conversa, que é o caminho menos testado.
     { o_que: '"--resume"', bytes: 8 },
     { o_que: "id da sessão (SESSAO_VALIDA: até 128 caracteres)", bytes: 128 },
@@ -306,18 +319,37 @@ teste("TRAVA: a ponte recusa por tamanho ANTES de executar — nunca deixa o exe
   );
 
   // E a recusa vira 400 FALADO, com a MESMA frase que o Lúmen já sabe traduzir.
+  //
+  // ADAPTADO NA ENTREGA DA GERAÇÃO ASSÍNCRONA. Esta parte procurava `except ArgumentoGrandeDemais`
+  // dentro da rota e, logo depois dele, `self._responder(400`. A tradução de erro saiu de dentro
+  // da rota: com o caminho assíncrono passou a existir um SEGUNDO lugar que precisa exatamente
+  // das mesmas frases (a tarefa que roda na thread não tem requisição aberta para responder), e
+  // duas cópias divergiriam em silêncio. Hoje ela mora em `classificar_falha`, que os dois
+  // caminhos chamam.
+  //
+  // A RÉGUA FICOU MAIS FORTE, não mais fraca: o mapeamento inteiro (400/501/404/504/500 e as
+  // frases de cada um) é EXERCITADO de verdade, com a ponte subida, em
+  // lib/testes/peticionamentoGeracaoAssincrona.teste.ts. Aqui fica só a costura: a rota delega, e
+  // a tradução existe.
   verdade(
-    /except ArgumentoGrandeDemais/.test(CODIGO_PONTE),
-    "a recusa por tamanho de argumento precisa ser tratada na rota — sem isso ela cai no balde do 500 genérico, que é o erro opaco que o dono leu na tela",
+    /def classificar_falha\(/.test(CODIGO_PONTE),
+    "sumiu a tradução de falha da ponte — sem ela, cada caminho traduziria o mesmo defeito de um jeito, e o Lúmen só sabe traduzir um deles",
   );
-  const rota = CODIGO_PONTE.slice(CODIGO_PONTE.indexOf("except ArgumentoGrandeDemais"));
+  const traducao = CODIGO_PONTE.slice(CODIGO_PONTE.indexOf("def classificar_falha("));
   verdade(
-    /"mensagem ausente ou longa demais"/.test(rota.slice(0, 600)),
+    /ArgumentoGrandeDemais/.test(traducao.slice(0, 1_200)) && /"mensagem ausente ou longa demais"/.test(traducao.slice(0, 1_200)),
     "a recusa por tamanho de argumento precisa usar a MESMA frase de tamanho que já existe — uma frase nova é um caminho novo para o advogado ficar sem instrução",
   );
   verdade(
-    /self\._responder\(400/.test(rota.slice(0, 600)),
+    /return 400, \{"erro": "mensagem ausente ou longa demais"\}/.test(traducao.slice(0, 1_200)),
     "a recusa por tamanho tem de ser 400 (pedido) e não 500 (servidor) — um 500 diz ao advogado que a culpa é da máquina e que não há o que ele faça",
+  );
+  // E a rota do `/chat` DELEGA a esta tradução, em vez de escrever a sua própria ao lado.
+  const rotaSincrona = CODIGO_PONTE.slice(CODIGO_PONTE.indexOf("def _chat_sincrono("));
+  verdade(rotaSincrona.length > 200, `o trecho de _chat_sincrono saiu com ${rotaSincrona.length} caracteres — varredura cega`);
+  verdade(
+    /classificar_falha\(erro, perfil\)/.test(rotaSincrona.slice(0, 900)),
+    "o caminho síncrono (o da Ana) parou de usar a tradução compartilhada — é assim que as duas cópias começam a divergir",
   );
 });
 
@@ -797,7 +829,20 @@ teste("TRAVA: o 501 de binário velho é condicionado ao erro REAL — nunca eng
   verdade(posIf > 0, "não achei a condição que protege o raise de binário desatualizado");
   const condicao = antes.slice(posIf, antes.indexOf(":", posIf));
 
-  verdade(/--query-file/.test(condicao),
+  // ADAPTADO NA ENTREGA DA GERAÇÃO ASSÍNCRONA — e este é o caso mais instrutivo dela.
+  //
+  // Esta linha exigia a string `--query-file` DENTRO da condição. Quando a ponte passou a mandar
+  // TAMBÉM `--run-budget` e `--max-turns`, a condição certa deixou de ser "procure --query-file" e
+  // passou a ser "procure QUALQUER opção que foi mandada" — senão um Hermes que não conhecesse
+  // uma das duas novas cairia no balde do 500 genérico, e quem cuida do servidor iria procurar
+  // defeito no lugar errado. O teste, preso à grafia, ficou vermelho POR CAUSA da correção que
+  // ele existia para proteger. Isso é o defeito descrito no comentário logo acima, acontecendo.
+  //
+  // A regra que sobra é a mesma de sempre, escrita como PROPRIEDADE: a condição olha para o nome
+  // de uma opção que de fato foi mandada. Que a lista seja derivada do argv (e não escrita à mão)
+  // é cobrado em lib/testes/peticionamentoGeracaoAssincrona.teste.ts, junto com o exercício real
+  // dos dois ramos — 404 para perfil ausente, 501 para opção desconhecida.
+  verdade(/desconhecida|--[a-z-]+/.test(condicao),
     `a condição do 501 não olha mais para o nome da opção: \`${condicao.trim()}\` — toda falha do Hermes viraria "atualize o binário", inclusive as do atendimento, que usa esta MESMA ponte`);
   verdade(/unrecognized|no such option|invalid/.test(condicao),
     `a condição do 501 não olha mais para a frase de opção desconhecida: \`${condicao.trim()}\``);

@@ -101,10 +101,56 @@ export type RespostaHermes = {
 /** Erro que carrega o motivo em linguagem de gente, para virar registro de auditoria. */
 export class FalhaDoHermes extends Error {
   readonly motivo: string;
-  constructor(motivo: string) {
+  /**
+   * O CÓDIGO HTTP que a ponte devolveu, quando houve um. Existe para quem chama poder DECIDIR
+   * pelo código, e não lendo a frase do erro — que é a amarra invisível que esta casa já pagou
+   * caro (ver `contextoExcedido` em confirmarTriagemEGerar: a tela decidia procurando palavras
+   * dentro do texto, e bastou reescrever a frase para o advogado ficar sem os botões de saída).
+   *
+   * Quem usa isto hoje: `iniciarGeracaoNoHermes`, para distinguir "esta ponte ainda não tem o
+   * caminho assíncrono" (404) de qualquer outra falha — é essa distinção que deixa o Lúmen cair
+   * no caminho síncrono de sempre em vez de quebrar, no intervalo entre o deploy do Lúmen e a
+   * subida do arquivo novo na VPS.
+   */
+  readonly status: number | null;
+  constructor(motivo: string, status: number | null = null) {
     super(motivo);
     this.name = "FalhaDoHermes";
     this.motivo = motivo;
+    this.status = status;
+  }
+}
+
+/**
+ * A ponte desta máquina ainda não conhece `/chat-async`.
+ *
+ * NÃO É DEFEITO, é o intervalo entre duas coisas que não sobem no mesmo instante: o deploy do
+ * Lúmen (automático, na Vercel) e a cópia do `servidor.py` novo para a VPS (manual, pelo dono).
+ * Mesmo espírito do 501 de binário velho que já existe em `executar_hermes`: um estado previsto
+ * do mundo, com resposta própria — aqui, cair no caminho síncrono de sempre.
+ */
+export class PonteSemCaminhoAssincrono extends FalhaDoHermes {
+  constructor() {
+    super("esta ponte ainda não tem o caminho assíncrono (/chat-async)", 404);
+    this.name = "PonteSemCaminhoAssincrono";
+  }
+}
+
+/**
+ * A ponte não conhece mais esta tarefa.
+ *
+ * TAMBÉM É ESTADO POSSÍVEL DO MUNDO, e não erro de programação: as tarefas vivem na MEMÓRIA da
+ * ponte, então um reinício do serviço (atualização, `systemctl restart`, a máquina reiniciando)
+ * apaga todas. O mesmo vale para uma tarefa que venceu por tempo, ou cujo resultado já foi lido
+ * e gravado por outro caminho (a tela e o cron podem olhar a mesma sessão).
+ *
+ * Quem chama tem a OBRIGAÇÃO de traduzir isto numa recusa falada — "a geração se perdeu, tente de
+ * novo" — nunca num erro cru na tela, e nunca numa espera que não termina.
+ */
+export class GeracaoPerdidaNaPonte extends FalhaDoHermes {
+  constructor() {
+    super("a ponte não conhece mais esta geração (reiniciou, venceu, ou o resultado já foi entregue)", 404);
+    this.name = "GeracaoPerdidaNaPonte";
   }
 }
 
@@ -166,6 +212,9 @@ async function chamar(
         resposta.status === 404
           ? "perfil do escritório não encontrado no Hermes"
           : `o servidor do Hermes respondeu ${resposta.status}${corpo ? `: ${corpo.slice(0, 200)}` : ""}`,
+        // O CÓDIGO VIAJA JUNTO COM A FRASE. Sem ele, quem chama só teria o texto para decidir — e
+        // decidir por texto foi exatamente o defeito que a tela de limite já teve de consertar.
+        resposta.status,
       );
     }
     return await resposta.json();
@@ -364,4 +413,106 @@ export async function perguntarAoHermes(dados: {
     resposta: texto,
     sessao: typeof corpo.sessao === "string" ? corpo.sessao : "",
   };
+}
+
+// ── O CAMINHO ASSÍNCRONO: DISPARAR E ACOMPANHAR ────────────────────────────────────────────
+//
+// POR QUE ELE EXISTE, em uma frase: o teto duro da Vercel é de 300 segundos, e uma peça a partir
+// de um processo de dezenas de páginas pode legitimamente precisar de mais. Esperar dentro da
+// requisição web é amarrar a QUALIDADE do trabalho ao tempo de um cano de rede — e foi assim que
+// uma geração real do dono morreu aos 240s com o agente ainda escrevendo, perdendo o trabalho
+// inteiro (e o custo) por causa de um relógio de HTTP.
+//
+// Aqui o Lúmen só DISPARA e volta na hora. Quem acompanha é a tela (enquanto o advogado estiver
+// olhando) e o cron (quando ele fechar a aba) — ver lib/peticionamentoGeracaoAssincrona.ts.
+//
+// AS ESPERAS DESTAS DUAS CHAMADAS SÃO CURTAS DE PROPÓSITO: nenhuma delas espera o agente. A
+// primeira só entrega o pedido e recebe um identificador; a segunda só pergunta "e aí?". Herdar
+// `ESPERA_PETICIONAMENTO_MS` (230s) aqui seria carregar, para dentro de uma chamada de meio
+// segundo, o relógio que esta entrega existe para tirar do caminho.
+const ESPERA_PARA_DISPARAR_MS = 20_000;
+const ESPERA_PARA_CONSULTAR_MS = 15_000;
+
+/**
+ * Começa a geração na ponte e devolve o identificador da tarefa NA HORA.
+ *
+ * ESTOURA `PonteSemCaminhoAssincrono` quando a máquina ainda roda um `servidor.py` sem
+ * `/chat-async` (404). Quem chama tem de tratar isso caindo no caminho síncrono de sempre — é o
+ * intervalo entre o deploy do Lúmen e a subida do arquivo na VPS, não um defeito.
+ */
+export async function iniciarGeracaoNoHermes(dados: {
+  perfil: string;
+  mensagem: string;
+  sessao?: string | null;
+  ferramentas?: { url: string; credencial: string };
+}): Promise<{ tarefa: string }> {
+  let corpo: { tarefa?: unknown };
+  try {
+    corpo = (await chamar("/chat-async", {
+      corpo: {
+        perfil: dados.perfil,
+        mensagem: dados.mensagem,
+        sessao: dados.sessao || undefined,
+        ferramentas: dados.ferramentas,
+      },
+      esperaMs: ESPERA_PARA_DISPARAR_MS,
+    })) as { tarefa?: unknown };
+  } catch (erro) {
+    // PELO CÓDIGO, NUNCA PELA FRASE. Um 404 nesta rota só pode significar uma coisa — a ponte
+    // não conhece a rota —, porque o corpo do pedido nem chegou a ser validado.
+    if (erro instanceof FalhaDoHermes && erro.status === 404) throw new PonteSemCaminhoAssincrono();
+    throw erro;
+  }
+
+  const tarefa = typeof corpo.tarefa === "string" ? corpo.tarefa.trim() : "";
+  // Sem identificador não há o que acompanhar: falhar AQUI é melhor que gravar uma sessão em
+  // GERANDO que ninguém jamais poderá colher — ela ficaria parada na tela até o prazo máximo.
+  if (!tarefa) throw new FalhaDoHermes("a ponte aceitou a geração mas não devolveu o identificador da tarefa");
+  return { tarefa };
+}
+
+/** Em que pé está uma geração disparada — o contrato de `GET /resultado/<id>` da ponte. */
+export type EstadoDaGeracao =
+  | { estado: "trabalhando" }
+  | { estado: "pronto"; resposta: string; sessao: string }
+  | { estado: "falhou"; erro: string };
+
+/**
+ * Pergunta à ponte em que pé está uma geração.
+ *
+ * ESTOURA `GeracaoPerdidaNaPonte` quando a tarefa é desconhecida (a ponte reiniciou, a tarefa
+ * venceu, ou o resultado já foi lido por outro caminho). Quem chama traduz isso numa recusa
+ * falada — nunca num erro cru, nunca numa espera infinita.
+ */
+export async function consultarGeracaoNoHermes(tarefa: string): Promise<EstadoDaGeracao> {
+  // O identificador vai na URL: nunca deixar passar o que não é um identificador. Sem isto, um
+  // valor com barra viraria outro caminho na ponte, e um com `..` viraria uma tentativa de subir
+  // de rota — a mesma disciplina que a ponte já aplica do lado dela (TAREFA_VALIDA).
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(tarefa)) throw new GeracaoPerdidaNaPonte();
+
+  let corpo: { estado?: unknown; resposta?: unknown; sessao?: unknown; erro?: unknown };
+  try {
+    corpo = (await chamar(`/resultado/${tarefa}`, { metodo: "GET", esperaMs: ESPERA_PARA_CONSULTAR_MS })) as {
+      estado?: unknown;
+    };
+  } catch (erro) {
+    if (erro instanceof FalhaDoHermes && erro.status === 404) throw new GeracaoPerdidaNaPonte();
+    throw erro;
+  }
+
+  if (corpo.estado === "pronto") {
+    const texto = typeof corpo.resposta === "string" ? corpo.resposta.trim() : "";
+    // Resposta vazia é falha, não resposta — mesma regra de `perguntarAoHermes`: sem isto a tela
+    // mostraria uma minuta em branco e o advogado não saberia se o agente quebrou.
+    if (!texto) return { estado: "falhou", erro: "o Hermes respondeu vazio" };
+    return { estado: "pronto", resposta: texto, sessao: typeof corpo.sessao === "string" ? corpo.sessao : "" };
+  }
+  if (corpo.estado === "falhou") {
+    return { estado: "falhou", erro: typeof corpo.erro === "string" && corpo.erro ? corpo.erro : "falha ao executar o Hermes" };
+  }
+  // Qualquer outra coisa é "ainda trabalhando". FAIL-OPEN de propósito, e só aqui: um estado
+  // desconhecido vindo de uma ponte mais nova não pode virar "falhou" e jogar fora uma peça que
+  // ainda está sendo escrita. Quem fecha este caminho é o prazo máximo da geração, do lado do
+  // Lúmen (ver lib/peticionamentoGeracaoAssincrona.ts) — nunca uma espera sem fim.
+  return { estado: "trabalhando" };
 }

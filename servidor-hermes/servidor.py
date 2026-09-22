@@ -11,6 +11,21 @@ poderia ter funcionado de lá.
 Este arquivo é a peça que faltava: recebe a pergunta por HTTP, executa o Hermes aqui, devolve a
 resposta. Só isso.
 
+DOIS CAMINHOS, E O SEGUNDO É O QUE TIRA A ESPERA DE DENTRO DA REQUISIÇÃO WEB
+---------------------------------------------------------------------------
+- `POST /chat` é o caminho de sempre: espera o Hermes e devolve a resposta na mesma requisição. É
+  por ele que o atendimento (a Ana) fala, e ele NÃO MUDA — nem de comportamento, nem de código de
+  erro, nem de frase de recusa.
+- `POST /chat-async` recebe o MESMO corpo, começa o trabalho numa thread e devolve NA HORA um
+  identificador de tarefa; `GET /resultado/<id>` diz em que pé está. Existe porque o teto duro da
+  Vercel é de 300 segundos, e uma peça a partir de um processo de dezenas de páginas pode
+  legitimamente precisar de mais — limitar o agente para caber num cano de rede é limitar a
+  qualidade do trabalho ao tempo de uma requisição HTTP.
+
+E O AGENTE PASSOU A SABER QUE HÁ PRAZO: `--run-budget`, derivado de `HERMES_TIMEOUT_S` (ver
+ORCAMENTO_S), faz o Hermes receber um aviso para concluir aos 80% do tempo em vez de ser MORTO no
+meio da redação, que foi o defeito real registrado nesta VPS.
+
 SEM DEPENDÊNCIA NENHUMA, de propósito. Só a biblioteca padrão do Python 3 — nada de pip, nada de
 ambiente virtual, nada que quebre numa atualização do sistema daqui a seis meses.
 
@@ -36,8 +51,11 @@ import json
 import logging
 import os
 import re
+import secrets
 import subprocess
 import sys
+import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERMES_BIN = os.environ.get("HERMES_BIN", "/usr/local/bin/hermes")
@@ -66,6 +84,67 @@ PORTA = int(os.environ.get("HERMES_PORT", "8787"))
 # O caminho da Ana (atendimento) NAO muda com isto: ela continua desistindo em ESPERA_MS (105s)
 # do lado do Lumen, muito antes deste teto. Subir o teto daqui nao afrouxa nada do lado dela.
 ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "240"))
+
+# ── O ORCAMENTO DO AGENTE, E POR QUE ELE E DERIVADO DE ESPERA_S ──────────────────────────────
+#
+# O DEFEITO REAL, do registro da VPS (dois documentos anexados, uma decisao judicial em PDF e um
+# parecer em DOCX):
+#
+#   subprocess.TimeoutExpired: Command '['/usr/local/bin/hermes', '-p', 'peticionamento-lumen',
+#   'chat', ...]' timed out after 240 seconds
+#   BrokenPipeError: [Errno 32] Broken pipe
+#
+# O Hermes passou de 240s SEM TERMINAR e foi MORTO no meio da redacao. O cano quebrado veio logo
+# atras: o Lumen ja havia desistido aos 230s, entao quando esta ponte tentou responder nao havia
+# mais ninguem do outro lado. O advogado leu "DEMORA: o Hermes nao respondeu em 230s" e TODO o
+# trabalho (e o custo das chamadas de modelo) se perdeu.
+#
+# `hermes chat` aceita `--run-budget SEGUNDOS`. A propria ajuda do binario descreve o que ele faz:
+# aos 80% do orcamento o agente recebe UM aviso para concluir, e os tempos implicitos de provedor
+# passam a ser limitados ao que resta do orcamento, para uma unica chamada pendurada nao consumir
+# a execucao inteira. Sem ele, o agente trabalha SEM SABER que ha prazo — e a unica coisa que
+# acontece no fim do prazo e a morte do processo.
+#
+# A diferenca e entre "perdeu tudo" e "entregou uma minuta".
+#
+# DERIVADO, NUNCA UM SEGUNDO NUMERO SOLTO. Se o orcamento fosse escrito a mao (por exemplo, 215),
+# bastaria alguem baixar HERMES_TIMEOUT_S para 120 numa maquina menor para o `subprocess` voltar a
+# matar o agente antes de o orcamento sequer avisa-lo — o defeito de hoje, de volta, em silencio.
+# Aqui o orcamento e SEMPRE ESPERA_S menos uma folga, entao mover um move o outro junto.
+#
+# O QUE A FOLGA COMPRA: o aviso de conclusao chega aos 80% do orcamento; do aviso ate o fim do
+# orcamento o agente ainda tem 20% para fechar o texto; e depois do fim do orcamento ele ainda tem
+# a FOLGA inteira para escrever a resposta na saida padrao antes de o `subprocess` matar o
+# processo. Com os padroes de hoje (240s e 25s): orcamento de 215s, aviso aos 172s, 43s para
+# concluir, e 25s de margem entre o fim do orcamento e a machadada. Quem termina a execucao passa
+# a ser o AGENTE, e nao o sistema operacional — que e o ponto inteiro desta mudanca.
+#
+# O PISO DE 30s existe para uma instalacao com HERMES_TIMEOUT_S muito curto nao acabar com um
+# orcamento zero ou negativo, que o binario rejeitaria (ou, pior, trataria como "sem orcamento").
+FOLGA_DO_ORCAMENTO_S = int(os.environ.get("HERMES_RUN_BUDGET_FOLGA_S", "25"))
+ORCAMENTO_S = max(30, ESPERA_S - FOLGA_DO_ORCAMENTO_S)
+
+# ── O TETO DE ITERACOES DE FERRAMENTA ────────────────────────────────────────────────────────
+#
+# `--max-turns` e o numero maximo de iteracoes de chamada de ferramenta por turno de conversa, e o
+# padrao do binario e 500.
+#
+# 500 E MUITO PARA UMA PECA, e o numero errado pelo motivo errado: uma ferramenta em laco (uma
+# busca que sempre devolve o mesmo resultado, uma leitura que nunca converge) gasta o orcamento
+# INTEIRO sem escrever uma linha — e aí o aviso de conclusao dos 80% chega a um agente que passou
+# o tempo todo girando, e o que ele "entrega" e o nada que ele tem. O orcamento sozinho nao
+# protege disso; ele so garante que o nada chegue no prazo.
+#
+# 60 E O NUMERO, e ele nao e chute: o pedido de peticionamento ja leva o TEXTO dos documentos
+# DENTRO da pergunta (ver PERGUNTA_MAXIMA abaixo — ate 200.000 caracteres). O agente nao precisa
+# de dezenas de rodadas para ABRIR arquivo: ele precisa de algumas para consultar os dados do
+# escritorio pelas ferramentas do Lumen e conferir precedentes. Sessenta iteracoes sao varias
+# vezes o que uma geracao saudavel usa, e ainda assim um TETO — uma ferramenta travada bate nele
+# em vez de consumir os 215 segundos.
+#
+# CONFIGURAVEL de proposito, e com padrao seguro: se um dia uma peca legitimamente precisar de
+# mais, sobe-se HERMES_MAX_TURNS na maquina sem esperar deploy nenhum do Lumen.
+MAX_TURNS = int(os.environ.get("HERMES_MAX_TURNS", "60"))
 
 CORPO_MAXIMO = 512 * 1024  # 512 KiB, e este numero e em BYTES.
 #
@@ -194,6 +273,16 @@ class HermesDesatualizado(Exception):
     """
 
 
+class TarefasDemais(Exception):
+    """A memoria de tarefas da ponte esta cheia — nao da para comecar outra geracao agora.
+
+    Recusar AQUI, falado, e o ponto: uma tarefa pronta guarda uma peca inteira, e esta VPS tem
+    1,6 GB livres. Aceitar sem teto trocaria uma recusa honesta ("tente em alguns minutos") por
+    uma ponte que fica sem memoria no meio de tres geracoes ao mesmo tempo — e aí quem perde nao e
+    so quem chegou por ultimo, e todo mundo, inclusive o atendimento.
+    """
+
+
 def checar_argumentos(argumentos: list) -> None:
     """Recusa ANTES de executar, se algum argumento passar do teto do sistema operacional.
 
@@ -271,7 +360,18 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas:
     # SE UM DIA PRECISAR VOLTAR A SER ARQUIVO (por exemplo, se alguma versão do Hermes deixar de
     # aceitar `-`): o único lugar a mexer é este bloco — trocar `"-"` pelo caminho e `input=` por
     # um `try/finally` que grave e apague. Nada mais neste arquivo sabe por onde a pergunta viaja.
-    argumentos = [HERMES_BIN, "-p", perfil, "chat", "--query-file", "-", "--oneshot", "-Q"]
+    #
+    # ── E O AGENTE PASSOU A SABER QUE HA PRAZO ────────────────────────────────────────────────
+    #
+    # `--run-budget` e `--max-turns` entraram aqui porque, sem eles, o unico fim possivel de uma
+    # geracao longa era o `subprocess` MATAR o processo no meio da redacao (ver o comentario de
+    # ORCAMENTO_S, com o registro real de producao). Os dois numeros vem das constantes la de
+    # cima — derivados e configuraveis —, nunca escritos a mao nesta linha.
+    argumentos = [
+        HERMES_BIN, "-p", perfil, "chat", "--query-file", "-", "--oneshot", "-Q",
+        "--run-budget", str(ORCAMENTO_S),
+        "--max-turns", str(MAX_TURNS),
+    ]
     if sessao:
         argumentos += ["--resume", sessao]
 
@@ -304,8 +404,20 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas:
         # Binário antigo, que ainda não conhece `--query-file`. Merece resposta própria: o
         # conserto é atualizar o Hermes na máquina, e um "falha ao executar" genérico mandaria
         # quem cuida do servidor procurar defeito no lugar errado.
-        if "--query-file" in erro and ("unrecognized" in minusculo or "no such option" in minusculo or "invalid" in minusculo):
-            raise HermesDesatualizado(erro[:300])
+        # BINARIO VELHO — E A CONFERENCIA E DERIVADA DO QUE FOI MANDADO, nao de uma grafia fixa.
+        #
+        # Antes esta linha procurava literalmente "--query-file". Ela nasceu certa e envelheceu
+        # errada no minuto em que esta entrega passou a mandar TAMBEM `--run-budget` e
+        # `--max-turns`: um Hermes que nao conhecesse uma dessas duas cairia no balde do 500
+        # generico ("falha ao executar o Hermes"), e quem cuida do servidor iria procurar defeito
+        # no lugar errado — exatamente o que o 501 existe para evitar.
+        #
+        # Agora a lista sai do PROPRIO argv montado acima. Uma opcao nova acrescentada amanha ja
+        # nasce coberta, sem ninguem precisar lembrar de vir aqui.
+        opcoes_enviadas = [a for a in argumentos if a.startswith("--")]
+        desconhecida = next((o for o in opcoes_enviadas if o in erro), None)
+        if desconhecida and ("unrecognized" in minusculo or "no such option" in minusculo or "invalid" in minusculo):
+            raise HermesDesatualizado("%s — %s" % (desconhecida, erro[:260]))
         # O Hermes diz "profile ... not found" quando o escritório não foi provisionado. Esse caso
         # tem conserto pelo painel mestre, e não por quem cuida do servidor — por isso vira 404.
         if "profile" in minusculo and ("not found" in minusculo or "unknown" in minusculo):
@@ -317,6 +429,185 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas:
     nova_sessao = linha_sessao.replace("session_id:", "").strip() if linha_sessao else (sessao or "")
     resposta = "\n".join(l for l in linhas if not l.startswith("session_id:")).strip()
     return resposta, nova_sessao
+
+
+def classificar_falha(erro: Exception, perfil: str):
+    """Traduz uma falha de `executar_hermes` em (codigo HTTP, corpo JSON) — UM lugar so.
+
+    POR QUE ISTO VIROU FUNCAO. Ate esta entrega a traducao morava, escrita a mao, dentro do
+    `try/except` de `/chat`. Com o caminho assincrono passou a existir um SEGUNDO lugar que
+    precisa exatamente das mesmas frases: a tarefa que roda na thread nao tem requisicao HTTP
+    aberta para responder, mas guarda a falha para `/resultado/<id>` entregar depois.
+
+    Duas copias da mesma traducao divergiriam no primeiro dia em que alguem mexesse numa delas — e
+    a divergencia seria MUDA: o mesmo defeito daria uma recusa falada pelo caminho sincrono e uma
+    frase desconhecida pelo assincrono, que e justamente o que o Lumen nao sabe traduzir para o
+    advogado. Uma funcao so, e os dois caminhos chamam esta.
+
+    AS FRASES SAO AS MESMAS DE ANTES, ao pe da letra. O Lumen ja sabe traduzir cada uma delas numa
+    recusa acionavel (ver `confirmarTriagemEGerar`), e o atendimento (a Ana) usa ESTA MESMA ponte:
+    reescrever uma frase aqui mudaria, sem aviso, o que ela responde.
+    """
+    if isinstance(erro, ArgumentoGrandeDemais):
+        # MESMA FRASE da trava de tamanho da rota, e isso e intencional: o Lumen ja sabe traduzir
+        # "mensagem ausente ou longa demais" numa recusa falada, com os botoes de saida da tela de
+        # limite. Uma segunda frase para o mesmo motivo so criaria um caminho novo para o advogado
+        # ficar sem instrucao nenhuma.
+        log.error("argumento grande demais em %s: %s", perfil, erro)
+        return 400, {"erro": "mensagem ausente ou longa demais"}
+
+    if isinstance(erro, HermesDesatualizado):
+        # O conserto e do lado do servidor (atualizar o binario), nao do lado de quem perguntou. O
+        # nome da opcao vem do proprio erro — `executar_hermes` o poe na frente — para quem cuida
+        # da maquina saber QUAL opcao falta, em vez de sair conferindo todas.
+        log.error("hermes sem uma opcao que a ponte usa, em %s: %s", perfil, erro)
+        opcao = str(erro).split(" — ")[0].strip() or "desconhecida"
+        return 501, {
+            "erro": "esta instalação do hermes não conhece uma opção que a ponte usa (%s) — atualize o binário (ver LEIA-ME.md)" % opcao
+        }
+
+    if isinstance(erro, PerfilAusente):
+        # Tem conserto pelo painel mestre, e nao por quem cuida do servidor — por isso 404.
+        log.warning("perfil ausente: %s", erro)
+        return 404, {"erro": "perfil não provisionado"}
+
+    if isinstance(erro, subprocess.TimeoutExpired):
+        # DEPOIS DESTA ENTREGA, CAIR AQUI PASSOU A SER ANORMAL. Com `--run-budget` o agente recebe
+        # o aviso de conclusao aos 80% do orcamento e ainda tem a FOLGA inteira para escrever a
+        # resposta antes de o `subprocess` mata-lo. Se mesmo assim estourou, o registro leva os
+        # DOIS numeros — o teto do processo e o orcamento do agente —, porque a proxima
+        # investigacao comeca por saber se o orcamento estava mesmo chegando ao binario.
+        log.error("o Hermes passou de %ds em %s (orçamento do agente: %ds)", ESPERA_S, perfil, ORCAMENTO_S)
+        return 504, {"erro": "o Hermes demorou demais"}
+
+    # O BALDE. Qualquer falha inesperada vira 500 com motivo curto — e o Lumen sabe traduzir
+    # "falha ao executar o Hermes" numa recusa falada, porque um 500 opaco ja chegou cru a tela do
+    # advogado uma vez e nao pode chegar de novo.
+    log.error("falha ao executar o Hermes: %s", erro)
+    return 500, {"erro": "falha ao executar o Hermes"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+# O CAMINHO ASSINCRONO — a espera sai de dentro da requisicao web
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+#
+# O TETO DURO E A VERCEL: 300 segundos. Nenhuma funcao da plataforma passa disso, entao a corrente
+# de tempos de hoje (Lumen 230s < ponte 240s < nginx 280s < Vercel 300s) nao tem para onde
+# crescer. "Aumentar os tempos" nao e conserto: e adiar. Uma peca a partir de um processo de
+# dezenas de paginas pode legitimamente precisar de mais do que 300s, e limitar o agente para
+# caber numa requisicao HTTP e limitar a QUALIDADE do trabalho ao tempo de um cano de rede.
+#
+# Por isso a geracao passa a ser um TRABALHO COM NOME: `POST /chat-async` comeca o trabalho numa
+# thread e devolve NA HORA um identificador; `GET /resultado/<id>` diz em que pe esta. O Lumen
+# dispara, volta na hora, e acompanha — pela tela, enquanto o advogado estiver olhando, e pelo
+# cron, quando ele fechar a aba.
+#
+# `/chat` SINCRONO CONTINUA EXISTINDO, INTACTO. O atendimento (a Ana) usa esta mesma ponte, e o
+# pedido dela — uma pergunta de conversa, com teto de 105s do lado do Lumen — nunca precisou de
+# nada disto. Esta entrega nao encosta no caminho dela: e regra, nao preferencia.
+#
+# AS TAREFAS VIVEM EM MEMORIA, e e por isso que elas tem teto e validade:
+#
+#   · TETO DE QUANTIDADE — uma tarefa pronta guarda uma PECA INTEIRA (ate algumas centenas de
+#     KiB). Sem teto, a ponte vira um vazamento de memoria que guarda pecas, e esta VPS tem 1,6 GB
+#     livres. Cheia, a ponte RECUSA comecar outra (503) em vez de aceitar e ficar sem memoria no
+#     meio — recusar cedo e falado e sempre melhor que morrer no meio.
+#   · VALIDADE (TTL) — uma tarefa que ninguem veio buscar (a aba fechou, o Lumen caiu) nao pode
+#     ficar de pe para sempre.
+#   · SOME DEPOIS DE LIDA — assim que `/resultado/<id>` entrega um estado FINAL (pronto ou
+#     falhou), a tarefa sai da memoria. O conteudo de uma peca nao fica guardado aqui um segundo
+#     a mais do que o necessario para atravessar a rede uma vez.
+#
+# E O CONTEUDO NUNCA VAI AO REGISTRO. Mesma disciplina que o resto do arquivo ja tem: fica o
+# tamanho, o perfil e o estado — nunca a pergunta nem a resposta, que sao dados de cliente de
+# escritorio de advocacia.
+#
+# SE A PONTE REINICIAR, AS TAREFAS SOMEM. Isso e estado possivel do mundo, nao erro de
+# programacao: `/resultado/<id>` de tarefa desconhecida responde 404 com `estado: "desconhecida"`,
+# e e o Lumen que transforma isso numa recusa falada ("a geracao se perdeu, tente de novo") — em
+# vez de um erro cru na tela ou, pior, de uma espera que nunca termina.
+
+TAREFAS_MAXIMAS = int(os.environ.get("HERMES_TAREFAS_MAXIMAS", "32"))
+TAREFA_VALIDADE_S = int(os.environ.get("HERMES_TAREFA_VALIDADE_S", "1800"))
+
+# O identificador nao e sequencial de proposito. A autorizacao de `/resultado/<id>` e a MESMA de
+# `/chat` (o segredo da ponte), e ela e que segura a porta; mas um id sorteado e a segunda tranca:
+# mesmo com o segredo em maos, ninguem adivinha o id da geracao de outro escritorio.
+TAREFA_VALIDA = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
+
+_tarefas: dict = {}
+_trava_das_tarefas = threading.Lock()
+
+
+def _descartar_vencidas(agora: float) -> int:
+    """Tira da memoria o que passou da validade. SO PODE SER CHAMADA COM A TRAVA NA MAO."""
+    vencidas = [chave for chave, tarefa in _tarefas.items() if agora - tarefa["criada_em"] > TAREFA_VALIDADE_S]
+    for chave in vencidas:
+        del _tarefas[chave]
+    return len(vencidas)
+
+
+def abrir_tarefa() -> str:
+    """Reserva uma tarefa e devolve o id. Estoura `TarefasDemais` quando a memoria ja esta cheia."""
+    agora = time.time()
+    with _trava_das_tarefas:
+        descartadas = _descartar_vencidas(agora)
+        if descartadas:
+            log.info("%d tarefa(s) vencida(s) descartada(s)", descartadas)
+        if len(_tarefas) >= TAREFAS_MAXIMAS:
+            raise TarefasDemais("%d tarefas em andamento, teto de %d" % (len(_tarefas), TAREFAS_MAXIMAS))
+        identificador = secrets.token_urlsafe(24)
+        _tarefas[identificador] = {"estado": "trabalhando", "criada_em": agora}
+        return identificador
+
+
+def fechar_tarefa(identificador: str, **dados) -> None:
+    """Grava o resultado FINAL de uma tarefa. Silenciosa se a tarefa ja venceu ou ja foi lida."""
+    with _trava_das_tarefas:
+        tarefa = _tarefas.get(identificador)
+        if tarefa is None:
+            return
+        tarefa.update(dados)
+
+
+def ler_tarefa(identificador: str):
+    """O estado de uma tarefa; `None` quando ela e desconhecida (venceu, foi lida, ou a ponte reiniciou).
+
+    LER UM ESTADO FINAL APAGA A TAREFA. O conteudo de uma peca nao fica na memoria da ponte depois
+    de atravessar a rede uma vez — e a consequencia disso esta escrita, de proposito, no desenho:
+    se o Lumen morrer entre ler e gravar, a geracao se perde e a proxima leitura diz
+    "desconhecida", que vira a recusa falada de sempre. Guardar para sempre "por via das duvidas"
+    seria trocar essa perda rara por um vazamento permanente de peca em memoria.
+    """
+    agora = time.time()
+    with _trava_das_tarefas:
+        _descartar_vencidas(agora)
+        tarefa = _tarefas.get(identificador)
+        if tarefa is None:
+            return None
+        if tarefa["estado"] == "trabalhando":
+            return dict(tarefa)
+        return dict(_tarefas.pop(identificador))
+
+
+def _trabalhar(identificador: str, perfil: str, mensagem: str, sessao, ferramentas) -> None:
+    """O corpo da thread: roda o MESMO `executar_hermes` do caminho sincrono e guarda o resultado.
+
+    NUNCA ESTOURA. Uma excecao que escapasse daqui morreria na thread e deixaria a tarefa
+    "trabalhando" para sempre — o advogado olhando uma tela que nunca muda, ate a validade. Todo
+    caminho de saida daqui fecha a tarefa.
+    """
+    try:
+        resposta, nova_sessao = executar_hermes(perfil, mensagem, sessao, ferramentas)
+        if not resposta:
+            fechar_tarefa(identificador, estado="falhou", erro="o Hermes respondeu vazio", codigo=502)
+            return
+        # O TAMANHO VAI AO REGISTRO, O CONTEUDO NAO.
+        log.info("tarefa concluída em %s (%d caracteres de resposta)", perfil, len(resposta))
+        fechar_tarefa(identificador, estado="pronto", resposta=resposta, sessao=nova_sessao)
+    except Exception as erro:  # noqa: BLE001 — a thread nao tem para quem estourar
+        codigo, corpo = classificar_falha(erro, perfil)
+        fechar_tarefa(identificador, estado="falhou", erro=corpo.get("erro", "falha ao executar o Hermes"), codigo=codigo)
 
 
 def executar_provisionamento(argumentos: list, espera_s: int):
@@ -465,6 +756,44 @@ class Ponte(BaseHTTPRequestHandler):
                 self._responder(500, {"erro": "falha ao ler memória da máquina"})
             return
 
+        # ── O RESULTADO DE UMA GERACAO ────────────────────────────────────────────────────────
+        #
+        # A MESMA AUTORIZACAO DE `/chat`, e isto nao e detalhe: um id vazado nao pode virar porta
+        # de leitura de peca alheia. O id e sorteado (nao da para adivinhar o do vizinho) E a
+        # porta exige o segredo da ponte — as duas trancas, nao uma.
+        if self.path.startswith("/resultado/"):
+            if not self._autorizado():
+                log.warning("recusada: credencial inválida em /resultado")
+                self._responder(401, {"erro": "não autorizado"})
+                return
+            identificador = self.path[len("/resultado/"):]
+            if not TAREFA_VALIDA.match(identificador):
+                self._responder(400, {"erro": "identificador de tarefa inválido"})
+                return
+            tarefa = ler_tarefa(identificador)
+            if tarefa is None:
+                # TAREFA DESCONHECIDA — E ISTO E ESTADO POSSIVEL DO MUNDO, NAO DEFEITO.
+                #
+                # Tres caminhos chegam aqui, e os tres sao normais: a ponte REINICIOU (as tarefas
+                # vivem em memoria); a tarefa VENCEU sem ninguem vir busca-la; ou alguem ja LEU o
+                # resultado (e ler um estado final apaga a tarefa, de proposito — ver `ler_tarefa`).
+                #
+                # Por isso a resposta e FALADA e tem estado proprio: o Lumen a transforma numa
+                # recusa em portugues ("a geracao se perdeu, tente de novo"), e nunca numa espera
+                # que nao termina — que seria o pior dos mundos para quem esta olhando a tela.
+                self._responder(404, {"estado": "desconhecida", "erro": "tarefa desconhecida — a ponte pode ter reiniciado, ou o resultado já foi entregue"})
+                return
+            if tarefa["estado"] == "trabalhando":
+                self._responder(200, {"estado": "trabalhando"})
+                return
+            if tarefa["estado"] == "pronto":
+                # O CONTEUDO SO ATRAVESSA A REDE, nunca o registro (ver a disciplina no topo do
+                # arquivo): aqui vai a peca; no `log` foi so o tamanho dela.
+                self._responder(200, {"estado": "pronto", "resposta": tarefa.get("resposta", ""), "sessao": tarefa.get("sessao", "")})
+                return
+            self._responder(200, {"estado": "falhou", "erro": tarefa.get("erro", "falha ao executar o Hermes"), "codigo": tarefa.get("codigo", 500)})
+            return
+
         self._responder(404, {"erro": "rota desconhecida"})
 
     def do_POST(self):  # noqa: N802
@@ -490,14 +819,34 @@ class Ponte(BaseHTTPRequestHandler):
             self._provisionamento()
             return
 
-        if self.path != "/chat":
-            self._responder(404, {"erro": "rota desconhecida"})
+        # AS DUAS PORTAS DE PERGUNTA, e elas compartilham a validacao inteira (`_ler_pedido_de_chat`)
+        # de proposito: um teto que valesse numa e nao na outra seria uma porta dos fundos em volta
+        # do teto — e quem entra por ela e o pedido grande demais, que e o que este arquivo passou
+        # duas entregas aprendendo a recusar cedo e falado.
+        if self.path in ("/chat", "/chat-async"):
+            pedido = self._ler_pedido_de_chat()
+            if pedido is None:
+                return  # a recusa ja foi respondida por quem validou
+            if self.path == "/chat":
+                self._chat_sincrono(*pedido)
+            else:
+                self._chat_assincrono(*pedido)
             return
 
+        self._responder(404, {"erro": "rota desconhecida"})
+
+    def _ler_pedido_de_chat(self):
+        """Autoriza, le e confere o corpo de uma pergunta. Devolve a tupla do pedido, ou `None`
+        quando ja respondeu a recusa (e aí quem chamou so precisa voltar).
+
+        UMA VALIDACAO SO PARA AS DUAS ROTAS. `/chat` e `/chat-async` recebem o MESMO corpo; se
+        cada uma conferisse por conta propria, bastaria alguem consertar um teto num lugar para o
+        outro continuar aceitando o que este arquivo inteiro existe para recusar.
+        """
         if not self._autorizado():
             log.warning("recusada: credencial inválida")
             self._responder(401, {"erro": "não autorizado"})
-            return
+            return None
 
         try:
             tamanho = int(self.headers.get("content-length", "0"))
@@ -505,13 +854,13 @@ class Ponte(BaseHTTPRequestHandler):
             tamanho = 0
         if tamanho <= 0 or tamanho > CORPO_MAXIMO:
             self._responder(413, {"erro": "corpo ausente ou grande demais"})
-            return
+            return None
 
         try:
             corpo = json.loads(self.rfile.read(tamanho).decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             self._responder(400, {"erro": "corpo inválido"})
-            return
+            return None
 
         perfil = str(corpo.get("perfil") or "")
         mensagem = str(corpo.get("mensagem") or "").strip()
@@ -522,30 +871,30 @@ class Ponte(BaseHTTPRequestHandler):
         if ferramentas is not None:
             if not isinstance(ferramentas, dict):
                 self._responder(400, {"erro": "ferramentas inválidas"})
-                return
+                return None
             url_ferramentas = str(ferramentas.get("url") or "")
             # Só HTTPS: a credencial da pergunta viaja neste endereço, e em texto limpo ela
             # entregaria a quem estiver no caminho o direito de consultar aquele escritório.
             if not url_ferramentas.startswith("https://"):
                 self._responder(400, {"erro": "a url das ferramentas precisa ser https"})
-                return
+                return None
             if not str(ferramentas.get("credencial") or ""):
                 self._responder(400, {"erro": "credencial das ferramentas ausente"})
-                return
+                return None
 
         if not PERFIL_VALIDO.match(perfil):
             self._responder(400, {"erro": "perfil inválido"})
-            return
+            return None
         # EM CARACTERES, e de propósito: PERGUNTA_MAXIMA é um teto de CARACTERES (é assim que ele
         # está escrito, é assim que o Lúmen o espelha, e é o texto da pergunta que ele mede).
         # Quem conta BYTES aqui dentro é CORPO_MAXIMO, lá em cima, sobre o `content-length` —
         # duas travas, duas unidades, cada uma medindo o que de fato limita.
         if not mensagem or len(mensagem) > PERGUNTA_MAXIMA:
             self._responder(400, {"erro": "mensagem ausente ou longa demais"})
-            return
+            return None
         if sessao and not SESSAO_VALIDA.match(sessao):
             self._responder(400, {"erro": "sessão inválida"})
-            return
+            return None
 
         # O conteúdo da pergunta NÃO entra no registro: são dados de cliente.
         # Nem a pergunta nem a credencial entram no registro: uma é dado de cliente, a outra abre
@@ -554,38 +903,26 @@ class Ponte(BaseHTTPRequestHandler):
         # O TAMANHO VAI NAS DUAS UNIDADES. Foi este registro que revelou o defeito do argv — e ele
         # mostrava só caracteres, justamente a unidade que NÃO era a do limite estourado. Com os
         # bytes ao lado, a próxima investigação começa com o número certo na mão.
-        log.info("pergunta para %s (%d caracteres, %d bytes, %s, ferramentas: %s)", perfil,
+        log.info("pergunta para %s (%d caracteres, %d bytes, %s, ferramentas: %s, via %s)", perfil,
                  len(mensagem), len(mensagem.encode("utf-8")),
-                 "continuando" if sessao else "nova conversa", "sim" if ferramentas else "nao")
+                 "continuando" if sessao else "nova conversa", "sim" if ferramentas else "nao",
+                 self.path.lstrip("/"))
 
+        return perfil, mensagem, sessao, ferramentas
+
+    def _chat_sincrono(self, perfil, mensagem, sessao, ferramentas):
+        """O caminho de sempre: espera o Hermes dentro da requisição e responde com a peça pronta.
+
+        NÃO MUDOU DE COMPORTAMENTO NESTA ENTREGA, e é regra que não mude: o atendimento (a Ana)
+        fala por aqui, com o teto de 105s do lado do Lúmen, e nada do caminho assíncrono pode
+        chegar até ela. Os códigos e as frases de recusa são os mesmos de antes — hoje eles vêm de
+        `classificar_falha`, que é a MESMA tradução de antes, agora num lugar só (ver lá).
+        """
         try:
             resposta, nova_sessao = executar_hermes(perfil, mensagem, sessao, ferramentas)
-        except ArgumentoGrandeDemais as erro:
-            # MESMA FRASE da trava de tamanho lá em cima, e isso é intencional: o Lúmen já sabe
-            # traduzir "mensagem ausente ou longa demais" numa recusa falada e acionável, com os
-            # botões de saída da tela de limite. Uma segunda frase para o mesmo motivo só criaria
-            # um caminho novo para o advogado ficar sem instrução nenhuma.
-            log.error("argumento grande demais em %s: %s", perfil, erro)
-            self._responder(400, {"erro": "mensagem ausente ou longa demais"})
-            return
-        except HermesDesatualizado as erro:
-            log.error("hermes sem --query-file em %s: %s", perfil, erro)
-            self._responder(
-                501,
-                {"erro": "esta instalação do hermes não conhece --query-file — atualize o binário (ver LEIA-ME.md)"},
-            )
-            return
-        except PerfilAusente as erro:
-            log.warning("perfil ausente: %s", erro)
-            self._responder(404, {"erro": "perfil não provisionado"})
-            return
-        except subprocess.TimeoutExpired:
-            log.error("o Hermes passou de %ds em %s", ESPERA_S, perfil)
-            self._responder(504, {"erro": "o Hermes demorou demais"})
-            return
-        except Exception as erro:  # noqa: BLE001 — qualquer falha vira 500 com motivo curto
-            log.error("falha ao executar o Hermes: %s", erro)
-            self._responder(500, {"erro": "falha ao executar o Hermes"})
+        except Exception as erro:  # noqa: BLE001 — a tradução inteira mora em classificar_falha
+            codigo, corpo = classificar_falha(erro, perfil)
+            self._responder(codigo, corpo)
             return
 
         if not resposta:
@@ -593,6 +930,33 @@ class Ponte(BaseHTTPRequestHandler):
             return
 
         self._responder(200, {"resposta": resposta, "sessao": nova_sessao})
+
+    def _chat_assincrono(self, perfil, mensagem, sessao, ferramentas):
+        """Começa o trabalho numa thread e devolve o identificador NA HORA.
+
+        202, e não 200: o pedido foi aceito, o trabalho não terminou. Quem chama volta em
+        `GET /resultado/<id>` para saber em que pé está.
+        """
+        try:
+            identificador = abrir_tarefa()
+        except TarefasDemais as erro:
+            # RECUSA FALADA, e 503 (o servidor é que não pode agora), nunca 500. E NÃO é para o
+            # Lúmen cair no caminho síncrono aqui: a ponte estar cheia é justamente o momento em
+            # que segurar mais uma requisição de quatro minutos seria a pior escolha possível.
+            log.warning("recusada: %s", erro)
+            self._responder(503, {"erro": "a ponte já está com o máximo de gerações em andamento — tente de novo em alguns minutos"})
+            return
+
+        threading.Thread(
+            target=_trabalhar,
+            args=(identificador, perfil, mensagem, sessao, ferramentas),
+            # `daemon`: se a ponte for reiniciada, a thread não segura o desligamento. A tarefa se
+            # perde junto com a memória — estado previsto, com resposta própria em `/resultado`.
+            daemon=True,
+        ).start()
+
+        log.info("tarefa aberta para %s", perfil)
+        self._responder(202, {"tarefa": identificador})
 
     def _provisionamento(self):
         """Cria ou remove o perfil de um escritorio no Hermes.

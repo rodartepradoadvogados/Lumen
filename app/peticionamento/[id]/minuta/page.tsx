@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
 import { MinutaClient } from "@/components/peticionamento/MinutaClient";
+import { GerandoClient } from "@/components/peticionamento/GerandoClient";
 import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos, gravarPassoDaSessao } from "@/lib/actions/peticionamento";
 import { montarNotaObrigatoria, type PrecedenteCitado } from "@/lib/peticionamentoNotaObrigatoria";
 import { perfilDePeticionamento } from "@/lib/hermesPonte";
@@ -44,24 +45,43 @@ export default async function MinutaPage({ params }: { params: { id: string } })
   ]);
 
   if (sessao.status === "GERANDO") {
+    // A ESPERA SAIU DE DENTRO DA REQUISIÇÃO WEB (ver lib/peticionamentoGeracaoAssincrona.ts): a
+    // geração corre no servidor e esta tela ACOMPANHA. Antes ela era um parágrafo parado que
+    // prometia "1-2 minutos" — um número que ninguém media, numa tela que não dava sinal de vida
+    // e não sobrevivia a fechar a aba.
+    //
+    // `desdeMs` vem do servidor, medido: é o tempo desde que a geração começou, não uma estimativa
+    // de quanto falta (que não existe).
+    const inicio = (sessao.geracaoIniciadaEm ?? sessao.updatedAt).getTime();
     return (
       <ShellPeticionamento sessaoId={params.id} ativo="minuta" crumbAtual="Minuta" nomeUsuario={user.name} papelUsuario={user.role} temTrabalho={temTrabalho} rascunhosCount={rascunhosCount}>
         <div className="content">
-          <div className="callout">Gerando minuta com o Hermes — isto pode levar até 1-2 minutos.</div>
+          <GerandoClient sessaoId={params.id} desdeMsInicial={Math.max(0, Date.now() - inicio)} />
         </div>
       </ShellPeticionamento>
     );
   }
 
   if (sessao.status === "FALHA_GERACAO" || !sessao.minutaTexto) {
+    // O MOTIVO FALADO, QUANDO HÁ UM. `contextoBloqueadoMotivo` é onde a geração grava a frase que
+    // diz o que aconteceu e o que fazer (ponte reiniciada, tempo esgotado, pedido grande demais).
+    // O parágrafo genérico abaixo continua existindo porque ele ainda é a verdade para o caso
+    // mais comum de todos: o Hermes não configurado neste ambiente — mas ele deixou de ser a
+    // ÚNICA coisa que o advogado lê, que era como uma falha explicável virava um texto que não
+    // explicava nada.
+    const motivoGravado = sessao.contextoBloqueadoMotivo;
     return (
       <ShellPeticionamento sessaoId={params.id} ativo="minuta" crumbAtual="Minuta" nomeUsuario={user.name} papelUsuario={user.role} temTrabalho={temTrabalho} rascunhosCount={rascunhosCount}>
         <div className="content">
           <div className="callout callout-danger">
             <h2>Não foi possível gerar a minuta</h2>
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
-              O agente (perfil <span className="mono">peticionamento-lumen</span>) não respondeu. Isto costuma significar que o Hermes não está configurado ou
-              está indisponível neste ambiente — os dados desta sessão continuam salvos, nada foi perdido.
+              {motivoGravado ?? (
+                <>
+                  O agente (perfil <span className="mono">peticionamento-lumen</span>) não respondeu. Isto costuma significar que o Hermes não está configurado ou
+                  está indisponível neste ambiente — os dados desta sessão continuam salvos, nada foi perdido.
+                </>
+              )}
             </p>
           </div>
           <a className="btn btn-primary" style={{ marginTop: 16, width: "fit-content" }} href={`/peticionamento/${params.id}/confirmar`}>

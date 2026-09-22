@@ -47,5 +47,11 @@ next-env.d.ts
 docs/security-audit/.venv/
 docs/security-audit/__pycache__/
 
+# bytecode do Python — a ponte do Hermes (servidor-hermes/) e o harness que a sobe nos testes
+# (lib/testes/ponteHermes.harness.py) geram isto na máquina de quem roda, e ele muda a cada
+# versão do interpretador. Nunca entra no repositório.
+servidor-hermes/__pycache__/
+lib/testes/__pycache__/
+
 # claude code — preferências/hooks locais de cada máquina, não do time
 .claude/settings.local.json

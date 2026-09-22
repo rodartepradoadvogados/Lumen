@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { teste, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
+import { teste, igual, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
+import { documentosConsultados } from "@/lib/peticionamentoGeracaoAssincrona";
 
 // PRIORIDADE 1 (relatório da entrega "peticionamento lê documentos") — a lista de "documentos
 // consultados" só pode conter o que foi REALMENTE lido e enviado ao agente. Esta régua vive em
@@ -12,6 +13,9 @@ import { teste, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
 
 const RAIZ = process.cwd();
 const FONTE = readFileSync(join(RAIZ, "lib", "actions", "peticionamento.ts"), "utf8");
+// A GRAVAÇÃO DA MINUTA MUDOU DE ARQUIVO nesta entrega: ela saiu de dentro da requisição web e
+// passou a ser compartilhada pela tela, pelo cron e pelo caminho síncrono de compatibilidade.
+const FONTE_GERACAO = readFileSync(join(RAIZ, "lib", "peticionamentoGeracaoAssincrona.ts"), "utf8");
 
 const CORPO_GERAR = corpoDaFuncao(FONTE, "confirmarTriagemEGerar");
 const CODIGO_GERAR = codigoDe(CORPO_GERAR);
@@ -20,14 +24,68 @@ teste("a varredura acha confirmarTriagemEGerar com corpo substancial — varredu
   verdade(CORPO_GERAR.length > 800, `corpoDaFuncao("confirmarTriagemEGerar") devolveu ${CORPO_GERAR.length} caracteres`);
 });
 
-teste('TRAVA: "documentos consultados" nunca cai de volta para "todos os selecionados" — o fallback é a lista de LIDOS, nunca a lista de anexos/documentos por nome direto', () => {
-  verdade(CODIGO_GERAR.includes("documentosBaseConsultados: declaradosEValidos.length ? declaradosEValidos : nomesLidos"),
-    'a linha que decide documentosBaseConsultados mudou — precisa cair para "nomesLidos" (quem foi lido), nunca para a lista bruta de documentos selecionados (o comportamento antigo, que é a segunda mentira relatada pelo dono)');
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ADAPTADOS NA ENTREGA DA GERAÇÃO ASSÍNCRONA, e a adaptação melhorou os dois casos.
+//
+// ANTES: os dois casos abaixo eram VARREDURA, e varredura presa a UMA GRAFIA — um deles exigia,
+// literalmente, a string `documentosBaseConsultados: declaradosEValidos.length ? declaradosEValidos
+// : nomesLidos`. Quando a gravação da minuta saiu de `confirmarTriagemEGerar` (ela passou a
+// acontecer FORA da requisição web, e quem grava agora pode ser a tela OU o cron), os dois
+// ficaram vermelhos sem que uma vírgula da regra tivesse mudado.
+//
+// AGORA: a régua virou função pura (`documentosConsultados`, em
+// lib/peticionamentoGeracaoAssincrona.ts) e é EXERCITADA de verdade, com nome alucinado e com
+// declaração vazia. Varredura prova que o código EXISTE; exercício prova que ele FUNCIONA — e o
+// caso do `??` de socorro, achado numa rodada de mutação anterior desta casa, é a lembrança de
+// que a diferença não é acadêmica.
+//
+// A varredura NÃO SUMIU: ela continua, logo abaixo, garantindo que quem grava a sessão use ESTA
+// função em vez de uma segunda conta escrita à mão ao lado.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste('TRAVA (exercitada): "documentos consultados" nunca cai de volta para "todos os selecionados" — o socorro é a lista de LIDOS', () => {
+  const lidos = ["Contestação da operadora.pdf", "Relatório médico.pdf"];
+  // O agente não declarou nada (resposta sem a seção): o socorro é quem foi LIDO, e só.
+  igual(documentosConsultados([], lidos), lidos, "declaração vazia deveria cair para os documentos lidos: ");
+  // E "lidos" nunca é "selecionados": um documento marcado na sessão mas ilegível não está aqui,
+  // porque quem chama só passa os que leu — o teste prova que a função não inventa nenhum outro.
+  igual(documentosConsultados([], []), [], "sem documento lido, a lista é vazia — nunca uma lista inventada: ");
 });
 
-teste("TRAVA: a declaração do agente (documentosUsados) é FILTRADA contra quem foi realmente lido — nunca aceita um nome alucinado direto", () => {
-  verdade(/declaradosEValidos\s*=\s*estruturada\.documentosUsados\.filter\(\s*\(nome\)\s*=>\s*nomesLidos\.includes\(nome\)\)/.test(CODIGO_GERAR),
-    "a declaração do Hermes precisa ser filtrada contra nomesLidos antes de virar documentosBaseConsultados");
+teste("TRAVA (exercitada): a declaração do agente é FILTRADA contra quem foi realmente lido — nome alucinado nunca entra", () => {
+  const lidos = ["Contestação da operadora.pdf", "Relatório médico.pdf"];
+  igual(
+    documentosConsultados(["Relatório médico.pdf", "Laudo que nunca existiu.pdf"], lidos),
+    ["Relatório médico.pdf"],
+    "o nome alucinado deveria ter sido descartado: ",
+  );
+  // TODA a declaração alucinada: cai para os lidos, e NÃO devolve a lista alucinada por ser "a
+  // que o agente mandou".
+  igual(
+    documentosConsultados(["Laudo que nunca existiu.pdf"], lidos),
+    lidos,
+    "declaração inteiramente alucinada deveria cair para os lidos: ",
+  );
+  // Ordem e repetição vêm da declaração do agente quando ela é válida — nunca uma segunda lista.
+  igual(
+    documentosConsultados(["Relatório médico.pdf", "Contestação da operadora.pdf"], lidos),
+    ["Relatório médico.pdf", "Contestação da operadora.pdf"],
+    "a declaração válida deveria passar inteira: ",
+  );
+});
+
+teste("TRAVA: quem grava a sessão usa ESTA função — nunca uma segunda conta escrita ao lado", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_GERACAO, "gravarMinutaGerada"));
+  verdade(corpo.length > 400, `corpoDaFuncao("gravarMinutaGerada") devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(
+    /documentosBaseConsultados:\s*documentosConsultados\(/.test(corpo),
+    "a gravação da minuta precisa decidir os documentos consultados pela função que os testes exercitam — uma conta escrita à mão aqui divergiria dela em silêncio",
+  );
+  // E o texto do agente nunca vira a lista direto, sem passar pelo filtro.
+  verdade(
+    !/documentosBaseConsultados:\s*estruturada\.documentosUsados/.test(corpo),
+    "a declaração crua do agente virou a lista de consultados — é a primeira das duas mentiras que esta régua existe para impedir",
+  );
 });
 
 teste("TRAVA: documentosNaoLidos é montado a partir de quem NÃO foi lido (resultado.ok === false) e é persistido na sessão", () => {

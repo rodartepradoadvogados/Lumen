@@ -15,6 +15,11 @@ const FONTE_ACOES = readFileSync(join(RAIZ, "lib", "actions", "peticionamento.ts
 const FONTE_LAYOUT = readFileSync(join(RAIZ, "app", "peticionamento", "layout.tsx"), "utf8");
 const FONTE_PROMPT = readFileSync(join(RAIZ, "lib", "peticionamentoPrompt.ts"), "utf8");
 const FONTE_DOCX = readFileSync(join(RAIZ, "lib", "peticionamentoDocx.ts"), "utf8");
+// `sincronizarCitacoes` SAIU de lib/actions/peticionamento.ts nesta entrega. Não foi arrumação:
+// a gravação da minuta passou a poder acontecer no CRON, fora de qualquer requisição do
+// advogado, e aquele arquivo é `"use server"` — exportar de lá teria transformado uma função que
+// recebe `officeId` por parâmetro numa Server Action chamável do navegador.
+const FONTE_CITACOES = readFileSync(join(RAIZ, "lib", "peticionamentoCitacoesSync.ts"), "utf8");
 
 // ── Nunca protocolar (especificação §3) ─────────────────────────────────────────────────────
 
@@ -71,24 +76,117 @@ teste("HARD GATE: confirmarTriagemEGerar recusa gerar sem o mínimo, ANTES de ch
 
 // ── Fecho garantido em dois pontos (defesa em profundidade) ──────────────────────────────────
 
-teste("HARD GATE: o fecho é garantido tanto na geração quanto na exportação (nunca confiado a um só ponto)", () => {
-  const geracao = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarTriagemEGerar"));
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ADAPTADOS NA ENTREGA DA GERAÇÃO ASSÍNCRONA — e a adaptação vale explicação.
+//
+// Os dois casos abaixo nomeavam a FUNÇÃO onde a trava morava (`confirmarTriagemEGerar`). Quando a
+// geração saiu de dentro da requisição web, a gravação da minuta mudou de casa: hoje ela é uma
+// função só (`gravarMinutaGerada`, em lib/peticionamentoGeracaoAssincrona.ts) usada pelos TRÊS
+// caminhos — a tela, o cron e o síncrono de compatibilidade. Os dois casos ficaram vermelhos sem
+// que uma vírgula da regra tivesse mudado: o nome da função era uma amarra, não a regra.
+//
+// A REGRA DE VERDADE é outra, e é ela que passou a ser cobrada: **quem grava `minutaTexto` no
+// banco garante o fecho, e quem grava `notaRiscos` filtra antes** — onde quer que esteja, e
+// inclusive num lugar NOVO, criado amanhã, que ninguém lembrou de acrescentar a uma lista aqui.
+// A varredura DERIVA as funções a partir das próprias gravações, exatamente como
+// lib/testes/peticionamentoIsolamento.teste.ts deriva as ações a partir do arquivo.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+/** Os arquivos onde uma gravação de minuta pode morar — a busca varre todos. */
+const ARQUIVOS_QUE_GRAVAM = [
+  "lib/actions/peticionamento.ts",
+  "lib/peticionamentoGeracaoAssincrona.ts",
+  "lib/peticionamentoCitacoesSync.ts",
+];
+
+/**
+ * O bloco `data: { ... }` que começa em `de`, com as chaves balanceadas.
+ *
+ * BALANCEADO, e não "até a próxima chave": um `data` de Prisma tem objetos aninhados, e uma busca
+ * ingênua pararia no primeiro `}` interno — devolvendo um pedaço em que a trava procurada pode
+ * simplesmente não estar, e fazendo a varredura passar verde por não enxergar.
+ */
+function blocoBalanceado(codigo: string, de: number): string {
+  let profundidade = 0;
+  for (let i = de; i < codigo.length; i++) {
+    if (codigo[i] === "{") profundidade++;
+    else if (codigo[i] === "}") {
+      profundidade--;
+      if (profundidade === 0) return codigo.slice(de, i + 1);
+    }
+  }
+  return codigo.slice(de);
+}
+
+/**
+ * Toda função que ESCREVE `campo` num `data:` de Prisma, com o corpo dela já isolado.
+ *
+ * SÓ ESCRITA, nunca leitura: a primeira versão desta varredura procurava `campo:` no arquivo
+ * inteiro e encontrava `minutaTexto: sessao.minutaTexto` dentro de um `select` — acusando uma
+ * função que só LÊ de não garantir o fecho. É o mesmo gênero de cegueira que `codigoDe` e
+ * `corpoDaFuncao` existem para evitar: a varredura precisa olhar exatamente para o que ela diz
+ * que olha.
+ *
+ * Sem lista escrita à mão: um lugar NOVO que grave a minuta cai em vermelho sozinho.
+ */
+function funcoesQueGravam(campo: string): { onde: string; corpo: string }[] {
+  const achados: { onde: string; corpo: string }[] = [];
+  for (const rel of ARQUIVOS_QUE_GRAVAM) {
+    const fonte = readFileSync(join(RAIZ, rel), "utf8");
+    const codigo = codigoDe(fonte);
+    let de = 0;
+    for (;;) {
+      const pos = codigo.indexOf("data: {", de);
+      if (pos < 0) break;
+      de = pos + 1;
+      const bloco = blocoBalanceado(codigo, codigo.indexOf("{", pos));
+      if (!new RegExp(`(^|[\\s,{])${campo}\\s*:`).test(bloco)) continue;
+      const antes = codigo.slice(0, pos);
+      const cab = antes.lastIndexOf("function ");
+      if (cab < 0) continue;
+      const nome = antes.slice(cab + "function ".length).match(/^(\w+)/)?.[1] ?? codigo.slice(cab + "function ".length).match(/^(\w+)/)?.[1];
+      if (!nome) continue;
+      const corpo = codigoDe(corpoDaFuncao(fonte, nome));
+      if (corpo.length > 200 && !achados.some((a) => a.onde === `${rel}:${nome}`)) achados.push({ onde: `${rel}:${nome}`, corpo });
+    }
+  }
+  return achados;
+}
+
+teste("a varredura acha as gravações de minuta — uma lista vazia passaria verde sem provar nada", () => {
+  const gravamMinuta = funcoesQueGravam("minutaTexto");
+  verdade(gravamMinuta.length >= 1, `nenhuma função gravando minutaTexto encontrada em ${ARQUIVOS_QUE_GRAVAM.join(", ")}`);
+  const gravamRiscos = funcoesQueGravam("notaRiscos");
+  verdade(gravamRiscos.length >= 1, "nenhuma função gravando notaRiscos encontrada");
+});
+
+teste("HARD GATE: TODA função que grava a minuta garante o fecho — e a edição e a exportação reconferem", () => {
+  for (const { onde, corpo } of funcoesQueGravam("minutaTexto")) {
+    verdade(corpo.includes("garantirFecho("), `${onde} grava minutaTexto sem garantir o fecho — o fecho é garantido por CÓDIGO, nunca confiado ao modelo`);
+  }
+  // Defesa em profundidade: as duas reconferências continuam nomeadas, porque elas NÃO gravam
+  // `minutaTexto` no mesmo lugar (a exportação lê o que já está gravado) e sairiam da derivação.
   const edicao = codigoDe(corpoDaFuncao(FONTE_ACOES, "atualizarCorpoDaMinuta"));
   const exportacao = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarExportacao"));
-  verdade(geracao.includes("garantirFecho("), "geração deveria garantir o fecho");
+  verdade(edicao.length > 200 && exportacao.length > 200, "varredura cega: as funções de edição/exportação não foram encontradas");
   verdade(edicao.includes("garantirFecho("), "edição manual deveria reconferir o fecho");
   verdade(exportacao.includes("garantirFecho("), "exportação deveria reconferir o fecho de novo, por segurança");
 });
 
 // ── Nota de riscos nunca entra sem passar pelo filtro "aponta, não decide" ───────────────────
 
-teste("HARD GATE: a nota de riscos é sempre filtrada antes de ser gravada", () => {
-  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarTriagemEGerar"));
-  const idxFiltro = corpo.indexOf("filtrarNotaDeRiscos(");
-  const idxGravar = corpo.indexOf("notaRiscos: riscosComAviso");
-  verdade(idxFiltro !== -1, "deveria chamar filtrarNotaDeRiscos");
-  verdade(idxGravar !== -1, "deveria gravar a versão filtrada (riscosComAviso), nunca a bruta");
-  verdade(idxFiltro < idxGravar, "o filtro precisa rodar ANTES de gravar");
+teste("HARD GATE: TODA função que grava a nota de riscos filtra ANTES de gravar", () => {
+  for (const { onde, corpo } of funcoesQueGravam("notaRiscos")) {
+    const idxFiltro = corpo.indexOf("filtrarNotaDeRiscos(");
+    const idxGravar = corpo.indexOf("notaRiscos:");
+    verdade(idxFiltro !== -1, `${onde} grava notaRiscos sem chamar filtrarNotaDeRiscos`);
+    verdade(idxFiltro < idxGravar, `${onde} filtra DEPOIS de gravar — filtrar depois não filtra nada`);
+    // E o que é gravado é a versão filtrada, nunca a lista crua que o modelo escreveu.
+    verdade(
+      !/notaRiscos:\s*estruturada\.riscos/.test(corpo),
+      `${onde} grava a nota de riscos crua do modelo — é exatamente o "decide em vez de apontar" que esta trava impede`,
+    );
+  }
 });
 
 // ── Exportação: OAB + checkbox, sempre os dois, sempre no servidor ───────────────────────────
@@ -170,7 +268,7 @@ teste("HARD GATE: confirmarCitacaoIndividual grava quem confirmou e quando, uma 
 });
 
 teste("HARD GATE: sincronizarCitacoes apaga a citação cuja identidade não bate mais — é assim que editar invalida a confirmação", () => {
-  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  const corpo = codigoDe(corpoDaFuncao(FONTE_CITACOES, "sincronizarCitacoes"));
   verdade(corpo.length > 300, "corpoDaFuncao não encontrou sincronizarCitacoes");
   verdade(corpo.includes("peticionamentoCitacao.delete("), "deveria apagar citação cujo texto (na forma normalizada) não existe mais na lista atual");
   verdade(
@@ -200,7 +298,7 @@ teste("HARD GATE: sincronizarCitacoes apaga a citação cuja identidade não bat
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 teste("HARD GATE: mudança só na FORMA do texto preserva a confirmação — a invalidação é condicionada, nunca automática", () => {
-  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  const corpo = codigoDe(corpoDaFuncao(FONTE_CITACOES, "sincronizarCitacoes"));
   verdade(corpo.length > 300, "corpoDaFuncao não encontrou sincronizarCitacoes");
   const inicioUpdate = corpo.indexOf("prisma.peticionamentoCitacao.update(");
   verdade(inicioUpdate !== -1, "sincronizarCitacoes deveria ter um update para citação já existente");
@@ -216,7 +314,7 @@ teste("HARD GATE: mudança só na FORMA do texto preserva a confirmação — a 
 });
 
 teste("HARD GATE: mudança nos LINKS derruba a confirmação — o \"li e revisei\" não pode responder por um link que ninguém abriu", () => {
-  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  const corpo = codigoDe(corpoDaFuncao(FONTE_CITACOES, "sincronizarCitacoes"));
   verdade(/const mudaramOsLinks\s*=/.test(corpo),
     "sumiu a distinção entre mudou-a-forma-do-texto e mudaram-os-links — sem ela a confirmação sobrevive a uma troca de fonte");
   verdade(/existente\.fonteUrl !== item\.fonteUrl/.test(corpo) && /existente\.fonteSecundariaUrl !== item\.fonteSecundariaUrl/.test(corpo),

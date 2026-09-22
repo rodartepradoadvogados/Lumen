@@ -1673,3 +1673,86 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   A TELA DE "O AGENTE ESTÁ REDIGINDO" (components/peticionamento/GerandoClient.tsx).
+
+   NÃO HÁ BARRA DE PROGRESSO AQUI, e a ausência é a decisão: o sistema não recebe nenhum sinal do
+   agente sobre quanto falta. Uma barra que anda sozinha seria um número inventado. O que existe é
+   um PULSO (sinal de vida, sem escala) e o tempo decorrido, que é um fato medido.
+
+   Só tokens — nenhum hex cru, como o resto deste arquivo.
+   ============================================================ */
+.peticionamento .gerando {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  padding: 22px 24px;
+  max-width: 640px;
+}
+.peticionamento .gerando-cabeca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.peticionamento .gerando-cabeca h2 {
+  margin: 0;
+  font-size: 15px;
+}
+/* O PULSO: sinal de vida, não medida. Ele bate no mesmo compasso o tempo inteiro, justamente para
+   não sugerir avanço — um elemento que crescesse ou andasse seria lido como progresso. */
+.peticionamento .gerando-pulso {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 99px;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 var(--accent-bg);
+  animation: peticionamento-pulso 1.8s ease-in-out infinite;
+}
+@keyframes peticionamento-pulso {
+  0%,
+  100% {
+    opacity: 0.35;
+    box-shadow: 0 0 0 0 var(--accent-bg);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 6px var(--accent-bg);
+  }
+}
+/* Quem pediu para o sistema não animar (enjoo, vertigem, epilepsia fotossensível) continua vendo
+   o ponto — parado, e ainda aceso. A informação não depende do movimento. */
+@media (prefers-reduced-motion: reduce) {
+  .peticionamento .gerando-pulso {
+    animation: none;
+    opacity: 1;
+  }
+}
+.peticionamento .gerando-linha {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--tx-1);
+}
+.peticionamento .gerando-relogio {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
+  color: var(--tx-2);
+}
+.peticionamento .gerando-relogio .mono {
+  color: var(--tx-0);
+}
+.peticionamento .gerando-promessa {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-3);
+  color: var(--tx-1);
+}
+.peticionamento .gerando-promessa strong {
+  color: var(--tx-0);
+}

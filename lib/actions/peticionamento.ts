@@ -30,14 +30,27 @@ import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
 import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, type DeducaoDeNatureza } from "@/lib/peticionamentoNatureza";
 import { passoParaRetomar, ehPassoValido, hrefDoPasso, ROTULO_DO_PASSO, sessaoTemTrabalhoEmAndamento } from "@/lib/peticionamentoPasso";
 import { montarMensagemParaHermes, custoFixoDaMensagem, type DadosParaPrompt } from "@/lib/peticionamentoPrompt";
-import { interpretarRespostaHermes } from "@/lib/peticionamentoRespostaHermes";
-import { montarListaDeCitacoes, normalizarTextoCitacao, hashDeTexto, type PrecedenteParaCitacao } from "@/lib/peticionamentoCitacoes";
+import { hashDeTexto } from "@/lib/peticionamentoCitacoes";
+import { sincronizarCitacoes } from "@/lib/peticionamentoCitacoesSync";
 import { garantirFecho } from "@/lib/peticionamentoFecho";
-import { filtrarNotaDeRiscos, comAvisoDeContextoResumido } from "@/lib/peticionamentoRiscos";
 import { montarNotaObrigatoria } from "@/lib/peticionamentoNotaObrigatoria";
 import { montarNomeArquivoPeticao } from "@/lib/peticionamentoNomeArquivo";
 import { montarPeticaoWord } from "@/lib/peticionamentoDocx";
-import { hermesConfigurado, perguntarAoHermesComPerfil, perfilDePeticionamento, ESPERA_PETICIONAMENTO_MS, FalhaDoHermes } from "@/lib/hermesPonte";
+import {
+  hermesConfigurado,
+  perguntarAoHermesComPerfil,
+  perfilDePeticionamento,
+  ESPERA_PETICIONAMENTO_MS,
+  FalhaDoHermes,
+  iniciarGeracaoNoHermes,
+  PonteSemCaminhoAssincrono,
+} from "@/lib/hermesPonte";
+import {
+  colherGeracaoDaMinuta,
+  gravarMinutaGerada,
+  motivoFalado,
+  type AndamentoDaGeracao,
+} from "@/lib/peticionamentoGeracaoAssincrona";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 type VinculoJson = { caseIds: string[]; attendanceIds: string[]; assessoriaIds: string[] };
@@ -1047,85 +1060,6 @@ async function descricaoDoContexto(sessaoId: string, officeId: string): Promise<
 
 // ── CITAÇÕES — validação uma a uma antes de exportar (decisão do dono, 22/09/2026) ─────────────
 
-/**
- * Recalcula as linhas de PeticionamentoCitacao a partir do estado ATUAL da sessão (jurisprudência
- * estruturada + corpo da minuta) — chamada depois de toda geração e de toda edição do corpo, para
- * a lista nunca ficar desatualizada.
- *
- * IDENTIDADE de uma citação = (tipo, texto normalizado). Uma citação cujo texto mudou é, por
- * definição, OUTRA citação: a linha antiga (com a confirmação que carregava) é apagada, e a nova
- * entra sem confirmação nenhuma. É assim que "editar a minuta invalida a confirmação das citações
- * que mudaram" (decisão do dono) vira código — hashDoTexto é a impressão do texto gravada NA
- * confirmação, para auditoria; a invalidação em si acontece aqui, pela identidade deixar de bater.
- */
-async function sincronizarCitacoes(sessaoId: string, officeId: string): Promise<void> {
-  const sessao = await carregarSessaoOuFalhar(sessaoId, officeId);
-  const atuais = montarListaDeCitacoes({
-    jurisprudenciaCitada: ((sessao.jurisprudenciaCitada as PrecedenteParaCitacao[] | null) ?? []) as PrecedenteParaCitacao[],
-    minutaTexto: sessao.minutaTexto,
-  });
-
-  const existentes = await prisma.peticionamentoCitacao.findMany({ where: { sessaoId } });
-  const porChave = new Map(existentes.map((c) => [`${c.tipo}::${normalizarTextoCitacao(c.texto)}`, c]));
-  const chavesMantidas = new Set<string>();
-
-  const operacoes: Promise<unknown>[] = [];
-  for (const item of atuais) {
-    const chave = `${item.tipo}::${normalizarTextoCitacao(item.texto)}`;
-    chavesMantidas.add(chave);
-    const existente = porChave.get(chave);
-    if (existente) {
-      // Mesma identidade de TEXTO. Duas mudanças possíveis aqui, e elas NÃO valem o mesmo:
-      //
-      //  · só a FORMA do texto mudou (um espaço, uma quebra de linha, uma maiúscula — tudo que a
-      //    normalização já ignora): a confirmação SOBREVIVE. É para isso que a identidade é a
-      //    forma normalizada, e não a string crua.
-      //
-      //  · mudaram os LINKS: a confirmação CAI. Achado da revisão — antes, `fonteUrl` e
-      //    `fonteSecundariaUrl` eram atualizados junto com o texto e a confirmação seguia de pé.
-      //    A decisão do dono é explícita sobre o que o advogado está confirmando: "os links
-      //    utilizados na dupla validação para conferência, uma a uma". O "li e revisei" é sobre
-      //    a citação E os links por onde ela foi conferida. Como `jurisprudenciaCitada` é
-      //    repovoada a cada geração do Hermes, uma mesma ementa pode voltar com outra fonte
-      //    secundária (ou com uma que antes não existia) sem uma vírgula do texto mudar — e, com
-      //    o comportamento antigo, o "li e revisei" de ontem passava a responder por um link que
-      //    o advogado nunca abriu. É exatamente a responsabilidade que esta tela existe para
-      //    criar ("ninguém poderá dizer que não viu"), assinada em branco.
-      //
-      // hashDoTexto não socorre aqui: ele é impressão do TEXTO, e o texto não mudou.
-      const mudouAFormaDoTexto = existente.texto !== item.texto;
-      const mudaramOsLinks =
-        existente.fonteUrl !== item.fonteUrl || existente.fonteSecundariaUrl !== item.fonteSecundariaUrl;
-      if (mudouAFormaDoTexto || mudaramOsLinks) {
-        operacoes.push(
-          prisma.peticionamentoCitacao.update({
-            where: { id: existente.id },
-            data: {
-              texto: item.texto,
-              fonteUrl: item.fonteUrl,
-              fonteSecundariaUrl: item.fonteSecundariaUrl,
-              ...(mudaramOsLinks ? { confirmadaPorId: null, confirmadaEm: null, hashDoTexto: null } : {}),
-            },
-          }),
-        );
-      }
-    } else {
-      operacoes.push(
-        prisma.peticionamentoCitacao.create({
-          data: { sessaoId, tipo: item.tipo, texto: item.texto, fonteUrl: item.fonteUrl, fonteSecundariaUrl: item.fonteSecundariaUrl },
-        }),
-      );
-    }
-  }
-  // Sobrou no mapa quem não está mais na lista atual — a citação mudou de texto ou desapareceu; dos
-  // dois jeitos, uma confirmação antiga (se houver) não pode continuar valendo por um texto que já
-  // não existe mais na minuta.
-  for (const [chave, existente] of porChave) {
-    if (!chavesMantidas.has(chave)) operacoes.push(prisma.peticionamentoCitacao.delete({ where: { id: existente.id } }));
-  }
-  await Promise.all(operacoes);
-}
-
 export type CitacaoParaValidacao = {
   id: string;
   tipo: "EMENTA" | "TRECHO";
@@ -1361,49 +1295,22 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
   const documentosNaoLidos: { nome: string; motivo: string }[] = [];
   for (const d of documentos) if (!d.resultado.ok) documentosNaoLidos.push({ nome: d.nome, motivo: d.resultado.motivo });
 
-  try {
-    const resposta = await perguntarAoHermesComPerfil({
-      perfil: perfilDePeticionamento(),
-      mensagem,
-      sessao: sessao.hermesSessionId,
-      // NÃO é o `ESPERA_MS` padrão (105s, dimensionado para conversa de chat): este pedido leva o
-      // texto dos documentos e pode demorar minutos. Ver a corrente de tempos inteira no
-      // comentário de ESPERA_PETICIONAMENTO_MS.
-      esperaMs: ESPERA_PETICIONAMENTO_MS,
-    });
-    const estruturada = interpretarRespostaHermes(resposta.resposta);
-    const corpoComFecho = garantirFecho(estruturada.corpo);
-    const riscosFiltrados = filtrarNotaDeRiscos(estruturada.riscos);
-    const riscosComAviso = comAvisoDeContextoResumido(riscosFiltrados.aceitas, avaliacao.acao === "resumido");
-
-    // Filtra a declaração do agente contra o que REALMENTE foi lido — nunca aceita um nome
-    // alucinado (citado sem ter vindo no pacote), e nunca cai de volta para "todos os
-    // selecionados" quando a declaração vem vazia: cai para os que FORAM lidos, o único conjunto
-    // que pode ser chamado de "consultado" com verdade.
-    const declaradosEValidos = estruturada.documentosUsados.filter((nome) => nomesLidos.includes(nome));
-
+  // ── A TRADUÇÃO DA FALHA DE ENVIO, UM LUGAR SÓ PARA OS DOIS CAMINHOS ───────────────────────
+  //
+  // Fica aqui dentro, como fechamento, porque usa o tamanho MEDIDO deste pedido (caracteres e
+  // bytes) para a frase dizer ao advogado o número real — e porque os DOIS caminhos abaixo (o
+  // disparo assíncrono e o síncrono de compatibilidade) podem falhar pelos MESMOS motivos. Duas
+  // cópias desta tradução divergiriam, e a que divergisse deixaria o texto cru da ponte chegar à
+  // tela — que é exatamente o defeito que ela existe para não repetir.
+  const traduzirFalhaDeEnvio = async (e: unknown): Promise<{ error: string; contextoExcedido?: boolean }> => {
+    // A TAREFA MORRE COM A FALHA — é o contrato escrito no schema: os três campos do
+    // acompanhamento só existem enquanto a sessão está em GERANDO. Deixá-los gravados numa
+    // sessão que já desistiu convidaria uma colheita futura a perguntar por uma tarefa que
+    // ninguém mais vai buscar.
     await prisma.peticionamentoSessao.update({
       where: { id: sessaoId },
-      data: {
-        status: "GERADA",
-        minutaTexto: corpoComFecho,
-        notaRiscos: riscosComAviso,
-        jurisprudenciaCitada: estruturada.jurisprudencia as unknown as object,
-        documentosBaseConsultados: declaradosEValidos.length ? declaradosEValidos : nomesLidos,
-        documentosNaoLidos,
-        tipoPecaInferido: !sessao.tipoPeca && !!estruturada.tipoPecaInferido,
-        tipoPeca: !sessao.tipoPeca && estruturada.tipoPecaInferido ? estruturada.tipoPecaInferido : sessao.tipoPeca,
-        hermesSessionId: resposta.sessao || sessao.hermesSessionId,
-        geradoEm: new Date(),
-      },
+      data: { status: "FALHA_GERACAO", hermesTarefaId: null, geracaoIniciadaEm: null, geracaoDocumentosLidos: [] },
     });
-    // Popula a lista de validação de citações (decisão do dono, 22/09/2026) já na primeira
-    // geração — nunca deixa a tela de minuta abrir com a lista vazia por falta de sincronizar.
-    await sincronizarCitacoes(sessaoId, user.officeId);
-    revalidatePath(`/peticionamento/minuta`);
-    return { ok: true };
-  } catch (e) {
-    await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "FALHA_GERACAO" } });
     const motivo = e instanceof FalhaDoHermes ? e.motivo : mensagemDeErro(e);
     // REDE DE SEGURANÇA DA RECUSA FALADA: se, apesar de tudo, quem recusar for a ponte, o
     // advogado NUNCA lê o texto cru do erro dela — frases que não dizem o que ele deve fazer, e
@@ -1435,8 +1342,130 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
       await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { contextoBloqueadoMotivo: falado } });
       return { error: falado, contextoExcedido: true };
     }
-    return { error: `Não foi possível gerar a minuta: ${motivo}` };
+    // As demais falhas da ponte (demora, perfil ausente, binário velho, ponte cheia) já têm
+    // frase falada pronta — a MESMA que a colheita usa, para o advogado não ler duas explicações
+    // diferentes para o mesmo problema dependendo do caminho que a geração tomou.
+    const falado = motivoFalado(motivo);
+    await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { contextoBloqueadoMotivo: falado } });
+    return { error: falado };
+  };
+
+  // ── O DISPARO: A ESPERA SAI DE DENTRO DA REQUISIÇÃO WEB ───────────────────────────────────
+  //
+  // Daqui para baixo esta função NÃO espera mais o agente redigir. Ela entrega o pedido à ponte,
+  // guarda o identificador da tarefa na sessão e volta na hora; quem acompanha é a tela (e, se o
+  // advogado fechar a aba, o cron — ver lib/peticionamentoGeracaoAssincrona.ts).
+  //
+  // O MOTIVO, em uma frase: o teto duro da Vercel é de 300 segundos, e uma peça a partir de um
+  // processo de dezenas de páginas pode legitimamente precisar de mais. Em produção o Hermes foi
+  // MORTO aos 240s com o agente ainda escrevendo, e o advogado leu "DEMORA: o Hermes não
+  // respondeu em 230s" — o trabalho inteiro perdido por causa do relógio de uma requisição HTTP.
+  //
+  // OS TRÊS CAMPOS ANDAM JUNTOS com o GERANDO (ver o contrato no schema): sem `hermesTarefaId`
+  // ninguém consegue colher; sem `geracaoIniciadaEm` o cron não varre; sem
+  // `geracaoDocumentosLidos` a colheita — que pode acontecer noutra requisição, sem nada em
+  // memória — não teria contra o que filtrar a declaração do agente, e um nome alucinado entraria
+  // na lista de "documentos consultados" da nota obrigatória.
+  try {
+    const { tarefa } = await iniciarGeracaoNoHermes({
+      perfil: perfilDePeticionamento(),
+      mensagem,
+      sessao: sessao.hermesSessionId,
+    });
+    await prisma.peticionamentoSessao.update({
+      where: { id: sessaoId },
+      data: {
+        status: "GERANDO",
+        hermesTarefaId: tarefa,
+        geracaoIniciadaEm: new Date(),
+        geracaoDocumentosLidos: nomesLidos,
+        documentosNaoLidos,
+        // Uma tentativa nova apaga o motivo falado da tentativa anterior — senão a tela mostraria
+        // a falha de ontem enquanto a geração de hoje ainda corre.
+        contextoBloqueadoMotivo: null,
+      },
+    });
+    revalidatePath(`/peticionamento/minuta`);
+    return { ok: true };
+  } catch (e) {
+    // COMPATIBILIDADE, E ELA IMPORTA DE VERDADE: o deploy do Lúmen (automático, na Vercel) e a
+    // cópia do `servidor.py` novo para a VPS (manual, pelo dono) NÃO acontecem no mesmo instante.
+    // Uma ponte ainda sem `/chat-async` responde 404, e nesse caso o certo é fazer o que sempre
+    // se fez — esperar dentro da requisição — e não quebrar na cara do advogado. Mesmo espírito
+    // do 501 de binário velho que já existe em `executar_hermes`.
+    //
+    // A DECISÃO É PELO TIPO DO ERRO, nunca lendo a frase dele.
+    if (!(e instanceof PonteSemCaminhoAssincrono)) return traduzirFalhaDeEnvio(e);
   }
+
+  // ── O CAMINHO SÍNCRONO DE COMPATIBILIDADE (ponte antiga) ──────────────────────────────────
+  //
+  // É o caminho de antes desta entrega, inteiro: espera o agente dentro da requisição, com o
+  // mesmo `ESPERA_PETICIONAMENTO_MS` e a mesma corrente de tempos. Continua sujeito ao teto de
+  // 300s da Vercel — é justamente por isso que ele é o caminho de EXCEÇÃO, e não o normal.
+  //
+  // `geracaoIniciadaEm` é gravado aqui também, sem tarefa nenhuma: é o relógio que impede uma
+  // sessão de ficar "gerando" para sempre se esta função morrer no meio (a Vercel cortando a
+  // função é exatamente o caso). Sem ele, o cron não teria como saber desde quando.
+  await prisma.peticionamentoSessao.update({
+    where: { id: sessaoId },
+    data: {
+      status: "GERANDO",
+      hermesTarefaId: null,
+      geracaoIniciadaEm: new Date(),
+      geracaoDocumentosLidos: nomesLidos,
+      documentosNaoLidos,
+      contextoBloqueadoMotivo: null,
+    },
+  });
+  try {
+    const resposta = await perguntarAoHermesComPerfil({
+      perfil: perfilDePeticionamento(),
+      mensagem,
+      sessao: sessao.hermesSessionId,
+      // NÃO é o `ESPERA_MS` padrão (105s, dimensionado para conversa de chat): este pedido leva o
+      // texto dos documentos e pode demorar minutos. Ver a corrente de tempos inteira no
+      // comentário de ESPERA_PETICIONAMENTO_MS.
+      esperaMs: ESPERA_PETICIONAMENTO_MS,
+    });
+    // A MESMA GRAVAÇÃO DOS OUTROS DOIS CAMINHOS, e é de propósito que seja a mesma função: é ali
+    // que moram o fecho garantido por código, a nota obrigatória e a sincronização de citações.
+    await gravarMinutaGerada({
+      sessaoId,
+      officeId: user.officeId,
+      respostaBruta: resposta.resposta,
+      sessaoDoHermes: resposta.sessao,
+      nomesLidos,
+      contextoResumido: avaliacao.acao === "resumido",
+      tipoPecaJaEscolhido: sessao.tipoPeca,
+      hermesSessionIdAnterior: sessao.hermesSessionId,
+    });
+    revalidatePath(`/peticionamento/minuta`);
+    return { ok: true };
+  } catch (e) {
+    return traduzirFalhaDeEnvio(e);
+  }
+}
+
+/**
+ * EM QUE PÉ ESTÁ A GERAÇÃO — a ação que a tela de "gerando" chama de tempos em tempos.
+ *
+ * Confere acesso à aba e ESCRITÓRIO antes de qualquer coisa (o id vem do cliente), e só então
+ * delega a colheita ao módulo que a tela e o cron compartilham. É a colheita que decide tudo:
+ * perguntar à ponte, gravar a minuta com a reivindicação atômica, ou declarar a geração perdida.
+ *
+ * NÃO DEVOLVE PORCENTAGEM, e nunca vai devolver: o sistema não sabe quanto falta. Ela devolve
+ * `desdeMs`, que é um fato medido — há quanto tempo a geração começou. Inventar um número de
+ * progresso seria a única coisa pior do que uma tela parada.
+ */
+export async function acompanharGeracaoDaMinuta(sessaoId: string): Promise<AndamentoDaGeracao> {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const andamento = await colherGeracaoDaMinuta(sessaoId);
+  // Quando a colheita gravou a minuta, a tela de minuta precisa ser revalidada — senão o
+  // advogado é mandado para uma página que o cache ainda acha que está "gerando".
+  if (andamento.estado === "pronta") revalidatePath(`/peticionamento/${sessaoId}/minuta`);
+  return andamento;
 }
 
 export async function atualizarCorpoDaMinuta(sessaoId: string, texto: string): Promise<{ ok: true }> {
