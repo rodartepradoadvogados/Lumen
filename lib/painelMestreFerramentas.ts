@@ -58,6 +58,17 @@ export type PainelMestreTool = {
    * não existe — mesma convenção de AssistantTool.nivel em lib/assistantTools.ts.
    */
   nivel?: NivelFinanceiro;
+  /**
+   * true só na ferramenta que exige uma AccessSession de suporte ATIVA para responder (hoje,
+   * só consultar_atividade_do_escritorio). lib/painelMestreConversas.ts usa isto — via
+   * FERRAMENTAS_QUE_EXIGEM_SESSAO_DE_SUPORTE, abaixo — para decidir o que é seguro sobreviver
+   * no histórico gravado: LEI 2, uma resposta obtida através de uma sessão de suporte não pode
+   * ser relida depois que ela fechar, como se o acesso ainda valesse. Marcar aqui (em vez de
+   * checar `nivelVisibilidade !== "ABERTO"`) é deliberado — o teto de visibilidade e "esta
+   * ferramenta consultou algo que dependeu de uma sessão aberta" são dois conceitos diferentes
+   * que hoje coincidem numa ferramenta só, mas não precisam sempre coincidir.
+   */
+  exigeSessaoDeSuporte?: boolean;
   spec: Anthropic.Tool;
   executar: (input: ToolInput, viewer: PlatformViewer) => Promise<string>;
 };
@@ -521,6 +532,7 @@ export const painelMestreFerramentas: PainelMestreTool[] = [
   },
   {
     nivelVisibilidade: "VIDRO_FOSCO",
+    exigeSessaoDeSuporte: true,
     spec: {
       name: "consultar_atividade_do_escritorio",
       description:
@@ -534,3 +546,13 @@ export const painelMestreFerramentas: PainelMestreTool[] = [
     executar: (input, viewer) => executarConsultarAtividadeDoEscritorio(input, viewer),
   },
 ];
+
+/**
+ * Os nomes das ferramentas marcadas `exigeSessaoDeSuporte` — hoje só uma, mas calculado do
+ * REGISTRO (não escrito à mão) para que uma futura ferramenta marcada assim entre na lista
+ * automaticamente. Consumido por lib/painelMestreConversas.ts para a Lei 2 (ver o comentário
+ * grande daquele arquivo).
+ */
+export const FERRAMENTAS_QUE_EXIGEM_SESSAO_DE_SUPORTE: readonly string[] = painelMestreFerramentas
+  .filter((tool) => tool.exigeSessaoDeSuporte)
+  .map((tool) => tool.spec.name);

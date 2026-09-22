@@ -302,13 +302,63 @@ teste("HARD GATE: nem o dono da plataforma alcança COFRE — o schema é litera
   verdade(!/COFRE/.test(corpo), "alguém deu COFRE a alguém — nem sócio alcança, e o dono não é exceção");
 });
 
-teste("TRAVA: o histórico vindo do navegador só aceita os dois papéis de conversa", () => {
+// ACHADO DA SUPERVISÃO DESTA ENTREGA — o teste que estava aqui antes guardava o FILTRO DE PAPÉIS
+// do histórico que o navegador mandava ("só user/assistant, nunca system"). Ele guardava a coisa
+// certa para o desenho antigo, e por isso não foi apagado: foi SUBSTITUÍDO por uma trava mais
+// forte, porque o desenho mudou. O histórico não vem mais do navegador — vem dos turnos
+// GRAVADOS. Filtrar o papel de um turno forjado era defender a porta; não aceitar turno de fora
+// é fechar a porta. Ver o porquê em `historicoParaOPedido` (lib/painelMestreConversas.ts).
+teste("TRAVA (mais forte que a anterior): o histórico do modelo NÃO sai do corpo da requisição — vem dos turnos gravados", () => {
   const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
-  // Sem isto, um `role` qualquer (ex.: "system") vindo do cliente entraria no pedido como se
-  // fosse instrução — a superfície clássica de injeção por histórico forjado.
-  verdade(/role === "user" \|\| turno!\.role === "assistant"/.test(corpo),
-    "o filtro de papéis do histórico caiu — o cliente passa a escolher o papel de cada turno");
-  verdade(/\.slice\(-40\)/.test(corpo), "sumiu o teto bruto do histórico — o cliente manda o tamanho que quiser");
+  verdade(corpo.length > 400, `corpoDaFuncao("POST") devolveu ${corpo.length} caracteres — varredura cega`);
+  // PRIMEIRO ESCREVI ISTO COMO UM BURACO DE FECHADURA, E A MUTAÇÃO PASSOU VERDE:
+  // `!/body[?.]*\.historico/` casa com `body?.historico` e com `body.historico`, mas não com
+  // `(body as { historico?: unknown })?.historico` — que foi exatamente a mutação que apliquei.
+  // Uma varredura que proíbe UMA GRAFIA não proíbe nada; a que vale é a que exige que a ÚNICA
+  // origem do histórico seja a montagem a partir dos turnos gravados. Duas travas, então:
+  //
+  // (a) TODA atribuição a `historicoGravado` tem de ser `[]` (o vazio da conversa nova) ou
+  //     `historicoParaOPedido(...)`. Qualquer outra origem — corpo da requisição, header,
+  //     parâmetro de URL, o que for — cai aqui, em qualquer grafia.
+  const atribuicoes = [...corpo.matchAll(/historicoGravado[^=\n]*=\s*([^;]+);/g)].map((m) => m[1].trim());
+  verdade(atribuicoes.length >= 2, `esperava a declaração e ao menos uma atribuição de historicoGravado; achei ${atribuicoes.length}`);
+  for (const origem of atribuicoes) {
+    verdade(origem === "[]" || origem.startsWith("historicoParaOPedido("),
+      `historicoGravado recebeu algo que NÃO vem dos turnos gravados: \`${origem}\` — o contexto do modelo voltou a ter origem de fora do banco`);
+  }
+  verdade(atribuicoes.some((o) => o.startsWith("historicoParaOPedido(")),
+    "nenhuma atribuição monta o histórico a partir dos turnos gravados — o modelo perderia a memória da conversa");
+  verdade(/historicoParaOPedido\(conversaDoMembro\.turnos\)/.test(corpo),
+    "o histórico deixou de ser montado a partir dos TURNOS DA CONVERSA encontrada com o corte por dono");
+
+  // (b) E a palavra `historico`, solta, não pode voltar a aparecer na rota fora desses dois
+  //     identificadores e da chave que os leva ao orçamento. Qualquer menção nova falha aqui —
+  //     a trava não sabe adivinhar a grafia de amanhã, então proíbe a palavra.
+  // A lista de permitidos é curta DE PROPÓSITO: a montagem, a variável que ela produz, a chave
+  // que a leva ao orçamento, e o histórico JÁ CORTADO que volta do orçamento. Nada mais.
+  const semOsPermitidos = corpo
+    .replace(/historicoParaOPedido/g, "«montagem»")
+    .replace(/historicoGravado/g, "«montado»")
+    .replace(/historico: «montado»/g, "«parametro»")
+    .replace(/orcamento\.historico/g, "«orcado»");
+  verdade(!/historico/i.test(semOsPermitidos),
+    "a palavra `historico` voltou à rota fora da montagem a partir dos turnos gravados — quase sempre significa que o corpo da requisição voltou a mandar histórico");
+  // E o que é montado é o que de fato VAI ao orçamento (e daí ao pedido) — não um cálculo morto.
+  verdade(/orcamentoDoPedido\(\{ textoFixo: systemPrompt, historico: historicoGravado, pergunta: mensagem \}\)/.test(corpo),
+    "o histórico gravado não é o que entra no orçamento do pedido — pode estar sendo montado e descartado");
+});
+
+teste("TRAVA: a mesma consulta que confere o dono é a que traz os turnos — nunca uma segunda ida ao banco, nem um id aceito sem dono", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  // `conversa` passa a sair do OBJETO ENCONTRADO (que só existe se o dono bateu), nunca do id
+  // cru que o corpo mandou: se voltasse a ser `{ id: conversaIdRecebido }`, um refactor futuro
+  // poderia remover a checagem de dono e o código continuaria compilando e "funcionando".
+  verdade(/conversa = \{ id: conversaDoMembro\.id \}/.test(corpo),
+    "a conversa usada para gravar não vem mais do objeto encontrado com o corte por dono");
+  const posBusca = corpo.indexOf("buscarConversaDoMembro(conversaIdRecebido, viewer)");
+  const posHistorico = corpo.indexOf("historicoParaOPedido(");
+  verdade(posBusca >= 0 && posHistorico > posBusca,
+    "o histórico é montado antes (ou fora) da checagem de dono da conversa");
 });
 
 teste("TRAVA: o veredito do orçamento INTERROMPE o pedido, não é só calculado", () => {
@@ -346,9 +396,62 @@ teste("TRAVA: nenhum caminho do laço gira sem teto — cada volta é uma chamad
   verdade(posIncremento >= 0 && posIncremento < posContinue, "o contador precisa subir ANTES do continue");
 });
 
-teste("LEI 3: a rota inteira é de leitura — nenhuma escrita no banco em caminho nenhum", () => {
+teste("LEI 3: a rota nunca chama o Prisma diretamente — nem para consultar, nem para escrever; toda escrita passa por lib/painelMestreConversas.ts", () => {
   verdade(!/prisma\.\w+\.(create|update|upsert|delete|updateMany|deleteMany|createMany)\(/.test(CODIGO_DA_ROTA),
-    "apareceu escrita no banco dentro da rota do agente — ele é só leitura, sem exceção");
+    "apareceu escrita no banco dentro da PRÓPRIA rota do agente — a única escrita desta entrega (gravar a conversa) vive em lib/painelMestreConversas.ts, nunca aqui");
+});
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// MEMÓRIA E AUDITORIA (esta entrega) — a conversa passa a ser GRAVADA (PainelMestreConversa/
+// PainelMestreTurno) e RETOMADA. A CLÁUSULA NOVA da Lei 1: "uma conversa gravada é de quem a
+// criou". As travas ABAIXO SOMAM às de cima — nenhuma delas substitui ou afrouxa uma trava já
+// escrita nesta suíte.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("LEI 1 (cláusula nova): um conversaId recebido no corpo só é aceito se buscarConversaDoMembro (filtrado por dono) o encontrar", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(corpo.length > 400, `corpoDaFuncao("POST") devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/const conversaDoMembro = await buscarConversaDoMembro\(conversaIdRecebido, viewer\);/.test(corpo),
+    "sumiu a checagem de dono do conversaId recebido — a rota passaria a continuar a conversa de QUALQUER id, inclusive de um membro diferente do que está perguntando");
+  verdade(/if \(!conversaDoMembro\)[\s\S]{0,150}status: 404/.test(corpo),
+    "a ausência de dono não interrompe o pedido com 404 — seguiria como se a conversa fosse válida");
+});
+
+teste("LEI 1 (cláusula nova): a checagem de dono do conversaId roda ANTES de qualquer chamada paga à API da Anthropic", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  const posChecagem = corpo.indexOf("buscarConversaDoMembro(conversaIdRecebido, viewer)");
+  const posChamadaIA = corpo.indexOf("client.messages.create(");
+  verdade(posChecagem >= 0 && posChamadaIA >= 0 && posChecagem < posChamadaIA,
+    "a checagem de dono do conversaId roda DEPOIS de já ter gasto uma chamada paga à API — deveria recusar antes de gastar nada");
+});
+
+teste("TRAVA: sem conversaId aceito, a rota abre uma conversa NOVA para o próprio viewer — nunca segue sem ter onde gravar", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(/criarConversaMestre\(viewer\)/.test(corpo), "sumiu a criação de conversa nova — o primeiro turno não teria onde ser gravado");
+});
+
+teste("TRAVA: os dois turnos (pergunta e resposta) são gravados com o MESMO viewer resolvido no início da requisição", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  const chamadas = corpo.match(/registrarTurno\(/g) || [];
+  verdade(chamadas.length >= 2, "faltam as duas gravações de turno (a pergunta e a resposta) — a memória ficaria incompleta");
+  verdade(/registrarTurno\(\{ conversaId: conversa\.id, viewer, papel: "user"/.test(corpo), "o turno da PERGUNTA não é gravado com conversaId + viewer da própria requisição");
+  verdade(/papel: "assistant",/.test(corpo), "sumiu a gravação do turno da RESPOSTA");
+});
+
+teste("TRAVA: só ferramentas de fato EXECUTADAS entram em ferramentasUsadasNoTurno — uma ferramenta recusada/inexistente não conta como usada", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(/if \(tool\) ferramentasUsadasNoTurno\.add\(toolUse\.name\);/.test(corpo),
+    "sumiu a condição `if (tool)` — uma ferramenta barrada (não liberada para o papel) passaria a contar como consultada na auditoria, e a Lei 2 poderia deixar de redigir um turno que na verdade não usou ferramenta nenhuma que exigisse sessão");
+});
+
+teste("TRAVA: a gravação dos turnos está protegida por um try/catch próprio — uma falha ao GRAVAR não pode derrubar a resposta já pronta", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  const posRegistro = corpo.indexOf('registrarTurno({ conversaId: conversa.id, viewer, papel: "user"');
+  verdade(posRegistro >= 0, "não encontrou a gravação do turno — varredura cega para este teste");
+  const posTryInterno = corpo.lastIndexOf("try {", posRegistro);
+  const posCatchInterno = corpo.indexOf("} catch (erroDeGravacao)", posRegistro);
+  verdade(posTryInterno >= 0 && posCatchInterno > posRegistro,
+    "a gravação do turno não está dentro de um try/catch dedicado — uma falha ao gravar quebraria a resposta que já estava pronta e paga");
 });
 
 void resumo("F7 — o agente do Painel Mestre");
