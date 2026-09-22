@@ -1,5 +1,5 @@
 import { teste, igual, verdade, resumo } from "./executar";
-import { passoDaSessao, sessaoTemTrabalhoEmAndamento, hrefDoPasso, PASSOS_DA_SESSAO, ROTULO_DO_PASSO } from "../peticionamentoPasso";
+import { passoDaSessao, passoParaRetomar, ehPassoValido, sessaoTemTrabalhoEmAndamento, hrefDoPasso, PASSOS_DA_SESSAO, ROTULO_DO_PASSO } from "../peticionamentoPasso";
 
 const BASE = {
   status: "CONTEXTO",
@@ -97,6 +97,43 @@ teste("pedidos só com strings em branco NÃO conta como trabalho em andamento",
 
 teste("fatos só com espaços em branco NÃO conta como trabalho em andamento", () => {
   igual(sessaoTemTrabalhoEmAndamento({ ...VAZIA, fatos: "   " }), false);
+});
+
+// ── ehPassoValido ────────────────────────────────────────────────────────────────────────────
+
+teste("ehPassoValido: os seis passos de hoje são válidos", () => {
+  for (const p of PASSOS_DA_SESSAO) verdade(ehPassoValido(p), `"${p}" deveria ser válido`);
+});
+
+teste("ehPassoValido: texto torto, passo que não existe mais e null/undefined são inválidos", () => {
+  igual(ehPassoValido("revisao-final"), false); // passo de uma versão antiga que a lista de hoje não conhece mais
+  igual(ehPassoValido(""), false);
+  igual(ehPassoValido(null), false);
+  igual(ehPassoValido(undefined), false);
+});
+
+// ── passoParaRetomar: os três caminhos da adequação "retomar volta ao passo certo" ──────────────
+//
+// Cenário fixo para os três testes: dados preenchidos até "documentos" (dedução mandaria para lá),
+// para deixar nítido quando o valor GRAVADO vence a dedução e quando a dedução é o plano B.
+const DADOS_ATE_DOCUMENTOS = { ...BASE, categoriaPeca: "Petição", contextoDecidido: true, temDocumento: true };
+
+teste("passo gravado válido vence a dedução — o caso do enunciado: avançou até documentos, voltou para revisar a matéria", () => {
+  // A dedução, sozinha, mandaria para "documentos" (mesma conta do teste de passoDaSessao acima).
+  igual(passoDaSessao(DADOS_ATE_DOCUMENTOS), "documentos");
+  // Mas a pessoa voltou para o contexto e fechou a aba ali — é isso que passoAtual gravou.
+  igual(passoParaRetomar(DADOS_ATE_DOCUMENTOS, "contexto"), "contexto");
+});
+
+teste("passo gravado inválido (texto torto, ou passo que a lista de hoje não conhece mais) cai na dedução — fail-closed", () => {
+  igual(passoParaRetomar(DADOS_ATE_DOCUMENTOS, "revisao-final"), "documentos");
+  igual(passoParaRetomar(DADOS_ATE_DOCUMENTOS, ""), "documentos");
+  igual(passoParaRetomar(DADOS_ATE_DOCUMENTOS, "  contexto  "), "documentos"); // espaços não normalizam — ou é exatamente um dos seis, ou é inválido
+});
+
+teste("sessão antiga sem passoAtual nenhum (null, ou undefined) usa a dedução, do jeito que sempre usou", () => {
+  igual(passoParaRetomar(DADOS_ATE_DOCUMENTOS, null), "documentos");
+  igual(passoParaRetomar(DADOS_ATE_DOCUMENTOS, undefined), "documentos");
 });
 
 resumo("Peticionamento — passo da sessão e detector de trabalho em andamento");
