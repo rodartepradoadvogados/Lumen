@@ -11,7 +11,7 @@ import {
 } from "@/lib/recusaPelaAna";
 import { transferirLead } from "@/lib/transferirLead";
 import { perguntarAoHermes, hermesConfigurado, FalhaDoHermes, ESPERA_MS as ESPERA_PADRAO_DO_HERMES_MS } from "@/lib/hermesPonte";
-import { sendWhatsappText } from "@/lib/whatsapp";
+import { sendWhatsappText, ROTULO_FIGURINHA, TEXTO_FIGURINHA_PARA_AGENTE } from "@/lib/whatsapp";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 import { textoParaAgente, mensagensReaisEUltima } from "@/lib/transcricaoDeAudio";
 import { esperaParaHermes } from "@/lib/orcamentoDoPedido";
@@ -207,12 +207,16 @@ export async function atendenteResponde(
       // (historico) E na mensagem de agora — quando é a ÚLTIMA mensagem que é um áudio (o caso
       // comum: a pessoa acabou de mandar a voz), a Ana precisa da transcrição dela também, não só
       // das anteriores. textoParaAgente já resolve os dois casos (áudio transcrito, áudio que
-      // falhou, mensagem comum) com a mesma regra.
+      // falhou, mensagem comum) com a mesma regra. FIGURINHA (lib/avisoFigurinha.ts) segue o
+      // MESMO princípio — um rótulo curto para gente, uma instrução explícita para a Ana — mas
+      // fora de textoParaAgente (que é escopo só de áudio, lib/transcricaoDeAudio.ts): trocado
+      // aqui, na composição do pedido, para as duas pontas do histórico não precisarem de duas
+      // funções encadeadas.
       historico: emOrdem.slice(0, -1).map((m) => ({
         de: m.direction === "IN" ? ("cliente" as const) : ("escritorio" as const),
-        texto: textoParaAgente(m),
+        texto: m.body === ROTULO_FIGURINHA ? TEXTO_FIGURINHA_PARA_AGENTE : textoParaAgente(m),
       })),
-      mensagem: textoParaAgente(ultima),
+      mensagem: ultima.body === ROTULO_FIGURINHA ? TEXTO_FIGURINHA_PARA_AGENTE : textoParaAgente(ultima),
     });
 
     let resposta: string;

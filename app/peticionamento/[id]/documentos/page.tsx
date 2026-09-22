@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
 import { DocumentosClient } from "@/components/peticionamento/DocumentosClient";
-import { obterSessaoPeticionamento, listarDocumentosDoVinculo, listarAnexosDaSessao, avaliarTrabalhoEmAndamento, contarRascunhos } from "@/lib/actions/peticionamento";
+import { obterSessaoPeticionamento, listarDocumentosDoVinculo, listarAnexosDaSessao, avaliarTrabalhoEmAndamento, contarRascunhos, gravarPassoDaSessao } from "@/lib/actions/peticionamento";
 import { avaliarProntidao } from "@/lib/peticionamentoMinimo";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +13,13 @@ export default async function DocumentosPage({ params }: { params: { id: string 
   const sessao = await obterSessaoPeticionamento(params.id).catch(() => null);
   if (!sessao) notFound();
 
+  // Grava o passo real a cada navegação — Retomar usa isto, não mais a dedução (lib/peticionamentoPasso.ts).
   const [documentosExistentes, anexos, temTrabalho, rascunhosCount] = await Promise.all([
     listarDocumentosDoVinculo(params.id),
     listarAnexosDaSessao(params.id),
     avaliarTrabalhoEmAndamento(params.id),
     contarRascunhos(),
+    gravarPassoDaSessao(params.id, "documentos"),
   ]);
   const prontidao = avaliarProntidao({ fatos: sessao.fatos, pedidos: (sessao.pedidos as string[] | null) ?? [] });
   const jaSelecionados = ((sessao.documentosExistentesIds as string[] | null) ?? []) as string[];

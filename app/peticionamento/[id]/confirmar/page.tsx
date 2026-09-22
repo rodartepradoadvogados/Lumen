@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
 import { ConfirmarClient } from "@/components/peticionamento/ConfirmarClient";
-import { obterSessaoPeticionamento, obterResumoTriagem, avaliarTrabalhoEmAndamento, contarRascunhos } from "@/lib/actions/peticionamento";
+import { obterSessaoPeticionamento, obterResumoTriagem, avaliarTrabalhoEmAndamento, contarRascunhos, gravarPassoDaSessao } from "@/lib/actions/peticionamento";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,13 @@ export default async function ConfirmarPage({ params }: { params: { id: string }
   if (!user) notFound();
   const sessao = await obterSessaoPeticionamento(params.id).catch(() => null);
   if (!sessao) notFound();
-  const [resumo, temTrabalho, rascunhosCount] = await Promise.all([obterResumoTriagem(params.id), avaliarTrabalhoEmAndamento(params.id), contarRascunhos()]);
+  // Grava o passo real a cada navegação — Retomar usa isto, não mais a dedução (lib/peticionamentoPasso.ts).
+  const [resumo, temTrabalho, rascunhosCount] = await Promise.all([
+    obterResumoTriagem(params.id),
+    avaliarTrabalhoEmAndamento(params.id),
+    contarRascunhos(),
+    gravarPassoDaSessao(params.id, "confirmacao"),
+  ]);
 
   return (
     <ShellPeticionamento

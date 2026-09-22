@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
 import { MinutaClient } from "@/components/peticionamento/MinutaClient";
-import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos } from "@/lib/actions/peticionamento";
+import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos, gravarPassoDaSessao } from "@/lib/actions/peticionamento";
 import { montarNotaObrigatoria, type PrecedenteCitado } from "@/lib/peticionamentoNotaObrigatoria";
 import { perfilDePeticionamento } from "@/lib/hermesPonte";
 import { avaliarExportacao } from "@/lib/peticionamentoAcesso";
@@ -36,7 +36,12 @@ export default async function MinutaPage({ params }: { params: { id: string } })
   if (!user) notFound();
   const sessao = await obterSessaoPeticionamento(params.id).catch(() => null);
   if (!sessao) notFound();
-  const [temTrabalho, rascunhosCount] = await Promise.all([avaliarTrabalhoEmAndamento(params.id), contarRascunhos()]);
+  // Grava o passo real a cada navegação — Retomar usa isto, não mais a dedução (lib/peticionamentoPasso.ts).
+  const [temTrabalho, rascunhosCount] = await Promise.all([
+    avaliarTrabalhoEmAndamento(params.id),
+    contarRascunhos(),
+    gravarPassoDaSessao(params.id, "minuta"),
+  ]);
 
   if (sessao.status === "GERANDO") {
     return (
