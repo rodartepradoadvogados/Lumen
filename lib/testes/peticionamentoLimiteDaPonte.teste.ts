@@ -767,4 +767,53 @@ teste("TRAVA: item sem par na avaliação falha FECHADO e falado — nunca segue
     "a conferência de casação roda depois de montar a mensagem — não impede o envio do texto cru");
 });
 
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA REVISÃO — UMA DETECÇÃO ANSIOSA DERRUBA A ANA JUNTO.
+//
+// `executar_hermes` classifica o erro do binário em três: "não conhece --query-file" (501,
+// conserto é atualizar o Hermes), "perfil não provisionado" (404, conserto é pelo Painel Mestre)
+// e o resto (500). Troquei a condição do PRIMEIRO por `if True:` e as 31 asserções ficaram VERDES.
+//
+// O estrago não é o 501 errado em si. É que ESTA PONTE É COMPARTILHADA: a Ana do atendimento
+// passa pela mesma função. Com a condição sempre verdadeira, toda falha do Hermes — provedor
+// fora do ar, perfil inexistente, o que for — vira "atualize o binário", mandando quem cuida do
+// servidor consertar o lugar errado. E o ramo do perfil ausente, logo abaixo, deixa de ser
+// alcançável para sempre: o diagnóstico de escritório não provisionado morre em silêncio.
+//
+// A trava abaixo NÃO exige uma grafia (foi assim que um teste desta casa já impediu a correção
+// do defeito que ele guardava). Ela exige a PROPRIEDADE: a condição precisa olhar para o nome da
+// opção e para alguma frase de "opção desconhecida", e os ramos seguintes precisam continuar
+// alcançáveis.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("TRAVA: o 501 de binário velho é condicionado ao erro REAL — nunca engole as outras falhas", () => {
+  const posRaise = CODIGO_PONTE.indexOf("raise HermesDesatualizado");
+  verdade(posRaise > 0, "sumiu o ramo de binário desatualizado — varredura cega");
+
+  // A condição é o `if` imediatamente anterior ao raise.
+  const antes = CODIGO_PONTE.slice(0, posRaise);
+  const posIf = antes.lastIndexOf("if ");
+  verdade(posIf > 0, "não achei a condição que protege o raise de binário desatualizado");
+  const condicao = antes.slice(posIf, antes.indexOf(":", posIf));
+
+  verdade(/--query-file/.test(condicao),
+    `a condição do 501 não olha mais para o nome da opção: \`${condicao.trim()}\` — toda falha do Hermes viraria "atualize o binário", inclusive as do atendimento, que usa esta MESMA ponte`);
+  verdade(/unrecognized|no such option|invalid/.test(condicao),
+    `a condição do 501 não olha mais para a frase de opção desconhecida: \`${condicao.trim()}\``);
+  verdade(!/\bif\s+(True|1)\s*$/.test(condicao.trim()),
+    "a condição do 501 virou constante — engoliria todos os outros erros");
+});
+
+teste("TRAVA: o ramo de PERFIL AUSENTE continua alcançável depois do ramo do binário velho", () => {
+  const posBinario = CODIGO_PONTE.indexOf("raise HermesDesatualizado");
+  const posPerfil = CODIGO_PONTE.indexOf("raise PerfilAusente");
+  verdade(posPerfil > 0, "sumiu o ramo de perfil não provisionado — é o 404 que o Painel Mestre usa para diagnosticar escritório sem provisionamento");
+  verdade(posPerfil > posBinario, "a ordem dos ramos mudou — confira qual passou a capturar primeiro");
+  // Entre um e outro não pode haver `raise` fora de condição, nem um `return` que corte o caminho.
+  const entre = CODIGO_PONTE.slice(posBinario, posPerfil);
+  verdade(!/\n\s{8}raise\b(?!\s+HermesDesatualizado)/.test(entre),
+    "apareceu um raise incondicional entre os dois ramos — o de perfil ausente deixou de ser alcançável");
+});
+
 resumo("Peticionamento — o limite é o da ponte (o teste que faltava)");
