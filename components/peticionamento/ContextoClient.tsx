@@ -1,27 +1,46 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+// A TELA DE CONTEXTO depois dos pedidos do dono de 22/09/2026 (itens 2, 3, 4 e 5 da lista dele).
+// O desenho em uma frase: a PARTE DE CIMA é fixa e responde "o que estou fazendo" (natureza +
+// matérias + o que estou procurando); o MEIO é a única coisa que rola (os resultados filtrados);
+// a BARRA DE BAIXO ("Cliente confirmado… / pular questionário e continuar") fica congelada.
+//
+// Por que a busca vive no servidor: antes desta entrega a tela recebia 200 processos + 200
+// atendimentos + 200 assessorias de uma vez e filtrava no navegador. A lista imensa era o que o
+// dono pediu para acabar, e o corte por escritório tem de morar no `where` da consulta — ver
+// lib/actions/peticionamento.ts:buscarContextoParaVincular.
+
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { alternarVinculo, definirSessaoAvulsa, definirMateria, adicionarMateriaDoEscritorio, confirmarNatureza } from "@/lib/actions/peticionamento";
+import {
+  alternarVinculo,
+  definirSessaoAvulsa,
+  definirMaterias,
+  adicionarMateriaDoEscritorio,
+  confirmarNatureza,
+  buscarContextoParaVincular,
+  type CandidatoResolvido,
+} from "@/lib/actions/peticionamento";
 import type { TipoVinculo } from "@/lib/peticionamentoContexto";
 import { NATUREZAS_DE_PROCEDIMENTO, type NaturezaDeProcedimento } from "@/lib/peticionamentoNatureza";
+import {
+  TIPOS_DE_BUSCA,
+  SUBTIPOS_DE_ASSESSORIA,
+  MINIMO_DE_CARACTERES,
+  LIMITE_DE_RESULTADOS,
+  naturezaSugeridaPelaBusca,
+  type TipoDeBusca,
+  type SubtipoDeAssessoria,
+} from "@/lib/peticionamentoBusca";
 import { useSaidaDoPeticionamento } from "./SaidaContext";
-
-type Candidato = {
-  id: string;
-  tipo: TipoVinculo;
-  titulo: string;
-  subtitulo: string;
-  bloqueado: boolean;
-  motivoBloqueio: string | null;
-  selecionado: boolean;
-};
 
 type Props = {
   sessaoId: string;
-  candidatos: { processos: Candidato[]; atendimentos: Candidato[]; assessorias: Candidato[]; clienteTravado: { id: string; nome: string | null } | null };
+  vinculados: CandidatoResolvido[];
+  clienteTravado: { id: string; nome: string | null } | null;
   materias: { nome: string; ehDoEscritorio: boolean }[];
-  materiaAtual: string | null;
+  /** TODAS as matérias já marcadas nesta sessão, na ordem — a primeira é a principal. */
+  materiasAtuais: string[];
   naturezaProcedimento: string | null;
   naturezaMotivo: string | null;
   naturezaConfirmadaManualmente: boolean;
@@ -34,62 +53,62 @@ const ROTULO_NATUREZA: Record<NaturezaDeProcedimento, string> = {
   consultivo: "Consultivo",
 };
 
-export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciais, materiaAtual, naturezaProcedimento, naturezaMotivo, naturezaConfirmadaManualmente }: Props) {
+export function ContextoClient({
+  sessaoId,
+  vinculados,
+  clienteTravado,
+  materias: materiasIniciais,
+  materiasAtuais,
+  naturezaProcedimento,
+  naturezaMotivo,
+  naturezaConfirmadaManualmente,
+}: Props) {
   const router = useRouter();
   const { marcarTrabalho } = useSaidaDoPeticionamento();
   const [pendente, iniciar] = useTransition();
-  const [naturezaLocal, setNaturezaLocal] = useState<string | null>(naturezaProcedimento);
-  useEffect(() => setNaturezaLocal(naturezaProcedimento), [naturezaProcedimento]);
-
-  function corrigirNatureza(valor: NaturezaDeProcedimento) {
-    setNaturezaLocal(valor);
-    marcarTrabalho();
-    iniciar(async () => {
-      await confirmarNatureza(sessaoId, valor);
-      router.refresh();
-    });
-  }
-  const [avulsa, setAvulsa] = useState<boolean>(false); // default visual: começa sempre em "Vincular"
-  const [aba, setAba] = useState<TipoVinculo>("case");
-  // `candidatos` vem direto da prop (Server Component), de propósito: depois de
-  // alternar/desmarcar um vínculo, `router.refresh()` busca o estado de verdade no servidor —
-  // guardar uma cópia em useState aqui faria essa atualização ficar presa no valor do
-  // primeiro carregamento (useState só lê o valor inicial na primeira renderização).
-  const [materias, setMaterias] = useState(materiasIniciais);
-  const [materia, setMateria] = useState(materiaAtual ?? "");
-  const [adicionandoMateria, setAdicionandoMateria] = useState(false);
-  const [novaMateria, setNovaMateria] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
-  // Estado otimista do checkbox: o checkbox é CONTROLADO pela prop `selecionado` (verdade do
-  // servidor), e entre o clique e o `router.refresh()` terminar de trazer o dado novo, a prop
-  // continua com o valor antigo por um instante — sem isto, o React prende o checkbox de volta
-  // no valor antigo assim que o clique termina, e ele "pisca" desmarcado (foi exatamente o que
-  // um teste automatizado pegou: "Clicking the checkbox did not change its state"). O override
-  // cai sozinho assim que a prop de verdade alcança o valor otimista.
-  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
-  useEffect(() => {
-    setOverrides((atual) => {
-      const todos = [...candidatos.processos, ...candidatos.atendimentos, ...candidatos.assessorias];
-      const proximo = { ...atual };
-      let mudou = false;
-      for (const item of todos) {
-        if (item.id in proximo && proximo[item.id] === item.selecionado) {
-          delete proximo[item.id];
-          mudou = true;
-        }
-      }
-      return mudou ? proximo : atual;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidatos]);
+  // ── NATUREZA (item 4) ───────────────────────────────────────────────────────────────────────
+  const [naturezaLocal, setNaturezaLocal] = useState<string | null>(naturezaProcedimento);
+  const [corrigindoNatureza, setCorrigindoNatureza] = useState(false);
+  useEffect(() => setNaturezaLocal(naturezaProcedimento), [naturezaProcedimento]);
 
-  function selecionarMateria(nome: string, ehDoEscritorio: boolean) {
-    setMateria(nome);
+  const corrigirNatureza = useCallback(
+    (valor: NaturezaDeProcedimento) => {
+      setNaturezaLocal(valor);
+      setCorrigindoNatureza(false);
+      marcarTrabalho();
+      iniciar(async () => {
+        await confirmarNatureza(sessaoId, valor);
+        router.refresh();
+      });
+    },
+    [marcarTrabalho, router, sessaoId],
+  );
+
+  // ── MATÉRIAS (item 2) ───────────────────────────────────────────────────────────────────────
+  const [materias, setMaterias] = useState(materiasIniciais);
+  const [marcadas, setMarcadas] = useState<string[]>(materiasAtuais);
+  const [adicionandoMateria, setAdicionandoMateria] = useState(false);
+  const [novaMateria, setNovaMateria] = useState("");
+
+  function gravarMaterias(nomes: string[], catalogo = materias) {
+    setMarcadas(nomes);
     marcarTrabalho();
     iniciar(async () => {
-      await definirMateria(sessaoId, nome, ehDoEscritorio);
+      // A ordem da LISTA é a ordem de marcação, e a primeira é a principal — o contrato de schema
+      // (PeticionamentoSessao.materiasNomes) manda gravar as duas coisas juntas, e quem faz isso
+      // numa transação só é a própria ação.
+      await definirMaterias(
+        sessaoId,
+        nomes.map((nome) => ({ nome, ehDoEscritorio: catalogo.find((m) => m.nome === nome)?.ehDoEscritorio ?? false })),
+      );
     });
+  }
+
+  function alternarMateria(nome: string) {
+    setErro(null);
+    gravarMaterias(marcadas.includes(nome) ? marcadas.filter((n) => n !== nome) : [...marcadas, nome]);
   }
 
   async function confirmarNovaMateria() {
@@ -99,34 +118,15 @@ export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciai
       setErro(resultado.error);
       return;
     }
-    setMaterias((prev) => [...prev, { nome: resultado.nome, ehDoEscritorio: true }]);
-    selecionarMateria(resultado.nome, true);
+    const catalogo = [...materias, { nome: resultado.nome, ehDoEscritorio: true }];
+    setMaterias(catalogo);
+    gravarMaterias([...marcadas, resultado.nome], catalogo);
     setAdicionandoMateria(false);
     setNovaMateria("");
   }
 
-  function alternar(tipo: TipoVinculo, id: string, marcar: boolean) {
-    setErro(null);
-    setOverrides((o) => ({ ...o, [id]: marcar }));
-    marcarTrabalho();
-    iniciar(async () => {
-      const resultado = await alternarVinculo(sessaoId, tipo, id, marcar);
-      if ("error" in resultado) {
-        setErro(resultado.error);
-        setOverrides((o) => {
-          const resto = { ...o };
-          delete resto[id];
-          return resto;
-        });
-        return;
-      }
-      // Recarrega os candidatos do servidor — a trava de cliente pode ter mudado quem fica
-      // bloqueado para todos os outros itens, e recalcular isso no cliente duplicaria a regra.
-      // O override otimista acima cai sozinho quando a prop nova confirmar o mesmo valor (efeito
-      // logo abaixo).
-      router.refresh();
-    });
-  }
+  // ── SESSÃO VINCULADA OU AVULSA ──────────────────────────────────────────────────────────────
+  const [avulsa, setAvulsa] = useState(false);
 
   function irParaAvulsa() {
     setAvulsa(true);
@@ -137,112 +137,319 @@ export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciai
     });
   }
 
-  const listaAtiva = aba === "case" ? candidatos.processos : aba === "attendance" ? candidatos.atendimentos : candidatos.assessorias;
+  // ── BUSCA (item 3) ──────────────────────────────────────────────────────────────────────────
+  const [tipo, setTipo] = useState<TipoDeBusca>("processo-judicial");
+  const [subtipo, setSubtipo] = useState<SubtipoDeAssessoria>("assessoria");
+  const [termo, setTermo] = useState("");
+  const [resultados, setResultados] = useState<CandidatoResolvido[]>([]);
+  const [truncado, setTruncado] = useState(false);
+  const [filtradoPorTermo, setFiltradoPorTermo] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+
+  // Cada busca carrega um número de sequência: uma resposta que chega ATRASADA, depois de o
+  // advogado já ter digitado outra letra, não pode sobrescrever o resultado mais novo na tela.
+  const sequencia = useRef(0);
+
+  const buscar = useCallback(
+    async (tipoAtual: TipoDeBusca, subtipoAtual: SubtipoDeAssessoria, termoAtual: string) => {
+      const minha = ++sequencia.current;
+      setBuscando(true);
+      const resposta = await buscarContextoParaVincular(sessaoId, tipoAtual, tipoAtual === "assessoria" ? subtipoAtual : null, termoAtual);
+      if (minha !== sequencia.current) return; // chegou tarde: uma busca mais nova já mandou.
+      setBuscando(false);
+      if ("error" in resposta) {
+        setErro(resposta.error);
+        setResultados([]);
+        return;
+      }
+      setResultados(resposta.resultados);
+      setTruncado(resposta.truncado);
+      setFiltradoPorTermo(resposta.filtradoPorTermo);
+    },
+    [sessaoId],
+  );
+
+  // Espera o advogado parar de digitar antes de consultar o banco — uma consulta por tecla
+  // pressionada é consulta jogada fora, e a resposta de uma tecla antiga chegando depois seria
+  // resultado piscando na tela.
+  useEffect(() => {
+    if (avulsa) return;
+    const id = setTimeout(() => void buscar(tipo, subtipo, termo), 220);
+    return () => clearTimeout(id);
+  }, [avulsa, tipo, subtipo, termo, buscar, vinculados]);
+
+  function alternar(tipoVinculo: TipoVinculo, id: string, marcar: boolean) {
+    setErro(null);
+    // Estado otimista: o checkbox é controlado pelo que o servidor já confirmou, e entre o clique
+    // e a resposta a linha continuaria desmarcada, piscando.
+    setResultados((atual) => atual.map((r) => (r.id === id ? { ...r, selecionado: marcar } : r)));
+    marcarTrabalho();
+    iniciar(async () => {
+      const resultado = await alternarVinculo(sessaoId, tipoVinculo, id, marcar);
+      if ("error" in resultado) {
+        setErro(resultado.error);
+        setResultados((atual) => atual.map((r) => (r.id === id ? { ...r, selecionado: !marcar } : r)));
+        return;
+      }
+      // Recarrega do servidor: a trava de cliente pode ter mudado quem fica bloqueado em TODAS as
+      // outras linhas, e recalcular isso no cliente duplicaria a regra de sigilo.
+      router.refresh();
+      void buscar(tipo, subtipo, termo);
+    });
+  }
+
+  const opcaoDeTipo = TIPOS_DE_BUSCA.find((t) => t.chave === tipo)!;
+  const opcaoDeSubtipo = SUBTIPOS_DE_ASSESSORIA.find((s) => s.chave === subtipo)!;
+  const explicacaoDoFiltro = tipo === "assessoria" ? opcaoDeSubtipo.explicacao : opcaoDeTipo.explicacao;
+  const sugestaoDeNatureza = naturezaSugeridaPelaBusca(tipo, tipo === "assessoria" ? subtipo : null);
 
   return (
-    <>
-      <div className="page-head">
-        <div>
-          <h1>Vincular contexto</h1>
-          <p>
-            Escolha a matéria e, se quiser, vincule um ou mais itens já existentes no Lúmen. Você pode combinar processo, assessoria e atendimentos na mesma
-            sessão — <strong style={{ color: "var(--tx-0)" }}>desde que sejam do mesmo cliente</strong>. Isso não é preferência de organização: é sigilo
-            profissional.
-          </p>
+    <div className="ctx-page">
+      <div className="ctx-topo">
+        {/* O CABEÇALHO É CURTO DE PROPÓSITO: esta parte da tela é FIXA (item 5), então cada
+            linha que ela ocupa é uma linha a menos de resultado visível. O parágrafo de quatro
+            linhas que morava aqui comia metade da área de resultados num notebook — a regra do
+            mesmo cliente continua dita onde ela importa de verdade: na tarja do cliente travado e
+            no motivo de cada item bloqueado. */}
+        <div className="page-head ctx-cabecalho">
+          <div>
+            <h1>Vincular contexto</h1>
+            <p style={{ fontSize: 12.5 }}>
+              Uma ou mais matérias e, se quiser, itens já existentes no Lúmen — <strong style={{ color: "var(--tx-0)" }}>todos do mesmo cliente</strong>, por
+              sigilo profissional.
+            </p>
+          </div>
+        </div>
+
+        <div className="ctx-topo-corpo">
+          {erro && <div className="callout callout-danger">{erro}</div>}
+
+          <div className="ctx-topo-grade">
+            {/* NATUREZA — espec. §8: DEDUZIDA do vínculo, nunca perguntada do zero, e a dedução
+                nunca é silenciosa. Subiu para o topo a pedido do dono (item 4), ao lado da caixa
+                de seleção da busca: são perguntas VIZINHAS ("o que este vínculo É" × "o que estou
+                procurando"), e vê-las juntas é o que impede responder duas vezes a mesma coisa. */}
+            <section className="ctx-cartao">
+              <h2>Natureza do procedimento</h2>
+              {naturezaLocal ? (
+                <div className="ctx-natureza-linha">
+                  <span className="chip">{ROTULO_NATUREZA[naturezaLocal as NaturezaDeProcedimento] ?? naturezaLocal}</span>
+                  <button className="btn btn-ghost btn-sm" disabled={pendente} onClick={() => setCorrigindoNatureza((v) => !v)}>
+                    {corrigindoNatureza ? "Fechar" : "Corrigir"}
+                  </button>
+                </div>
+              ) : (
+                <p className="ctx-nota">Ainda não há vínculo para deduzir a natureza. Marque um item na busca abaixo — ou escolha aqui, se esta peça não vai ser vinculada.</p>
+              )}
+
+              {naturezaMotivo && (
+                <p className="ctx-nota">
+                  {naturezaConfirmadaManualmente ? (
+                    "Confirmado manualmente pelo advogado."
+                  ) : (
+                    <>
+                      Deduzido pelo Peticionamento: <strong style={{ color: "var(--tx-0)" }}>{naturezaMotivo}</strong>
+                    </>
+                  )}
+                </p>
+              )}
+
+              {/* A SUGESTÃO DE UM CLIQUE: sem vínculo não há o que deduzir, e em vez de perguntar
+                  de novo a mesma coisa, a tela reaproveita a resposta que ele já deu na caixa de
+                  seleção ao lado. Nunca grava sozinha — o clique é que grava, como confirmação
+                  manual, que é a verdade do que aconteceu. */}
+              {!naturezaLocal && sugestaoDeNatureza && (
+                <button className="btn btn-ghost btn-sm" disabled={pendente} onClick={() => corrigirNatureza(sugestaoDeNatureza)} style={{ marginTop: 8 }}>
+                  Usar “{ROTULO_NATUREZA[sugestaoDeNatureza]}”, conforme o que estou procurando
+                </button>
+              )}
+
+              {(corrigindoNatureza || !naturezaLocal) && (
+                <div className="segmented" style={{ marginTop: 10, flexWrap: "wrap" }}>
+                  {NATUREZAS_DE_PROCEDIMENTO.map((n) => (
+                    <button key={n} className={naturezaLocal === n ? "active" : ""} disabled={pendente} onClick={() => corrigirNatureza(n)}>
+                      {ROTULO_NATUREZA[n]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="ctx-cartao">
+              <h2>
+                Matéria <span className="quiet" style={{ fontWeight: 400 }}>— uma ou mais; a primeira marcada é a principal</span>
+              </h2>
+              <div className="matter-grid">
+                {materias.map((m) => {
+                  const posicao = marcadas.indexOf(m.nome);
+                  return (
+                    <button key={m.nome} className={`matter-chip${posicao >= 0 ? " selected" : ""}`} onClick={() => alternarMateria(m.nome)} aria-pressed={posicao >= 0}>
+                      {posicao === 0 && (
+                        <span className="mono quiet" style={{ marginRight: 6 }}>
+                          principal
+                        </span>
+                      )}
+                      {m.nome}
+                      {m.ehDoEscritorio && <span className="tag-local">escritório</span>}
+                    </button>
+                  );
+                })}
+                {!adicionandoMateria && (
+                  <button className="matter-chip add-matter" onClick={() => setAdicionandoMateria(true)}>
+                    + Adicionar matéria
+                  </button>
+                )}
+                {adicionandoMateria && (
+                  <div className="matter-add-row">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="Nome da nova matéria, ex.: Direito Desportivo"
+                      value={novaMateria}
+                      onChange={(e) => setNovaMateria(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && confirmarNovaMateria()}
+                    />
+                    <button className="btn btn-primary btn-sm" onClick={confirmarNovaMateria}>
+                      Adicionar
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setAdicionandoMateria(false)}>
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="ctx-nota">
+                {marcadas.length > 1
+                  ? `${marcadas.length} matérias marcadas — todas vão ao agente, e a primeira (${marcadas[0]}) define a estrutura da peça.`
+                  : "Matéria marcada com a etiqueta “escritório” vale só aqui — não vira opção padrão do Lúmen para os demais escritórios."}
+              </p>
+            </section>
+          </div>
+
+          <div className="ctx-filtro">
+            <div className="ctx-filtro-linha">
+              <label className="ctx-campo ctx-campo-curto">
+                <span>Esta peça</span>
+                <div className="segmented">
+                  <button className={!avulsa ? "active" : ""} onClick={() => setAvulsa(false)}>
+                    Vinculada
+                  </button>
+                  <button className={avulsa ? "active" : ""} onClick={irParaAvulsa}>
+                    Avulsa
+                  </button>
+                </div>
+              </label>
+
+              {!avulsa && (
+                <>
+                  <label className="ctx-campo">
+                    <span>O que você está procurando</span>
+                    <select
+                      value={tipo}
+                      onChange={(e) => {
+                        setTipo(e.target.value as TipoDeBusca);
+                        setResultados([]);
+                      }}
+                    >
+                      {TIPOS_DE_BUSCA.map((t) => (
+                        <option key={t.chave} value={t.chave}>
+                          {t.rotulo}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {/* A SEGUNDA PERGUNTA, só quando é assessoria — pedido literal do dono. */}
+                  {tipo === "assessoria" && (
+                    <label className="ctx-campo">
+                      <span>Dentro da assessoria</span>
+                      <select
+                        value={subtipo}
+                        onChange={(e) => {
+                          setSubtipo(e.target.value as SubtipoDeAssessoria);
+                          setResultados([]);
+                        }}
+                      >
+                        {SUBTIPOS_DE_ASSESSORIA.map((sub) => (
+                          <option key={sub.chave} value={sub.chave}>
+                            {sub.rotulo}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  <label className="ctx-campo ctx-campo-busca">
+                    <span>Buscar</span>
+                    <input
+                      type="search"
+                      value={termo}
+                      onChange={(e) => setTermo(e.target.value)}
+                      placeholder={
+                        tipo === "atendimento"
+                          ? "Assunto ou nome do cliente…"
+                          : tipo === "assessoria"
+                            ? "Empresa, licitação, demanda…"
+                            : "Número do processo, título, vara ou cliente…"
+                      }
+                    />
+                  </label>
+                </>
+              )}
+            </div>
+
+            {!avulsa && <p className="ctx-nota">{explicacaoDoFiltro} A natureza do procedimento, acima, é deduzida do que você marcar — não é a mesma pergunta.</p>}
+          </div>
         </div>
       </div>
 
-      <div className="content">
-        {erro && <div className="callout callout-danger">{erro}</div>}
-
-        <div className="group">
-          <h2>Sessão vinculada ou avulsa</h2>
-          <div className="segmented">
-            <button className={!avulsa ? "active" : ""} onClick={() => setAvulsa(false)}>
-              Vincular a um item do Lúmen
-            </button>
-            <button className={avulsa ? "active" : ""} onClick={irParaAvulsa}>
-              Petição avulsa (sem vínculo)
-            </button>
+      {/* A ÚNICA REGIÃO QUE ROLA (item 5) — as demandas filtradas. */}
+      <div className="ctx-rolagem">
+        {avulsa ? (
+          <div className="callout" style={{ maxWidth: 640 }}>
+            <h2>Petição avulsa</h2>
+            <p style={{ margin: 0, color: "var(--tx-1)", fontSize: 13, lineHeight: 1.6 }}>
+              Sem processo, caso, atendimento ou assessoria vinculado. Os anexos e a minuta final desta sessão vão para uma subpasta própria dentro de{" "}
+              <span className="mono">Peticionamento/</span> no Drive do escritório — nada se mistura com a pasta de nenhum cliente.
+            </p>
           </div>
-        </div>
-
-        <div className="group">
-          <h2>
-            Matéria <span className="quiet" style={{ fontWeight: 400 }}>— obrigatório, define o restante do questionário</span>
-          </h2>
-          <div className="matter-grid">
-            {materias.map((m) => (
-              <button key={m.nome} className={`matter-chip${materia === m.nome ? " selected" : ""}`} onClick={() => selecionarMateria(m.nome, m.ehDoEscritorio)}>
-                {m.nome}
-                {m.ehDoEscritorio && <span className="tag-local">escritório</span>}
-              </button>
-            ))}
-            {!adicionandoMateria && (
-              <button className="matter-chip add-matter" onClick={() => setAdicionandoMateria(true)}>
-                + Adicionar matéria
-              </button>
-            )}
-            {adicionandoMateria && (
-              <div className="matter-add-row">
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder="Nome da nova matéria, ex.: Direito Desportivo"
-                  value={novaMateria}
-                  onChange={(e) => setNovaMateria(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && confirmarNovaMateria()}
-                />
-                <button className="btn btn-primary btn-sm" onClick={confirmarNovaMateria}>
-                  Adicionar
-                </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setAdicionandoMateria(false)}>
-                  Cancelar
-                </button>
-              </div>
-            )}
-            <div className="matter-legend">
-              Matérias marcadas <span className="tag-local">escritório</span> foram adicionadas por este escritório e ficam disponíveis{" "}
-              <strong style={{ color: "var(--tx-0)" }}>só aqui</strong> — não viram opção padrão do Lúmen para os demais escritórios que o usam.
-            </div>
-          </div>
-        </div>
-
-        {!avulsa && (
-          <div className="group">
-            <h2>Vincular a processo, caso, atendimento ou assessoria</h2>
-            {candidatos.clienteTravado && (
+        ) : (
+          <>
+            {clienteTravado && (
               <div className="client-banner">
-                Cliente desta sessão: <b>{candidatos.clienteTravado.nome ?? candidatos.clienteTravado.id}</b> — os demais itens seguem travados a ele até você
-                iniciar uma nova sessão.
+                Cliente desta sessão: <b>{clienteTravado.nome ?? clienteTravado.id}</b> — os demais itens seguem travados a ele até você iniciar uma nova sessão.
               </div>
             )}
 
-            <div className="tabs" style={{ marginTop: 16 }}>
-              <button className={`tab${aba === "case" ? " active" : ""}`} onClick={() => setAba("case")}>
-                Processos <span className="mono quiet">{candidatos.processos.length}</span>
-              </button>
-              <button className={`tab${aba === "attendance" ? " active" : ""}`} onClick={() => setAba("attendance")}>
-                Atendimentos <span className="mono quiet">{candidatos.atendimentos.length}</span>
-              </button>
-              <button className={`tab${aba === "assessoria" ? " active" : ""}`} onClick={() => setAba("assessoria")}>
-                Assessoria <span className="mono quiet">{candidatos.assessorias.length}</span>
-              </button>
-            </div>
+            {vinculados.length > 0 && (
+              <div className="ctx-bloco">
+                <h3>Já vinculado a esta sessão ({vinculados.length})</h3>
+                <div className="ctx-list">
+                  {vinculados.map((item) => (
+                    <label key={`${item.tipo}:${item.id}`} className="ctx-row">
+                      <input type="checkbox" checked disabled={pendente} onChange={() => alternar(item.tipo, item.id, false)} />
+                      <div className="body">
+                        <div className="title-line">{item.titulo}</div>
+                        <div className="sub-line">{item.subtitulo}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <div style={{ marginTop: 14 }}>
-              {listaAtiva.length === 0 ? (
-                <div className="empty-note">Nenhum item deste tipo neste escritório.</div>
+            <div className="ctx-bloco">
+              <h3>
+                Resultados{buscando ? " — buscando…" : ""}
+                {!buscando && !filtradoPorTermo && resultados.length > 0 ? ` — mais recentes (digite ${MINIMO_DE_CARACTERES} letras para filtrar)` : ""}
+              </h3>
+              {resultados.length === 0 ? (
+                <div className="empty-note">{buscando ? "Buscando…" : "Nenhum item encontrado com este filtro neste escritório."}</div>
               ) : (
                 <div className="ctx-list">
-                  {listaAtiva.map((item) => (
-                    <label key={item.id} className={`ctx-row${item.bloqueado ? " locked" : ""}`} title={item.motivoBloqueio ?? undefined}>
-                      <input
-                        type="checkbox"
-                        checked={overrides[item.id] ?? item.selecionado}
-                        disabled={item.bloqueado || pendente}
-                        onChange={(e) => alternar(item.tipo, item.id, e.target.checked)}
-                      />
+                  {resultados.map((item) => (
+                    <label key={`${item.tipo}:${item.id}`} className={`ctx-row${item.bloqueado ? " locked" : ""}`} title={item.motivoBloqueio ?? undefined}>
+                      <input type="checkbox" checked={item.selecionado} disabled={item.bloqueado || pendente} onChange={(e) => alternar(item.tipo, item.id, e.target.checked)} />
                       <div className="body">
                         <div className="title-line">{item.titulo}</div>
                         <div className="sub-line">{item.subtitulo}</div>
@@ -252,51 +459,36 @@ export function ContextoClient({ sessaoId, candidatos, materias: materiasIniciai
                   ))}
                 </div>
               )}
+              {truncado && (
+                <p className="ctx-nota">
+                  Mostrando os {LIMITE_DE_RESULTADOS} primeiros — há mais itens que casam com este filtro. Refine a busca (número do processo, nome do cliente) em
+                  vez de rolar.
+                </p>
+              )}
             </div>
-          </div>
+          </>
         )}
-
-        {avulsa && (
-          <div className="callout" style={{ maxWidth: 640 }}>
-            <h2>Petição avulsa</h2>
-            <p style={{ margin: 0, color: "var(--tx-1)", fontSize: 13, lineHeight: 1.6 }}>
-              Sem processo, caso, atendimento ou assessoria vinculado. Os anexos e a minuta final desta sessão vão para uma subpasta própria dentro de{" "}
-              <span className="mono">Peticionamento/</span> no Drive do escritório — nada se mistura com a pasta de nenhum cliente.
-            </p>
-          </div>
-        )}
-
-        {/* Natureza do procedimento — espec. §8: DEDUZIDA a partir do vínculo, nunca perguntada do
-            zero, mas a dedução NUNCA é silenciosa: o motivo aparece sempre em texto, e corrigir é
-            um clique num dos quatro botões. */}
-        <div className="group">
-          <h2>Natureza do procedimento</h2>
-          {naturezaMotivo && (
-            <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--tx-2)" }}>
-              {naturezaConfirmadaManualmente ? "Confirmado manualmente pelo advogado." : <>Deduzido pelo Peticionamento: <strong style={{ color: "var(--tx-0)" }}>{naturezaMotivo}</strong></>}
-            </p>
-          )}
-          <div className="segmented">
-            {NATUREZAS_DE_PROCEDIMENTO.map((n) => (
-              <button key={n} className={naturezaLocal === n ? "active" : ""} disabled={pendente} onClick={() => corrigirNatureza(n)}>
-                {ROTULO_NATUREZA[n]}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
+      {/* CONGELADA (item 5): não rola com os resultados. */}
       <div className="sticky-bar">
-        <div className="left">{avulsa ? "Sessão avulsa · sem vínculo a cliente" : candidatos.clienteTravado ? `Cliente confirmado: ${candidatos.clienteTravado.nome}` : "Nenhum item vinculado ainda"}</div>
+        <div className="left">
+          {avulsa ? "Sessão avulsa · sem vínculo a cliente" : clienteTravado ? `Cliente confirmado: ${clienteTravado.nome}` : "Nenhum item vinculado ainda"}
+        </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button className="btn btn-ghost" onClick={() => router.push(`/peticionamento/${sessaoId}/wizard`)}>
             Pular questionário
           </button>
-          <button className="btn btn-primary" disabled={!materia} onClick={() => router.push(`/peticionamento/${sessaoId}/wizard`)} title={!materia ? "Escolha a matéria antes de continuar" : undefined}>
+          <button
+            className="btn btn-primary"
+            disabled={marcadas.length === 0}
+            onClick={() => router.push(`/peticionamento/${sessaoId}/wizard`)}
+            title={marcadas.length === 0 ? "Escolha ao menos uma matéria antes de continuar" : undefined}
+          >
             Continuar
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,4 +1,6 @@
-import { teste, verdade, resumo } from "./executar";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { teste, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
 import { montarMensagemParaHermes, type DadosParaPrompt } from "@/lib/peticionamentoPrompt";
 
 // PRIORIDADE 1 (relatório da entrega "peticionamento lê documentos") — este módulo não tinha
@@ -9,7 +11,14 @@ import { montarMensagemParaHermes, type DadosParaPrompt } from "@/lib/peticionam
 // não lido carrega um marcador explícito, nunca uma seção vazia que o agente preenche sozinho.
 
 const base: DadosParaPrompt = {
-  materia: "Cível",
+  // ADAPTADO 22/09/2026 — pedido do dono: "Em vincular contexto, precisa de permitir marcar mais
+  // de uma matéria". `DadosParaPrompt.materia: string` virou `materias: string[]`, na ordem de
+  // marcação, a primeira sendo a principal (contrato de schema em
+  // PeticionamentoSessao.materiasNomes). Este fixture continua com UMA matéria de propósito: os
+  // casos abaixo são sobre documentos, e a matéria única precisava continuar coberta — a linha
+  // "Matéria: X" do prompt não mudou nada quando há uma só. Os casos de VÁRIAS matérias entram
+  // no fim do arquivo.
+  materias: ["Cível"],
   categoriaPeca: "Petição",
   tipoPeca: "Inicial",
   tipoPecaOutro: null,
@@ -108,6 +117,74 @@ teste("categorias diferentes de 'Geral' continuam com a instrução normal, sem 
   const msg = montarMensagemParaHermes({ ...base, categoriaPeca: "Contrato" });
   verdade(msg.includes("Redija uma minuta de contrato"), "Contrato deveria manter a frase normal com o substantivo da categoria");
   verdade(!/DEDUZIR/.test(msg), "categorias que não são Geral não deveriam carregar a instrução de dedução");
+});
+
+// ── MAIS DE UMA MATÉRIA (pedido do dono, 22/09/2026) ─────────────────────────────────────────
+// A garantia que importa: o que o advogado marcou na tela CHEGA ao agente. Gravar três matérias
+// no banco e mandar uma só ao Hermes seria a mesma classe de defeito que esta suíte nasceu para
+// pegar (mandar o NOME do documento sem o conteúdo) — a tela promete uma coisa e o agente recebe
+// outra, sem ninguém conseguir ver a diferença olhando a minuta.
+
+teste("UMA matéria: a linha de sempre, sem inventar plural", () => {
+  const msg = montarMensagemParaHermes({ ...base, materias: ["Sucessões"] });
+  verdade(msg.includes("Matéria: Sucessões"), "a linha de matéria única mudou de forma");
+  verdade(!msg.includes("Matérias desta peça"), "com uma matéria só não deveria aparecer o bloco de várias");
+});
+
+teste("HARD GATE: TODAS as matérias marcadas vão na mensagem — nunca só a principal", () => {
+  const msg = montarMensagemParaHermes({ ...base, materias: ["Sucessões", "Tributário", "Família"] });
+  for (const m of ["Sucessões", "Tributário", "Família"]) {
+    verdade(msg.includes(m), `a matéria "${m}" não chegou ao agente — o advogado marcou e a mensagem jogou fora`);
+  }
+});
+
+teste("a PRINCIPAL é dita como principal — o agente precisa saber qual define a estrutura da peça", () => {
+  const msg = montarMensagemParaHermes({ ...base, materias: ["Sucessões", "Tributário"] });
+  verdade(/matéria PRINCIPAL é "Sucessões"/.test(msg), "a mensagem não identifica a matéria principal");
+});
+
+teste("as matérias secundárias são mandadas como algo a DESENVOLVER, nunca como pano de fundo", () => {
+  const msg = montarMensagemParaHermes({ ...base, materias: ["Sucessões", "Tributário"] });
+  verdade(/desenvolva/i.test(msg), "falta a instrução de desenvolver o que cada matéria exige");
+  verdade(/riscos/i.test(msg), "falta mandar apontar nos riscos a matéria que não deu para desenvolver — omitir em silêncio é o defeito");
+});
+
+teste("lista vazia ou suja não quebra a mensagem — cai em '(não informada)', como antes", () => {
+  verdade(montarMensagemParaHermes({ ...base, materias: [] }).includes("Matéria: (não informada)"), "lista vazia deveria virar (não informada)");
+  verdade(montarMensagemParaHermes({ ...base, materias: ["  "] }).includes("Matéria: (não informada)"), "só espaço em branco deveria virar (não informada)");
+  verdade(montarMensagemParaHermes({ ...base, materias: ["  Cível  ", "  "] }).includes("Matéria: Cível"), "espaço em volta deveria ser aparado e a matéria única preservada");
+});
+
+// ── ONDE A GARANTIA MORA: a AÇÃO precisa mandar a lista, não a principal ─────────────────────
+// Este arquivo testa o módulo puro. O defeito que esta entrega poderia deixar passar é a ação
+// continuar lendo só `sessao.materiaNome` e mandando uma matéria só — o módulo puro ficaria
+// verde e o agente seguiria recebendo metade do que o advogado marcou. Varredura de código pela
+// mesma razão do resto da casa (camada de IO, sem prisma falso).
+
+// ADAPTADO NO MERGE com a entrega do limite de tamanho (#306), e ficou MAIS forte. A montagem da
+// mensagem passou a partir de `...dadosDoPrompt`, e as matérias subiram para lá — dentro de
+// `calcularAvaliacaoDeContexto`, que é a estrutura que `custoFixoDaMensagem` MEDE. O motivo é o
+// defeito que aquela entrega consertou: com várias matérias o bloco cresce, e um bloco que cresce
+// sem ocupar lugar no orçamento faz o orçamento medir menos do que se manda.
+teste("TRAVA: a LISTA de matérias vai ao Hermes POR DENTRO do que o orçamento mede", () => {
+  const acoes = readFileSync(join(process.cwd(), "lib", "actions", "peticionamento.ts"), "utf8");
+  const corpo = codigoDe(corpoDaFuncao(acoes, "calcularAvaliacaoDeContexto"));
+  verdade(corpo.length > 300, `corpoDaFuncao("calcularAvaliacaoDeContexto") devolveu ${corpo.length} caracteres — varredura cega`);
+  const idxDados = corpo.indexOf("const dadosDoPrompt");
+  verdade(idxDados !== -1, "sumiu dadosDoPrompt — é ele que custoFixoDaMensagem mede");
+  const medido = corpo.slice(idxDados, corpo.indexOf("custoFixoDaMensagem(", idxDados));
+  verdade(/materias:\s*lerMateriasDaSessao\(/.test(medido),
+    "a ação voltou a mandar só a matéria principal ao agente — as demais matérias marcadas pelo advogado seriam jogadas fora na geração, ou entrariam fora do orçamento");
+
+  // E a montagem final não pode reintroduzir as matérias por fora do que foi medido.
+  const corpoGerar = codigoDe(corpoDaFuncao(acoes, "confirmarTriagemEGerar"));
+  verdade(corpoGerar.includes("montarMensagemParaHermes"), "a varredura não achou a montagem da mensagem — está cega");
+  const idxPrompt = corpoGerar.indexOf("montarMensagemParaHermes({");
+  const chamada = corpoGerar.slice(idxPrompt, corpoGerar.indexOf("});", idxPrompt));
+  verdade(chamada.includes("...dadosDoPrompt"),
+    "a montagem final deixou de partir de dadosDoPrompt — o que se mede e o que se manda voltam a ser coisas diferentes");
+  verdade(!/materias?:/.test(chamada),
+    "as matérias voltaram a ser injetadas na montagem final, por fora da medição do orçamento");
 });
 
 resumo("Peticionamento — mensagem ao Hermes (prioridade 1)");

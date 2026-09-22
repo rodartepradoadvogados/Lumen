@@ -7,6 +7,8 @@ import { confirmarTriagemEGerar } from "@/lib/actions/peticionamento";
 type Resumo = {
   contextoDescricao: string;
   materiaNome: string | null;
+  /** TODAS as matérias marcadas, na ordem — a primeira é a principal (pedido do dono, 22/09/2026). */
+  materias: string[];
   tipoPeca: string | null;
   tipoPecaOutro: string | null;
   fatos: string;
@@ -66,7 +68,21 @@ export function ConfirmarClient({ sessaoId, resumo }: { sessaoId: string; resumo
       <p className="gate-note">O agente vai indicar a fonte de cada precedente citado e nunca decide sozinho a estratégia processual — só sugere; a decisão continua sendo sua.</p>
       <div className="triage-summary">
         {linha("Contexto", resumo.contextoDescricao, `/peticionamento/${sessaoId}/contexto`)}
-        {linha("Matéria", resumo.materiaNome ?? "(não escolhida)", `/peticionamento/${sessaoId}/contexto`)}
+        {linha(
+          resumo.materias.length > 1 ? "Matérias" : "Matéria",
+          resumo.materias.length ? (
+            <div className="chips">
+              {resumo.materias.map((m, i) => (
+                <span className="chip" key={m} title={i === 0 ? "Matéria principal — define a estrutura da peça" : undefined}>
+                  {i === 0 && resumo.materias.length > 1 ? `${m} (principal)` : m}
+                </span>
+              ))}
+            </div>
+          ) : (
+            "(não escolhida)"
+          ),
+          `/peticionamento/${sessaoId}/contexto`,
+        )}
         {linha("Tipo de peça", resumo.tipoPeca === "Outra" ? resumo.tipoPecaOutro || "Outra" : resumo.tipoPeca ?? "(o agente vai tentar inferir)", `/peticionamento/${sessaoId}/wizard`)}
         {linha("Fatos", resumo.fatos || "(vazio)", `/peticionamento/${sessaoId}/wizard`)}
         {linha(

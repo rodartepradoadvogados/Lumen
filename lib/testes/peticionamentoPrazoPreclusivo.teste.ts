@@ -16,7 +16,7 @@ import { obterConfiguracaoQuestionario, EXPLICACAO_PRAZO_PRECLUSIVO, ROTULO_PRAZ
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 const base: DadosParaPrompt = {
-  materia: "Direito Civil",
+  materias: ["Direito Civil"],
   categoriaPeca: "Parecer",
   tipoPeca: "Parecer",
   tipoPecaOutro: null,

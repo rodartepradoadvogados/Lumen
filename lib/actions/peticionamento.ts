@@ -21,7 +21,9 @@ import {
 import { podeAcessarAba, podeAnexar, avaliarExportacao } from "@/lib/peticionamentoAcesso";
 import { avaliarProntidao } from "@/lib/peticionamentoMinimo";
 import { avaliarCandidatos, validarNovoVinculo, ehSessaoAvulsa, type ItemDeContexto, type TipoVinculo } from "@/lib/peticionamentoContexto";
-import { MATERIAS_DO_LUMEN, validarNovaMateria } from "@/lib/peticionamentoMateria";
+import { MATERIAS_DO_LUMEN, validarNovaMateria, lerMateriasDaSessao, normalizarSelecaoDeMaterias, type MateriaEscolhida } from "@/lib/peticionamentoMateria";
+import { LIMITE_DE_RESULTADOS, ehTipoDeBuscaConhecido, normalizarTermo, termoEhBuscavel, subtipoEfetivo, type TipoDeBusca } from "@/lib/peticionamentoBusca";
+import { naturezaWhere } from "@/lib/caseNatureza";
 import { avaliarJanela, comMilhar, LIMITE_PADRAO_CARACTERES, type ItemDeContexto as ItemDeJanela, type ItemAvaliado } from "@/lib/peticionamentoJanelaDeContexto";
 import { extrairTextoDeDocumento } from "@/lib/peticionamentoExtracaoDocumento";
 import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
@@ -132,11 +134,23 @@ export type RascunhoResumo = {
   categoriaPeca: string | null;
   clienteNome: string | null;
   naturezaProcedimento: string | null;
+  /** TODAS as matérias marcadas (leitura fail-open do dado antigo — ver lib/peticionamentoMateria.ts). */
+  materias: string[];
   passo: string;
   passoRotulo: string;
   href: string;
   atualizadoEm: string;
   criadoPorNome: string;
+  /**
+   * O QUE SE PERDE ao excluir este rascunho — a tela de confirmação (espec. §3 + pedido do dono
+   * 22/09/2026: "não tem opção de excluir rascunho") precisa DIZER o que vai embora antes de
+   * apagar. Estes três números são essa frase, e vêm do servidor porque é lá que eles existem.
+   */
+  anexosCount: number;
+  documentosCount: number;
+  temMinuta: boolean;
+  /** false quando existe registro de exportação apontando para a sessão — ver excluirRascunho. */
+  podeExcluir: boolean;
 };
 
 /** Só a contagem — para o "Ver rascunhos (n)" do Menu, sem precisar montar a lista inteira (mesmo corte de listarRascunhos, logo abaixo). */
@@ -162,6 +176,8 @@ export async function listarRascunhos(): Promise<RascunhoResumo[]> {
       tipoPeca: true,
       tipoPecaOutro: true,
       materiaNome: true,
+      materiasNomes: true,
+      geradoEm: true,
       clienteNome: true,
       naturezaProcedimento: true,
       contextoDecidido: true,
@@ -172,7 +188,7 @@ export async function listarRascunhos(): Promise<RascunhoResumo[]> {
       passoAtual: true,
       updatedAt: true,
       criadoPor: { select: { name: true } },
-      _count: { select: { anexos: true } },
+      _count: { select: { anexos: true, exportacoes: true } },
     },
   });
 
@@ -202,13 +218,78 @@ export async function listarRascunhos(): Promise<RascunhoResumo[]> {
       categoriaPeca: s.categoriaPeca,
       clienteNome: s.clienteNome,
       naturezaProcedimento: s.naturezaProcedimento,
+      materias: lerMateriasDaSessao(s.materiasNomes, s.materiaNome),
       passo,
       passoRotulo: ROTULO_DO_PASSO[passo],
       href: hrefDoPasso(s.id, passo),
       atualizadoEm: s.updatedAt.toISOString(),
       criadoPorNome: s.criadoPor.name,
+      anexosCount: s._count.anexos,
+      documentosCount: documentosExistentesIds.length,
+      temMinuta: !!s.geradoEm,
+      podeExcluir: s._count.exportacoes === 0,
     };
   });
+}
+
+/**
+ * EXCLUIR RASCUNHO (pedido do dono, 22/09/2026, palavras dele: "não tem opção de excluir
+ * rascunho"). Três decisões, e o motivo de cada uma:
+ *
+ * 1. APAGA DE VERDADE, não marca como descartada. Um rascunho é, por definição, trabalho não
+ *    terminado: não há ato jurídico praticado a partir dele, nada foi protocolado, ninguém
+ *    assinou nada. Guardar um túmulo ("DESCARTADA") só teria valor se algo lá fora apontasse
+ *    para a sessão — e o único registro que aponta é PeticionamentoExportacao, tratado no item 2.
+ *    Fora esse caso, manter a linha faria "excluir" ser mentira de produto: o advogado pede para
+ *    sumir e a coisa continua ocupando banco, contagem e lista para sempre. As tabelas filhas
+ *    (anexos, exportações, citações) têm onDelete: Cascade no schema e vão junto.
+ *
+ * 2. SESSÃO JÁ EXPORTADA NÃO SUMBE. PeticionamentoExportacao é o registro de AUDITORIA da trava
+ *    de exportação (espec. §5: quem marcou o checkbox de ciência e quando) — a razão de ele
+ *    existir no banco, e não só nos metadados do .docx, é justamente sobreviver ao arquivo. Um
+ *    Cascade apagaria essa prova junto com a sessão, e o escritório perderia a resposta para "quem
+ *    autorizou esta peça sair?" exatamente na peça que saiu. Por isso a recusa é explícita e diz
+ *    o porquê, em vez de apagar em silêncio ou estourar um erro genérico. Na prática a tela nem
+ *    oferece o botão (listarRascunhos devolve podeExcluir: false), mas a recusa mora AQUI —
+ *    nunca só na tela.
+ *
+ * 3. CONFIRMAÇÃO EXIGIDA NO SERVIDOR. `confirmado` chega da tela, que mostra antes o que será
+ *    perdido; a ação recusa sem ele. Um clique acidental não apaga trabalho de ninguém, mesmo que
+ *    a tela seja contornada por uma chamada direta.
+ *
+ * O QUE NÃO É APAGADO, e a tela diz isso: os arquivos já enviados ao Google Drive continuam lá,
+ * na subpasta da sessão dentro de "Peticionamento". Apagar arquivo no Drive de alguém a partir de
+ * um clique em "excluir rascunho" seria destruição de documento que o advogado pode ter promovido
+ * a anexo oficial — o link no Drive é a cópia dele, não nossa.
+ */
+export async function excluirRascunho(sessaoId: string, confirmado: boolean): Promise<{ ok: true } | { error: string }> {
+  const user = await exigirAcessoAba();
+  const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
+
+  if (!confirmado) {
+    return { error: "Exclusão não confirmada — o rascunho continua salvo." };
+  }
+
+  const exportacoes = await prisma.peticionamentoExportacao.count({ where: { sessaoId } });
+  if (exportacoes > 0 || sessao.status === "EXPORTADA") {
+    return {
+      error:
+        "Esta sessão já foi exportada e não pode ser excluída: existe registro de exportação apontando para ela (quem confirmou a ciência do rascunho gerado por IA, e quando). Esse registro é a auditoria da peça que saiu do escritório — apagá-lo junto com a sessão apagaria a prova de quem autorizou. Ela também não aparece na lista de rascunhos.",
+    };
+  }
+
+  // O `where` do deleteMany carrega officeId E o status — defesa em profundidade, mesmo padrão do
+  // resto do arquivo: nem um id de outro escritório, nem uma sessão que virou EXPORTADA entre a
+  // leitura acima e esta linha, apagam nada. `deleteMany` (e não `delete`) porque só ele aceita
+  // `where` composto; o `count` devolvido é a prova de que a linha certa foi a que saiu.
+  const { count } = await prisma.peticionamentoSessao.deleteMany({
+    where: { id: sessaoId, officeId: user.officeId, status: { not: "EXPORTADA" } },
+  });
+  if (count === 0) return { error: "Não foi possível excluir este rascunho — recarregue a lista e tente de novo." };
+
+  revalidatePath("/peticionamento/rascunhos");
+  revalidatePath("/peticionamento");
+  return { ok: true };
 }
 
 /**
@@ -267,10 +348,33 @@ export async function adicionarMateriaDoEscritorio(nomeDigitado: string): Promis
   return { nome: resultado.nomeNormalizado };
 }
 
-export async function definirMateria(sessaoId: string, materiaNome: string, ehDoEscritorio: boolean): Promise<{ ok: true } | { error: string }> {
+/**
+ * MAIS DE UMA MATÉRIA (pedido do dono, 22/09/2026). Era `definirMateria`, uma só, até aqui.
+ *
+ * OS DOIS CAMPOS SÃO GRAVADOS JUNTOS, SEMPRE — exigência literal do contrato de schema
+ * (prisma/schema.prisma, PeticionamentoSessao.materiasNomes: "quem escrever precisa manter os
+ * dois em pé ao mesmo tempo, sempre: gravar a lista e gravar a primeira em materiaNome, na MESMA
+ * transação"). É por isso que isto é UM `update` só, e não dois: um único `update` do Prisma é um
+ * único statement, logo atômico por definição. Dois updates em sequência poderiam deixar a sessão,
+ * entre um e outro, com a lista nova e a principal velha — e é exatamente `materiaNome` que a
+ * lista de rascunhos mostra e que o passo "contexto" usa para saber se a matéria foi escolhida.
+ *
+ * Lista vazia é permitida (o advogado desmarcou tudo): grava lista vazia E principal nula, nunca
+ * uma principal órfã de uma lista que não a contém mais.
+ */
+export async function definirMaterias(sessaoId: string, selecao: MateriaEscolhida[]): Promise<{ ok: true } | { error: string }> {
   const user = await exigirAcessoAba();
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
-  await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { materiaNome, materiaEhDoEscritorio: ehDoEscritorio } });
+  const materias = normalizarSelecaoDeMaterias(selecao);
+  const principal = materias[0] ?? null;
+  await prisma.peticionamentoSessao.update({
+    where: { id: sessaoId },
+    data: {
+      materiasNomes: materias.map((m) => m.nome),
+      materiaNome: principal?.nome ?? null,
+      materiaEhDoEscritorio: principal?.ehDoEscritorio ?? false,
+    },
+  });
   return { ok: true };
 }
 
@@ -303,76 +407,219 @@ export async function confirmarNatureza(sessaoId: string, naturezaProcedimento: 
 
 export type CandidatoDeContexto = ItemDeContexto & { titulo: string; subtitulo: string };
 
-type CandidatoResolvido = CandidatoDeContexto & { bloqueado: boolean; motivoBloqueio: string | null; selecionado: boolean };
+export type CandidatoResolvido = CandidatoDeContexto & { bloqueado: boolean; motivoBloqueio: string | null; selecionado: boolean };
 
-export async function buscarCandidatosDeContexto(sessaoId: string): Promise<{
-  processos: CandidatoResolvido[];
-  atendimentos: CandidatoResolvido[];
-  assessorias: CandidatoResolvido[];
+/**
+ * OS VÍNCULOS JÁ ESCOLHIDOS nesta sessão — e só eles. São poucos por definição (a trava de
+ * cliente impede que virem muitos) e precisam aparecer sempre, mesmo quando a busca do lado está
+ * vazia: é por aqui que o advogado DESMARCA o que vinculou por engano.
+ *
+ * Até 22/09/2026 esta informação vinha junto de `buscarCandidatosDeContexto`, que carregava 200
+ * processos + 200 atendimentos + 200 assessorias do escritório inteiro a cada abertura da tela,
+ * para o React filtrar no cliente. Era exatamente o que o dono pediu para acabar ("ao invés de
+ * ficar navegando em uma lista imensa de processos") — e, de quebra, mandava ao navegador o nome
+ * de 600 clientes que aquela sessão jamais usaria. A busca agora é do SERVIDOR
+ * (buscarContextoParaVincular, logo abaixo) e esta função devolve só o que já está marcado.
+ */
+export async function obterVinculosDaSessao(sessaoId: string): Promise<{
+  vinculados: CandidatoResolvido[];
   clienteTravado: { id: string; nome: string | null } | null;
 }> {
   const user = await exigirAcessoAba();
   const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
-  const vinculoAtual = lerVinculo(sessao);
-
-  const [cases, attendances, assessorias] = await Promise.all([
-    prisma.case.findMany({
-      where: { officeId: user.officeId },
-      select: { id: true, title: true, processNumber: true, court: true, clientId: true, client: { select: { name: true } } },
-      orderBy: { updatedAt: "desc" },
-      take: 200,
-    }),
-    prisma.attendance.findMany({
-      where: { officeId: user.officeId },
-      select: { id: true, subject: true, clientName: true, channel: true, clientId: true },
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    }),
-    prisma.assessoria.findMany({
-      where: { officeId: user.officeId },
-      select: { id: true, clientId: true, client: { select: { name: true } } },
-      take: 200,
-    }),
-  ]);
-
+  const vinculo = lerVinculo(sessao);
   const clienteTravado = sessao.clienteId ? { id: sessao.clienteId, nome: sessao.clienteNome } : null;
 
-  const itensCase: CandidatoDeContexto[] = cases.map((c) => ({
+  const [cases, attendances, assessorias] = await Promise.all([
+    vinculo.caseIds.length
+      ? prisma.case.findMany({
+          where: { id: { in: vinculo.caseIds }, officeId: user.officeId },
+          select: { id: true, title: true, processNumber: true, court: true, clientId: true, client: { select: { name: true } } },
+        })
+      : Promise.resolve([]),
+    vinculo.attendanceIds.length
+      ? prisma.attendance.findMany({ where: { id: { in: vinculo.attendanceIds }, officeId: user.officeId }, select: { id: true, subject: true, clientName: true, channel: true, clientId: true } })
+      : Promise.resolve([]),
+    vinculo.assessoriaIds.length
+      ? prisma.assessoria.findMany({ where: { id: { in: vinculo.assessoriaIds }, officeId: user.officeId }, select: { id: true, clientId: true, client: { select: { name: true } } } })
+      : Promise.resolve([]),
+  ]);
+
+  const vinculados: CandidatoResolvido[] = [
+    ...cases.map((c) => ({ ...itemDeCase(c), bloqueado: false, motivoBloqueio: null, selecionado: true })),
+    ...attendances.map((a) => ({ ...itemDeAttendance(a), bloqueado: false, motivoBloqueio: null, selecionado: true })),
+    ...assessorias.map((a) => ({ ...itemDeAssessoria(a, null), bloqueado: false, motivoBloqueio: null, selecionado: true })),
+  ];
+
+  return { vinculados, clienteTravado };
+}
+
+// ── OS TRÊS TRADUTORES de linha do banco para linha da tela. Existem separados porque a busca
+// (abaixo) e a lista de já-vinculados (acima) precisam produzir EXATAMENTE o mesmo formato de
+// linha — duas montagens paralelas divergiriam no primeiro ajuste de rótulo. ───────────────────
+
+function itemDeCase(c: { id: string; title: string; processNumber: string | null; court: string | null; clientId: string | null; client: { name: string } | null }): CandidatoDeContexto {
+  return {
     id: c.id,
     tipo: "case",
     clienteId: c.clientId,
     clienteNome: c.client?.name ?? null,
     titulo: c.processNumber ? `Processo nº ${c.processNumber}` : c.title,
-    subtitulo: [c.client?.name, c.court].filter(Boolean).join(" — "),
-  }));
-  const itensAtend: CandidatoDeContexto[] = attendances.map((a) => ({
-    id: a.id,
-    tipo: "attendance",
-    clienteId: a.clientId,
-    clienteNome: a.clientName,
-    titulo: `Atendimento — ${a.subject}`,
-    subtitulo: `${a.clientName} · ${a.channel}`,
-  }));
-  const itensAsses: CandidatoDeContexto[] = assessorias.map((a) => ({
+    subtitulo: [c.client?.name, c.court, c.processNumber ? c.title : null].filter(Boolean).join(" — "),
+  };
+}
+
+function itemDeAttendance(a: { id: string; subject: string; clientName: string; channel: string; clientId: string | null }): CandidatoDeContexto {
+  return { id: a.id, tipo: "attendance", clienteId: a.clientId, clienteNome: a.clientName, titulo: `Atendimento — ${a.subject}`, subtitulo: `${a.clientName} · ${a.channel}` };
+}
+
+/**
+ * `achadoPor` é o que o dono pediu sem pedir: quando o advogado procurou por LICITAÇÃO ou por
+ * DEMANDA, o que entra na sessão é a ASSESSORIA dona daquilo (a sessão só sabe vincular
+ * processo/atendimento/assessoria — ver PeticionamentoSessao no schema). A linha diz isso em
+ * texto, sempre: "Assessoria — Empresa X · encontrada pela licitação «Pregão 12/2026»". Sem essa
+ * frase, o advogado clicaria numa licitação e veria uma assessoria aparecer marcada, sem entender.
+ */
+function itemDeAssessoria(a: { id: string; clientId: string; client: { name: string } }, achadoPor: string | null): CandidatoDeContexto {
+  return {
     id: a.id,
     tipo: "assessoria",
     clienteId: a.clientId,
     clienteNome: a.client.name,
     titulo: `Assessoria — ${a.client.name}`,
-    subtitulo: "Assessoria jurídica continuada",
-  }));
+    subtitulo: achadoPor ?? "Assessoria jurídica continuada",
+  };
+}
 
-  const avCase = avaliarCandidatos(itensCase, clienteTravado?.id ?? null);
-  const avAtend = avaliarCandidatos(itensAtend, clienteTravado?.id ?? null);
-  const avAsses = avaliarCandidatos(itensAsses, clienteTravado?.id ?? null);
+export type ResultadoDaBusca = {
+  resultados: CandidatoResolvido[];
+  /** true quando existem mais linhas do que o teto — a tela pede para refinar o termo, nunca finge que acabou. */
+  truncado: boolean;
+  /** false quando o termo ainda é curto demais: a tela mostra "os mais recentes", não um vazio enganoso. */
+  filtradoPorTermo: boolean;
+  clienteTravado: { id: string; nome: string | null } | null;
+};
 
-  const juntar = (base: CandidatoDeContexto[], avaliados: (ItemDeContexto & { bloqueado: boolean; motivoBloqueio: string | null })[], jaSelecionados: string[]): CandidatoResolvido[] =>
-    base.map((b, i) => ({ ...b, bloqueado: avaliados[i].bloqueado, motivoBloqueio: avaliados[i].motivoBloqueio, selecionado: jaSelecionados.includes(b.id) }));
+/**
+ * A BUSCA DO ITEM 3 (pedido do dono, 22/09/2026). Roda NO SERVIDOR, sempre: o corte por officeId
+ * e o volume de dados vivem aqui, e a lista completa nunca chega ao navegador para ser filtrada
+ * em JavaScript. Todo `where` abaixo carrega officeId DENTRO dele — nunca um filtro depois da
+ * consulta (lib/testes/peticionamentoIsolamento.teste.ts varre isto consulta a consulta).
+ *
+ * Termo curto demais (< MINIMO_DE_CARACTERES) não é erro: devolve os mais RECENTES daquele tipo,
+ * limitados ao mesmo teto — a tela nasce útil, sem lista imensa e sem tela em branco.
+ *
+ * A trava de cliente (lib/peticionamentoContexto.ts) é aplicada sobre o resultado como sempre:
+ * o que pertence a outro cliente volta marcado como bloqueado, COM o motivo — nunca some da
+ * busca em silêncio, senão o advogado procuraria pelo processo certo e concluiria que ele não
+ * existe no Lúmen.
+ */
+export async function buscarContextoParaVincular(
+  sessaoId: string,
+  tipoPedido: string,
+  subtipoPedido: string | null,
+  termoDigitado: string,
+): Promise<ResultadoDaBusca | { error: string }> {
+  const user = await exigirAcessoAba();
+  const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  if (!ehTipoDeBuscaConhecido(tipoPedido)) return { error: "Tipo de busca desconhecido." };
+
+  const tipo: TipoDeBusca = tipoPedido;
+  const subtipo = subtipoEfetivo(tipo, subtipoPedido);
+  const termo = normalizarTermo(termoDigitado);
+  const filtradoPorTermo = termoEhBuscavel(termo);
+  const contem = { contains: termo, mode: "insensitive" as const };
+  const teto = LIMITE_DE_RESULTADOS + 1; // +1 só para saber que há mais — a linha extra nunca é devolvida.
+
+  const vinculoAtual = lerVinculo(sessao);
+  const clienteTravado = sessao.clienteId ? { id: sessao.clienteId, nome: sessao.clienteNome } : null;
+  const officeId = user.officeId;
+
+  let itens: CandidatoDeContexto[] = [];
+
+  if (tipo === "atendimento") {
+    const linhas = await prisma.attendance.findMany({
+      where: { officeId, ...(filtradoPorTermo ? { OR: [{ subject: contem }, { clientName: contem }] } : {}) },
+      select: { id: true, subject: true, clientName: true, channel: true, clientId: true },
+      orderBy: { createdAt: "desc" },
+      take: teto,
+    });
+    itens = linhas.map(itemDeAttendance);
+  } else if (tipo !== "assessoria" || subtipo === "processo-vinculado") {
+    // Os quatro caminhos que terminam em Case. A natureza vem de lib/caseNatureza.ts — a MESMA
+    // régua das abas Judicial/Administrativo/Casos do Lúmen, nunca uma segunda definição de
+    // "o que é um processo judicial" morando só nesta aba.
+    const recorteDeNatureza =
+      tipo === "processo-judicial" ? { type: "JUDICIAL" } : tipo === "processo-administrativo" ? { type: "ADMINISTRATIVO" } : tipo === "caso" ? naturezaWhere("CASO") : {};
+    const linhas = await prisma.case.findMany({
+      where: {
+        officeId,
+        ...recorteDeNatureza,
+        // "Processo vinculado" (subtipo de assessoria) = processo/caso cadastrado DENTRO de uma
+        // assessoria — é o que a aba "Demandas, Processos e Casos" da Assessoria mostra.
+        ...(subtipo === "processo-vinculado" ? { assessoriaId: { not: null } } : {}),
+        ...(filtradoPorTermo ? { OR: [{ title: contem }, { processNumber: contem }, { court: contem }, { client: { name: contem } }] } : {}),
+      },
+      select: { id: true, title: true, processNumber: true, court: true, clientId: true, client: { select: { name: true } } },
+      orderBy: { updatedAt: "desc" },
+      take: teto,
+    });
+    itens = linhas.map(itemDeCase);
+  } else if (subtipo === "licitacao") {
+    const linhas = await prisma.licitacao.findMany({
+      where: {
+        officeId,
+        ...(filtradoPorTermo ? { OR: [{ nome: contem }, { objeto: contem }, { orgao: contem }, { assessoria: { client: { name: contem } } }] } : {}),
+      },
+      select: { id: true, nome: true, objeto: true, assessoria: { select: { id: true, clientId: true, client: { select: { name: true } } } } },
+      orderBy: { createdAt: "desc" },
+      take: teto,
+    });
+    itens = linhas.map((l) => itemDeAssessoria(l.assessoria, `Encontrada pela licitação «${l.nome ?? l.objeto}»`));
+  } else if (subtipo === "demanda") {
+    // "Demanda" no Lúmen é um Parecer — ver components/assessoria/ParecerCard.tsx e a aba
+    // "Demandas, Processos e Casos" de app/(app)/assessoria/[id]/page.tsx.
+    const linhas = await prisma.parecer.findMany({
+      where: { officeId, ...(filtradoPorTermo ? { OR: [{ name: contem }, { assessoria: { client: { name: contem } } }] } : {}) },
+      select: { id: true, name: true, assessoria: { select: { id: true, clientId: true, client: { select: { name: true } } } } },
+      orderBy: { date: "desc" },
+      take: teto,
+    });
+    itens = linhas.map((d) => itemDeAssessoria(d.assessoria, `Encontrada pela demanda «${d.name}»`));
+  } else {
+    const linhas = await prisma.assessoria.findMany({
+      where: { officeId, ...(filtradoPorTermo ? { client: { name: contem } } : {}) },
+      select: { id: true, clientId: true, client: { select: { name: true } } },
+      orderBy: { updatedAt: "desc" },
+      take: teto,
+    });
+    itens = linhas.map((a) => itemDeAssessoria(a, null));
+  }
+
+  // Licitação e demanda podem apontar para a MESMA assessoria — duas licitações da mesma empresa
+  // virariam duas linhas idênticas na tela, e marcar uma marcaria "as duas".
+  const vistos = new Set<string>();
+  const unicos = itens.filter((i) => {
+    const chave = `${i.tipo}:${i.id}`;
+    if (vistos.has(chave)) return false;
+    vistos.add(chave);
+    return true;
+  });
+
+  const truncado = unicos.length > LIMITE_DE_RESULTADOS;
+  const pagina = unicos.slice(0, LIMITE_DE_RESULTADOS);
+  const avaliados = avaliarCandidatos(pagina, clienteTravado?.id ?? null);
+  const jaSelecionados = { case: vinculoAtual.caseIds, attendance: vinculoAtual.attendanceIds, assessoria: vinculoAtual.assessoriaIds };
 
   return {
-    processos: juntar(itensCase, avCase, vinculoAtual.caseIds),
-    atendimentos: juntar(itensAtend, avAtend, vinculoAtual.attendanceIds),
-    assessorias: juntar(itensAsses, avAsses, vinculoAtual.assessoriaIds),
+    resultados: pagina.map((item, i) => ({
+      ...item,
+      bloqueado: avaliados[i].bloqueado,
+      motivoBloqueio: avaliados[i].motivoBloqueio,
+      selecionado: jaSelecionados[item.tipo].includes(item.id),
+    })),
+    truncado,
+    filtradoPorTermo,
     clienteTravado,
   };
 }
@@ -691,7 +938,11 @@ async function calcularAvaliacaoDeContexto(sessaoId: string, officeId: string) {
   // para o documento que NÃO deu para ler, o marcador explícito de "não presuma" — ele ocupa
   // lugar na mensagem e por isso é contado aqui, no custo fixo, e não como item.
   const dadosDoPrompt: DadosParaPrompt = {
-    materia: sessao.materiaNome ?? "(não informada)",
+    // AS MATÉRIAS ENTRAM AQUI, e não na montagem final: `dadosDoPrompt` é o que
+    // `custoFixoDaMensagem` mede. Com várias matérias o bloco cresce, e um bloco que cresce sem
+    // ocupar lugar no orçamento é a mesma família de defeito que as entregas #306/#307
+    // consertaram — o que se mede tem de ser o que se manda.
+    materias: lerMateriasDaSessao(sessao.materiasNomes, sessao.materiaNome),
     categoriaPeca: sessao.categoriaPeca,
     tipoPeca: sessao.tipoPeca,
     tipoPecaOutro: sessao.tipoPecaOutro,
@@ -956,6 +1207,9 @@ export async function obterResumoTriagem(sessaoId: string) {
   return {
     contextoDescricao: (await descricaoDoContexto(sessaoId, user.officeId)) ?? "Sem vínculo — petição avulsa",
     materiaNome: sessao.materiaNome,
+    // TODAS as matérias marcadas — a tela de triagem mostra o que vai ao agente, e mostrar só a
+    // principal esconderia justamente a matéria que o advogado acrescentou de propósito.
+    materias: lerMateriasDaSessao(sessao.materiasNomes, sessao.materiaNome),
     categoriaPeca: sessao.categoriaPeca,
     tipoPeca: sessao.tipoPeca,
     tipoPecaOutro: sessao.tipoPecaOutro,

@@ -34,7 +34,11 @@ const DOCUMENTO_HOSTIL = [
 function perguntaComDocumento(texto: string): string {
   return montarMensagemParaHermes({
     nomeDoEscritorio: "Escritório Teste",
-    materia: "Direito Civil",
+    // ADAPTADO 22/09/2026: `materia: string` virou `materias: string[]` quando o dono pediu
+    // para permitir marcar mais de uma matéria (ver lib/peticionamentoPrompt.ts). Uma matéria só
+    // continua sendo o caso normal — é exatamente o que uma lista de um elemento significa, e o
+    // que este arquivo testa (documento como DADO, nunca instrução) não mudou em nada.
+    materias: ["Direito Civil"],
     categoriaPeca: "Petição",
     tipoPeca: "Inicial",
     tipoPecaOutro: null,
@@ -97,7 +101,11 @@ teste("a cerca DIZ, em português, que documento é para ler e não para obedece
 teste("sem documento nenhum, nada disso aparece — a cerca não polui a pergunta à toa", () => {
   const pergunta = montarMensagemParaHermes({
     nomeDoEscritorio: "Escritório Teste",
-    materia: "Direito Civil",
+    // ADAPTADO 22/09/2026: `materia: string` virou `materias: string[]` quando o dono pediu
+    // para permitir marcar mais de uma matéria (ver lib/peticionamentoPrompt.ts). Uma matéria só
+    // continua sendo o caso normal — é exatamente o que uma lista de um elemento significa, e o
+    // que este arquivo testa (documento como DADO, nunca instrução) não mudou em nada.
+    materias: ["Direito Civil"],
     categoriaPeca: "Petição",
     tipoPeca: "Inicial",
     tipoPecaOutro: null,

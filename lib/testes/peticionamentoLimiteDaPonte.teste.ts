@@ -124,7 +124,7 @@ teste("a espera do peticionamento comporta o pedido maior — não se sobe o tet
 
 function dados(documentos: { nome: string; texto: string }[], fatos: string): DadosParaPrompt {
   return {
-    materia: "Direito Médico e Saúde Suplementar",
+    materias: ["Direito Médico e Saúde Suplementar"],
     categoriaPeca: "Petição",
     tipoPeca: "Ação de obrigação de fazer com pedido de tutela de urgência",
     tipoPecaOutro: null,

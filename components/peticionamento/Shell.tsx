@@ -28,6 +28,7 @@ export function ShellPeticionamento({
   statusCentro,
   rascunhosCount,
   temTrabalho,
+  rolagemSoNoMiolo,
   children,
 }: {
   sessaoId: string;
@@ -42,6 +43,14 @@ export function ShellPeticionamento({
       lib/peticionamentoPasso.ts:sessaoTemTrabalhoEmAndamento e sincronizado com o Provider de
       saída (components/peticionamento/SaidaContext.tsx) montado no layout. */
   temTrabalho: boolean;
+  /**
+   * PEDIDO DO DONO, 22/09/2026 (item 5): "a barra de Cliente confirmado […] precisa ficar
+   * congelada, bem como o menu à esquerda e a parte de cima, ou seja, a rolagem só deve afetar às
+   * demandas filtradas". Com isto ligado, `.main` para de rolar e passa a ser uma caixa fixa —
+   * quem rola é a região que a própria página marcar (.ctx-rolagem). Sem isto, a página rola
+   * inteira dentro de `.main`, como antes.
+   */
+  rolagemSoNoMiolo?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -76,7 +85,7 @@ export function ShellPeticionamento({
         </div>
       </header>
 
-      <main className="main">{children}</main>
+      <main className={`main${rolagemSoNoMiolo ? " main-fixa" : ""}`}>{children}</main>
 
       <footer className="statusbar">
         <div>
