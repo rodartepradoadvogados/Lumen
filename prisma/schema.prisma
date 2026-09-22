@@ -469,6 +469,7 @@ model User {
   peticionamentoMateriasCriadas        PeticionamentoMateria[]    @relation("PeticionamentoMateriaCriadoPor")
   peticionamentoSessoesCriadas         PeticionamentoSessao[]     @relation("PeticionamentoSessaoCriadoPor")
   peticionamentoExportacoesConfirmadas PeticionamentoExportacao[] @relation("PeticionamentoExportacaoConfirmadoPor")
+  PeticionamentoCitacao                PeticionamentoCitacao[]
 
   @@unique([officeId, username])
 }
@@ -2331,7 +2332,7 @@ model PerfilCampanhaHermes {
   // O motivo LEGÍVEL da última falha (FalhaDoHermes.motivo, incluindo o prefixo "DEMORA:" quando
   // for o caso) — para a tela (Frente D) mostrar "falhou, tentando de novo: <motivo>" em vez de
   // um silêncio. Limpo (null) assim que uma tentativa tem sucesso.
-  ultimoErroDeProvisionamento String?
+  ultimoErroDeProvisionamento        String?
 
   // Verdadeiro depois que o número de tentativas acima esgotou
   // LIMITE_DE_TENTATIVAS_DE_PROVISIONAMENTO — é o que faz a régua PARAR de tentar (nunca em
@@ -3746,7 +3747,9 @@ model PlatformMember {
 
   // Slots de campanha simultânea paga que este membro aprovou (§6.4 da especificação de
   // campanhas) — ver CampanhaSlotPago.aprovadoPor.
-  campanhaSlotsAprovados CampanhaSlotPago[]
+  campanhaSlotsAprovados  CampanhaSlotPago[]
+  conversasNoPainelMestre PainelMestreConversa[]
+  perguntasNoPainelMestre PainelMestreTurno[]
 }
 
 model PlatformRole {
@@ -4350,7 +4353,7 @@ model PeticionamentoSessao {
   // explicitamente — sem este flag, uma sessão "avulsa de propósito" e uma sessão que ninguém
   // tocou ainda ficam com o MESMO estado gravado (vínculos todos vazios), e a lista de rascunhos
   // (lib/peticionamentoPasso.ts) não teria como saber se o passo "contexto" já foi decidido.
-  contextoDecidido Boolean @default(false)
+  contextoDecidido     Boolean @default(false)
 
   // Matéria — do Lúmen (lib/peticionamentoMateria.ts) ou do escritório (PeticionamentoMateria
   // acima); materiaEhDoEscritorio só marca QUAL das duas listas, nunca muda o tratamento do
@@ -4427,8 +4430,14 @@ model PeticionamentoSessao {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// O passo em que a pessoa parou, GRAVADO a cada navegação. Antes disto o passo era deduzido
+  /// do que já estava preenchido — acertava quase sempre, e "quase sempre" numa tela que promete
+  /// retomar de onde parou é o suficiente para a promessa soar falsa quando erra.
+  passoAtual String?
+
   anexos      PeticionamentoAnexo[]
   exportacoes PeticionamentoExportacao[]
+  citacoes    PeticionamentoCitacao[]
 
   @@index([officeId, criadoPorId])
   @@index([officeId, status])
@@ -4479,4 +4488,97 @@ model PeticionamentoExportacao {
   createdAt DateTime @default(now())
 
   @@index([sessaoId])
+}
+
+// ============================================================================
+// CONTRATO DE SCHEMA DA FILA (22/09/2026) — escrito de uma vez, de propósito.
+//
+// Quatro frentes da fila do dono precisavam de banco: validação de citação uma a uma, histórico
+// do agente do Painel Mestre, registro de quem perguntou o quê, e o passo real de um rascunho.
+// Cada uma ia rodar num agente diferente, e três agentes editando este arquivo ao mesmo tempo se
+// atropelam — o client gerado é compartilhado. Em vez de enfileirar as quatro por causa disso, o
+// schema foi definido AQUI, uma vez, e as frentes passam a ser independentes entre si.
+//
+// Efeito colateral bom: o modelo de dados fica coerente porque foi pensado junto, em vez de três
+// desenhos parecidos inventados em paralelo.
+// ============================================================================
+
+/// Uma citação de jurisprudência dentro de uma minuta, e a confirmação individual dela.
+///
+/// O SISTEMA NÃO VERIFICA NADA: ele não sabe se o precedente existe. O que esta tabela sustenta é
+/// a única garantia possível hoje — que ninguém poderá dizer que não viu cada citação antes de a
+/// peça sair. Por isso `confirmadaPorId` e `confirmadaEm` são o coração dela, e por isso existe
+/// `hashDoTexto`: editar a minuta depois de confirmar tem de INVALIDAR a confirmação da citação
+/// que mudou, senão a confirmação passa a valer para um texto que ninguém leu.
+model PeticionamentoCitacao {
+  id       String               @id @default(cuid())
+  sessaoId String
+  sessao   PeticionamentoSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  /// EMENTA (o agente citou como precedente estruturado) | TRECHO (referência solta no corpo do
+  /// texto — estas são as mais perigosas, porque hoje escapam inteiras da lista de jurisprudência).
+  tipo  String @default("EMENTA")
+  texto String
+
+  /// Os links da dupla validação, para o advogado conferir. Nulos quando o agente não informou —
+  /// e "não informou" é um fato a mostrar na tela, nunca um silêncio.
+  fonteUrl           String?
+  fonteSecundariaUrl String?
+
+  /// Impressão do texto no momento da confirmação. Se o texto mudar, a confirmação não vale mais.
+  hashDoTexto String?
+
+  confirmadaPorId String?
+  confirmadaPor   User?     @relation(fields: [confirmadaPorId], references: [id])
+  confirmadaEm    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessaoId, tipo])
+}
+
+/// Uma conversa com o agente do Painel Mestre. Hoje o histórico morre quando a aba fecha.
+model PainelMestreConversa {
+  id String @id @default(cuid())
+
+  membroId String
+  membro   PlatformMember @relation(fields: [membroId], references: [id], onDelete: Cascade)
+
+  titulo String?
+  turnos PainelMestreTurno[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([membroId, updatedAt])
+}
+
+/// Um turno da conversa — e, ao mesmo tempo, o REGISTRO de quem perguntou o quê.
+///
+/// As duas coisas na mesma tabela de propósito: uma trilha de auditoria que vive separada do
+/// histórico diverge dele no primeiro dia em que alguém apagar uma conversa. Aqui, quem lê o
+/// histórico e quem audita leem a mesma linha.
+model PainelMestreTurno {
+  id         String               @id @default(cuid())
+  conversaId String
+  conversa   PainelMestreConversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+
+  /// Quem perguntou. Guardado no turno, e não só na conversa, porque é o registro de auditoria:
+  /// ele tem de responder "quem perguntou isto", não "de quem é a conversa onde isto apareceu".
+  membroId String
+  membro   PlatformMember @relation(fields: [membroId], references: [id])
+
+  /// user | assistant
+  papel String
+  texto String
+
+  /// Nomes das ferramentas que o agente usou para responder este turno. É o que torna a auditoria
+  /// útil: não só o que foi perguntado, mas o que foi de fato consultado para responder.
+  ferramentasUsadas Json @default("[]")
+
+  createdAt DateTime @default(now())
+
+  @@index([conversaId, createdAt])
+  @@index([membroId, createdAt])
 }
