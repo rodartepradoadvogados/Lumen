@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import type { NivelFinanceiro, QuemPergunta } from "@/lib/nivelFinanceiro";
 import { podeVerNivel, valoresOuOmissao } from "@/lib/nivelFinanceiro";
+import { somaEstimadaAgregadaOuOmissao, valorEstimadoIndividual, AVISO_AO_AGENTE_NAO_SOMAR } from "@/lib/valorEstimado";
 import { calcularDre, periodoAnterior, variacaoPercentual } from "@/lib/dreCalculo";
 import { inicioDoMesEmBrasilia, inicioDoProximoMesEmBrasilia, dataDeBrasilia, lerPeriodoEmBrasilia } from "@/lib/horaDeBrasilia";
 import { valorLiquido } from "@/lib/financeCalc";
@@ -379,7 +380,7 @@ async function executarConsultarAgenda(input: ToolInput, officeId: string): Prom
 // consultar_atendimento
 // ---------------------------------------------------------------------------
 
-async function executarConsultarAtendimento(input: ToolInput, officeId: string): Promise<string> {
+async function executarConsultarAtendimento(input: ToolInput, officeId: string, isAdmin: boolean): Promise<string> {
   try {
     const status = str(input, "status");
     const estagio = str(input, "estagio");
@@ -401,20 +402,44 @@ async function executarConsultarAtendimento(input: ToolInput, officeId: string):
       }),
     ]);
 
+    // O valor de UM atendimento é registro da negociação em curso: sempre visível para quem já
+    // enxerga aquele atendimento — é por isso que esta ferramenta foi oferecida ao usuário. A
+    // SOMA de vários é indicador (projeção de receita futura) e passa pela mesma régua usada na
+    // Triagem (lib/valorEstimado.ts) — o modelo nunca deve somar os `estimatedValue` da lista por
+    // conta própria; `valorEstimadoTotal` é o único total confiável.
     const resumo = atendimentos.map((a) => ({
       clientName: a.clientName,
       subject: a.subject,
       stage: a.stage,
       status: a.status,
-      estimatedValue: a.estimatedValue,
+      estimatedValue: valorEstimadoIndividual(a.estimatedValue),
       responsavel: a.responsible?.name ?? null,
     }));
+
+    // Igual ao aviso de amostra acima: a soma tem de ser sobre o UNIVERSO da consulta, não sobre
+    // a amostra de 20 — por isso agrega direto no banco com o mesmo `filtro`, e não com um
+    // `reduce` sobre `atendimentos`. Só roda a agregação quando `isAdmin` já é true: poupa uma
+    // consulta a mais quando o resultado vai ser omitido de qualquer jeito.
+    const agregado = isAdmin
+      ? await prisma.attendance.aggregate({ where: filtro, _sum: { estimatedValue: true }, _count: { estimatedValue: true } })
+      : null;
+    const totalBruto = somaEstimadaAgregadaOuOmissao(
+      agregado ? { total: agregado._sum.estimatedValue ?? 0, quantidade: agregado._count.estimatedValue } : null,
+      { isAdmin },
+    );
+    // A proibição de somar por conta própria viaja junto com a omissão — ver
+    // lib/valorEstimado.ts:AVISO_AO_AGENTE_NAO_SOMAR. A régua trava o sistema; esta linha é o que
+    // fala com quem lê os vinte valores individuais logo abaixo.
+    const valorEstimadoTotal = totalBruto.omitido
+      ? { omitido: true as const, motivo: AVISO_AO_AGENTE_NAO_SOMAR }
+      : totalBruto;
 
     return JSON.stringify(comAviso({
       total: totalNoBanco,
       mostrados: resumo.length,
       truncado: totalNoBanco > resumo.length,
       atendimentos: resumo,
+      valorEstimadoTotal,
     }));
   } catch (error) {
     console.error("[assistantTools] erro em consultar_atendimento:", error);
@@ -1007,10 +1032,11 @@ async function executarConsultarAssessorias(input: ToolInput, officeId: string, 
 // financeiramente em nome dele.
 //
 // A REGRA DO DONO (Q15), LETRA POR LETRA: o histórico do cliente é REGISTRO em tudo, EXCETO os
-// valores de dinheiro dentro dele, que seguem a régua do financeiro — "somar o que já está
-// lançado é registro". Por isso só o bloco `financeiro` passa por `valoresOuOmissao`; o resto
-// (processos, atendimentos, tarefas, documentos) não tem dinheiro dentro e é visível a qualquer
-// um que use o assistente, financeiro ou não.
+// valores de dinheiro do FINANCEIRO (contas a pagar/receber), que seguem a régua do financeiro —
+// "somar o que já está lançado é registro". Por isso só o bloco `financeiro` passa por
+// `valoresOuOmissao`. O valor estimado dentro de `atendimentos` é outro tipo de registro — o da
+// negociação em curso (lib/valorEstimado.ts) — e segue a régua mais simples que já libera o
+// resto do atendimento: quem vê o atendimento vê o valor dele, financeiro ou não.
 // ---------------------------------------------------------------------------
 
 async function executarHistoricoCliente(input: ToolInput, officeId: string, quem: QuemPergunta): Promise<string> {
@@ -1073,9 +1099,12 @@ async function executarHistoricoCliente(input: ToolInput, officeId: string, quem
         where: { officeId, clientId: cliente.id },
         orderBy: { createdAt: "desc" },
         take: 20,
-        // NUNCA `estimatedValue` aqui: é dinheiro, e este bloco (diferente de `financeiro` abaixo)
-        // não passa pela régua — mais simples excluir o campo do que lembrar de omiti-lo depois.
-        select: { id: true, subject: true, status: true, stage: true, channel: true, createdAt: true },
+        // `estimatedValue` ENTRA aqui, ao contrário do que dizia o comentário antigo deste
+        // trecho: valor de UM atendimento é registro da negociação (lib/valorEstimado.ts), e
+        // segue a régua "quem já vê este atendimento vê o valor dele" — a mesma que libera
+        // `subject`/`stage`/`channel` logo abaixo. Não é o bloco `financeiro` (contas a
+        // pagar/receber), que é a única parte desta ferramenta sujeita à régua do financeiro.
+        select: { id: true, subject: true, status: true, stage: true, channel: true, createdAt: true, estimatedValue: true },
       }),
       prisma.task.count({ where: filtroTarefasEDocumentos }),
       prisma.task.findMany({
@@ -1159,6 +1188,8 @@ async function executarHistoricoCliente(input: ToolInput, officeId: string, quem
           stage: a.stage,
           channel: a.channel,
           criadoEm: a.createdAt,
+          // Registro, não indicador — nunca gated por `quem` (ver comentário do `select` acima).
+          valorEstimado: valorEstimadoIndividual(a.estimatedValue),
         })),
       }),
       tarefas: comAviso({
@@ -1258,7 +1289,8 @@ export const assistantTools: AssistantTool[] = [
     spec: {
       name: "consultar_atendimento",
       description:
-        "Busca atendimentos (triagem/CRM de captação de clientes). Use quando o usuário perguntar sobre leads, atendimentos em andamento, funil comercial ou estágio de negociação com um potencial cliente.",
+        "Busca atendimentos (triagem/CRM de captação de clientes). Use quando o usuário perguntar sobre leads, atendimentos em andamento, funil comercial ou estágio de negociação com um potencial cliente. " +
+        "O valor estimado de cada atendimento individual pode ser citado normalmente — é a negociação em curso. Já a SOMA de vários valores é indicador (projeção de receita futura): nunca some os campos `estimatedValue` da lista para calcular um total, média ou projeção — use só `valorEstimadoTotal`. Quando `valorEstimadoTotal.omitido` for true, diga que essa soma só está disponível para administradores, sem tentar calculá-la de outra forma.",
       input_schema: {
         type: "object",
         properties: {
@@ -1271,7 +1303,7 @@ export const assistantTools: AssistantTool[] = [
         required: [],
       },
     },
-    executar: (input, ctx) => executarConsultarAtendimento(input, ctx.officeId),
+    executar: (input, ctx) => executarConsultarAtendimento(input, ctx.officeId, ctx.admin ?? false),
   },
   {
     modulo: "clientes",

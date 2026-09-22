@@ -184,7 +184,7 @@ export default async function FunilPage({ searchParams }: { searchParams: { guia
         )}
       </div>
 
-      <QuadroDoFunil cards={cardsDoFunil} />
+      <QuadroDoFunil cards={cardsDoFunil} isAdmin={Boolean(viewer.isAdmin)} />
       </>
       )}
     </div>
