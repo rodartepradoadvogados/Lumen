@@ -22,12 +22,12 @@ import { podeAcessarAba, podeAnexar, avaliarExportacao } from "@/lib/peticioname
 import { avaliarProntidao } from "@/lib/peticionamentoMinimo";
 import { avaliarCandidatos, validarNovoVinculo, ehSessaoAvulsa, type ItemDeContexto, type TipoVinculo } from "@/lib/peticionamentoContexto";
 import { MATERIAS_DO_LUMEN, validarNovaMateria } from "@/lib/peticionamentoMateria";
-import { avaliarJanela, type ItemDeContexto as ItemDeJanela } from "@/lib/peticionamentoJanelaDeContexto";
+import { avaliarJanela, comMilhar, LIMITE_PADRAO_CARACTERES, type ItemDeContexto as ItemDeJanela, type ItemAvaliado } from "@/lib/peticionamentoJanelaDeContexto";
 import { extrairTextoDeDocumento } from "@/lib/peticionamentoExtracaoDocumento";
 import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
 import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, type DeducaoDeNatureza } from "@/lib/peticionamentoNatureza";
 import { passoParaRetomar, ehPassoValido, hrefDoPasso, ROTULO_DO_PASSO, sessaoTemTrabalhoEmAndamento } from "@/lib/peticionamentoPasso";
-import { montarMensagemParaHermes } from "@/lib/peticionamentoPrompt";
+import { montarMensagemParaHermes, custoFixoDaMensagem, type DadosParaPrompt } from "@/lib/peticionamentoPrompt";
 import { interpretarRespostaHermes } from "@/lib/peticionamentoRespostaHermes";
 import { montarListaDeCitacoes, normalizarTextoCitacao, hashDeTexto, type PrecedenteParaCitacao } from "@/lib/peticionamentoCitacoes";
 import { garantirFecho } from "@/lib/peticionamentoFecho";
@@ -35,7 +35,7 @@ import { filtrarNotaDeRiscos, comAvisoDeContextoResumido } from "@/lib/peticiona
 import { montarNotaObrigatoria } from "@/lib/peticionamentoNotaObrigatoria";
 import { montarNomeArquivoPeticao } from "@/lib/peticionamentoNomeArquivo";
 import { montarPeticaoWord } from "@/lib/peticionamentoDocx";
-import { hermesConfigurado, perguntarAoHermesComPerfil, perfilDePeticionamento, FalhaDoHermes } from "@/lib/hermesPonte";
+import { hermesConfigurado, perguntarAoHermesComPerfil, perfilDePeticionamento, ESPERA_PETICIONAMENTO_MS, FalhaDoHermes } from "@/lib/hermesPonte";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 type VinculoJson = { caseIds: string[]; attendanceIds: string[]; assessoriaIds: string[] };
@@ -646,6 +646,23 @@ async function carregarDocumentosDaSessaoComTexto(sessaoId: string, officeId: st
   );
 }
 
+/**
+ * O texto de UM documento como ele vai à mensagem do Hermes.
+ *
+ * NUNCA string vazia para documento que não deu para ler (era a raiz do defeito original: o
+ * Hermes via o NOME do documento sob "Documentos disponíveis nesta sessão" e preenchia o vazio
+ * sozinho). O marcador abaixo é explícito: não presuma, não invente, não liste como usado.
+ *
+ * Mora aqui, e não dentro de confirmarTriagemEGerar, porque DOIS lugares precisam do mesmo
+ * texto: a montagem da mensagem e a medição do custo fixo do pedido (calcularAvaliacaoDeContexto)
+ * — e um marcador medido com um tamanho e enviado com outro traria de volta, por outra porta,
+ * exatamente o desencontro entre o que se mede e o que se manda que esta entrega conserta.
+ */
+function textoDoDocumentoParaPrompt(doc: DocumentoDaSessaoComTexto): string {
+  if (doc.resultado.ok) return doc.resultado.texto;
+  return `[NÃO FOI POSSÍVEL LER ESTE DOCUMENTO — ${doc.resultado.motivo} Não presuma nem invente o conteúdo deste documento; não inclua "${doc.nome}" na lista de documentos usados.]`;
+}
+
 // ── JANELA DE CONTEXTO — nunca trunca em silêncio (especificação §8) ───────────────────────────
 
 /**
@@ -653,20 +670,64 @@ async function carregarDocumentosDaSessaoComTexto(sessaoId: string, officeId: st
  * usado tanto pela ação pública abaixo (tela de confirmação) quanto por confirmarTriagemEGerar,
  * que precisa do `textoFinal` por item para montar a mensagem ao Hermes; os dois chamam ESTA
  * função para baixar/ler cada documento uma ÚNICA vez por geração, nunca duas.
+ *
+ * E É AQUI QUE A CONTA PASSOU A SER A DA MENSAGEM INTEIRA. Antes, `avaliarJanela` recebia só
+ * `fatos` + os documentos — mas o que a ponte mede é o retorno de `montarMensagemParaHermes`,
+ * que leva junto instruções fixas, matéria, categoria, tipo de peça, contexto vinculado,
+ * pedidos, teses, observações, as cercas de documento e os avisos. A trava dizia "coube" e a
+ * mensagem estourava assim mesmo: foi esse o 400 que o dono viu na tela.
+ *
+ * Por isso esta função monta os MESMOS `dadosDoPrompt` que confirmarTriagemEGerar vai usar,
+ * mede o custo fixo com `custoFixoDaMensagem` (que chama o montador de verdade, com os textos
+ * vazios — nunca uma segunda conta escrita à mão, que divergiria em silêncio), e devolve esses
+ * dados prontos. Um caminho só, uma conta só.
  */
 async function calcularAvaliacaoDeContexto(sessaoId: string, officeId: string) {
   const sessao = await carregarSessaoOuFalhar(sessaoId, officeId);
   const documentos = await carregarDocumentosDaSessaoComTexto(sessaoId, officeId);
 
-  // Documento é sempre `protegido: true` — mesmo tratamento que os anexos já tinham antes desta
-  // entrega (nunca resumir o documento central da peça, ex.: o laudo, o contrato, a contestação
-  // a que se responde). Documento cuja leitura FALHOU entra com texto vazio (0 tokens): não pesa
-  // no orçamento, e nunca aparece "resumido" — não faz sentido resumir o que não foi lido.
+  // O ESQUELETO DO PEDIDO: tudo que vai ao agente menos o texto dos fatos e dos documentos (que
+  // entram abaixo como itens, cada um com seu orçamento). `textoDoDocumentoParaPrompt` devolve,
+  // para o documento que NÃO deu para ler, o marcador explícito de "não presuma" — ele ocupa
+  // lugar na mensagem e por isso é contado aqui, no custo fixo, e não como item.
+  const dadosDoPrompt: DadosParaPrompt = {
+    materia: sessao.materiaNome ?? "(não informada)",
+    categoriaPeca: sessao.categoriaPeca,
+    tipoPeca: sessao.tipoPeca,
+    tipoPecaOutro: sessao.tipoPecaOutro,
+    contextoDescricao: await descricaoDoContexto(sessaoId, officeId),
+    fatos: sessao.fatos ?? "",
+    pedidos: ((sessao.pedidos as string[] | null) ?? []) as string[],
+    // O PRAZO ENTRA AQUI, e não lá embaixo na montagem: `dadosDoPrompt` é o que
+    // `custoFixoDaMensagem` mede. Se os campos do prazo só aparecessem na hora de montar a
+    // mensagem final, a seção do prazo preclusivo iria ao agente SEM ter ocupado lugar no
+    // orçamento — e o orçamento voltaria a medir menos do que se manda, que é a família de
+    // defeito inteira que estas duas entregas consertaram.
+    prazoFatal: prazoParaLeitura(sessao.prazoFatal),
+    prazoPreclusivo: sessao.prazoPreclusivo,
+    teses: ((sessao.teses as string[] | null) ?? []) as string[],
+    observacoes: sessao.observacoes,
+    // Texto vazio no documento LIDO (o conteúdo entra depois, com o orçamento que a janela der);
+    // marcador inteiro no documento que NÃO deu para ler, porque ele vai à mensagem do jeito que
+    // está e o seu tamanho é fixo.
+    documentos: documentos.map((d) => ({ nome: d.nome, texto: d.resultado.ok ? "" : textoDoDocumentoParaPrompt(d) })),
+    contextoFoiResumido: false,
+    avisoDeResumo: null,
+  };
+  const custoFixo = custoFixoDaMensagem(dadosDoPrompt);
+
+  // Documento é sempre `protegido: true` — nunca se manda ao agente meia leitura de um laudo, de
+  // um contrato ou da contestação a que se responde (ver "POR QUE DOCUMENTO CONTINUA PROTEGIDO"
+  // em lib/peticionamentoJanelaDeContexto.ts: com o limite agora REAL, essa escolha é o que
+  // troca "resumido em silêncio-quase" por uma recusa falada, com o caminho de saída nomeado).
+  // Documento cuja leitura FALHOU entra com texto vazio: não pesa como item (o marcador que vai
+  // no lugar dele já foi contado no custo fixo) e nunca aparece "resumido" — não faz sentido
+  // resumir o que não foi lido.
   const itens: ItemDeJanela[] = [
     { id: "fatos", rotulo: "Fatos descritos pelo advogado", texto: sessao.fatos ?? "" },
     ...documentos.map((d) => ({ id: d.id, rotulo: d.nome, texto: d.resultado.ok ? d.resultado.texto : "", protegido: true })),
   ];
-  const avaliacao = avaliarJanela(itens);
+  const avaliacao = avaliarJanela(itens, { custoFixo });
 
   await prisma.peticionamentoSessao.update({
     where: { id: sessaoId },
@@ -676,7 +737,7 @@ async function calcularAvaliacaoDeContexto(sessaoId: string, officeId: string) {
     },
   });
 
-  return { avaliacao, documentos };
+  return { avaliacao, documentos, dadosDoPrompt };
 }
 
 export async function avaliarContextoDaSessao(sessaoId: string) {
@@ -690,8 +751,11 @@ export async function avaliarContextoDaSessao(sessaoId: string) {
   // direto, dentro do próprio servidor.
   return {
     acao: avaliacao.acao,
-    tokensTotaisOriginais: avaliacao.tokensTotaisOriginais,
-    tokensTotaisFinais: avaliacao.tokensTotaisFinais,
+    // EM CARACTERES, não em tokens: é caractere o que a ponte conta, e era a troca de unidade
+    // que fazia a trava passar longe do limite real (ver o cabeçalho do módulo da janela).
+    caracteresTotaisOriginais: avaliacao.caracteresTotaisOriginais,
+    caracteresTotaisFinais: avaliacao.caracteresTotaisFinais,
+    custoFixo: avaliacao.custoFixo,
     limite: avaliacao.limite,
     aviso: avaliacao.aviso,
     // Lista explícita de campos (não um "resto" via destructuring) — nunca esquece de excluir um
@@ -699,8 +763,8 @@ export async function avaliarContextoDaSessao(sessaoId: string) {
     itens: avaliacao.itens.map((item) => ({
       id: item.id,
       rotulo: item.rotulo,
-      tokensOriginais: item.tokensOriginais,
-      tokensAposResumo: item.tokensAposResumo,
+      caracteresOriginais: item.caracteresOriginais,
+      caracteresFinais: item.caracteresFinais,
       foiResumido: item.foiResumido,
       protegido: item.protegido,
     })),
@@ -913,7 +977,7 @@ export async function obterResumoTriagem(sessaoId: string) {
  * O botão "Confirmar e gerar minuta" da tela de triagem. HARD GATE nº 1 desta função: recusa
  * gerar sem fatos+pedidos, mesmo que a tela (por algum bug) tenha deixado o botão clicável.
  */
-export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: true } | { error: string }> {
+export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: true } | { error: string; contextoExcedido?: boolean }> {
   const user = await exigirAcessoAba();
   const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
 
@@ -924,8 +988,13 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
   // "fazer o agente ler toda a documentação, pois é imprescindível") — nunca chama a ação pública
   // avaliarContextoDaSessao, que devolve a versão SANITIZADA (sem o texto) pensada para o
   // cliente; esta função precisa do texto de verdade para montar a mensagem ao Hermes.
-  const { avaliacao, documentos } = await calcularAvaliacaoDeContexto(sessaoId, user.officeId);
-  if (avaliacao.acao === "bloqueado") return { error: avaliacao.aviso ?? "Contexto grande demais mesmo após resumir." };
+  const { avaliacao, documentos, dadosDoPrompt } = await calcularAvaliacaoDeContexto(sessaoId, user.officeId);
+  // RECUSA FALADA, NUNCA O 400 CRU DA PONTE. `contextoExcedido` vai como CAMPO, e não escondido
+  // no texto do erro: a tela levava o advogado à tela de limite procurando as palavras "contexto"
+  // e "exced" dentro da frase, o que quebra na primeira vez que alguém reescrever a frase.
+  if (avaliacao.acao === "bloqueado") {
+    return { error: avaliacao.aviso ?? "O contexto selecionado é grande demais mesmo depois de resumir o que era seguro resumir.", contextoExcedido: true };
+  }
 
   if (!hermesConfigurado()) {
     await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "FALHA_GERACAO" } });
@@ -937,32 +1006,73 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
   // `avaliacao.itens` carrega o TEXTO FINAL de cada documento (já cortado, se a janela precisou
   // resumir) — casa de volta com `documentos` (que sabe quem leu/não leu) pelo id.
   const itensPorId = new Map(avaliacao.itens.map((item) => [item.id, item]));
-  const documentosParaPrompt = documentos.map((doc) => {
-    if (!doc.resultado.ok) {
-      // NUNCA manda string vazia (era a raiz do defeito original: o Hermes via o NOME do
-      // documento sob "Documentos disponíveis nesta sessão" e preenchia o vazio sozinho). O
-      // marcador abaixo é explícito: não presuma, não invente, não liste como usado.
-      return { nome: doc.nome, texto: `[NÃO FOI POSSÍVEL LER ESTE DOCUMENTO — ${doc.resultado.motivo} Não presuma nem invente o conteúdo deste documento; não inclua "${doc.nome}" na lista de documentos usados.]` };
-    }
-    return { nome: doc.nome, texto: itensPorId.get(doc.id)?.textoFinal ?? doc.resultado.texto };
-  });
+
+  // ACHADO DA REVISÃO — A ESCOTILHA SILENCIOSA. Este bloco casava `avaliacao.itens` com
+  // `documentos` pelo id e, quando a casação FALHAVA, caía num `?? doc.resultado.texto` que
+  // mandava o texto INTEIRO. Isto é, o único jeito de a casação dar errado desfazia exatamente o
+  // que esta entrega conserta — e sem ruído nenhum: mutei o mapa para casar por `rotulo` em vez
+  // de `id` e as 71 suítes ficaram verdes.
+  //
+  // O estrago não é mandar demais (a última trava, mais abaixo, mede a mensagem pronta e recusa).
+  // É a MENTIRA: `contextoFoiResumido` e `avisoDeResumo` continuam vindo da avaliação, então a
+  // tela diria ao advogado "resumimos automaticamente" e o pedido diria ao agente que parte do
+  // contexto foi condensada — enquanto o texto inteiro foi junto. Uma afirmação falsa nas duas
+  // pontas, que é o que esta casa trata como defeito mesmo quando o dado "sobra" em vez de faltar.
+  //
+  // Um item que não casa é erro de programação, não estado possível do mundo: id de item e id de
+  // documento nascem no MESMO lugar (`calcularAvaliacaoDeContexto`, logo acima). Então isto
+  // falha FECHADO e falado, nunca cai de volta no texto cru.
+  const semAvaliacao = documentos.filter((doc) => doc.resultado.ok && !itensPorId.has(doc.id)).map((doc) => doc.nome);
+  if (semAvaliacao.length > 0 || !itensPorId.has("fatos")) {
+    console.error(
+      "[peticionamento] avaliação de contexto não casa com os documentos da sessão %s — itens sem par: %s",
+      sessaoId,
+      semAvaliacao.join(", ") || "(fatos)",
+    );
+    await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "FALHA_GERACAO" } });
+    return {
+      error:
+        "Não foi possível preparar o contexto desta sessão para o agente. Nada foi enviado e nada do que você " +
+        "preencheu se perdeu — tente gerar de novo; se repetir, avise o suporte.",
+    };
+  }
+
+  const documentosParaPrompt = documentos.map((doc) => ({
+    nome: doc.nome,
+    // O documento LIDO vai com o texto que a janela de contexto aprovou (`textoFinal`, já com o
+    // aviso embutido se foi cortado); o NÃO lido vai com o marcador de "não presuma" —
+    // `textoDoDocumentoParaPrompt` decide os dois casos, e é a MESMA função que mediu o custo.
+    // Sem `??` de socorro: a ausência já foi tratada, fechada, logo acima.
+    texto: doc.resultado.ok ? (itensPorId.get(doc.id) as ItemAvaliado).textoFinal : textoDoDocumentoParaPrompt(doc),
+  }));
 
   const mensagem = montarMensagemParaHermes({
-    materia: sessao.materiaNome ?? "(não informada)",
-    categoriaPeca: sessao.categoriaPeca,
-    tipoPeca: sessao.tipoPeca,
-    tipoPecaOutro: sessao.tipoPecaOutro,
-    contextoDescricao: await descricaoDoContexto(sessaoId, user.officeId),
-    fatos: sessao.fatos ?? "",
-    pedidos: ((sessao.pedidos as string[] | null) ?? []) as string[],
-    prazoFatal: prazoParaLeitura(sessao.prazoFatal),
-    prazoPreclusivo: sessao.prazoPreclusivo,
-    teses: ((sessao.teses as string[] | null) ?? []) as string[],
-    observacoes: sessao.observacoes,
+    ...dadosDoPrompt,
+    // OS FATOS TAMBÉM PASSAM PELA JANELA. Antes iam crus daqui (`sessao.fatos`) enquanto a janela
+    // os contava como item resumível: quando ela decidia cortá-los, o corte não chegava à
+    // mensagem — mais um lugar onde o que se media e o que se mandava eram coisas diferentes.
+    fatos: (itensPorId.get("fatos") as ItemAvaliado).textoFinal,
     documentos: documentosParaPrompt,
     contextoFoiResumido: avaliacao.acao === "resumido",
     avisoDeResumo: avaliacao.aviso,
   });
+
+  // ÚLTIMA TRAVA, e é ela que garante a promessa: mede a MENSAGEM DE VERDADE, a mesma string que
+  // a ponte vai contar. A conta de orçamento acima é boa, mas é uma previsão; esta é o fato. Se
+  // ainda assim passou, quem recusa somos nós, com uma frase que diz o que fazer — nunca a ponte,
+  // com `{"erro": "mensagem ausente ou longa demais"}` repassado cru para a tela do advogado
+  // (foi exatamente isso que o dono viu).
+  if (mensagem.length > LIMITE_PADRAO_CARACTERES) {
+    const motivo =
+      `O pedido ao agente ficou com ${comMilhar(mensagem.length)} caracteres, acima do limite de ` +
+      `${comMilhar(LIMITE_PADRAO_CARACTERES)} que o agente aceita. ${avaliacao.aviso ?? ""} ` +
+      "Selecione menos documentos, encurte os fatos ou divida a peça em sessões separadas.";
+    await prisma.peticionamentoSessao.update({
+      where: { id: sessaoId },
+      data: { status: "FALHA_GERACAO", contextoBloqueadoMotivo: motivo },
+    });
+    return { error: motivo, contextoExcedido: true };
+  }
 
   // A lista de "documentos consultados" só pode conter quem foi de fato LIDO e ENVIADO — nunca
   // "todos os selecionados" (o comportamento antigo: um documento nunca lido aparecia como
@@ -976,6 +1086,10 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
       perfil: perfilDePeticionamento(),
       mensagem,
       sessao: sessao.hermesSessionId,
+      // NÃO é o `ESPERA_MS` padrão (105s, dimensionado para conversa de chat): este pedido leva o
+      // texto dos documentos e pode demorar minutos. Ver a corrente de tempos inteira no
+      // comentário de ESPERA_PETICIONAMENTO_MS.
+      esperaMs: ESPERA_PETICIONAMENTO_MS,
     });
     const estruturada = interpretarRespostaHermes(resposta.resposta);
     const corpoComFecho = garantirFecho(estruturada.corpo);
@@ -1011,6 +1125,17 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
   } catch (e) {
     await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "FALHA_GERACAO" } });
     const motivo = e instanceof FalhaDoHermes ? e.motivo : mensagemDeErro(e);
+    // REDE DE SEGURANÇA DA RECUSA FALADA: se, apesar de tudo, a ponte for quem recusar por
+    // tamanho, o advogado NUNCA lê `{"erro": "mensagem ausente ou longa demais"}` — uma frase que
+    // não diz o que ele deve fazer, e que foi o que ele leu no dia em que este defeito apareceu.
+    if (/mensagem ausente ou longa demais|corpo ausente ou grande demais/i.test(motivo)) {
+      const falado =
+        `O agente recusou o pedido por tamanho (o pacote enviado tinha ${comMilhar(mensagem.length)} caracteres). ` +
+        "Selecione menos documentos, encurte o texto dos fatos ou divida a peça em sessões separadas. " +
+        "A triagem continua salva — nada do que você preencheu se perdeu.";
+      await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { contextoBloqueadoMotivo: falado } });
+      return { error: falado, contextoExcedido: true };
+    }
     return { error: `Não foi possível gerar a minuta: ${motivo}` };
   }
 }

@@ -37,9 +37,21 @@ teste("TRAVA: documentosNaoLidos é montado a partir de quem NÃO foi lido (resu
     "documentosNaoLidos precisa ser gravado junto com o resto dos dados da geração — senão a nota obrigatória nunca saberia quem não foi lido");
 });
 
+// ADAPTADO na entrega do limite real: o marcador saiu de dentro de confirmarTriagemEGerar para
+// a função `textoDoDocumentoParaPrompt`, porque DOIS lugares passaram a precisar exatamente do
+// mesmo texto — a montagem da mensagem e a MEDIÇÃO do custo fixo do pedido (a trava de tamanho
+// agora mede a mensagem inteira, ver lib/testes/peticionamentoLimiteDaPonte.teste.ts). Medir um
+// marcador com um tamanho e enviar outro reabriria, por outra porta, o desencontro entre o que se
+// mede e o que se manda. A trava não foi enfraquecida: ela agora cobra as DUAS pontas — que o
+// marcador existe onde passou a morar, e que a montagem o usa.
+const CORPO_MARCADOR = corpoDaFuncao(FONTE, "textoDoDocumentoParaPrompt");
+
 teste('TRAVA: documento não lido vira um MARCADOR explícito no texto mandado ao Hermes — nunca string vazia, nunca o texto real de outro documento', () => {
-  verdade(CODIGO_GERAR.includes("NÃO FOI POSSÍVEL LER ESTE DOCUMENTO"),
-    "o marcador de documento não lido sumiu da montagem de documentosParaPrompt — o defeito original (string vazia silenciosa) pode ter voltado");
+  verdade(CORPO_MARCADOR.length > 200, `corpoDaFuncao("textoDoDocumentoParaPrompt") devolveu ${CORPO_MARCADOR.length} caracteres — a varredura está cega`);
+  verdade(CORPO_MARCADOR.includes("NÃO FOI POSSÍVEL LER ESTE DOCUMENTO"),
+    "o marcador de documento não lido sumiu — o defeito original (string vazia silenciosa) pode ter voltado");
+  verdade(CODIGO_GERAR.includes("textoDoDocumentoParaPrompt(doc)"),
+    "a montagem da mensagem precisa usar o marcador para o documento não lido, e não improvisar outro texto");
   verdade(!/texto:\s*""/.test(CODIGO_GERAR), 'confirmarTriagemEGerar não pode voltar a montar `texto: ""` para documento nenhum — é exatamente o defeito relatado pelo dono');
 });
 

@@ -198,3 +198,45 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
 
   return partes.join("\n");
 }
+
+// ── O CUSTO FIXO DO PEDIDO ───────────────────────────────────────────────────────────────────
+//
+// A trava de tamanho (lib/peticionamentoJanelaDeContexto.ts) media só `fatos` + o texto dos
+// documentos. O que a ponte mede é ESTA mensagem inteira — instruções fixas, matéria, categoria,
+// tipo de peça, contexto vinculado, pedidos, teses, observações, as cercas de cada documento e os
+// avisos. A trava dizia "coube" e a mensagem final estourava assim mesmo.
+//
+// Esta função fecha esse buraco MONTANDO A MENSAGEM DE VERDADE com os textos vazios, em vez de
+// somar à mão o tamanho de cada pedaço. Uma segunda conta, escrita à parte, divergiria desta
+// função no dia em que alguém acrescentasse uma linha de instrução aqui em cima — em silêncio, que
+// é como este defeito chegou à produção da primeira vez.
+
+/**
+ * Reserva para o bloco de "ATENÇÃO: parte do contexto acima foi resumida", que só entra na
+ * mensagem DEPOIS de a janela decidir resumir — isto é, depois de o orçamento já ter sido
+ * distribuído. Sem a reserva, a decisão "coube resumindo" empurraria a mensagem final para cima
+ * do teto pelo tamanho do próprio aviso.
+ */
+export const RESERVA_DO_AVISO_DE_RESUMO = 2_000;
+
+/**
+ * Quantos caracteres o pedido ocupa SEM o texto dos fatos — o que sobra é o orçamento que a
+ * janela de contexto distribui entre os fatos e os documentos.
+ *
+ * QUEM CHAMA DECIDE o que conta como fixo em cada documento: passa `texto: ""` no documento que
+ * vai receber orçamento (o texto entra depois, já medido pela janela) e passa o texto de verdade
+ * no que é fixo — é o caso do documento que NÃO deu para ler, cujo marcador "não presuma o
+ * conteúdo" vai à mensagem com tamanho conhecido e não disputa orçamento com ninguém.
+ *
+ * Os NOMES dos documentos contam sempre: eles viajam nas cercas `--- INÍCIO DO DOCUMENTO: … ---`,
+ * e uma lista de vinte anexos de nome comprido já é meia página de pedido.
+ */
+export function custoFixoDaMensagem(dados: DadosParaPrompt): number {
+  const esqueleto = montarMensagemParaHermes({
+    ...dados,
+    fatos: "",
+    contextoFoiResumido: false,
+    avisoDeResumo: null,
+  });
+  return esqueleto.length + RESERVA_DO_AVISO_DE_RESUMO;
+}

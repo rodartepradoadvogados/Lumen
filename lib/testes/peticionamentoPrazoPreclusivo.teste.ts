@@ -121,14 +121,34 @@ teste("VARREDURA: a seção do prazo mora dentro de montarMensagemParaHermes e �
   verdade(corpo.includes("semMarcadores(doc.texto)"), "a neutralização do texto de documento continua sendo obrigatória nesta função");
 });
 
-teste("VARREDURA: confirmarTriagemEGerar manda a marca do banco para o prompt — sem isto, marcar não chegaria a lugar nenhum", () => {
-  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarTriagemEGerar"));
-  verdade(corpo.length > 300, "corpoDaFuncao não encontrou confirmarTriagemEGerar");
-  const idxPrompt = corpo.indexOf("montarMensagemParaHermes({");
+// ADAPTADO NO MERGE com a entrega do limite de tamanho (#306), e a regra ficou MAIS forte, não
+// mais fraca. Os campos do prazo deixaram de ser passados na montagem final e passaram a viver em
+// `dadosDoPrompt`, dentro de `calcularAvaliacaoDeContexto` — que é a estrutura que
+// `custoFixoDaMensagem` MEDE. O motivo é o defeito que aquela entrega consertou: se os campos do
+// prazo só aparecessem na montagem, a seção do prazo preclusivo iria ao agente sem ter ocupado
+// lugar no orçamento, e o orçamento voltaria a medir menos do que se manda.
+//
+// Por isso este teste agora cobra as DUAS coisas ao mesmo tempo: a marca do banco chega ao
+// prompt, E chega por dentro do que é medido.
+teste("VARREDURA: a marca do banco chega ao prompt POR DENTRO do que o orçamento mede", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "calcularAvaliacaoDeContexto"));
+  verdade(corpo.length > 300, "corpoDaFuncao não encontrou calcularAvaliacaoDeContexto");
+  const idxDados = corpo.indexOf("const dadosDoPrompt");
+  verdade(idxDados !== -1, "sumiu dadosDoPrompt — é ele que custoFixoDaMensagem mede");
+  const trecho = corpo.slice(idxDados, corpo.indexOf("custoFixoDaMensagem(", idxDados));
+  verdade(trecho.includes("prazoPreclusivo: sessao.prazoPreclusivo"),
+    "a marca do banco não entra em dadosDoPrompt — ou o campo ficaria gravado sem nunca mudar o documento, ou entraria só na montagem final, fora do orçamento");
+  verdade(trecho.includes("prazoFatal: prazoParaLeitura(sessao.prazoFatal)"),
+    "a data do prazo não entra em dadosDoPrompt — a seção nasceria sem data, ou fora da medição");
+  // E a montagem final não pode reintroduzir os campos por fora do que foi medido.
+  const corpoGerar = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarTriagemEGerar"));
+  const idxPrompt = corpoGerar.indexOf("montarMensagemParaHermes({");
   verdade(idxPrompt !== -1, "deveria montar a mensagem ao Hermes");
-  const chamada = corpo.slice(idxPrompt, corpo.indexOf("});", idxPrompt));
-  verdade(chamada.includes("prazoPreclusivo: sessao.prazoPreclusivo"), "a marca do banco não é passada ao prompt — o campo ficaria gravado sem nunca mudar o documento");
-  verdade(chamada.includes("prazoFatal: prazoParaLeitura(sessao.prazoFatal)"), "a data do prazo não é passada ao prompt — a seção nasceria sem data");
+  const chamada = corpoGerar.slice(idxPrompt, corpoGerar.indexOf("});", idxPrompt));
+  verdade(chamada.includes("...dadosDoPrompt"),
+    "a montagem final deixou de partir de dadosDoPrompt — o que se mede e o que se manda voltam a ser coisas diferentes");
+  verdade(!/prazoPreclusivo:/.test(chamada) && !/prazoFatal:/.test(chamada),
+    "os campos do prazo voltaram a ser injetados na montagem final, por fora da medição do orçamento");
 });
 
 teste("VARREDURA: salvarWizard grava a marca, e apaga a marca quando a data é apagada", () => {

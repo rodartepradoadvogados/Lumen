@@ -49,14 +49,57 @@ SCRIPT_PROVISIONAMENTO = os.environ.get(
 TOKEN = os.environ.get("HERMES_TOKEN", "")
 ENDERECO = os.environ.get("HERMES_BIND", "127.0.0.1")
 PORTA = int(os.environ.get("HERMES_PORT", "8787"))
-ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "110"))
+# 240s, e NAO 110s: ver o comentario de PERGUNTA_MAXIMA logo abaixo. Um pedido de peticionamento
+# com dezenas de paginas de documento e uma pergunta muito maior do que qualquer conversa de
+# atendimento, e demora proporcionalmente mais para ser respondida. Subir o teto de TAMANHO sem
+# subir o teto de TEMPO trocaria um 400 limpo ("nao cabe, faca assim") por um 504 no meio da
+# geracao — que e pior: o advogado espera dois minutos para nao receber nada.
+#
+# A CORRENTE INTEIRA, do mais curto para o mais longo, e cada elo tem de ser menor que o seguinte
+# para o erro sempre vir de quem sabe explica-lo:
+#   Lumen (ESPERA_PETICIONAMENTO_MS em lib/hermesPonte.ts) 230s
+#     < esta ponte (ESPERA_S)                              240s
+#       < nginx (proxy_read_timeout, ver LEIA-ME.md)       280s
+#         < Vercel (maxDuration da tela de confirmacao)    300s
+# Quem desiste primeiro e o Lumen, que e o unico lado capaz de dizer ao advogado o que aconteceu.
+#
+# O caminho da Ana (atendimento) NAO muda com isto: ela continua desistindo em ESPERA_MS (105s)
+# do lado do Lumen, muito antes deste teto. Subir o teto daqui nao afrouxa nada do lado dela.
+ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "240"))
 
-CORPO_MAXIMO = 64 * 1024  # 64 KiB: uma pergunta de chat não chega perto disso.
-PERGUNTA_MAXIMA = 16_000  # caracteres
-# 16.000 e NAO 8.000: a maquina de producao ja roda com este valor desde que o orcamento do prompt
-# do atendimento (LIMITE_DA_PERGUNTA em lib/agenteAtendimento.ts) apertou com os parametros de
-# recusa da Ana. O repositorio ficou para tras, e quem um dia reinstalasse a ponte a partir daqui
-# faria a Ana voltar a recusar mensagem longa em producao, sem ninguem entender por que.
+CORPO_MAXIMO = 512 * 1024  # 512 KiB — ver PERGUNTA_MAXIMA: 200.000 caracteres de portugues com
+# acento, dentro de um JSON com escapes, passam com folga de 64 KiB. O corpo tem de caber a maior
+# pergunta que a linha de baixo aceita, ou a trava de tamanho do corpo recusaria (com 413, e sem
+# explicar nada) justamente o pedido que a trava de tamanho da pergunta acabou de aprovar.
+PERGUNTA_MAXIMA = 200_000  # caracteres
+# A HISTORIA DESTE NUMERO, que ja vai em tres capitulos:
+#
+#   8.000  — o valor original, tamanho de uma conversa de chat.
+#  16.000  — a maquina de producao passou a rodar com este valor quando o orcamento do prompt do
+#            atendimento (LIMITE_DA_PERGUNTA em lib/agenteAtendimento.ts) apertou com os
+#            parametros de recusa da Ana. O repositorio ficou para tras, e quem um dia
+#            reinstalasse a ponte a partir daqui faria a Ana voltar a recusar mensagem longa em
+#            producao, sem ninguem entender por que.
+# 200.000  — o Peticionamento passou a mandar o TEXTO dos documentos anexados, e nao so o nome
+#            deles. No primeiro uso real (dois documentos), o dono recebeu na tela
+#            `400 {"erro": "mensagem ausente ou longa demais"}` — porque 16.000 caracteres sao
+#            oito paginas, e nenhum processo de verdade cabe em oito paginas. Este e o capitulo
+#            que conserta aquilo.
+#
+# POR QUE 200.000 E NAO "SEM LIMITE": sao ~50 mil tokens, algumas dezenas de paginas — grande o
+# bastante para o processo real que o dono quer que o agente leia inteiro, e pequeno o bastante
+# para continuar sendo um TETO. Um teto existe para que a recusa venha cedo, barata e explicada,
+# em vez de a maquina aceitar um pedido de tamanho arbitrario e morrer sem resposta la na frente.
+#
+# QUEM RECUSA DEVE SER O LUMEN, NAO ESTA LINHA. Este numero e espelhado em
+# lib/peticionamentoJanelaDeContexto.ts (PERGUNTA_MAXIMA_DA_PONTE), que recusa ANTES de mandar e
+# com uma frase que diz ao advogado o que fazer. O teste
+# lib/testes/peticionamentoLimiteDaPonte.teste.ts le ESTE arquivo e falha se os dois numeros
+# divergirem — mudar um lado so foi exatamente como o defeito chegou a producao.
+#
+# O CAMINHO DA ANA NAO MUDA: LIMITE_DA_PERGUNTA (7.500) continua sendo o orcamento dela, e
+# lib/testes/limiteDoPedido.teste.ts continua exigindo que ele caiba aqui dentro. Subir este teto
+# nao afrouxa nada do lado do atendimento — so deixa de estrangular o peticionamento.
 
 # O nome do perfil é conferido contra um formato, não contra uma lista: minúsculas, dígitos, ponto,
 # hífen e sublinhado. NÃO se exige mais o prefixo "lumen-tenant-" — esse prefixo era invenção do
