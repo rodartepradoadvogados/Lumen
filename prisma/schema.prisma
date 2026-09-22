@@ -4360,6 +4360,20 @@ model PeticionamentoSessao {
   // agente (contrato-com-o-agente.md §1: "não distinga o tratamento entre as duas").
   materiaNome           String?
   materiaEhDoEscritorio Boolean @default(false)
+  /// CONTRATO DE SCHEMA 22/09/2026 (pedido do dono: "precisa de permitir marcar mais de uma
+  /// matéria"). Um caso de sucessões que também é tributário não é um caso de uma matéria só, e
+  /// obrigar a escolher uma fazia o advogado mentir para o formulário.
+  ///
+  /// `materiaNome` acima NÃO morre e NÃO vira legado silencioso: ele continua sendo a matéria
+  /// PRINCIPAL (a primeira escolhida) — é o que as sessões já gravadas têm, é o que a lista de
+  /// rascunhos mostra numa linha só, e é o que o prompt usa como matéria-cabeça. `materiasNomes`
+  /// é a lista COMPLETA, incluindo a principal, na ordem em que foram marcadas.
+  ///
+  /// Quem escrever precisa manter os dois em pé ao mesmo tempo, sempre: gravar a lista e gravar
+  /// a primeira em materiaNome, na MESMA transação. Uma sessão antiga (materiasNomes vazia,
+  /// materiaNome preenchida) tem de ser lida como "uma matéria só" sem nenhum passo de migração
+  /// — leitura fail-open para o dado que já existe.
+  materiasNomes         Json    @default("[]")
 
   // Tipo de peça — lista fechada da seção 9, ou "Outra" com texto livre em tipoPecaOutro.
   // tipoPecaInferido marca quando NINGUÉM escolheu e o sistema tentou inferir pelo andamento do
@@ -4389,6 +4403,15 @@ model PeticionamentoSessao {
   fatos                 String?
   pedidos               Json      @default("[]")
   prazoFatal            DateTime?
+  /// CONTRATO DE SCHEMA 22/09/2026 (pedido do dono): se o prazo é PRECLUSIVO, ele deixa de ser
+  /// um lembrete administrativo e passa a ser um fato jurídico da peça — "se marcar preclusivo, o
+  /// prazo precisa ganhar tópico próprio no documento a ser gerado".
+  ///
+  /// Portanto isto NÃO é enfeite de formulário: quando true, o prazo entra no pedido ao agente
+  /// como seção própria, e o agente é instruído a tratá-lo como preclusivo. Falso por omissão —
+  /// nunca presuma preclusão que ninguém marcou, porque errar para esse lado assusta o cliente e
+  /// errar para o outro perde o prazo. Quem marca é o advogado, sempre.
+  prazoPreclusivo       Boolean   @default(false)
   valorCausa            String?
   descumprimentoLiminar String?
   teses                 Json      @default("[]")
