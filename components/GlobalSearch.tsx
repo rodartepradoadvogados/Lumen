@@ -24,6 +24,8 @@ type PaletteItem = {
   titulo: string;
   subtitulo?: string;
   href: string;
+  /** Ver lib/navSections.ts:abrirEmNovaAba — Peticionamento nunca troca o conteúdo desta aba. */
+  abrirEmNovaAba?: boolean;
 };
 const GROUP_ORDER: PaletteItem["type"][] = ["Processos", "Clientes", "Ações", "Navegação"];
 
@@ -127,6 +129,14 @@ export default function GlobalSearch({
   }, []);
 
   function activate(item: PaletteItem) {
+    // Peticionamento (e qualquer item marcado assim) nunca passa pelo mecanismo de duplo-clique/
+    // duplo-Enter abaixo — é sempre aba NOVA de verdade, nunca a guia interna do TabsProvider,
+    // que continua sendo a MESMA aba/processo do navegador por baixo (ver lib/navSections.ts).
+    if (item.abrirEmNovaAba) {
+      setOpen(false);
+      window.open(item.href, "_blank", "noopener");
+      return;
+    }
     const pending = clickTimers.current[item.href];
     if (pending) {
       clearTimeout(pending);
@@ -157,7 +167,7 @@ export default function GlobalSearch({
     for (const section of RAIL_SECTIONS) {
       if (!isSectionVisible(section, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento })) continue;
       for (const item of visibleSectionItems(section, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento })) {
-        all.push({ type: "Navegação", id: item.href, titulo: item.label, href: item.href });
+        all.push({ type: "Navegação", id: item.href, titulo: item.label, href: item.href, abrirEmNovaAba: item.abrirEmNovaAba });
       }
     }
     return q ? all.filter((n) => looseIncludes(n.titulo, q)) : all;
@@ -267,6 +277,29 @@ export default function GlobalSearch({
                       {groupItems.map((item) => {
                         const idx = ordered.indexOf(item);
                         const active = idx === activeIndex;
+                        const classeItem = clsx(
+                          "flex flex-col items-start w-full px-4 py-2.5 text-left transition-colors",
+                          active ? "bg-sf-apoio" : "hover:bg-sf-apoio"
+                        );
+                        // Peticionamento (e qualquer item marcado assim): <a target="_blank"> de
+                        // verdade, nunca a navegação em-página — nem preventDefault, nem
+                        // window.open disparado por código (ver lib/navSections.ts:abrirEmNovaAba).
+                        if (item.abrirEmNovaAba) {
+                          return (
+                            <a
+                              key={`${item.type}-${item.id}`}
+                              href={item.href}
+                              target="_blank"
+                              rel="noopener"
+                              onMouseEnter={() => setActiveIndex(idx)}
+                              onClick={() => setOpen(false)}
+                              className={classeItem}
+                            >
+                              <span className="text-sm font-medium text-tx truncate w-full">{item.titulo}</span>
+                              {item.subtitulo && <span className="text-xs text-tx-2 truncate w-full">{item.subtitulo}</span>}
+                            </a>
+                          );
+                        }
                         return (
                           // Link de verdade (não button+router.push): navegação por clique/toque
                           // precisa ser à prova de qualquer corrida entre o listener de "clicar
@@ -280,10 +313,7 @@ export default function GlobalSearch({
                               e.preventDefault();
                               activate(item);
                             }}
-                            className={clsx(
-                              "flex flex-col items-start w-full px-4 py-2.5 text-left transition-colors",
-                              active ? "bg-sf-apoio" : "hover:bg-sf-apoio"
-                            )}
+                            className={classeItem}
                           >
                             <span className="text-sm font-medium text-tx truncate w-full">{item.titulo}</span>
                             {item.subtitulo && <span className="text-xs text-tx-2 truncate w-full">{item.subtitulo}</span>}

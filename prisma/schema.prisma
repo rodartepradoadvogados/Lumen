@@ -4415,6 +4415,11 @@ model PeticionamentoSessao {
   notaRiscos                Json    @default("[]")
   jurisprudenciaCitada      Json    @default("[]")
   documentosBaseConsultados Json    @default("[]")
+  // PRIORIDADE 1 (relatório da entrega "peticionamento lê documentos"): documento que NÃO pôde
+  // ser lido (formato não suportado, PDF escaneado sem texto, falha ao baixar do Drive) — nunca
+  // entra em documentosBaseConsultados, e a tela/nota obrigatória precisam dizer QUAIS ficaram de
+  // fora e por quê, nunca só omitir. Formato: [{ nome: string; motivo: string }].
+  documentosNaoLidos        Json    @default("[]")
 
   hermesSessionId String?
   geradoEm        DateTime?

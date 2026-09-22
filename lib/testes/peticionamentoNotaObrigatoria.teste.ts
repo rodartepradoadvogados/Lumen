@@ -67,4 +67,43 @@ teste("rodapé sempre traz perfil e sessão", () => {
   verdade(nota.includes("Sessão: a294f1e0"), "falta o id da sessão no rodapé");
 });
 
+// PRIORIDADE 1 (relatório da entrega "peticionamento lê documentos") — a lista de "consultados"
+// só é verdade quando quem NÃO foi lido também aparece; sem isto um documento selecionado mas
+// ilegível simplesmente sumiria da nota, sem o advogado nunca saber que ele não entrou na minuta.
+
+teste("sem documento não lido: a linha extra nem aparece (não polui a nota do caso feliz)", () => {
+  const nota = montarNotaObrigatoria(base);
+  verdade(!nota.includes("NÃO lidos"), "não deveria mencionar documento não lido quando não há nenhum");
+});
+
+teste("HARD GATE: documento não lido aparece na nota, com nome E motivo — nunca some em silêncio", () => {
+  const nota = montarNotaObrigatoria({ ...base, documentosNaoLidos: [{ nome: "laudo_escaneado.pdf", motivo: "PDF sem camada de texto" }] });
+  verdade(nota.includes("laudo_escaneado.pdf"), "nome do documento não lido deveria aparecer na nota");
+  verdade(nota.includes("PDF sem camada de texto"), "motivo da falha de leitura deveria aparecer na nota");
+  verdade(nota.includes("NÃO lidos"), "a nota deveria marcar claramente que este documento NÃO foi lido");
+});
+
+teste("HARD GATE: dois documentos não lidos — os DOIS aparecem, cada um com seu próprio motivo", () => {
+  const nota = montarNotaObrigatoria({
+    ...base,
+    documentosNaoLidos: [
+      { nome: "a.jpg", motivo: "formato de imagem não suportado" },
+      { nome: "b.doc", motivo: "formato .doc antigo não suportado" },
+    ],
+  });
+  verdade(nota.includes("a.jpg") && nota.includes("formato de imagem não suportado"), "documento A ausente ou sem motivo");
+  verdade(nota.includes("b.doc") && nota.includes("formato .doc antigo não suportado"), "documento B ausente ou sem motivo");
+});
+
+teste("documento consultado e documento não lido podem coexistir na mesma nota, cada um na sua linha", () => {
+  const nota = montarNotaObrigatoria({
+    ...base,
+    documentosBaseConsultados: ["contrato.pdf"],
+    documentosNaoLidos: [{ nome: "laudo_escaneado.pdf", motivo: "PDF sem camada de texto" }],
+  });
+  verdade(nota.includes("Documentos-base consultados: contrato.pdf."), "documento lido deveria continuar na linha de consultados");
+  verdade(nota.includes("laudo_escaneado.pdf") && nota.includes("NÃO lidos"), "documento não lido deveria estar em linha própria");
+  verdade(!nota.includes("Documentos-base consultados: contrato.pdf, laudo_escaneado.pdf"), "TRAVA: documento não lido não pode se misturar na lista de consultados");
+});
+
 resumo("Peticionamento — nota de destaque obrigatória");
