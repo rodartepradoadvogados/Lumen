@@ -346,9 +346,62 @@ teste("TRAVA: nenhum caminho do laço gira sem teto — cada volta é uma chamad
   verdade(posIncremento >= 0 && posIncremento < posContinue, "o contador precisa subir ANTES do continue");
 });
 
-teste("LEI 3: a rota inteira é de leitura — nenhuma escrita no banco em caminho nenhum", () => {
+teste("LEI 3: a rota nunca chama o Prisma diretamente — nem para consultar, nem para escrever; toda escrita passa por lib/painelMestreConversas.ts", () => {
   verdade(!/prisma\.\w+\.(create|update|upsert|delete|updateMany|deleteMany|createMany)\(/.test(CODIGO_DA_ROTA),
-    "apareceu escrita no banco dentro da rota do agente — ele é só leitura, sem exceção");
+    "apareceu escrita no banco dentro da PRÓPRIA rota do agente — a única escrita desta entrega (gravar a conversa) vive em lib/painelMestreConversas.ts, nunca aqui");
+});
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// MEMÓRIA E AUDITORIA (esta entrega) — a conversa passa a ser GRAVADA (PainelMestreConversa/
+// PainelMestreTurno) e RETOMADA. A CLÁUSULA NOVA da Lei 1: "uma conversa gravada é de quem a
+// criou". As travas ABAIXO SOMAM às de cima — nenhuma delas substitui ou afrouxa uma trava já
+// escrita nesta suíte.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("LEI 1 (cláusula nova): um conversaId recebido no corpo só é aceito se buscarConversaDoMembro (filtrado por dono) o encontrar", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(corpo.length > 400, `corpoDaFuncao("POST") devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/const conversaDoMembro = await buscarConversaDoMembro\(conversaIdRecebido, viewer\);/.test(corpo),
+    "sumiu a checagem de dono do conversaId recebido — a rota passaria a continuar a conversa de QUALQUER id, inclusive de um membro diferente do que está perguntando");
+  verdade(/if \(!conversaDoMembro\)[\s\S]{0,150}status: 404/.test(corpo),
+    "a ausência de dono não interrompe o pedido com 404 — seguiria como se a conversa fosse válida");
+});
+
+teste("LEI 1 (cláusula nova): a checagem de dono do conversaId roda ANTES de qualquer chamada paga à API da Anthropic", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  const posChecagem = corpo.indexOf("buscarConversaDoMembro(conversaIdRecebido, viewer)");
+  const posChamadaIA = corpo.indexOf("client.messages.create(");
+  verdade(posChecagem >= 0 && posChamadaIA >= 0 && posChecagem < posChamadaIA,
+    "a checagem de dono do conversaId roda DEPOIS de já ter gasto uma chamada paga à API — deveria recusar antes de gastar nada");
+});
+
+teste("TRAVA: sem conversaId aceito, a rota abre uma conversa NOVA para o próprio viewer — nunca segue sem ter onde gravar", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(/criarConversaMestre\(viewer\)/.test(corpo), "sumiu a criação de conversa nova — o primeiro turno não teria onde ser gravado");
+});
+
+teste("TRAVA: os dois turnos (pergunta e resposta) são gravados com o MESMO viewer resolvido no início da requisição", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  const chamadas = corpo.match(/registrarTurno\(/g) || [];
+  verdade(chamadas.length >= 2, "faltam as duas gravações de turno (a pergunta e a resposta) — a memória ficaria incompleta");
+  verdade(/registrarTurno\(\{ conversaId: conversa\.id, viewer, papel: "user"/.test(corpo), "o turno da PERGUNTA não é gravado com conversaId + viewer da própria requisição");
+  verdade(/papel: "assistant",/.test(corpo), "sumiu a gravação do turno da RESPOSTA");
+});
+
+teste("TRAVA: só ferramentas de fato EXECUTADAS entram em ferramentasUsadasNoTurno — uma ferramenta recusada/inexistente não conta como usada", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  verdade(/if \(tool\) ferramentasUsadasNoTurno\.add\(toolUse\.name\);/.test(corpo),
+    "sumiu a condição `if (tool)` — uma ferramenta barrada (não liberada para o papel) passaria a contar como consultada na auditoria, e a Lei 2 poderia deixar de redigir um turno que na verdade não usou ferramenta nenhuma que exigisse sessão");
+});
+
+teste("TRAVA: a gravação dos turnos está protegida por um try/catch próprio — uma falha ao GRAVAR não pode derrubar a resposta já pronta", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  const posRegistro = corpo.indexOf('registrarTurno({ conversaId: conversa.id, viewer, papel: "user"');
+  verdade(posRegistro >= 0, "não encontrou a gravação do turno — varredura cega para este teste");
+  const posTryInterno = corpo.lastIndexOf("try {", posRegistro);
+  const posCatchInterno = corpo.indexOf("} catch (erroDeGravacao)", posRegistro);
+  verdade(posTryInterno >= 0 && posCatchInterno > posRegistro,
+    "a gravação do turno não está dentro de um try/catch dedicado — uma falha ao gravar quebraria a resposta que já estava pronta e paga");
 });
 
 void resumo("F7 — o agente do Painel Mestre");

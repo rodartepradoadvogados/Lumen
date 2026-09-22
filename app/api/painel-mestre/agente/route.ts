@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getPlatformMember, type PlatformViewer } from "@/lib/platformMember";
 import { painelMestreFerramentas, ferramentaLiberada } from "@/lib/painelMestreFerramentas";
 import { orcamentoDoPedido, type TurnoDoPainelMestre } from "@/lib/painelMestreOrcamento";
+import { criarConversaMestre, buscarConversaDoMembro, registrarTurno } from "@/lib/painelMestreConversas";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,14 @@ export const maxDuration = 60;
 // quem está perguntando, e é ele — nunca o corpo da requisição — quem determina o
 // `PlatformViewer` que viaja até cada ferramenta. Não existe parâmetro no corpo que eleve nível
 // de acesso: mesmo que o corpo mandasse um `maxVisibility: "COFRE"`, ele seria ignorado, porque
-// `body` só é lido para `mensagem` e `historico`.
+// `body` só é lido para `mensagem`, `historico` e `conversaId`.
+//
+// A CLÁUSULA NOVA DESTA ENTREGA (memória + auditoria, PainelMestreConversa/PainelMestreTurno):
+// "uma conversa gravada é de quem a criou." Um `conversaId` no corpo NUNCA é aceito de graça —
+// `buscarConversaDoMembro` (lib/painelMestreConversas.ts) só encontra a conversa se o `viewer`
+// resolvido aqui for o dono dela; de outro membro, a resposta é "não encontrada", igual a uma
+// conversa que não existe. Toda leitura e escrita de conversa/turno vivem em
+// lib/painelMestreConversas.ts — esta rota nunca fala com o Prisma diretamente.
 // ============================================================================
 
 const MODEL = "claude-sonnet-5";
@@ -81,7 +89,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não autenticado no Painel Mestre." }, { status: 401 });
   }
 
-  let body: { mensagem?: string; historico?: unknown };
+  let body: { mensagem?: string; historico?: unknown; conversaId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -93,9 +101,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Envie uma mensagem." }, { status: 400 });
   }
 
-  // Sem sessão gravada em banco nesta primeira entrega (ver relatório) — a conversa vive na
-  // aba, e volta a cada pergunta como `historico`. TETO BRUTO aqui (nunca confia no tamanho que
-  // o cliente mandou); o corte FINO, que decide o que de fato entra no pedido, é
+  // LEI 1, A CLÁUSULA NOVA DESTA ENTREGA: "uma conversa gravada é de quem a criou." Continuar
+  // uma conversa exige que ELA seja do MESMO viewer resolvido acima — nunca o corpo da
+  // requisição decide isso sozinho. `buscarConversaDoMembro` (lib/painelMestreConversas.ts) já
+  // filtra por dono dentro do próprio `where`; um conversaId de outro membro simplesmente não é
+  // encontrado, e a resposta é a MESMA de "não existe" — nunca revela que o id pertence a
+  // alguém. Sem conversaId (ou com um que não é encontrado), abre uma conversa nova.
+  const conversaIdRecebido = typeof body?.conversaId === "string" && body.conversaId.trim() ? body.conversaId.trim() : null;
+  if (conversaIdRecebido) {
+    const conversaDoMembro = await buscarConversaDoMembro(conversaIdRecebido, viewer);
+    if (!conversaDoMembro) {
+      return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
+    }
+  }
+  const conversa = conversaIdRecebido ? { id: conversaIdRecebido } : await criarConversaMestre(viewer);
+
+  // O CLIENTE continua mandando o histórico da conversa em cada pedido (mesmo mecanismo de
+  // sempre — troca de papel só entre "user"/"assistant", teto bruto de 40 turnos), porque é ele
+  // quem está com a tela aberta AGORA; o que muda nesta entrega é que, além de responder, cada
+  // turno passa a ser GRAVADO (ver o bloco `registrarTurno` mais abaixo), então reabrir esta
+  // mesma conversa mais tarde (outra aba, outro dia) volta a ter de onde partir — ver
+  // GET /api/painel-mestre/agente/conversas/[id]. TETO BRUTO aqui (nunca confia no tamanho que o
+  // cliente mandou); o corte FINO, que decide o que de fato entra no pedido, é
   // `orcamentoDoPedido` logo abaixo — dois filtros, o mesmo espírito de "checado duas vezes" do
   // financeiro.
   const historicoRecebido: TurnoDoPainelMestre[] = Array.isArray(body?.historico)
@@ -131,6 +158,10 @@ export async function POST(request: NextRequest) {
   try {
     let rounds = 0;
     let respostaFinal = "";
+    // Nomes das ferramentas de fato EXECUTADAS neste turno (nunca as recusadas/inexistentes) —
+    // é o que vira PainelMestreTurno.ferramentasUsadas, e é também o que
+    // lib/painelMestreConversas.ts:textoSeguroParaHistorico usa para decidir a Lei 2.
+    const ferramentasUsadasNoTurno = new Set<string>();
 
     while (true) {
       const response = await client.messages.create({
@@ -183,12 +214,31 @@ export async function POST(request: NextRequest) {
         const resultado = tool
           ? await tool.executar(entrada, viewer)
           : `Ferramenta "${toolUse.name}" não está disponível para o seu papel na equipe da Lúmen.`;
+        if (tool) ferramentasUsadasNoTurno.add(toolUse.name);
         toolResults.push({ type: "tool_result", tool_use_id: toolUse.id, content: resultado });
       }
       messages.push({ role: "user", content: toolResults });
     }
 
-    return NextResponse.json({ resposta: respostaFinal });
+    // Grava o turno DEPOIS de já ter a resposta final — é a única escrita que este agente
+    // introduz, e é sobre dado da PLATAFORMA (a própria conversa), nunca do escritório-cliente
+    // (Lei 3). Uma falha ao GRAVAR não pode tirar a resposta de quem perguntou: a chamada à API
+    // da Anthropic já foi paga: perder a resposta por cima disso seria pior do que só perder a
+    // memória desta troca. Loga e segue.
+    try {
+      await registrarTurno({ conversaId: conversa.id, viewer, papel: "user", texto: mensagem, ferramentasUsadas: [] });
+      await registrarTurno({
+        conversaId: conversa.id,
+        viewer,
+        papel: "assistant",
+        texto: respostaFinal,
+        ferramentasUsadas: Array.from(ferramentasUsadasNoTurno),
+      });
+    } catch (erroDeGravacao) {
+      console.error("[painel-mestre/agente] falha ao gravar turno:", mensagemDeErro(erroDeGravacao));
+    }
+
+    return NextResponse.json({ resposta: respostaFinal, conversaId: conversa.id });
   } catch (erro) {
     console.error("[painel-mestre/agente] falha:", mensagemDeErro(erro));
     return NextResponse.json(
