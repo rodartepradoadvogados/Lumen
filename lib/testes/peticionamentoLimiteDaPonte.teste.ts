@@ -131,6 +131,10 @@ function dados(documentos: { nome: string; texto: string }[], fatos: string): Da
     contextoDescricao: "Processo nº 0000000-00.0000.0.00.0000 — TJGO · Atendimento — negativa de cobertura",
     fatos,
     pedidos: ["Tutela de urgência para autorização imediata do procedimento", "Condenação em danos morais"],
+    // Prazo ausente e não preclusivo: os valores que NÃO ligam a seção nova do prompt, para
+    // estas medições de tamanho continuarem medindo o mesmo pedido de antes.
+    prazoFatal: null,
+    prazoPreclusivo: false,
     teses: ["Rol da ANS exemplificativo", "Tema 1.365/STJ"],
     observacoes: "Cliente internada; urgência confirmada por relatório médico.",
     documentos,

@@ -77,6 +77,8 @@ export default async function MinutaPage({ params }: { params: { id: string } })
     precedentes: ((sessao.jurisprudenciaCitada as PrecedenteCitado[] | null) ?? []) as PrecedenteCitado[],
     documentosBaseConsultados: ((sessao.documentosBaseConsultados as string[] | null) ?? []) as string[],
     documentosNaoLidos: ((sessao.documentosNaoLidos as { nome: string; motivo: string }[] | null) ?? []) as { nome: string; motivo: string }[],
+    // Só quando o advogado marcou a preclusão — ver lib/peticionamentoNotaObrigatoria.ts.
+    prazoPreclusivoEm: sessao.prazoPreclusivo ? sessao.prazoFatal : null,
     contextoVinculadoDescricao: contextoDescricao,
     geradoEm: sessao.geradoEm ?? new Date(),
     perfil: perfilDePeticionamento(),

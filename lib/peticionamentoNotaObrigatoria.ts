@@ -41,6 +41,18 @@ export type DadosNotaObrigatoria = {
    * item aqui, a linha correspondente da nota NUNCA fica de fora (ver linhaDocumentosNaoLidos).
    */
   documentosNaoLidos?: DocumentoNaoLido[];
+  /**
+   * O PRAZO PRECLUSIVO, quando existe um — a data de PeticionamentoSessao.prazoFatal, e SÓ quando
+   * PeticionamentoSessao.prazoPreclusivo é true. Ausente/null nos demais casos, e então a linha
+   * inteira não entra na nota (mesmo critério de documentosNaoLidos).
+   *
+   * POR QUE AQUI TAMBÉM, e não só no pedido ao agente: a nota obrigatória é a parte da minuta que
+   * o CÓDIGO escreve — ela existe justamente para o que não pode depender de o modelo ter
+   * lembrado. O tópico próprio na peça é redigido pelo agente, e um agente pode falhar em redigi-lo;
+   * quando o prazo é preclusivo, perder essa informação custa o direito do cliente. Esta linha é a
+   * rede embaixo: montada de dado estruturado, nunca copiada do texto livre que o modelo mandou.
+   */
+  prazoPreclusivoEm?: Date | null;
   /** Descrição pronta do contexto vinculado — já resolvida (ex.: "Processo nº ... · Atendimento #482") ou null para sessão avulsa. */
   contextoVinculadoDescricao: string | null;
   geradoEm: Date;
@@ -78,6 +90,16 @@ function linhaDocumentosNaoLidos(naoLidos: DocumentoNaoLido[]): string | null {
   return `Documentos NÃO lidos pelo agente (selecionados nesta sessão, mas fora da redação desta minuta): ${naoLidos.map((d) => `${d.nome} (${d.motivo})`).join("; ")}.`;
 }
 
+// A data vem de um campo de CALENDÁRIO (o `<input type="date">` do questionário, gravado como
+// meia-noite UTC), não de um instante — por isso é lida em UTC, e não no fuso de São Paulo como o
+// rodapé abaixo. Lê-la em America/Sao_Paulo devolveria o DIA ANTERIOR, e um prazo preclusivo
+// exibido um dia antes é pior do que nenhum.
+function linhaPrazoPreclusivo(prazo: Date | null | undefined): string | null {
+  if (!prazo) return null;
+  const data = prazo.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+  return `PRAZO PRECLUSIVO informado pelo advogado: ${data} — perdido o prazo, perde-se o direito de praticar o ato. Confira o termo inicial e a contagem antes de usar esta minuta.`;
+}
+
 function linhaContexto(descricao: string | null): string {
   // Sessão avulsa NUNCA fica com a linha em branco nem some — contrato §2 é explícito.
   return `Contexto vinculado: ${descricao ?? "sem vínculo — petição avulsa"}.`;
@@ -98,6 +120,7 @@ export function montarNotaObrigatoria(dados: DadosNotaObrigatoria): string {
     "MINUTA GERADA POR IA — REVISÃO OBRIGATÓRIA",
     `Este documento é um rascunho produzido pelo agente de peticionamento do Lúmen (perfil ${dados.perfil}) e não deve ser protocolado sem revisão integral por advogado habilitado.`,
     "",
+    linhaPrazoPreclusivo(dados.prazoPreclusivoEm),
     linhaJurisprudencia(dados.precedentes),
     linhaDocumentos(dados.documentosBaseConsultados),
     linhaDocumentosNaoLidos(dados.documentosNaoLidos ?? []),

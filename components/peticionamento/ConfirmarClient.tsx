@@ -11,6 +11,8 @@ type Resumo = {
   tipoPecaOutro: string | null;
   fatos: string;
   pedidos: string[];
+  prazoFatal: string | null;
+  prazoPreclusivo: boolean;
   documentos: string[];
   teses: string[];
 };
@@ -74,6 +76,18 @@ export function ConfirmarClient({ sessaoId, resumo }: { sessaoId: string; resumo
           </div>,
           `/peticionamento/${sessaoId}/wizard`,
         )}
+        {resumo.prazoFatal &&
+          linha(
+            "Prazo",
+            resumo.prazoPreclusivo ? (
+              <>
+                <span className="mono">{resumo.prazoFatal}</span> · <strong>preclusivo</strong> — vai ganhar tópico próprio no documento gerado
+              </>
+            ) : (
+              <span className="mono">{resumo.prazoFatal}</span>
+            ),
+            `/peticionamento/${sessaoId}/wizard`,
+          )}
         {linha("Documentos", resumo.documentos.length ? resumo.documentos.join(", ") : "(nenhum)", `/peticionamento/${sessaoId}/documentos`)}
         {linha(
           "Teses",

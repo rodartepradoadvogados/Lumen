@@ -17,6 +17,20 @@
 
 import type { CategoriaDePeca } from "@/lib/peticionamentoCategoriaPeca";
 
+/**
+ * O RÓTULO DA MARCA DE PRECLUSÃO — um texto só, nunca uma redação por categoria: o que "preclusivo"
+ * significa não muda de parecer para petição, e cinco redações seriam cinco chances de uma delas
+ * dizer o conceito errado.
+ *
+ * A explicação ao lado é obrigatória porque a marca AFIRMA algo jurídico sobre o prazo. Quem marca
+ * é o advogado: o Lúmen não deduz preclusão de data nenhuma (errar para esse lado assusta o
+ * cliente à toa; errar para o outro perde o prazo — as duas pontas são do advogado, não do
+ * sistema). Falso por omissão, como manda PeticionamentoSessao.prazoPreclusivo.
+ */
+export const ROTULO_PRAZO_PRECLUSIVO = "Este prazo é preclusivo";
+export const EXPLICACAO_PRAZO_PRECLUSIVO =
+  "Preclusivo: perdido o prazo, perde-se o direito de praticar o ato. Se marcar, o prazo ganha tópico próprio no documento gerado. Marque só você — o Lúmen nunca deduz isso sozinho.";
+
 export type ConfiguracaoQuestionario = {
   tituloFatos: string;
   subFatos: string;
@@ -31,6 +45,14 @@ export type ConfiguracaoQuestionario = {
   mostrarPrazoValor: boolean;
   rotuloPrazo: string;
   rotuloValor: string;
+  /**
+   * A MARCA DE PRAZO PRECLUSIVO ao lado do campo de prazo (pedido do dono, 22/09/2026). Só faz
+   * sentido onde o prazo é prazo para PRATICAR UM ATO — perdê-lo faz perder o direito de
+   * praticá-lo. Em Contrato o mesmo campo guarda "prazo de vigência/assinatura", que não é prazo
+   * para ato nenhum: lá a marca não aparece, para não oferecer ao advogado uma afirmação
+   * juridicamente vazia. Ver PeticionamentoSessao.prazoPreclusivo em prisma/schema.prisma.
+   */
+  mostrarPreclusivo: boolean;
   mostrarDescumprimento: boolean;
   rotuloDescumprimento: string;
   opcoesDescumprimento: string[];
@@ -39,7 +61,6 @@ export type ConfiguracaoQuestionario = {
   tituloTeses: string;
   subTeses: string;
   labelTeses: string;
-  tesesSugeridas: string[];
   placeholderObservacoes: string;
 
   /**
@@ -65,14 +86,14 @@ const PADRAO_PETICAO: ConfiguracaoQuestionario = {
   mostrarPrazoValor: true,
   rotuloPrazo: "Prazo fatal nestes autos",
   rotuloValor: "Valor atualizado da causa",
+  mostrarPreclusivo: true,
   mostrarDescumprimento: true,
   rotuloDescumprimento: "Há descumprimento pelo réu?",
   opcoesDescumprimento: ["Sim, parcial", "Sim, total", "Não"],
   mostrarTeses: true,
   tituloTeses: "Teses e observações",
-  subTeses: "Marque o que já pesquisou. O agente ainda cita a fonte de cada precedente e avisa sobre validação cruzada.",
+  subTeses: "Escreva cada tese com suas palavras — não há lista pronta para marcar, de propósito: a tese que vai na peça é a sua. O agente ainda cita a fonte de cada precedente e avisa sobre validação cruzada.",
   labelTeses: "Teses a considerar",
-  tesesSugeridas: ["Rol da ANS é exemplificativo (Tema 990/1069 STJ)", "Urgência/emergência (Lei 9.656/98, art. 12)", "Abusividade de cláusula (CDC, art. 51)"],
   placeholderObservacoes: "Algo mais que o agente precisa saber?",
   temPassoDePistas: false,
   tituloPistas: "",
@@ -92,6 +113,7 @@ const PADRAO_CONTRATO: ConfiguracaoQuestionario = {
   placeholderOutroPedido: "Outra cláusula — digite e pressione Enter",
   rotuloPrazo: "Prazo de vigência/assinatura",
   rotuloValor: "Valor do contrato",
+  mostrarPreclusivo: false,
   mostrarDescumprimento: false,
   mostrarTeses: false,
 };
@@ -112,7 +134,7 @@ const PADRAO_PARECER: ConfiguracaoQuestionario = {
   mostrarDescumprimento: false,
   mostrarTeses: true,
   tituloTeses: "Teses e observações",
-  subTeses: "Marque as teses/entendimentos já considerados. O agente ainda cita a fonte de cada precedente e avisa sobre validação cruzada.",
+  subTeses: "Escreva cada tese/entendimento já considerado com suas palavras — não há lista pronta para marcar. O agente ainda cita a fonte de cada precedente e avisa sobre validação cruzada.",
 };
 
 const PADRAO_NOTIFICACAO: ConfiguracaoQuestionario = {
@@ -127,6 +149,9 @@ const PADRAO_NOTIFICACAO: ConfiguracaoQuestionario = {
   placeholderOutroPedido: "Outra exigência — digite e pressione Enter",
   rotuloPrazo: "Prazo para o notificado cumprir",
   rotuloValor: "Valor envolvido (se houver)",
+  // O prazo aqui é da OUTRA parte (o notificado), não do escritório — não há ato do notificante a
+  // precluir. Marcar "preclusivo" neste campo afirmaria algo que a preclusão não diz.
+  mostrarPreclusivo: false,
   mostrarDescumprimento: true,
   rotuloDescumprimento: "Já houve alguma resposta/tentativa de solução?",
   opcoesDescumprimento: ["Sim, parcial", "Sim, recusada", "Não houve resposta"],

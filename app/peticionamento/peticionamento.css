@@ -901,6 +901,119 @@
   background: var(--accent);
 }
 
+/* ---- prazo preclusivo (pedido do dono, 22/09/2026) ----
+   A marca fica COLADA no campo de prazo, e não numa seção própria: ela afirma algo sobre AQUELE
+   prazo. Sem data escolhida a linha inteira fica apagada e a caixa desabilitada — marcar preclusão
+   de um prazo que não existe não é uma escolha que a tela deva oferecer. */
+.peticionamento .preclusivo-linha {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: -4px 0 16px;
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.peticionamento .preclusivo-linha.inativa {
+  cursor: default;
+  opacity: 0.55;
+}
+.peticionamento .preclusivo-linha input[type="checkbox"] {
+  margin-top: 2px;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent-strong);
+  flex: none;
+}
+.peticionamento .preclusivo-rotulo {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx-0);
+}
+.peticionamento .preclusivo-ajuda {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--tx-2);
+}
+
+/* ---- teses escritas à mão (pedido do dono, 22/09/2026) ----
+   Sem rol fechado: uma lista que cresce, cada item editável e removível, e uma caixa vazia sempre
+   no fim. O contador diz o limite; o limite nunca corta texto em silêncio (lib/peticionamentoTeses.ts). */
+.peticionamento .tese-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.peticionamento .tese-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 13px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.peticionamento .tese-texto {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tx-0);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.peticionamento .tese-acoes {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.peticionamento .tese-caixa {
+  padding: 11px 13px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+.peticionamento .tese-caixa.recusada {
+  border-color: var(--danger-border);
+}
+.peticionamento .tese-caixa textarea {
+  min-height: 72px;
+  background: var(--bg-1);
+}
+.peticionamento .tese-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 9px;
+}
+.peticionamento .tese-contador {
+  font-size: 11px;
+  color: var(--tx-2);
+}
+.peticionamento .tese-contador.excedeu {
+  color: var(--danger-tx);
+}
+.peticionamento .tese-botoes {
+  display: flex;
+  gap: 8px;
+}
+.peticionamento .tese-recusa {
+  margin-top: 9px;
+  padding: 8px 10px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius);
+  color: var(--danger-tx);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
 /* ---- documentos ---- */
 .peticionamento .two-col {
   display: grid;
