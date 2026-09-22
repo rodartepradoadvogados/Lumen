@@ -6,7 +6,8 @@ import { salvarWizard } from "@/lib/actions/peticionamento";
 import { avaliarProntidao, fraseDoQueFalta } from "@/lib/peticionamentoMinimo";
 import { TIPOS_DE_PECA } from "@/lib/peticionamentoTipoPeca";
 import { usaSublistaDeTipoDePeticao } from "@/lib/peticionamentoCategoriaPeca";
-import { obterConfiguracaoQuestionario } from "@/lib/peticionamentoQuestionario";
+import { obterConfiguracaoQuestionario, ROTULO_PRAZO_PRECLUSIVO, EXPLICACAO_PRAZO_PRECLUSIVO } from "@/lib/peticionamentoQuestionario";
+import { acrescentarTese, editarTese, removerTese, LIMITE_CARACTERES_TESE } from "@/lib/peticionamentoTeses";
 import { useSaidaDoPeticionamento } from "./SaidaContext";
 
 type Estado = {
@@ -15,11 +16,79 @@ type Estado = {
   fatos: string;
   pedidos: string[];
   prazoFatal: string;
+  prazoPreclusivo: boolean;
   valorCausa: string;
   descumprimentoLiminar: string;
   teses: string[];
   observacoes: string;
 };
+
+/**
+ * UMA CAIXA DE TESE — caixa de escrita, botão de salvar e botão de cancelar, como o dono pediu.
+ *
+ * Serve aos dois usos, e por isso não sabe qual é o seu: a caixa vazia do fim da lista e a caixa
+ * de edição de uma tese já salva são o MESMO componente. Quem decide o que acontece depois é o
+ * pai, pelos dois callbacks:
+ *   - `aoSalvar` devolve `null` quando a tese foi aceita, ou o MOTIVO da recusa (texto pronto,
+ *     vindo de lib/peticionamentoTeses.ts) — que aparece embaixo da caixa, sem apagar o que o
+ *     advogado escreveu. Recusar sem devolver o texto seria perder o trabalho dele;
+ *   - `aoCancelar` descarta. Na caixa nova, o pai troca a `key` e a caixa renasce vazia; na de
+ *     edição, o pai sai do modo de edição e a tese volta a aparecer como estava.
+ *
+ * O contador de caracteres é a forma de o limite ser DITO na tela — e o texto nunca é cortado:
+ * passar do limite recusa e explica, em vez de guardar uma frase pela metade.
+ */
+function CaixaDeTese({
+  valorInicial,
+  rotuloSalvar,
+  aoSalvar,
+  aoCancelar,
+}: {
+  valorInicial: string;
+  rotuloSalvar: string;
+  aoSalvar: (texto: string) => string | null;
+  aoCancelar: () => void;
+}) {
+  const [texto, setTexto] = useState(valorInicial);
+  const [recusa, setRecusa] = useState<string | null>(null);
+  const escritos = texto.trim().length;
+  const excedeu = escritos > LIMITE_CARACTERES_TESE;
+
+  return (
+    <div className={`tese-caixa${recusa ? " recusada" : ""}`}>
+      <textarea
+        value={texto}
+        placeholder="Escreva a tese com suas palavras — uma por caixa."
+        onChange={(e) => {
+          setTexto(e.target.value);
+          if (recusa) setRecusa(null);
+        }}
+      />
+      <div className="tese-rodape">
+        <span className={`tese-contador mono${excedeu ? " excedeu" : ""}`}>
+          {escritos}/{LIMITE_CARACTERES_TESE}
+        </span>
+        <div className="tese-botoes">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setTexto(valorInicial);
+              setRecusa(null);
+              aoCancelar();
+            }}
+          >
+            Cancelar
+          </button>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => setRecusa(aoSalvar(texto))}>
+            {rotuloSalvar}
+          </button>
+        </div>
+      </div>
+      {recusa && <div className="tese-recusa">{recusa}</div>}
+    </div>
+  );
+}
 
 export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: string; categoriaPeca: string | null; inicial: Estado }) {
   const router = useRouter();
@@ -44,6 +113,7 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
         fatos: estado.fatos,
         pedidos: estado.pedidos,
         prazoFatal: estado.prazoFatal || null,
+        prazoPreclusivo: estado.prazoPreclusivo,
         valorCausa: estado.valorCausa,
         descumprimentoLiminar: estado.descumprimentoLiminar,
         teses: estado.teses,
@@ -66,6 +136,29 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
 
   function alternarChip(lista: "pedidos" | "teses", valor: string) {
     setEstado((e) => ({ ...e, [lista]: e[lista].includes(valor) ? e[lista].filter((v) => v !== valor) : [...e[lista], valor] }));
+  }
+
+  // ── TESES: escrita manual, sem rol fechado (pedido do dono, 22/09/2026) ────────────────────
+  // A régua (vazia não entra, repetida não entra, ordem preservada, limite dito e nunca cortado em
+  // silêncio) mora em lib/peticionamentoTeses.ts, e é a MESMA que os testes de mesa exercitam —
+  // nunca uma segunda versão escrita aqui dentro, que divergiria da primeira com o tempo.
+  const [emEdicao, setEmEdicao] = useState<number | null>(null);
+  const [versaoDaCaixa, setVersaoDaCaixa] = useState(0);
+
+  function salvarTeseNova(texto: string): string | null {
+    const veredito = acrescentarTese(estado.teses, texto);
+    if (!veredito.ok) return veredito.motivo;
+    setEstado((e) => ({ ...e, teses: veredito.teses }));
+    setVersaoDaCaixa((v) => v + 1);
+    return null;
+  }
+
+  function salvarEdicaoDeTese(indice: number, texto: string): string | null {
+    const veredito = editarTese(estado.teses, indice, texto);
+    if (!veredito.ok) return veredito.motivo;
+    setEstado((e) => ({ ...e, teses: veredito.teses }));
+    setEmEdicao(null);
+    return null;
   }
 
   // Geral ganha um passo A MAIS (pistas) — nunca menos. As demais categorias têm os 4 passos de sempre.
@@ -157,13 +250,41 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
             <div className="field-row">
               <div>
                 <label className="field-label">{cfg.rotuloPrazo}</label>
-                <input className="field" type="date" value={estado.prazoFatal} onChange={(e) => setEstado((s) => ({ ...s, prazoFatal: e.target.value }))} />
+                <input
+                  className="field"
+                  type="date"
+                  value={estado.prazoFatal}
+                  onChange={(e) =>
+                    setEstado((s) => ({
+                      ...s,
+                      prazoFatal: e.target.value,
+                      // Apagar a data apaga a marca junto: "preclusivo" sem prazo é afirmação sobre
+                      // um prazo que não existe mais. O servidor refaz a mesma conta (salvarWizard),
+                      // porque a tela nunca é a trava. Ligar a marca continua sendo só do advogado.
+                      prazoPreclusivo: e.target.value ? s.prazoPreclusivo : false,
+                    }))
+                  }
+                />
               </div>
               <div>
                 <label className="field-label">{cfg.rotuloValor}</label>
                 <input className="field" type="text" value={estado.valorCausa} onChange={(e) => setEstado((s) => ({ ...s, valorCausa: e.target.value }))} />
               </div>
             </div>
+          )}
+          {cfg.mostrarPrazoValor && cfg.mostrarPreclusivo && (
+            <label className={`preclusivo-linha${estado.prazoFatal ? "" : " inativa"}`}>
+              <input
+                type="checkbox"
+                checked={estado.prazoPreclusivo}
+                disabled={!estado.prazoFatal}
+                onChange={(e) => setEstado((s) => ({ ...s, prazoPreclusivo: e.target.checked }))}
+              />
+              <span>
+                <span className="preclusivo-rotulo">{ROTULO_PRAZO_PRECLUSIVO}</span>
+                <span className="preclusivo-ajuda">{estado.prazoFatal ? EXPLICACAO_PRAZO_PRECLUSIVO : "Informe a data acima para poder marcar."}</span>
+              </span>
+            </label>
           )}
           {cfg.mostrarDescumprimento && (
             <>
@@ -204,13 +325,39 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
           <span className="step-tag plus">Enriquece a peça</span>
           <h2>{cfg.tituloTeses}</h2>
           <p className="q-sub">{cfg.subTeses}</p>
-          <label className="field-label">{cfg.labelTeses}</label>
-          <div className="pick-row">
-            {Array.from(new Set([...cfg.tesesSugeridas, ...estado.teses])).map((t) => (
-              <button key={t} type="button" className={`pick-chip${estado.teses.includes(t) ? " sel" : ""}`} onClick={() => alternarChip("teses", t)}>
-                {t}
-              </button>
-            ))}
+          <label className="field-label">
+            {cfg.labelTeses} <span className="quiet">· {estado.teses.length === 0 ? "nenhuma ainda" : `${estado.teses.length} escrita${estado.teses.length > 1 ? "s" : ""}`}</span>
+          </label>
+          <div className="tese-lista">
+            {estado.teses.map((t, i) =>
+              emEdicao === i ? (
+                <CaixaDeTese key={`edicao-${i}`} valorInicial={t} rotuloSalvar="Salvar alteração" aoSalvar={(texto) => salvarEdicaoDeTese(i, texto)} aoCancelar={() => setEmEdicao(null)} />
+              ) : (
+                <div className="tese-item" key={`tese-${i}`}>
+                  <div className="tese-texto">{t}</div>
+                  <div className="tese-acoes">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEmEdicao(i)}>
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        // Sair do modo de edição junto: remover um item reindexa a lista, e uma
+                        // caixa de edição aberta passaria a apontar para OUTRA tese sem avisar.
+                        setEmEdicao(null);
+                        setEstado((e) => ({ ...e, teses: removerTese(e.teses, i) }));
+                      }}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              ),
+            )}
+            {/* A caixa vazia do fim: a cada tese salva ela renasce (key nova) — é o "acréscimo de
+                nova caixa abaixo a cada tese acrescentada" pedido pelo dono. */}
+            <CaixaDeTese key={`nova-${versaoDaCaixa}`} valorInicial="" rotuloSalvar="Salvar tese" aoSalvar={salvarTeseNova} aoCancelar={() => setVersaoDaCaixa((v) => v + 1)} />
           </div>
           <label className="field-label">Outras observações para o agente (opcional)</label>
           <textarea

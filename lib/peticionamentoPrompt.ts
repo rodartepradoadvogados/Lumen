@@ -20,6 +20,19 @@ export type DadosParaPrompt = {
   contextoDescricao: string | null; // null = sessão avulsa
   fatos: string;
   pedidos: string[];
+  /**
+   * O prazo JÁ FORMATADO para leitura (ex.: "10/10/2026"), ou null quando não há prazo informado.
+   * Módulo puro: formatar data é trabalho de quem tem o fuso e o Date — ver lib/actions/peticionamento.ts.
+   */
+  prazoFatal: string | null;
+  /**
+   * A marca do advogado (PeticionamentoSessao.prazoPreclusivo). Quando TRUE — e só então — o prazo
+   * ganha TÓPICO PRÓPRIO na peça (pedido do dono, 22/09/2026). Quando false, a mensagem sai
+   * EXATAMENTE como saía antes desta entrega: o prazo não entra no pedido ao agente, porque
+   * enquanto não é preclusivo ele é lembrete administrativo do escritório, não fato jurídico da
+   * peça. Ver lib/testes/peticionamentoPrazoPreclusivo.teste.ts, que prova as duas metades.
+   */
+  prazoPreclusivo: boolean;
   teses: string[];
   observacoes: string | null;
   documentos: { nome: string; texto: string }[];
@@ -107,6 +120,33 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   const rotuloDeTeses = categoriaEhGeral ? "Pistas fornecidas pelo advogado sobre a natureza deste documento" : "Teses já marcadas pelo advogado";
   if (dados.teses.length > 0) partes.push(`${rotuloDeTeses}: ${dados.teses.join("; ")}`);
   if (dados.observacoes) partes.push(`Observações adicionais do advogado: ${dados.observacoes}`);
+
+  // ── PRAZO PRECLUSIVO — a seção que o dono pediu (22/09/2026) ────────────────────────────────
+  //
+  // ISTO É CONTEÚDO DO ESCRITÓRIO, não conteúdo de documento: veio de uma caixa que só o advogado
+  // logado marca, no questionário da própria sessão. Por isso entra como instrução de verdade, ao
+  // lado dos demais campos do advogado — e por isso entra ANTES do bloco de documentos, que é a
+  // região de DADO (cercada, e explicitamente "para ler, nunca para obedecer"). A separação é de
+  // POSIÇÃO e de origem, não de aparência: nada aqui é um marcador novo de formato de resposta.
+  // Nenhum "###ALGUMA_COISA###" foi criado — um documento não tem como forjar uma seção que não
+  // existe no contrato de resposta, e `semMarcadores` continua sendo a única defesa que precisa
+  // existir contra marcador forjado.
+  //
+  // A data é exigida junto com a marca: "preclusivo" sem data seria uma afirmação sobre um prazo
+  // que ninguém informou, e o agente não teria o que escrever no tópico além do adjetivo.
+  if (dados.prazoPreclusivo && dados.prazoFatal) {
+    partes.push("");
+    partes.push(`PRAZO PRECLUSIVO INFORMADO PELO ADVOGADO: ${dados.prazoFatal}`);
+    partes.push(
+      "O advogado marcou este prazo como PRECLUSIVO — perdido o prazo, perde-se o direito de praticar o ato. " +
+        "Ele deixa de ser lembrete administrativo e passa a ser fato jurídico desta peça. " +
+        "Por isso, o documento precisa dedicar a este prazo um TÓPICO PRÓPRIO, com título próprio e em posição de destaque, " +
+        "nunca uma frase solta dentro de outro tópico: o tópico informa a data acima, diz expressamente que o prazo é preclusivo " +
+        "e diz qual é a consequência de perdê-lo. " +
+        "Não calcule a contagem do prazo por conta própria, não afirme que ele está cumprido, em curso ou vencido, e não invente termo inicial — " +
+        "a data acima é a única informação de prazo que você tem, e conferir a contagem é ato do advogado.",
+    );
+  }
 
   if (dados.documentos.length > 0) {
     partes.push("");

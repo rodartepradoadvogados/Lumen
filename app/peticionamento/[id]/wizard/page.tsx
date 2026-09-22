@@ -37,6 +37,7 @@ export default async function WizardPage({ params }: { params: { id: string } })
           fatos: sessao.fatos ?? "",
           pedidos: ((sessao.pedidos as string[] | null) ?? []) as string[],
           prazoFatal: sessao.prazoFatal ? sessao.prazoFatal.toISOString().slice(0, 10) : "",
+          prazoPreclusivo: sessao.prazoPreclusivo,
           valorCausa: sessao.valorCausa ?? "",
           descumprimentoLiminar: sessao.descumprimentoLiminar ?? "",
           teses: ((sessao.teses as string[] | null) ?? []) as string[],

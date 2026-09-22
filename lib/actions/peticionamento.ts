@@ -45,6 +45,16 @@ function lerVinculo(sessao: { vinculoCaseIds: unknown; vinculoAttendanceIds: unk
   return { caseIds: arr(sessao.vinculoCaseIds), attendanceIds: arr(sessao.vinculoAttendanceIds), assessoriaIds: arr(sessao.vinculoAssessoriaIds) };
 }
 
+/**
+ * O prazo para LEITURA HUMANA (dd/mm/aaaa) — em UTC, de propósito: `prazoFatal` vem de um
+ * `<input type="date">` e é gravado como meia-noite UTC, ou seja, é uma DATA DE CALENDÁRIO, não um
+ * instante. Lida em America/Sao_Paulo (UTC-3), a mesma data voltaria como o DIA ANTERIOR — e um
+ * prazo mostrado um dia antes do que é seria pior do que não mostrar nenhum.
+ */
+function prazoParaLeitura(prazo: Date | null): string | null {
+  return prazo ? prazo.toLocaleDateString("pt-BR", { timeZone: "UTC" }) : null;
+}
+
 async function exigirAcessoAba() {
   const user = await getCurrentUser();
   if (!user) throw new Error("Sessão inválida.");
@@ -472,6 +482,7 @@ export type CamposWizard = {
   fatos?: string;
   pedidos?: string[];
   prazoFatal?: string | null; // ISO date
+  prazoPreclusivo?: boolean;
   valorCausa?: string | null;
   descumprimentoLiminar?: string | null;
   teses?: string[];
@@ -481,6 +492,12 @@ export type CamposWizard = {
 export async function salvarWizard(sessaoId: string, campos: CamposWizard): Promise<{ ok: true }> {
   const user = await exigirAcessoAba();
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  // PRECLUSIVO SEM DATA NÃO EXISTE (pedido do dono, 22/09/2026): apagar o prazo apaga a marca
+  // junto, aqui no servidor e não só na tela. Sem isto, limpar a data deixaria um `true` órfão no
+  // banco, e o advogado teria marcado "preclusivo" sobre um prazo que já não está em lugar nenhum.
+  // Isto NÃO é deduzir preclusão — o sistema nunca LIGA a marca sozinho, só deixa de afirmar uma
+  // preclusão cujo prazo o próprio advogado acabou de remover.
+  const prazoFoiApagado = campos.prazoFatal !== undefined && !campos.prazoFatal;
   await prisma.peticionamentoSessao.update({
     where: { id: sessaoId },
     data: {
@@ -489,6 +506,7 @@ export async function salvarWizard(sessaoId: string, campos: CamposWizard): Prom
       ...(campos.fatos !== undefined ? { fatos: campos.fatos } : {}),
       ...(campos.pedidos !== undefined ? { pedidos: campos.pedidos } : {}),
       ...(campos.prazoFatal !== undefined ? { prazoFatal: campos.prazoFatal ? new Date(campos.prazoFatal) : null } : {}),
+      ...(prazoFoiApagado ? { prazoPreclusivo: false } : campos.prazoPreclusivo !== undefined ? { prazoPreclusivo: campos.prazoPreclusivo === true } : {}),
       ...(campos.valorCausa !== undefined ? { valorCausa: campos.valorCausa } : {}),
       ...(campos.descumprimentoLiminar !== undefined ? { descumprimentoLiminar: campos.descumprimentoLiminar } : {}),
       ...(campos.teses !== undefined ? { teses: campos.teses } : {}),
@@ -882,6 +900,10 @@ export async function obterResumoTriagem(sessaoId: string) {
     naturezaConfirmadaManualmente: sessao.naturezaConfirmadaManualmente,
     fatos: sessao.fatos ?? "",
     pedidos: ((sessao.pedidos as string[] | null) ?? []) as string[],
+    // A tela de confirmação existe para o advogado ver o que a máquina vai ler ANTES de ela
+    // escrever — e o prazo preclusivo muda o documento gerado, então ele precisa estar visível ali.
+    prazoFatal: prazoParaLeitura(sessao.prazoFatal),
+    prazoPreclusivo: sessao.prazoPreclusivo,
     documentos: [...documentosExistentes.map((d) => d.name), ...anexos.map((a) => a.nome)],
     teses: ((sessao.teses as string[] | null) ?? []) as string[],
   };
@@ -933,6 +955,8 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
     contextoDescricao: await descricaoDoContexto(sessaoId, user.officeId),
     fatos: sessao.fatos ?? "",
     pedidos: ((sessao.pedidos as string[] | null) ?? []) as string[],
+    prazoFatal: prazoParaLeitura(sessao.prazoFatal),
+    prazoPreclusivo: sessao.prazoPreclusivo,
     teses: ((sessao.teses as string[] | null) ?? []) as string[],
     observacoes: sessao.observacoes,
     documentos: documentosParaPrompt,
@@ -1059,6 +1083,7 @@ export async function confirmarExportacao(
     precedentes: ((sessao.jurisprudenciaCitada as { texto: string; fonte: string | null }[] | null) ?? []) as { texto: string; fonte: string | null }[],
     documentosBaseConsultados: ((sessao.documentosBaseConsultados as string[] | null) ?? []) as string[],
     documentosNaoLidos: ((sessao.documentosNaoLidos as { nome: string; motivo: string }[] | null) ?? []) as { nome: string; motivo: string }[],
+    prazoPreclusivoEm: sessao.prazoPreclusivo ? sessao.prazoFatal : null,
     contextoVinculadoDescricao: await descricaoDoContexto(sessaoId, user.officeId),
     geradoEm: sessao.geradoEm ?? agora,
     perfil: perfilDePeticionamento(),

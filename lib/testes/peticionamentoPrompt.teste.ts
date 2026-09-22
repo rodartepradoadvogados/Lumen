@@ -16,6 +16,14 @@ const base: DadosParaPrompt = {
   contextoDescricao: "Processo nº 5432109-87.2024.8.09.0051",
   fatos: "O autor firmou contrato de prestação de serviços em 10/01/2026.",
   pedidos: ["Rescisão contratual", "Devolução de valores pagos"],
+  // ADAPTADO (entrega do prazo preclusivo, 22/09/2026): `DadosParaPrompt` passou a exigir estes
+  // dois campos, porque quem monta a mensagem tem de DECIDIR sobre o prazo em vez de omiti-lo por
+  // esquecimento. O caso-base continua sendo o de antes — sem prazo e sem preclusão —, então
+  // nenhuma asserção deste arquivo muda de sentido: elas seguem descrevendo a mensagem de sempre.
+  // A prova de que a marca muda a mensagem (e de que a ausência dela não muda nada) está em
+  // lib/testes/peticionamentoPrazoPreclusivo.teste.ts.
+  prazoFatal: null,
+  prazoPreclusivo: false,
   teses: [],
   observacoes: null,
   documentos: [],
