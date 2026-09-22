@@ -269,11 +269,22 @@ teste("TRAVA: o 400 cru da ponte NUNCA chega à tela do advogado", () => {
   verdade(/contextoExcedido: true/.test(CODIGO_GERAR), "a recusa por tamanho precisa marcar o campo que leva o advogado à tela de limite");
 });
 
+// ADAPTADO NA REVISÃO (não afrouxado): a versão anterior exigia a GRAFIA
+// `itensPorId.get("fatos")?.textoFinal`, com o `?.` — e o `?.` era metade do defeito, porque o
+// `??` que vinha depois dele devolvia o texto cru quando a casação falhava. Um teste que exige
+// uma grafia impede a correção dela. O que importa não é como está escrito: é que os fatos que
+// entram na mensagem venham da AVALIAÇÃO, e de nenhuma outra fonte.
 teste("TRAVA: os FATOS também passam pela janela antes de virar mensagem", () => {
-  verdade(
-    /fatos: itensPorId\.get\("fatos"\)\?\.textoFinal/.test(CODIGO_GERAR),
-    "os fatos eram contados como item resumível e enviados crus — quando a janela os cortava, o corte não chegava à mensagem",
-  );
+  // Ancorado NA CHAMADA que monta a mensagem — não no primeiro `fatos:` da função, que é o do
+  // esqueleto (`fatos: sessao.fatos ?? ""`) e passaria a impressão errada nos dois sentidos.
+  const inicioDaChamada = CODIGO_GERAR.indexOf("montarMensagemParaHermes(");
+  verdade(inicioDaChamada > 0, "não achei a montagem da mensagem — varredura cega");
+  const atribuicao = CODIGO_GERAR.slice(inicioDaChamada).match(/fatos:\s*([^,\n]+)/);
+  verdade(!!atribuicao, "sumiu a atribuição dos fatos na montagem da mensagem");
+  verdade(/itensPorId/.test(atribuicao![1]) && /textoFinal/.test(atribuicao![1]),
+    `os fatos da mensagem não vêm mais da avaliação da janela: \`${atribuicao![1].trim()}\` — quando a janela os corta, o corte não chega à mensagem`);
+  verdade(!/\?\?/.test(atribuicao![1]),
+    `os fatos voltaram a ter socorro para o texto cru: \`${atribuicao![1].trim()}\``);
 });
 
 // ── 7. DUAS FALHAS QUE A RODADA DE MUTAÇÃO DESTA ENTREGA ACHOU ─────────────────────────────
@@ -310,6 +321,57 @@ teste("TRAVA: a reserva do aviso de resumo cobre o bloco que o aviso de fato acr
     `o aviso de resumo acrescenta ${com - sem} caracteres à mensagem, e a reserva é de ${RESERVA_DO_AVISO_DE_RESUMO} — ` +
       "o orçamento é distribuído ANTES de o aviso existir, então sem reserva a mensagem cresce depois da decisão",
   );
+});
+
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA REVISÃO — A ESCOTILHA SILENCIOSA QUE DESFAZIA ESTA ENTREGA INTEIRA.
+//
+// `confirmarTriagemEGerar` casa `avaliacao.itens` com os documentos pelo id. A versão revisada
+// caía, quando a casação falhava, num `?? doc.resultado.texto` — o texto INTEIRO, sem corte.
+// Mutei o mapa para casar por `rotulo` em vez de `id` e as 71 suítes ficaram VERDES: o único jeito
+// de a casação dar errado desfazia exatamente o que esta entrega conserta, sem ruído nenhum.
+//
+// O estrago não é mandar demais — a última trava mede a mensagem pronta e recusa. É a MENTIRA:
+// `contextoFoiResumido`/`avisoDeResumo` continuam vindo da avaliação, então a tela diria
+// "resumimos automaticamente" e o pedido diria ao agente que o contexto foi condensado, enquanto
+// o texto inteiro foi junto. Afirmação falsa nas duas pontas.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("TRAVA: o texto que vai ao agente vem SEMPRE da avaliação — nenhum `??` devolve o texto cru", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarTriagemEGerar"));
+  verdade(corpo.length > 800, `corpoDaFuncao("confirmarTriagemEGerar") devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(!/itensPorId\.get\([^)]*\)\?\.textoFinal\s*\?\?/.test(corpo),
+    "voltou o `?? texto cru` no caminho do documento ou dos fatos — quando a casação por id falha, o texto INTEIRO vai ao agente enquanto a tela diz que foi resumido");
+  verdade(!/\?\?\s*doc\.resultado\.texto/.test(corpo),
+    "o documento voltou a ter socorro para o texto integral — é a escotilha que desfaz a trava de tamanho em silêncio");
+  verdade(!/\?\?\s*dadosDoPrompt\.fatos/.test(corpo),
+    "os fatos voltaram a ter socorro para o texto integral");
+});
+
+teste("TRAVA: a casação é pelo ID — é ele que `calcularAvaliacaoDeContexto` usa para nomear os itens", () => {
+  // Isto NÃO é preferência de grafia: o id é a junção entre as duas funções. `calcularAvaliacaoDe-
+  // Contexto` nomeia os itens com "fatos" e com `d.id`; aqui se lê pelos mesmos nomes. Trocar a
+  // chave por `rotulo` (que é o NOME do arquivo, não o id) não quebra mais nada perigoso desde
+  // que a conferência acima existe — a geração passa a recusar, fechada e falada, em vez de
+  // mandar o texto cru dizendo que resumiu. Mas recusar TUDO também não é o que se quer, e o
+  // erro é de uma palavra só.
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarTriagemEGerar"));
+  verdade(/new Map\(avaliacao\.itens\.map\(\(item\) => \[item\.id, item\]\)\)/.test(corpo),
+    "o mapa da avaliação deixou de ser chaveado por `item.id` — os ids nascem em calcularAvaliacaoDeContexto e são a junção entre as duas funções");
+});
+
+teste("TRAVA: item sem par na avaliação falha FECHADO e falado — nunca segue com o texto cru", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarTriagemEGerar"));
+  verdade(/itensPorId\.has\(/.test(corpo),
+    "sumiu a conferência de que todo documento lido tem par na avaliação — sem ela a falha volta a ser silenciosa");
+  verdade(/itensPorId\.has\("fatos"\)/.test(corpo),
+    "a conferência não cobre os FATOS — eles também passam pela janela e também tinham socorro para o texto cru");
+  // E a recusa tem de vir ANTES de montar/mandar a mensagem: conferir depois não impede nada.
+  const posConferencia = corpo.indexOf("itensPorId.has(");
+  const posMontagem = corpo.indexOf("montarMensagemParaHermes(");
+  verdade(posConferencia >= 0 && posMontagem >= 0 && posConferencia < posMontagem,
+    "a conferência de casação roda depois de montar a mensagem — não impede o envio do texto cru");
 });
 
 resumo("Peticionamento — o limite é o da ponte (o teste que faltava)");

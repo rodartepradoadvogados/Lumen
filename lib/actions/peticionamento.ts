@@ -22,7 +22,7 @@ import { podeAcessarAba, podeAnexar, avaliarExportacao } from "@/lib/peticioname
 import { avaliarProntidao } from "@/lib/peticionamentoMinimo";
 import { avaliarCandidatos, validarNovoVinculo, ehSessaoAvulsa, type ItemDeContexto, type TipoVinculo } from "@/lib/peticionamentoContexto";
 import { MATERIAS_DO_LUMEN, validarNovaMateria } from "@/lib/peticionamentoMateria";
-import { avaliarJanela, comMilhar, LIMITE_PADRAO_CARACTERES, type ItemDeContexto as ItemDeJanela } from "@/lib/peticionamentoJanelaDeContexto";
+import { avaliarJanela, comMilhar, LIMITE_PADRAO_CARACTERES, type ItemDeContexto as ItemDeJanela, type ItemAvaliado } from "@/lib/peticionamentoJanelaDeContexto";
 import { extrairTextoDeDocumento } from "@/lib/peticionamentoExtracaoDocumento";
 import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
 import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, type DeducaoDeNatureza } from "@/lib/peticionamentoNatureza";
@@ -977,12 +977,44 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
   // `avaliacao.itens` carrega o TEXTO FINAL de cada documento (já cortado, se a janela precisou
   // resumir) — casa de volta com `documentos` (que sabe quem leu/não leu) pelo id.
   const itensPorId = new Map(avaliacao.itens.map((item) => [item.id, item]));
+
+  // ACHADO DA REVISÃO — A ESCOTILHA SILENCIOSA. Este bloco casava `avaliacao.itens` com
+  // `documentos` pelo id e, quando a casação FALHAVA, caía num `?? doc.resultado.texto` que
+  // mandava o texto INTEIRO. Isto é, o único jeito de a casação dar errado desfazia exatamente o
+  // que esta entrega conserta — e sem ruído nenhum: mutei o mapa para casar por `rotulo` em vez
+  // de `id` e as 71 suítes ficaram verdes.
+  //
+  // O estrago não é mandar demais (a última trava, mais abaixo, mede a mensagem pronta e recusa).
+  // É a MENTIRA: `contextoFoiResumido` e `avisoDeResumo` continuam vindo da avaliação, então a
+  // tela diria ao advogado "resumimos automaticamente" e o pedido diria ao agente que parte do
+  // contexto foi condensada — enquanto o texto inteiro foi junto. Uma afirmação falsa nas duas
+  // pontas, que é o que esta casa trata como defeito mesmo quando o dado "sobra" em vez de faltar.
+  //
+  // Um item que não casa é erro de programação, não estado possível do mundo: id de item e id de
+  // documento nascem no MESMO lugar (`calcularAvaliacaoDeContexto`, logo acima). Então isto
+  // falha FECHADO e falado, nunca cai de volta no texto cru.
+  const semAvaliacao = documentos.filter((doc) => doc.resultado.ok && !itensPorId.has(doc.id)).map((doc) => doc.nome);
+  if (semAvaliacao.length > 0 || !itensPorId.has("fatos")) {
+    console.error(
+      "[peticionamento] avaliação de contexto não casa com os documentos da sessão %s — itens sem par: %s",
+      sessaoId,
+      semAvaliacao.join(", ") || "(fatos)",
+    );
+    await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "FALHA_GERACAO" } });
+    return {
+      error:
+        "Não foi possível preparar o contexto desta sessão para o agente. Nada foi enviado e nada do que você " +
+        "preencheu se perdeu — tente gerar de novo; se repetir, avise o suporte.",
+    };
+  }
+
   const documentosParaPrompt = documentos.map((doc) => ({
     nome: doc.nome,
     // O documento LIDO vai com o texto que a janela de contexto aprovou (`textoFinal`, já com o
     // aviso embutido se foi cortado); o NÃO lido vai com o marcador de "não presuma" —
     // `textoDoDocumentoParaPrompt` decide os dois casos, e é a MESMA função que mediu o custo.
-    texto: doc.resultado.ok ? itensPorId.get(doc.id)?.textoFinal ?? doc.resultado.texto : textoDoDocumentoParaPrompt(doc),
+    // Sem `??` de socorro: a ausência já foi tratada, fechada, logo acima.
+    texto: doc.resultado.ok ? (itensPorId.get(doc.id) as ItemAvaliado).textoFinal : textoDoDocumentoParaPrompt(doc),
   }));
 
   const mensagem = montarMensagemParaHermes({
@@ -990,7 +1022,7 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
     // OS FATOS TAMBÉM PASSAM PELA JANELA. Antes iam crus daqui (`sessao.fatos`) enquanto a janela
     // os contava como item resumível: quando ela decidia cortá-los, o corte não chegava à
     // mensagem — mais um lugar onde o que se media e o que se mandava eram coisas diferentes.
-    fatos: itensPorId.get("fatos")?.textoFinal ?? dadosDoPrompt.fatos,
+    fatos: (itensPorId.get("fatos") as ItemAvaliado).textoFinal,
     documentos: documentosParaPrompt,
     contextoFoiResumido: avaliacao.acao === "resumido",
     avisoDeResumo: avaliacao.aviso,
