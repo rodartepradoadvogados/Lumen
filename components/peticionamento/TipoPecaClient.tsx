@@ -14,6 +14,9 @@ const DESCRICAO: Record<CategoriaDePeca, string> = {
   Contrato: "Instrumento contratual entre partes — minuta para negociação ou assinatura.",
   Parecer: "Análise jurídica para orientar uma decisão — sem endereçamento a juízo.",
   "Notificação Extrajudicial": "Comunicação formal fora de processo — constituir em mora, notificar, interpelar.",
+  // Decisão do dono (22/09/2026): a opção para quem ainda não sabe classificar o que precisa —
+  // não é "nenhuma das anteriores" descartável, é onde o agente recebe MAIS perguntas, não menos.
+  Geral: "Ainda não sabe que tipo de peça precisa? Escolha aqui — o questionário pergunta mais, para o agente identificar sozinho.",
 };
 
 export function TipoPecaClient({ sessaoId, categoriaAtual }: { sessaoId: string; categoriaAtual: string | null }) {

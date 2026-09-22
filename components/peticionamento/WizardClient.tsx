@@ -6,6 +6,7 @@ import { salvarWizard } from "@/lib/actions/peticionamento";
 import { avaliarProntidao, fraseDoQueFalta } from "@/lib/peticionamentoMinimo";
 import { TIPOS_DE_PECA } from "@/lib/peticionamentoTipoPeca";
 import { usaSublistaDeTipoDePeticao } from "@/lib/peticionamentoCategoriaPeca";
+import { obterConfiguracaoQuestionario } from "@/lib/peticionamentoQuestionario";
 import { useSaidaDoPeticionamento } from "./SaidaContext";
 
 type Estado = {
@@ -20,13 +21,13 @@ type Estado = {
   observacoes: string;
 };
 
-const PEDIDOS_SUGERIDOS = ["Manutenção da tutela deferida", "Multa por descumprimento", "Inversão do ônus da prova (CDC)", "Condenação em honorários"];
-const TESES_SUGERIDAS = ["Rol da ANS é exemplificativo (Tema 990/1069 STJ)", "Urgência/emergência (Lei 9.656/98, art. 12)", "Abusividade de cláusula (CDC, art. 51)"];
-
 export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: string; categoriaPeca: string | null; inicial: Estado }) {
   const router = useRouter();
   const { marcarTrabalho } = useSaidaDoPeticionamento();
   const mostraSublistaDeTipo = usaSublistaDeTipoDePeticao(categoriaPeca);
+  // Decisão do dono (22/09/2026): o questionário muda por categoria — o rótulo, o que é
+  // perguntado e (só em "Geral") um passo a mais. Ver lib/peticionamentoQuestionario.ts.
+  const cfg = useMemo(() => obterConfiguracaoQuestionario(categoriaPeca), [categoriaPeca]);
   const [estado, setEstado] = useState<Estado>(inicial);
   // Espec. §7: "o tipo muda o que é perguntado adiante" — a sublista de tipo de petição
   // (Inicial/Contestação/...) só faz sentido para a categoria "Petição"; nas demais, o
@@ -67,7 +68,8 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
     setEstado((e) => ({ ...e, [lista]: e[lista].includes(valor) ? e[lista].filter((v) => v !== valor) : [...e[lista], valor] }));
   }
 
-  const totalPassos = 4;
+  // Geral ganha um passo A MAIS (pistas) — nunca menos. As demais categorias têm os 4 passos de sempre.
+  const totalPassos = cfg.temPassoDePistas ? 5 : 4;
 
   return (
     <div className="content wizard-wrap">
@@ -75,7 +77,10 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
         <div>
           <h1>Questionário de contextualização</h1>
           <div className="step-label">
-            <span className="num">Passo {passo + 2} de 5</span> · esta etapa pode ser pulada
+            <span className="num">
+              Passo {passo + 2} de {totalPassos + 1}
+            </span>{" "}
+            · esta etapa pode ser pulada
           </div>
         </div>
         <a className="quiet" style={{ fontSize: 12, cursor: "pointer" }} onClick={() => router.push(`/peticionamento/${sessaoId}/documentos`)}>
@@ -96,7 +101,7 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
           <span className={`rd-pill${estado.fatos.trim() ? " done" : ""}`}>Fatos</span>
           <span className={`rd-pill${estado.pedidos.length ? " done" : ""}`}>Pedidos</span>
           <span className={`rd-pill${estado.tipoPeca ? " done" : ""}`}>Tipo · opcional</span>
-          <span className={`rd-pill${estado.teses.length ? " done" : ""}`}>Teses · opcional</span>
+          {(cfg.mostrarTeses || cfg.temPassoDePistas) && <span className={`rd-pill${estado.teses.length ? " done" : ""}`}>{cfg.mostrarTeses ? "Teses" : "Pistas"} · opcional</span>}
         </div>
       </div>
 
@@ -137,40 +142,44 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
       {passo === 1 && (
         <div className="wcard">
           <span className="step-tag min">Mínimo para gerar</span>
-          <h2>O que mudou nos autos desde a última manifestação?</h2>
-          <p className="q-sub">Vira o ponto de partida da minuta — quanto mais específico, menos revisão depois. Este campo é o mínimo de fatos que o agente precisa para escrever.</p>
-          <textarea value={estado.fatos} onChange={(e) => setEstado((s) => ({ ...s, fatos: e.target.value }))} placeholder="Descreva os fatos relevantes para esta peça…" />
+          <h2>{cfg.tituloFatos}</h2>
+          <p className="q-sub">{cfg.subFatos}</p>
+          <textarea value={estado.fatos} onChange={(e) => setEstado((s) => ({ ...s, fatos: e.target.value }))} placeholder={cfg.placeholderFatos} />
         </div>
       )}
 
       {passo === 2 && (
         <div className="wcard">
           <span className="step-tag min">Mínimo para gerar</span>
-          <h2>Pedido e urgência</h2>
-          <p className="q-sub">
-            O campo mínimo desta etapa é <strong>&quot;pedidos&quot;</strong> — prazo, valor e descumprimento são enriquecimento.
-          </p>
-          <div className="field-row">
-            <div>
-              <label className="field-label">Prazo fatal nestes autos</label>
-              <input className="field" type="date" value={estado.prazoFatal} onChange={(e) => setEstado((s) => ({ ...s, prazoFatal: e.target.value }))} />
+          <h2>{cfg.tituloPedidos}</h2>
+          <p className="q-sub">{cfg.subPedidos}</p>
+          {cfg.mostrarPrazoValor && (
+            <div className="field-row">
+              <div>
+                <label className="field-label">{cfg.rotuloPrazo}</label>
+                <input className="field" type="date" value={estado.prazoFatal} onChange={(e) => setEstado((s) => ({ ...s, prazoFatal: e.target.value }))} />
+              </div>
+              <div>
+                <label className="field-label">{cfg.rotuloValor}</label>
+                <input className="field" type="text" value={estado.valorCausa} onChange={(e) => setEstado((s) => ({ ...s, valorCausa: e.target.value }))} />
+              </div>
             </div>
-            <div>
-              <label className="field-label">Valor atualizado da causa</label>
-              <input className="field" type="text" value={estado.valorCausa} onChange={(e) => setEstado((s) => ({ ...s, valorCausa: e.target.value }))} />
-            </div>
-          </div>
-          <label className="field-label">Há descumprimento pelo réu?</label>
+          )}
+          {cfg.mostrarDescumprimento && (
+            <>
+              <label className="field-label">{cfg.rotuloDescumprimento}</label>
+              <div className="pick-row">
+                {cfg.opcoesDescumprimento.map((op) => (
+                  <button key={op} type="button" className={`pick-chip${estado.descumprimentoLiminar === op ? " sel" : ""}`} onClick={() => setEstado((s) => ({ ...s, descumprimentoLiminar: op }))}>
+                    {op}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          <label className="field-label">{cfg.labelPedidos}</label>
           <div className="pick-row">
-            {["Sim, parcial", "Sim, total", "Não"].map((op) => (
-              <button key={op} type="button" className={`pick-chip${estado.descumprimentoLiminar === op ? " sel" : ""}`} onClick={() => setEstado((s) => ({ ...s, descumprimentoLiminar: op }))}>
-                {op}
-              </button>
-            ))}
-          </div>
-          <label className="field-label">Pedidos que a peça deve reiterar/formular</label>
-          <div className="pick-row">
-            {Array.from(new Set([...PEDIDOS_SUGERIDOS, ...estado.pedidos])).map((p) => (
+            {Array.from(new Set([...cfg.pedidosSugeridos, ...estado.pedidos])).map((p) => (
               <button key={p} type="button" className={`pick-chip${estado.pedidos.includes(p) ? " sel" : ""}`} onClick={() => alternarChip("pedidos", p)}>
                 {p}
               </button>
@@ -178,7 +187,7 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
           </div>
           <input
             type="text"
-            placeholder="Outro pedido — digite e pressione Enter"
+            placeholder={cfg.placeholderOutroPedido}
             onKeyDown={(e) => {
               const alvo = e.currentTarget;
               if (e.key === "Enter" && alvo.value.trim()) {
@@ -190,14 +199,14 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
         </div>
       )}
 
-      {passo === 3 && (
+      {passo === 3 && cfg.mostrarTeses && (
         <div className="wcard">
           <span className="step-tag plus">Enriquece a peça</span>
-          <h2>Teses e observações</h2>
-          <p className="q-sub">Marque o que já pesquisou. O agente ainda cita a fonte de cada precedente e avisa sobre validação cruzada.</p>
-          <label className="field-label">Teses a considerar</label>
+          <h2>{cfg.tituloTeses}</h2>
+          <p className="q-sub">{cfg.subTeses}</p>
+          <label className="field-label">{cfg.labelTeses}</label>
           <div className="pick-row">
-            {Array.from(new Set([...TESES_SUGERIDAS, ...estado.teses])).map((t) => (
+            {Array.from(new Set([...cfg.tesesSugeridas, ...estado.teses])).map((t) => (
               <button key={t} type="button" className={`pick-chip${estado.teses.includes(t) ? " sel" : ""}`} onClick={() => alternarChip("teses", t)}>
                 {t}
               </button>
@@ -206,10 +215,40 @@ export function WizardClient({ sessaoId, categoriaPeca, inicial }: { sessaoId: s
           <label className="field-label">Outras observações para o agente (opcional)</label>
           <textarea
             style={{ minHeight: 70 }}
-            placeholder="Algo mais que o agente precisa saber?"
+            placeholder={cfg.placeholderObservacoes}
             value={estado.observacoes}
             onChange={(e) => setEstado((s) => ({ ...s, observacoes: e.target.value }))}
           />
+        </div>
+      )}
+
+      {passo === 3 && !cfg.mostrarTeses && (
+        <div className="wcard">
+          <span className="step-tag plus">Enriquece a peça</span>
+          <h2>Observações finais</h2>
+          <p className="q-sub">Qualquer coisa a mais que o agente precise saber antes de escrever.</p>
+          <textarea
+            style={{ minHeight: 90 }}
+            placeholder={cfg.placeholderObservacoes}
+            value={estado.observacoes}
+            onChange={(e) => setEstado((s) => ({ ...s, observacoes: e.target.value }))}
+          />
+        </div>
+      )}
+
+      {passo === 4 && cfg.temPassoDePistas && (
+        <div className="wcard">
+          <span className="step-tag plus">Ajuda o agente a identificar o tipo</span>
+          <h2>{cfg.tituloPistas}</h2>
+          <p className="q-sub">{cfg.subPistas}</p>
+          <label className="field-label">Marque o que já sabe</label>
+          <div className="pick-row">
+            {Array.from(new Set([...cfg.pistasSugeridas, ...estado.teses])).map((t) => (
+              <button key={t} type="button" className={`pick-chip${estado.teses.includes(t) ? " sel" : ""}`} onClick={() => alternarChip("teses", t)}>
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

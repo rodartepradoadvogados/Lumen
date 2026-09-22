@@ -14,7 +14,7 @@
 
 export type DadosParaPrompt = {
   materia: string;
-  categoriaPeca: string | null; // Petição | Contrato | Parecer | Notificação Extrajudicial (espec. §7)
+  categoriaPeca: string | null; // Petição | Contrato | Parecer | Notificação Extrajudicial | Geral (espec. §7 + decisão do dono 22/09/2026)
   tipoPeca: string | null;
   tipoPecaOutro: string | null;
   contextoDescricao: string | null; // null = sessão avulsa
@@ -53,15 +53,41 @@ export { MARCADORES as MARCADORES_RESPOSTA_HERMES };
 export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   const partes: string[] = [];
 
-  // A categoria (espec. §7) muda o SUBSTANTIVO da instrução — "petição", "contrato", "parecer" ou
-  // "notificação extrajudicial" pedem estrutura diferente, e dizer isso já na primeira frase
-  // evita que o texto saia com cara de petição quando o advogado pediu um parecer.
-  const substantivoDaPeca = dados.categoriaPeca ? dados.categoriaPeca.toLowerCase() : "petição";
-  partes.push(
-    `Você é o agente de peticionamento do Lúmen. Redija uma minuta de ${substantivoDaPeca} COMPLETA, ` +
-      "em rascunho — nunca pronta para protocolar/assinar sem revisão. Regras que NUNCA podem ser " +
-      "quebradas nesta resposta:",
-  );
+  // "Geral" (decisão do dono, 22/09/2026) é o caso em que o PRÓPRIO ADVOGADO não soube classificar
+  // o que precisa — é o caso PRINCIPAL desta categoria, não sobra: palavras do dono, "o geral deve
+  // ter mais orientações para o agente identificar melhor". Por isso a instrução aqui é mais longa
+  // e mais explícita que a das outras quatro categorias, nunca mais curta — o agente tem MENOS
+  // pista que nas demais, e precisa de MAIS orientação para compensar, não de menos.
+  const categoriaEhGeral = dados.categoriaPeca === "Geral";
+
+  if (categoriaEhGeral) {
+    partes.push(
+      "Você é o agente de peticionamento do Lúmen. O advogado marcou a categoria \"Geral\" — ou seja, " +
+        "NÃO soube dizer de antemão se precisa de uma petição, um contrato, um parecer ou uma notificação " +
+        "extrajudicial. Sua PRIMEIRA tarefa, antes de escrever qualquer coisa, é DEDUZIR pelo conjunto de " +
+        "fatos, pedidos, pistas e documentos abaixo qual é o documento mais adequado — leia tudo com atenção " +
+        "redobrada, porque aqui você tem menos pista do que nas demais categorias, nunca menos cuidado. " +
+        "Preste atenção especial a: para quem o texto se destina (um juízo/tribunal, a parte contrária fora " +
+        "de processo, ou uso interno do próprio cliente/escritório); se há prazo ou urgência mencionados; se " +
+        "existe processo ou procedimento formal já em curso; e se o pedido é para OBTER algo de alguém " +
+        "(petição/notificação), REGULAR uma relação entre partes (contrato) ou RESPONDER uma pergunta " +
+        "(parecer). Redija o documento completo, em rascunho — nunca pronto para assinar/protocolar sem " +
+        "revisão — na estrutura que corresponder ao tipo que você concluiu. Diga expressamente, na seção " +
+        "###TIPO_PECA_INFERIDO###, que tipo de documento você concluiu que é e, na primeira frase do corpo, " +
+        "deixe claro que a classificação foi deduzida por você e pode precisar de ajuste do advogado. Regras " +
+        "que NUNCA podem ser quebradas nesta resposta:",
+    );
+  } else {
+    // A categoria (espec. §7) muda o SUBSTANTIVO da instrução — "petição", "contrato", "parecer" ou
+    // "notificação extrajudicial" pedem estrutura diferente, e dizer isso já na primeira frase
+    // evita que o texto saia com cara de petição quando o advogado pediu um parecer.
+    const substantivoDaPeca = dados.categoriaPeca ? dados.categoriaPeca.toLowerCase() : "petição";
+    partes.push(
+      `Você é o agente de peticionamento do Lúmen. Redija uma minuta de ${substantivoDaPeca} COMPLETA, ` +
+        "em rascunho — nunca pronta para protocolar/assinar sem revisão. Regras que NUNCA podem ser " +
+        "quebradas nesta resposta:",
+    );
+  }
   partes.push("- Nunca afirme chance ou probabilidade de êxito, nem prognostique o resultado do caso.");
   partes.push("- Toda jurisprudência citada precisa vir com fonte real (tribunal/link) — nunca invente número de processo, ementa ou Tema. Se não tiver certeza de que um precedente existe exatamente como descrito, não cite: descreva a tese sem número, ou diga que precisa ser localizada e conferida.");
   partes.push("- Nunca decida sozinho a estratégia processual — aponte bifurcações e observações, a decisão é do advogado.");
@@ -76,7 +102,10 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   partes.push(`Contexto vinculado: ${dados.contextoDescricao ?? "sem vínculo — petição avulsa"}`);
   partes.push(`Fatos (texto do advogado): ${dados.fatos}`);
   if (dados.pedidos.length > 0) partes.push(`Pedidos a reiterar/formular: ${dados.pedidos.join("; ")}`);
-  if (dados.teses.length > 0) partes.push(`Teses já marcadas pelo advogado: ${dados.teses.join("; ")}`);
+  // Em "Geral" o campo de teses vira PISTAS sobre a natureza do documento (lib/peticionamentoQuestionario.ts)
+  // — o rótulo enviado ao agente precisa dizer isso, ou ele lê como se fossem teses jurídicas de uma petição.
+  const rotuloDeTeses = categoriaEhGeral ? "Pistas fornecidas pelo advogado sobre a natureza deste documento" : "Teses já marcadas pelo advogado";
+  if (dados.teses.length > 0) partes.push(`${rotuloDeTeses}: ${dados.teses.join("; ")}`);
   if (dados.observacoes) partes.push(`Observações adicionais do advogado: ${dados.observacoes}`);
 
   if (dados.documentos.length > 0) {
