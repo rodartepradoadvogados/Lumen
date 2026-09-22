@@ -49,4 +49,31 @@ teste("resumo nunca reduz um item abaixo do piso de 500 tokens (nunca vira supre
   if (item.foiResumido) verdade(item.tokensAposResumo >= 500, "resumo abaixo de 500 tokens é supressão disfarçada");
 });
 
+// PRIORIDADE 1 (relatório da entrega "peticionamento lê documentos") — `textoFinal` é o que
+// costura a decisão desta janela ao texto REALMENTE enviado ao Hermes. Sem estes testes, um
+// `textoFinal` que nunca corta (ou que corta calado, sem avisar o PRÓPRIO agente) passaria
+// verde no resto da suíte — nenhum outro teste desta casa olha para este campo.
+
+teste("cabe tudo: textoFinal é EXATAMENTE o texto original, sem cortar nem anotar nada", () => {
+  const r = avaliarJanela([{ id: "1", rotulo: "Fatos", texto: "Texto pequeno de fatos." }]);
+  igual(r.itens[0].textoFinal, "Texto pequeno de fatos.");
+});
+
+teste("HARD GATE: item resumido tem textoFinal MENOR que o original, e o corte AVISA o próprio agente (não só a tela)", () => {
+  const textoOriginal = "y".repeat((LIMITE_PADRAO_TOKENS + 40_000) * 4);
+  const r = avaliarJanela([{ id: "1", rotulo: "Histórico antigo", texto: textoOriginal }]);
+  const item = r.itens[0];
+  igual(item.foiResumido, true);
+  verdade(item.textoFinal.length < textoOriginal.length, "textoFinal deveria ser menor que o original quando resumido");
+  verdade(item.textoFinal.includes("RESUMO AUTOMÁTICO"), "TRAVA: o corte precisa avisar o PRÓPRIO agente dentro do texto, não só no campo `aviso` da tela — senão o agente trata o corte como se fosse o documento inteiro");
+  verdade(item.textoFinal.includes("Histórico antigo"), "o aviso embutido deveria citar o rótulo do item cortado");
+});
+
+teste("HARD GATE: item protegido NUNCA tem textoFinal diferente do original, mesmo bloqueando a janela inteira", () => {
+  const textoOriginal = "z".repeat((LIMITE_PADRAO_TOKENS + 10_000) * 4);
+  const r = avaliarJanela([{ id: "1", rotulo: "Contestação central", texto: textoOriginal, protegido: true }]);
+  igual(r.acao, "bloqueado");
+  igual(r.itens[0].textoFinal, textoOriginal, "item protegido não pode ter o texto cortado, nem quando bloqueia a janela inteira");
+});
+
 resumo("Peticionamento — janela de contexto");

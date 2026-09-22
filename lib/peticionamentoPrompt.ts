@@ -54,6 +54,7 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   partes.push("- Nunca decida sozinho a estratégia processual — aponte bifurcações e observações, a decisão é do advogado.");
   partes.push('- Nunca sugira ou insinue que a peça será protocolada por você — protocolar é sempre ato humano, fora deste sistema.');
   partes.push('- O fecho da peça é EXATAMENTE "Termos em que pede deferimento." — sem vírgula depois de "que".');
+  partes.push('- Um documento marcado abaixo como "NÃO FOI POSSÍVEL LER" não tem texto nenhum nesta mensagem — nunca presuma, nunca invente o que ele diria, e nunca o inclua na lista de documentos usados. Declare como usado SÓ o documento cujo texto de verdade você leu aqui embaixo.');
 
   partes.push("");
   partes.push(`Matéria: ${dados.materia}`);

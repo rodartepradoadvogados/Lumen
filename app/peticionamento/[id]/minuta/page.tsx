@@ -71,6 +71,7 @@ export default async function MinutaPage({ params }: { params: { id: string } })
   const notaObrigatoria = montarNotaObrigatoria({
     precedentes: ((sessao.jurisprudenciaCitada as PrecedenteCitado[] | null) ?? []) as PrecedenteCitado[],
     documentosBaseConsultados: ((sessao.documentosBaseConsultados as string[] | null) ?? []) as string[],
+    documentosNaoLidos: ((sessao.documentosNaoLidos as { nome: string; motivo: string }[] | null) ?? []) as { nome: string; motivo: string }[],
     contextoVinculadoDescricao: contextoDescricao,
     geradoEm: sessao.geradoEm ?? new Date(),
     perfil: perfilDePeticionamento(),
