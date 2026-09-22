@@ -3,6 +3,7 @@ import { getVerifyToken, verifySignature, parseIncoming, ingestIncomingWhatsapp 
 import { atendenteResponde } from "@/lib/atendenteResponde";
 import { confirmarRecebimentoDeAudio } from "@/lib/confirmacaoDeAudio";
 import { dispararTranscricaoAssincrona } from "@/lib/transcricaoAssincrona";
+import { dispararAvisoFigurinha } from "@/lib/avisoFigurinha";
 
 export const dynamic = "force-dynamic";
 // O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido — isto
@@ -52,6 +53,12 @@ export async function POST(req: NextRequest) {
         if (incoming.midia?.tipo === "AUD") {
           await confirmarRecebimentoDeAudio(attendanceId);
           dispararTranscricaoAssincrona(incoming.waMessageId);
+        } else if (incoming.figurinha) {
+          // FIGURINHA: nada de resposta AGORA — a Ana só avisa que não identifica esse tipo de
+          // mensagem depois de 15 segundos, e só se nada mais chegar nesse meio-tempo (ver
+          // lib/avisoFigurinha.ts). Chamar atendenteResponde aqui seria responder na hora, o
+          // oposto do que foi pedido.
+          dispararAvisoFigurinha(incoming.waMessageId);
         } else {
           await atendenteResponde(attendanceId);
         }
