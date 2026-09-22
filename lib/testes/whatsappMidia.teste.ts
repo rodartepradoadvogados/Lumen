@@ -31,7 +31,7 @@ import { extrairMidiaEvolution, parseEntradaEvolution } from "@/lib/whatsappEvol
 //      passaram verdes antes desta seção existir.
 // ============================================================================
 
-// ── 1. O nome do arquivo ─────────────────────────────────────────────────────────────────────
+// ── 1. O nome do arquivo ─────────────────────────────────────────────────────────────────
 
 teste("o tipo é lido do MIME, ignorando parâmetro extra", () => {
   igual(tipoMidiaWhatsapp("image/jpeg"), "IMG");
@@ -114,7 +114,7 @@ teste("o rótulo da mídia na conversa nomeia o tipo, o nome original e a legend
   igual(rotuloDaMidiaWhatsapp("VID", "  ", null), "[vídeo]", "legenda só com espaço é tratada como ausente: ");
 });
 
-// ── 2. A leitura do webhook da Meta ──────────────────────────────────────────────────────────
+// ── 2. A leitura do webhook da Meta ────────────────────────────────────────────
 
 teste("extrairMidiaMeta lê os quatro tipos suportados", () => {
   igual(extrairMidiaMeta({ type: "image", image: { id: "M1", mime_type: "image/jpeg", caption: "olha isso" } }), {
@@ -197,7 +197,7 @@ teste("parseIncoming continua recusando payload sem os três identificadores", (
   igual(parseIncoming("lixo"), null, "lixo: ");
 });
 
-// ── 3. A leitura do webhook da Evolution ─────────────────────────────────────────────────────
+// ── 3. A leitura do webhook da Evolution ─────────────────────────────────────────
 
 teste("extrairMidiaEvolution lê os quatro tipos, inclusive documento mandado com legenda", () => {
   igual(extrairMidiaEvolution({ imageMessage: { mimetype: "image/jpeg", caption: "chegou" } }), {
@@ -267,7 +267,7 @@ teste("parseEntradaEvolution lê um documento com legenda, e a legenda vira o te
   igual(r?.midia?.nomeOriginal, "procuracao.pdf");
 });
 
-// ── 4. As travas do lado de IO (varredura de código-fonte) ──────────────────────────────────
+// ── 4. As travas do lado de IO (varredura de código-fonte) ─────────────────────────────
 //
 // As três de baixo não têm como virar teste de mesa (dependem de rede/credencial real) — o que dá
 // pra testar é a FORMA da chamada, com corpoDaFuncao (mesmo padrão de funil.teste.ts/
@@ -382,7 +382,7 @@ teste("o pedido de download à Evolution leva a chave INTEIRA da mensagem, não 
   verdade(baixar.includes("remoteJid: midia.remoteJid"), "o remoteJid sumiu do pedido de download");
 });
 
-// ── DEFEITO DE PRODUÇÃO, visto pelo dono na Central de Alertas ────────────────────────────────
+// ── DEFEITO DE PRODUÇÃO, visto pelo dono na Central de Alertas ──────────────────────────
 // Cada áudio e cada imagem recebidos pelo WhatsApp viravam uma pendência "INCONSISTÊNCIA NO
 // DRIVE — o arquivo está solto dentro de Atendimento via WhatsApp, fora de qualquer subpasta de
 // tipo de documento", com o conselho "mova para a subpasta do tipo correto — não é possível saber
@@ -423,7 +423,7 @@ teste("o reconhecedor NÃO aceita documento comum — senão o auditor pararia d
     "20260920_WHATSAPP_IMG-abc.jpg",
     "relatorio_WHATSAPP_AUD-x.ogg",
     // O reconhecedor é uma LICENÇA PARA PULAR A AUDITORIA: tudo que ele aceitar por engano deixa
-    // de ser conferido no Drive. Por isso as três formas de afrouxá-lo têm caso próprio — um
+    // de ser conferido no Drive. Por isso as três formas de afrouxaá-lo têm caso próprio — um
     // documento qualquer que só CONTENHA o padrão no meio do nome, um nome sem extensão, e um
     // ano de dois dígitos. Sem estes, dá para tirar a âncora do começo, a exigência de extensão
     // ou o tamanho do ano e a suíte continua verde.
