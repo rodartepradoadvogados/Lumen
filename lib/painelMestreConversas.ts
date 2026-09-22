@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { PlatformViewer } from "@/lib/platformMember";
 import { FERRAMENTAS_QUE_EXIGEM_SESSAO_DE_SUPORTE } from "@/lib/painelMestreFerramentas";
+import type { TurnoDoPainelMestre } from "@/lib/painelMestreOrcamento";
 
 // ============================================================================
 // MEMÓRIA E TRILHA DE AUDITORIA DO AGENTE DO PAINEL MESTRE (F7) — este arquivo é o ÚNICO lugar
@@ -60,6 +61,48 @@ export const AVISO_RESPOSTA_SOB_SESSAO_DE_SUPORTE =
 export function textoSeguroParaHistorico(texto: string, ferramentasUsadas: string[]): string {
   const usouFerramentaDeSessao = ferramentasUsadas.some((nome) => FERRAMENTAS_QUE_EXIGEM_SESSAO_DE_SUPORTE.includes(nome));
   return usouFerramentaDeSessao ? AVISO_RESPOSTA_SOB_SESSAO_DE_SUPORTE : texto;
+}
+
+/**
+ * O texto que entra no lugar de uma resposta VAZIA. A rota pode terminar com `respostaFinal`
+ * igual a "" (o modelo devolveu um bloco de texto vazio, ou estourou o teto de rodadas sem
+ * texto). Gravar "" seria pior do que parece: o histórico do pedido seguinte manda os turnos
+ * gravados de volta à API da Anthropic, que RECUSA um bloco de texto vazio — e, como o histórico
+ * agora vem do banco (ver `historicoParaOPedido`), a conversa ficaria QUEBRADA PARA SEMPRE, não
+ * só naquela aba. Um turno gravado nunca pode ser vazio.
+ */
+export const AVISO_RESPOSTA_SEM_TEXTO = "[O agente não devolveu texto nesta resposta.]";
+
+/** Nunca devolve string vazia — ver AVISO_RESPOSTA_SEM_TEXTO. */
+export function textoNuncaVazio(texto: string): string {
+  return texto.trim() ? texto : AVISO_RESPOSTA_SEM_TEXTO;
+}
+
+/**
+ * O HISTÓRICO QUE VAI AO MODELO, montado a partir dos turnos GRAVADOS — nunca da cópia que o
+ * navegador tem na aba. É a diferença entre "a máquina lembra" e "a máquina acredita no que lhe
+ * contam", e ela importa por três motivos:
+ *
+ *  1. LEI 2 de verdade, e não só no banco. `textoSeguroParaHistorico` troca o teor de uma
+ *     resposta obtida sob sessão de suporte por um aviso fixo NA GRAVAÇÃO. Enquanto o contexto
+ *     do pedido vinha do navegador, a aba que ainda tinha o teor de verdade na tela o devolvia
+ *     ao modelo no pedido seguinte — inclusive depois da AccessSession ter FECHADO. O teor não
+ *     era novidade para quem já o tinha na tela, mas o agente seguia raciocinando sobre o
+ *     escritório sem sessão nenhuma aberta, que é exatamente o que a Lei 2 proíbe.
+ *  2. A TRILHA DE AUDITORIA passa a ser fiel. O que o modelo viu é o que está gravado; antes,
+ *     um registro de "quem perguntou o quê" podia mostrar pergunta e resposta que não se
+ *     explicam, porque o contexto de verdade só existia na aba de quem perguntou.
+ *  3. O histórico deixa de ser FORJÁVEL. O corpo da requisição não escolhe mais o que o modelo
+ *     "disse antes" — o filtro de papéis que existia (só "user"/"assistant") barrava o papel,
+ *     nunca o conteúdo.
+ *
+ * Custa ZERO consulta a mais: a rota já buscava a conversa inteira (com os turnos) só para
+ * conferir o dono, e jogava os turnos fora.
+ */
+export function historicoParaOPedido(turnos: TurnoGravado[], tetoDeTurnos = 40): TurnoDoPainelMestre[] {
+  return turnos
+    .slice(-tetoDeTurnos)
+    .map((t) => ({ role: t.papel, texto: textoNuncaVazio(t.texto) }));
 }
 
 // ---------------------------------------------------------------------------
@@ -132,7 +175,9 @@ export async function registrarTurno(input: {
     throw new Error("Conversa não encontrada para este membro — nada foi gravado.");
   }
 
-  const texto = input.papel === "assistant" ? textoSeguroParaHistorico(input.texto, input.ferramentasUsadas) : input.texto;
+  const texto = textoNuncaVazio(
+    input.papel === "assistant" ? textoSeguroParaHistorico(input.texto, input.ferramentasUsadas) : input.texto,
+  );
 
   await prisma.$transaction([
     prisma.painelMestreTurno.create({

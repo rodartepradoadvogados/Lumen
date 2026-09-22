@@ -17,10 +17,11 @@ const SAUDACAO_INICIAL = (primeiroNome: string): Mensagem => ({
 // A conversa agora É GRAVADA (PainelMestreConversa/PainelMestreTurno) e pode ser RETOMADA: a
 // barra lateral lista as conversas anteriores DESTE membro (nunca de outro — o corte por dono
 // mora no servidor, em lib/painelMestreConversas.ts) e abrir uma delas carrega os turnos de
-// verdade. O histórico de cada troca continua indo e voltando pelo corpo da requisição
-// (`historico`) como antes — o que muda é que, além de responder, o servidor GRAVA cada turno
-// sob o `conversaId` da conversa atual, e uma resposta obtida com uma sessão de suporte aberta
-// (Lei 2) nunca sobrevive em texto: ver o aviso fixo que volta no lugar dela ao reabrir depois.
+// verdade. O histórico do MODELO não sai mais daqui: esta tela manda só a pergunta e o
+// `conversaId`, e o servidor monta o contexto a partir dos turnos GRAVADOS. É o que faz a Lei 2
+// valer também no pedido — uma resposta obtida com sessão de suporte aberta nunca sobrevive em
+// texto, nem no banco, nem como contexto de uma pergunta seguinte feita depois de a sessão
+// fechar. O que esta tela guarda em `mensagens` é a conversa NA TELA, para quem está olhando.
 export default function PainelMestreAgenteClient({ nomeDeQuemPergunta }: { nomeDeQuemPergunta: string }) {
   const primeiroNome = nomeDeQuemPergunta.split(" ")[0];
   const [mensagens, setMensagens] = useState<Mensagem[]>([SAUDACAO_INICIAL(primeiroNome)]);
@@ -83,10 +84,6 @@ export default function PainelMestreAgenteClient({ nomeDeQuemPergunta }: { nomeD
     const texto = input.trim();
     if (!texto || enviando) return;
 
-    // Só os turnos user/assistant vão de volta como histórico — mensagens de erro não são parte
-    // da conversa com o modelo, são feedback local.
-    const historico: Turno[] = mensagens.filter((m): m is Turno => m.role === "user" || m.role === "assistant");
-
     setInput("");
     setMensagens((prev) => [...prev, { role: "user", texto }]);
     setEnviando(true);
@@ -95,7 +92,11 @@ export default function PainelMestreAgenteClient({ nomeDeQuemPergunta }: { nomeD
       const res = await fetch("/api/painel-mestre/agente", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mensagem: texto, historico, conversaId }),
+        // Só a pergunta e o id da conversa. O HISTÓRICO NÃO SOBE MAIS DAQUI: o servidor o monta
+        // a partir dos turnos gravados (ver historicoParaOPedido em lib/painelMestreConversas.ts).
+        // Esta tela continua mostrando a conversa inteira na aba; o que ela deixou de fazer é
+        // dizer ao modelo o que ele "disse antes".
+        body: JSON.stringify({ mensagem: texto, conversaId }),
       });
       const data = await res.json().catch(() => null);
 

@@ -4,6 +4,10 @@ import { teste, igual, verdade, resumo, codigoDe, corpoDaFuncao } from "./execut
 import {
   textoSeguroParaHistorico,
   AVISO_RESPOSTA_SOB_SESSAO_DE_SUPORTE,
+  AVISO_RESPOSTA_SEM_TEXTO,
+  textoNuncaVazio,
+  historicoParaOPedido,
+  type TurnoGravado,
 } from "@/lib/painelMestreConversas";
 import { FERRAMENTAS_QUE_EXIGEM_SESSAO_DE_SUPORTE } from "@/lib/painelMestreFerramentas";
 
@@ -151,6 +155,92 @@ teste("GET /api/painel-mestre/agente/conversas/[id]: conversa não encontrada (i
   // pertence a alguém.
   const ocorrenciasDe404 = (corpo.match(/status: 404/g) || []).length;
   igual(ocorrenciasDe404, 1, "há mais de uma resposta 404 diferente — risco de uma delas vazar a existência da conversa de outro membro");
+});
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA SUPERVISÃO — A LEI 2 VALIA SÓ NO BANCO.
+//
+// `textoSeguroParaHistorico` (acima) troca o teor de uma resposta obtida sob sessão de suporte
+// por um aviso fixo NA GRAVAÇÃO. Mas o contexto que ia ao modelo em cada pergunta nova vinha do
+// NAVEGADOR: a aba que ainda tinha o teor de verdade na tela o devolvia ao modelo no pedido
+// seguinte — inclusive depois de a AccessSession ter FECHADO. Quem perguntava já tinha aquele
+// texto na tela, então não era um vazamento de dado novo; era o agente seguir raciocinando sobre
+// um escritório sem nenhuma sessão aberta, que é exatamente o que a Lei 2 proíbe. De passagem, a
+// trilha de "quem perguntou o quê" também não era fiel: o contexto de verdade só existia na aba.
+//
+// `historicoParaOPedido` é a virada: o contexto sai dos turnos GRAVADOS — os mesmos que já
+// passaram por `textoSeguroParaHistorico`.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+function turnoGravado(papel: "user" | "assistant", texto: string): TurnoGravado {
+  return { id: `t-${papel}-${texto.slice(0, 8)}`, papel, texto, ferramentasUsadas: [], createdAt: new Date("2026-09-22T12:00:00Z") };
+}
+
+teste("LEI 2 no PEDIDO: o histórico montado carrega o aviso fixo, nunca o teor — o que foi redigido na gravação continua redigido no contexto", () => {
+  // Este é o caminho completo da Lei 2: o que `textoSeguroParaHistorico` gravou é o que
+  // `historicoParaOPedido` devolve. Se um dia alguém montar o contexto de outra fonte, este
+  // teste cai.
+  const teor = "O escritório Fulano tem 5 processos ativos.";
+  const gravado = textoSeguroParaHistorico(teor, ["consultar_atividade_do_escritorio"]);
+  const historico = historicoParaOPedido([turnoGravado("user", "como está o escritório Fulano?"), turnoGravado("assistant", gravado)]);
+  igual(historico.length, 2);
+  igual(historico[1].texto, AVISO_RESPOSTA_SOB_SESSAO_DE_SUPORTE);
+  verdade(!historico.some((t) => t.texto.includes("5 processos ativos")),
+    "o teor obtido sob sessão de suporte voltou ao contexto do modelo — a Lei 2 furou no PEDIDO, mesmo estando de pé no banco");
+});
+
+teste("historicoParaOPedido preserva ordem e papel de cada turno gravado", () => {
+  const historico = historicoParaOPedido([
+    turnoGravado("user", "primeira pergunta"),
+    turnoGravado("assistant", "primeira resposta"),
+    turnoGravado("user", "segunda pergunta"),
+  ]);
+  igual(historico.map((t) => t.role), ["user", "assistant", "user"]);
+  igual(historico.map((t) => t.texto), ["primeira pergunta", "primeira resposta", "segunda pergunta"]);
+});
+
+teste("historicoParaOPedido tem teto BRUTO e corta do mais antigo — o turno recente é o último a cair", () => {
+  const turnos = Array.from({ length: 50 }, (_, i) => turnoGravado(i % 2 === 0 ? "user" : "assistant", `turno ${i}`));
+  const historico = historicoParaOPedido(turnos);
+  igual(historico.length, 40, "sumiu o teto bruto de turnos — uma conversa longa subiria inteira ao orçamento");
+  igual(historico[historico.length - 1].texto, "turno 49", "o turno MAIS RECENTE não sobreviveu ao corte");
+  verdade(!historico.some((t) => t.texto === "turno 0"), "o turno MAIS ANTIGO sobreviveu — o corte está do lado errado");
+});
+
+teste("NENHUM turno do contexto pode ir vazio — um bloco de texto vazio é RECUSADO pela API e quebraria a conversa para sempre", () => {
+  // Este é o preço de o histórico passar a vir do banco: antes, um turno vazio atrapalhava uma
+  // aba e um recarregamento resolvia. Agora ele está GRAVADO — a conversa devolveria 502 em toda
+  // pergunta seguinte, para sempre. Daí a trava valer nos dois lados: na gravação e na montagem.
+  igual(textoNuncaVazio(""), AVISO_RESPOSTA_SEM_TEXTO);
+  igual(textoNuncaVazio("   \n  "), AVISO_RESPOSTA_SEM_TEXTO);
+  igual(textoNuncaVazio("resposta de verdade"), "resposta de verdade");
+
+  const historico = historicoParaOPedido([turnoGravado("user", "pergunta"), turnoGravado("assistant", "")]);
+  verdade(historico.every((t) => t.texto.trim().length > 0),
+    "um turno gravado vazio entrou no contexto — a chamada à API seria recusada e a conversa ficaria quebrada para sempre");
+  // E a contagem de turnos NÃO muda: descartar o turno vazio quebraria a alternância de papéis,
+  // que a API também recusa. Substituir é o certo; remover não é.
+  igual(historico.length, 2, "o turno vazio foi REMOVIDO em vez de substituído — isso quebra a alternância user/assistant que a API exige");
+});
+
+teste("registrarTurno grava o texto passando pelas DUAS travas: a da Lei 2 e a de nunca-vazio", () => {
+  const corpo = corpoDaFuncao(CODIGO, "registrarTurno");
+  verdade(corpo.length > 300, `corpoDaFuncao("registrarTurno") devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/textoNuncaVazio\(/.test(corpo), "a gravação deixou de passar pela trava de nunca-vazio — um turno vazio gravado quebra a conversa para sempre");
+  verdade(/textoSeguroParaHistorico\(input\.texto, input\.ferramentasUsadas\)/.test(corpo), "a gravação deixou de passar pela trava da Lei 2");
+});
+
+teste("a TELA também não manda mais histórico — as duas pontas do contrato andam juntas", () => {
+  // Mutei o cliente para voltar a mandar `historico` no corpo e NENHUM teste caiu, com razão: o
+  // servidor ignora. Não é defeito de segurança, é defeito de contrato — um campo que sobe e
+  // ninguém lê faz o próximo leitor acreditar que o histórico ainda vem da tela, que é
+  // exatamente a confusão que esta entrega desfez. Acrescentar campo aqui deve ser ato
+  // deliberado, não herança.
+  const fonteDaTela = codigoDe(readFileSync(join(RAIZ, "app", "painel-mestre", "agente", "PainelMestreAgenteClient.tsx"), "utf8"));
+  const corpoEnviado = fonteDaTela.match(/body: JSON\.stringify\(\{[^}]*\}\)/);
+  verdade(!!corpoEnviado, "não achei o corpo que a tela envia ao agente — varredura cega");
+  verdade(!/historico/i.test(corpoEnviado![0]),
+    `a tela voltou a mandar histórico ao servidor, que o ignora: ${corpoEnviado![0]}`);
 });
 
 void resumo("Memória e auditoria do Painel Mestre (lib/painelMestreConversas.ts)");

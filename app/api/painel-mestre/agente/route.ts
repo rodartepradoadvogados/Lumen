@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getPlatformMember, type PlatformViewer } from "@/lib/platformMember";
 import { painelMestreFerramentas, ferramentaLiberada } from "@/lib/painelMestreFerramentas";
 import { orcamentoDoPedido, type TurnoDoPainelMestre } from "@/lib/painelMestreOrcamento";
-import { criarConversaMestre, buscarConversaDoMembro, registrarTurno } from "@/lib/painelMestreConversas";
+import { criarConversaMestre, buscarConversaDoMembro, registrarTurno, historicoParaOPedido } from "@/lib/painelMestreConversas";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,8 @@ export const maxDuration = 60;
 // quem está perguntando, e é ele — nunca o corpo da requisição — quem determina o
 // `PlatformViewer` que viaja até cada ferramenta. Não existe parâmetro no corpo que eleve nível
 // de acesso: mesmo que o corpo mandasse um `maxVisibility: "COFRE"`, ele seria ignorado, porque
-// `body` só é lido para `mensagem`, `historico` e `conversaId`.
+// `body` só é lido para `mensagem` e `conversaId` — o HISTÓRICO não vem mais do corpo (ver o
+// bloco do histórico dentro de POST e `historicoParaOPedido` em lib/painelMestreConversas.ts).
 //
 // A CLÁUSULA NOVA DESTA ENTREGA (memória + auditoria, PainelMestreConversa/PainelMestreTurno):
 // "uma conversa gravada é de quem a criou." Um `conversaId` no corpo NUNCA é aceito de graça —
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não autenticado no Painel Mestre." }, { status: 401 });
   }
 
-  let body: { mensagem?: string; historico?: unknown; conversaId?: unknown };
+  let body: { mensagem?: string; conversaId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -108,31 +109,26 @@ export async function POST(request: NextRequest) {
   // encontrado, e a resposta é a MESMA de "não existe" — nunca revela que o id pertence a
   // alguém. Sem conversaId (ou com um que não é encontrado), abre uma conversa nova.
   const conversaIdRecebido = typeof body?.conversaId === "string" && body.conversaId.trim() ? body.conversaId.trim() : null;
+
+  // O HISTÓRICO VEM DO BANCO, NUNCA DO NAVEGADOR — ver `historicoParaOPedido` em
+  // lib/painelMestreConversas.ts para os três motivos (Lei 2 valendo também no PEDIDO e não só na
+  // gravação; trilha de auditoria fiel; histórico não forjável). Aqui interessa o desenho: a
+  // MESMA consulta que confere o dono já traz os turnos gravados, então isto não custa nenhuma
+  // consulta a mais — antes os turnos vinham e eram jogados fora.
+  let conversa: { id: string };
+  let historicoGravado: TurnoDoPainelMestre[] = [];
   if (conversaIdRecebido) {
     const conversaDoMembro = await buscarConversaDoMembro(conversaIdRecebido, viewer);
     if (!conversaDoMembro) {
       return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
     }
+    conversa = { id: conversaDoMembro.id };
+    historicoGravado = historicoParaOPedido(conversaDoMembro.turnos);
+  } else {
+    // Conversa nova: não existe histórico anterior por construção — e é justamente por isso que
+    // o corpo da requisição não precisa mais mandar nenhum.
+    conversa = await criarConversaMestre(viewer);
   }
-  const conversa = conversaIdRecebido ? { id: conversaIdRecebido } : await criarConversaMestre(viewer);
-
-  // O CLIENTE continua mandando o histórico da conversa em cada pedido (mesmo mecanismo de
-  // sempre — troca de papel só entre "user"/"assistant", teto bruto de 40 turnos), porque é ele
-  // quem está com a tela aberta AGORA; o que muda nesta entrega é que, além de responder, cada
-  // turno passa a ser GRAVADO (ver o bloco `registrarTurno` mais abaixo), então reabrir esta
-  // mesma conversa mais tarde (outra aba, outro dia) volta a ter de onde partir — ver
-  // GET /api/painel-mestre/agente/conversas/[id]. TETO BRUTO aqui (nunca confia no tamanho que o
-  // cliente mandou); o corte FINO, que decide o que de fato entra no pedido, é
-  // `orcamentoDoPedido` logo abaixo — dois filtros, o mesmo espírito de "checado duas vezes" do
-  // financeiro.
-  const historicoRecebido: TurnoDoPainelMestre[] = Array.isArray(body?.historico)
-    ? (body.historico as unknown[])
-        .filter((t): t is TurnoDoPainelMestre => {
-          const turno = t as { role?: unknown; texto?: unknown } | null;
-          return Boolean(turno) && (turno!.role === "user" || turno!.role === "assistant") && typeof turno!.texto === "string";
-        })
-        .slice(-40)
-    : [];
 
   // LEI 1: a lista de ferramentas OFERECIDAS já é filtrada pelo teto de quem pergunta — o modelo
   // nem fica sabendo que `consultar_indicadores_da_plataforma` ou `consultar_atividade_do_
@@ -143,7 +139,10 @@ export async function POST(request: NextRequest) {
   const ferramentasPorNome = new Map(ferramentasDisponiveis.map((tool) => [tool.spec.name, tool]));
 
   const systemPrompt = buildSystemPrompt(viewer.name);
-  const orcamento = orcamentoDoPedido({ textoFixo: systemPrompt, historico: historicoRecebido, pergunta: mensagem });
+  // O corte FINO do que de fato entra no pedido continua sendo o orçamento (o teto BRUTO de 40
+  // turnos mora em `historicoParaOPedido`) — dois filtros, o mesmo espírito de "checado duas
+  // vezes" do financeiro.
+  const orcamento = orcamentoDoPedido({ textoFixo: systemPrompt, historico: historicoGravado, pergunta: mensagem });
   if (!orcamento.cabe) {
     return NextResponse.json({ error: orcamento.motivo }, { status: 400 });
   }

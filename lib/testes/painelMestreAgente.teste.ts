@@ -302,13 +302,63 @@ teste("HARD GATE: nem o dono da plataforma alcança COFRE — o schema é litera
   verdade(!/COFRE/.test(corpo), "alguém deu COFRE a alguém — nem sócio alcança, e o dono não é exceção");
 });
 
-teste("TRAVA: o histórico vindo do navegador só aceita os dois papéis de conversa", () => {
+// ACHADO DA SUPERVISÃO DESTA ENTREGA — o teste que estava aqui antes guardava o FILTRO DE PAPÉIS
+// do histórico que o navegador mandava ("só user/assistant, nunca system"). Ele guardava a coisa
+// certa para o desenho antigo, e por isso não foi apagado: foi SUBSTITUÍDO por uma trava mais
+// forte, porque o desenho mudou. O histórico não vem mais do navegador — vem dos turnos
+// GRAVADOS. Filtrar o papel de um turno forjado era defender a porta; não aceitar turno de fora
+// é fechar a porta. Ver o porquê em `historicoParaOPedido` (lib/painelMestreConversas.ts).
+teste("TRAVA (mais forte que a anterior): o histórico do modelo NÃO sai do corpo da requisição — vem dos turnos gravados", () => {
   const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
-  // Sem isto, um `role` qualquer (ex.: "system") vindo do cliente entraria no pedido como se
-  // fosse instrução — a superfície clássica de injeção por histórico forjado.
-  verdade(/role === "user" \|\| turno!\.role === "assistant"/.test(corpo),
-    "o filtro de papéis do histórico caiu — o cliente passa a escolher o papel de cada turno");
-  verdade(/\.slice\(-40\)/.test(corpo), "sumiu o teto bruto do histórico — o cliente manda o tamanho que quiser");
+  verdade(corpo.length > 400, `corpoDaFuncao("POST") devolveu ${corpo.length} caracteres — varredura cega`);
+  // PRIMEIRO ESCREVI ISTO COMO UM BURACO DE FECHADURA, E A MUTAÇÃO PASSOU VERDE:
+  // `!/body[?.]*\.historico/` casa com `body?.historico` e com `body.historico`, mas não com
+  // `(body as { historico?: unknown })?.historico` — que foi exatamente a mutação que apliquei.
+  // Uma varredura que proíbe UMA GRAFIA não proíbe nada; a que vale é a que exige que a ÚNICA
+  // origem do histórico seja a montagem a partir dos turnos gravados. Duas travas, então:
+  //
+  // (a) TODA atribuição a `historicoGravado` tem de ser `[]` (o vazio da conversa nova) ou
+  //     `historicoParaOPedido(...)`. Qualquer outra origem — corpo da requisição, header,
+  //     parâmetro de URL, o que for — cai aqui, em qualquer grafia.
+  const atribuicoes = [...corpo.matchAll(/historicoGravado[^=\n]*=\s*([^;]+);/g)].map((m) => m[1].trim());
+  verdade(atribuicoes.length >= 2, `esperava a declaração e ao menos uma atribuição de historicoGravado; achei ${atribuicoes.length}`);
+  for (const origem of atribuicoes) {
+    verdade(origem === "[]" || origem.startsWith("historicoParaOPedido("),
+      `historicoGravado recebeu algo que NÃO vem dos turnos gravados: \`${origem}\` — o contexto do modelo voltou a ter origem de fora do banco`);
+  }
+  verdade(atribuicoes.some((o) => o.startsWith("historicoParaOPedido(")),
+    "nenhuma atribuição monta o histórico a partir dos turnos gravados — o modelo perderia a memória da conversa");
+  verdade(/historicoParaOPedido\(conversaDoMembro\.turnos\)/.test(corpo),
+    "o histórico deixou de ser montado a partir dos TURNOS DA CONVERSA encontrada com o corte por dono");
+
+  // (b) E a palavra `historico`, solta, não pode voltar a aparecer na rota fora desses dois
+  //     identificadores e da chave que os leva ao orçamento. Qualquer menção nova falha aqui —
+  //     a trava não sabe adivinhar a grafia de amanhã, então proíbe a palavra.
+  // A lista de permitidos é curta DE PROPÓSITO: a montagem, a variável que ela produz, a chave
+  // que a leva ao orçamento, e o histórico JÁ CORTADO que volta do orçamento. Nada mais.
+  const semOsPermitidos = corpo
+    .replace(/historicoParaOPedido/g, "«montagem»")
+    .replace(/historicoGravado/g, "«montado»")
+    .replace(/historico: «montado»/g, "«parametro»")
+    .replace(/orcamento\.historico/g, "«orcado»");
+  verdade(!/historico/i.test(semOsPermitidos),
+    "a palavra `historico` voltou à rota fora da montagem a partir dos turnos gravados — quase sempre significa que o corpo da requisição voltou a mandar histórico");
+  // E o que é montado é o que de fato VAI ao orçamento (e daí ao pedido) — não um cálculo morto.
+  verdade(/orcamentoDoPedido\(\{ textoFixo: systemPrompt, historico: historicoGravado, pergunta: mensagem \}\)/.test(corpo),
+    "o histórico gravado não é o que entra no orçamento do pedido — pode estar sendo montado e descartado");
+});
+
+teste("TRAVA: a mesma consulta que confere o dono é a que traz os turnos — nunca uma segunda ida ao banco, nem um id aceito sem dono", () => {
+  const corpo = corpoDaFuncao(CODIGO_DA_ROTA, "POST");
+  // `conversa` passa a sair do OBJETO ENCONTRADO (que só existe se o dono bateu), nunca do id
+  // cru que o corpo mandou: se voltasse a ser `{ id: conversaIdRecebido }`, um refactor futuro
+  // poderia remover a checagem de dono e o código continuaria compilando e "funcionando".
+  verdade(/conversa = \{ id: conversaDoMembro\.id \}/.test(corpo),
+    "a conversa usada para gravar não vem mais do objeto encontrado com o corte por dono");
+  const posBusca = corpo.indexOf("buscarConversaDoMembro(conversaIdRecebido, viewer)");
+  const posHistorico = corpo.indexOf("historicoParaOPedido(");
+  verdade(posBusca >= 0 && posHistorico > posBusca,
+    "o histórico é montado antes (ou fora) da checagem de dono da conversa");
 });
 
 teste("TRAVA: o veredito do orçamento INTERROMPE o pedido, não é só calculado", () => {
