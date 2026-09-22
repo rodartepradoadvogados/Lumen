@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { ShellPeticionamento } from "@/components/peticionamento/Shell";
 import { TipoPecaClient } from "@/components/peticionamento/TipoPecaClient";
-import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos } from "@/lib/actions/peticionamento";
+import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos, gravarPassoDaSessao } from "@/lib/actions/peticionamento";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,12 @@ export default async function TipoPecaPage({ params }: { params: { id: string } 
   if (!user) notFound();
   const sessao = await obterSessaoPeticionamento(params.id).catch(() => null);
   if (!sessao) notFound();
-  const [temTrabalho, rascunhosCount] = await Promise.all([avaliarTrabalhoEmAndamento(params.id), contarRascunhos()]);
+  // Grava o passo real a cada navegação — Retomar usa isto, não mais a dedução (lib/peticionamentoPasso.ts).
+  const [temTrabalho, rascunhosCount] = await Promise.all([
+    avaliarTrabalhoEmAndamento(params.id),
+    contarRascunhos(),
+    gravarPassoDaSessao(params.id, "tipo-de-peca"),
+  ]);
 
   return (
     <ShellPeticionamento

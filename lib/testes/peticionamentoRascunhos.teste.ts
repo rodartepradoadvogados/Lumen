@@ -36,10 +36,21 @@ teste("TRAVA: contarRascunhos usa o MESMO status que listarRascunhos — o núme
   verdade(/status:\s*\{\s*not:\s*"EXPORTADA"\s*\}/.test(corpo), 'contarRascunhos deixou de excluir status "EXPORTADA" — o contador do Menu (\"Ver rascunhos (n)\") ficaria maior que a lista de verdade');
 });
 
-teste("listarRascunhos usa passoDaSessao/hrefDoPasso — nunca reinventa a conta do passo por fora do módulo único", () => {
+// Adequação "retomar volta ao passo certo": listarRascunhos passou a usar `passoParaRetomar`, não
+// mais `passoDaSessao` sozinha — é ela quem decide entre o passo GRAVADO (s.passoAtual) e a
+// dedução (plano B, para sessão antiga ou valor torto). `passoDaSessao` continua existindo dentro
+// de `passoParaRetomar`, no MESMO módulo único (lib/peticionamentoPasso.ts) — nunca reinventada
+// aqui por fora.
+teste("listarRascunhos usa passoParaRetomar/hrefDoPasso — nunca reinventa a conta do passo por fora do módulo único", () => {
   const corpo = codigoDe(corpoDaFuncao(FONTE, "listarRascunhos"));
-  verdade(corpo.includes("passoDaSessao("), "listarRascunhos deixou de usar passoDaSessao — o passo mostrado pode divergir da regra única (lib/peticionamentoPasso.ts)");
+  verdade(corpo.includes("passoParaRetomar("), "listarRascunhos deixou de usar passoParaRetomar — o passo mostrado pode divergir da regra única (lib/peticionamentoPasso.ts)");
   verdade(corpo.includes("hrefDoPasso("), "listarRascunhos deixou de usar hrefDoPasso — \"Retomar\" pode não levar ao passo certo");
+});
+
+teste("listarRascunhos passa s.passoAtual (o valor GRAVADO) para passoParaRetomar — senão a gravação a cada navegação não serve para nada", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE, "listarRascunhos"));
+  verdade(corpo.includes("passoAtual: true"), "listarRascunhos deixou de selecionar passoAtual — não há como usar o valor gravado sem trazê-lo do banco");
+  verdade(/passoParaRetomar\(\s*\{[\s\S]*?\},\s*s\.passoAtual\s*,?\s*\)/.test(corpo), "listarRascunhos deixou de passar s.passoAtual para passoParaRetomar — voltaria a ser dedução pura");
 });
 
 resumo("Peticionamento — lista de rascunhos: corte por escritório e exclusão do já exportado");

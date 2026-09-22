@@ -26,7 +26,7 @@ import { avaliarJanela, type ItemDeContexto as ItemDeJanela } from "@/lib/petici
 import { extrairTextoDeDocumento } from "@/lib/peticionamentoExtracaoDocumento";
 import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
 import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, type DeducaoDeNatureza } from "@/lib/peticionamentoNatureza";
-import { passoDaSessao, hrefDoPasso, ROTULO_DO_PASSO, sessaoTemTrabalhoEmAndamento } from "@/lib/peticionamentoPasso";
+import { passoParaRetomar, ehPassoValido, hrefDoPasso, ROTULO_DO_PASSO, sessaoTemTrabalhoEmAndamento } from "@/lib/peticionamentoPasso";
 import { montarMensagemParaHermes } from "@/lib/peticionamentoPrompt";
 import { interpretarRespostaHermes } from "@/lib/peticionamentoRespostaHermes";
 import { garantirFecho } from "@/lib/peticionamentoFecho";
@@ -158,6 +158,7 @@ export async function listarRascunhos(): Promise<RascunhoResumo[]> {
       pedidos: true,
       documentosExistentesIds: true,
       status: true,
+      passoAtual: true,
       updatedAt: true,
       criadoPor: { select: { name: true } },
       _count: { select: { anexos: true } },
@@ -168,15 +169,20 @@ export async function listarRascunhos(): Promise<RascunhoResumo[]> {
     const pedidos = ((s.pedidos as string[] | null) ?? []) as string[];
     const documentosExistentesIds = ((s.documentosExistentesIds as string[] | null) ?? []) as string[];
     const temDocumento = documentosExistentesIds.length > 0 || s._count.anexos > 0;
-    const passo = passoDaSessao({
-      status: s.status,
-      categoriaPeca: s.categoriaPeca,
-      materiaNome: s.materiaNome,
-      contextoDecidido: s.contextoDecidido,
-      fatos: s.fatos,
-      pedidos,
-      temDocumento,
-    });
+    // passoParaRetomar: usa s.passoAtual (gravado a cada navegação) quando é um passo válido;
+    // sessão antiga sem o campo, ou valor torto, cai na dedução de sempre — nunca quebra a tela.
+    const passo = passoParaRetomar(
+      {
+        status: s.status,
+        categoriaPeca: s.categoriaPeca,
+        materiaNome: s.materiaNome,
+        contextoDecidido: s.contextoDecidido,
+        fatos: s.fatos,
+        pedidos,
+        temDocumento,
+      },
+      s.passoAtual,
+    );
     const tipoParaTitulo = s.tipoPeca === "Outra" && s.tipoPecaOutro ? s.tipoPecaOutro : s.tipoPeca;
     const titulo = s.categoriaPeca ? `${s.categoriaPeca}${tipoParaTitulo ? ` — ${tipoParaTitulo}` : ""}` : "Rascunho sem tipo de peça definido";
     return {
@@ -192,6 +198,21 @@ export async function listarRascunhos(): Promise<RascunhoResumo[]> {
       criadoPorNome: s.criadoPor.name,
     };
   });
+}
+
+/**
+ * GRAVA o passo de verdade — chamada por cada uma das seis páginas de sessão (app/peticionamento/
+ * [id]/*) ao carregar, uma por navegação. É esta gravação, não mais a dedução, que "Retomar" usa
+ * em primeiro lugar (lib/peticionamentoPasso.ts: `passoParaRetomar`). Recusa um passo que a lista
+ * de hoje não conhece em vez de gravar lixo no banco — a mesma trava que faz `passoParaRetomar`
+ * cair na dedução quando o valor já gravado está torto.
+ */
+export async function gravarPassoDaSessao(sessaoId: string, passo: string): Promise<{ ok: true } | { error: string }> {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  if (!ehPassoValido(passo)) return { error: "Passo de sessão desconhecido." };
+  await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { passoAtual: passo } });
+  return { ok: true };
 }
 
 // ── MATÉRIA (decisions.md §9 item 4: nova matéria vale só para este escritório) ────────────────
