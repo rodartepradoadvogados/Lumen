@@ -14,12 +14,16 @@ import {
   getOrCreateCaseFolder,
   getOrCreateAttendanceFolder,
   getOrCreateAssessoriaCompanyFolderCached,
+  downloadFileFromDrive,
+  extractDriveFileId,
+  translateDriveError,
 } from "@/lib/googleDrive";
 import { podeAcessarAba, podeAnexar, avaliarExportacao } from "@/lib/peticionamentoAcesso";
 import { avaliarProntidao } from "@/lib/peticionamentoMinimo";
 import { avaliarCandidatos, validarNovoVinculo, ehSessaoAvulsa, type ItemDeContexto, type TipoVinculo } from "@/lib/peticionamentoContexto";
 import { MATERIAS_DO_LUMEN, validarNovaMateria } from "@/lib/peticionamentoMateria";
 import { avaliarJanela, type ItemDeContexto as ItemDeJanela } from "@/lib/peticionamentoJanelaDeContexto";
+import { extrairTextoDeDocumento } from "@/lib/peticionamentoExtracaoDocumento";
 import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
 import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, type DeducaoDeNatureza } from "@/lib/peticionamentoNatureza";
 import { passoDaSessao, hrefDoPasso, ROTULO_DO_PASSO, sessaoTemTrabalhoEmAndamento } from "@/lib/peticionamentoPasso";
@@ -528,16 +532,79 @@ export async function marcarConversaoMarkdown(anexoId: string, aceitar: boolean)
   return { ok: true };
 }
 
+// ── LEITURA DE DOCUMENTO — prioridade 1 do dono: "fazer o agente ler toda a documentação, pois é
+// imprescindível". Até esta entrega só o NOME do arquivo era mandado ao Hermes; o conteúdo nunca
+// (ver relatório da entrega). Este bloco baixa o arquivo do Drive e extrai o texto de verdade. ──
+
+export type DocumentoDaSessaoComTexto = {
+  id: string;
+  nome: string;
+  resultado: import("@/lib/peticionamentoExtracaoDocumento").ResultadoExtracao;
+};
+
+/**
+ * Todo documento da sessão (existentes vinculados + anexados nesta sessão) COM o texto já
+ * extraído — ou o motivo de não ter dado para extrair. Reconfere a sessão por officeId ANTES de
+ * tocar qualquer tabela, igual a toda ação deste arquivo (nunca confia que quem chamou já
+ * validou — lib/testes/peticionamentoIsolamento.teste.ts cobra isso de QUALQUER função nova que
+ * receba sessaoId, exportada ou não). Baixa do Drive com `officeId` sempre reconferido também
+ * (downloadFileFromDrive já exige a credencial DESTE escritório) — conteúdo de documento é dado
+ * de cliente sob sigilo, nunca lido por id sozinho.
+ *
+ * NUNCA loga o texto extraído — só nome, contagens e motivo de falha (nada do conteúdo do
+ * documento em si) chegam a qualquer mensagem de erro devolvida ao chamador.
+ */
+async function carregarDocumentosDaSessaoComTexto(sessaoId: string, officeId: string): Promise<DocumentoDaSessaoComTexto[]> {
+  const sessao = await carregarSessaoOuFalhar(sessaoId, officeId);
+  const documentosExistentesIds = ((sessao.documentosExistentesIds as string[] | null) ?? []) as string[];
+
+  const [documentosExistentes, anexosNovos] = await Promise.all([
+    documentosExistentesIds.length
+      ? prisma.attachment.findMany({ where: { id: { in: documentosExistentesIds }, officeId }, select: { id: true, name: true, driveUrl: true } })
+      : Promise.resolve([]),
+    prisma.peticionamentoAnexo.findMany({ where: { sessaoId }, select: { id: true, nome: true, driveUrl: true } }),
+  ]);
+
+  const todos = [
+    ...documentosExistentes.map((d) => ({ id: d.id, nome: d.name, driveUrl: d.driveUrl })),
+    ...anexosNovos.map((a) => ({ id: a.id, nome: a.nome, driveUrl: a.driveUrl })),
+  ];
+
+  return Promise.all(
+    todos.map(async (doc): Promise<DocumentoDaSessaoComTexto> => {
+      if (!doc.driveUrl) return { id: doc.id, nome: doc.nome, resultado: { ok: false, motivo: "Documento sem arquivo vinculado no Google Drive." } };
+      const fileId = extractDriveFileId(doc.driveUrl);
+      if (!fileId) return { id: doc.id, nome: doc.nome, resultado: { ok: false, motivo: "Não foi possível identificar o arquivo no link do Google Drive." } };
+      try {
+        const { content, mimeType } = await downloadFileFromDrive(fileId, officeId);
+        const resultado = await extrairTextoDeDocumento(content, mimeType, doc.nome);
+        return { id: doc.id, nome: doc.nome, resultado };
+      } catch (e) {
+        return { id: doc.id, nome: doc.nome, resultado: { ok: false, motivo: translateDriveError(e, "baixar o documento do Google Drive") } };
+      }
+    }),
+  );
+}
+
 // ── JANELA DE CONTEXTO — nunca trunca em silêncio (especificação §8) ───────────────────────────
 
-export async function avaliarContextoDaSessao(sessaoId: string) {
-  const user = await exigirAcessoAba();
-  const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
-  const anexos = await prisma.peticionamentoAnexo.findMany({ where: { sessaoId } });
+/**
+ * Avalia a sessão inteira (fatos + TODO documento, existente ou anexado, com texto já lido) —
+ * usado tanto pela ação pública abaixo (tela de confirmação) quanto por confirmarTriagemEGerar,
+ * que precisa do `textoFinal` por item para montar a mensagem ao Hermes; os dois chamam ESTA
+ * função para baixar/ler cada documento uma ÚNICA vez por geração, nunca duas.
+ */
+async function calcularAvaliacaoDeContexto(sessaoId: string, officeId: string) {
+  const sessao = await carregarSessaoOuFalhar(sessaoId, officeId);
+  const documentos = await carregarDocumentosDaSessaoComTexto(sessaoId, officeId);
 
+  // Documento é sempre `protegido: true` — mesmo tratamento que os anexos já tinham antes desta
+  // entrega (nunca resumir o documento central da peça, ex.: o laudo, o contrato, a contestação
+  // a que se responde). Documento cuja leitura FALHOU entra com texto vazio (0 tokens): não pesa
+  // no orçamento, e nunca aparece "resumido" — não faz sentido resumir o que não foi lido.
   const itens: ItemDeJanela[] = [
     { id: "fatos", rotulo: "Fatos descritos pelo advogado", texto: sessao.fatos ?? "" },
-    ...anexos.map((a) => ({ id: a.id, rotulo: a.nome, texto: "x".repeat(200), protegido: true })),
+    ...documentos.map((d) => ({ id: d.id, rotulo: d.nome, texto: d.resultado.ok ? d.resultado.texto : "", protegido: true })),
   ];
   const avaliacao = avaliarJanela(itens);
 
@@ -548,7 +615,37 @@ export async function avaliarContextoDaSessao(sessaoId: string) {
       contextoBloqueadoMotivo: avaliacao.acao === "bloqueado" ? avaliacao.aviso : null,
     },
   });
-  return avaliacao;
+
+  return { avaliacao, documentos };
+}
+
+export async function avaliarContextoDaSessao(sessaoId: string) {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const { avaliacao, documentos } = await calcularAvaliacaoDeContexto(sessaoId, user.officeId);
+
+  // SANITIZADO: esta ação é exportada (chamável, em tese, direto do cliente) — nunca devolve o
+  // TEXTO do documento por aqui, só metadados de tamanho/decisão. Quem precisa do texto de fato
+  // (confirmarTriagemEGerar, para montar a mensagem ao Hermes) chama calcularAvaliacaoDeContexto
+  // direto, dentro do próprio servidor.
+  return {
+    acao: avaliacao.acao,
+    tokensTotaisOriginais: avaliacao.tokensTotaisOriginais,
+    tokensTotaisFinais: avaliacao.tokensTotaisFinais,
+    limite: avaliacao.limite,
+    aviso: avaliacao.aviso,
+    // Lista explícita de campos (não um "resto" via destructuring) — nunca esquece de excluir um
+    // campo novo que carregue texto, caso ItemAvaliado ganhe outro no futuro.
+    itens: avaliacao.itens.map((item) => ({
+      id: item.id,
+      rotulo: item.rotulo,
+      tokensOriginais: item.tokensOriginais,
+      tokensAposResumo: item.tokensAposResumo,
+      foiResumido: item.foiResumido,
+      protegido: item.protegido,
+    })),
+    documentos: documentos.map((d) => ({ id: d.id, nome: d.nome, lido: d.resultado.ok, motivo: d.resultado.ok ? null : d.resultado.motivo })),
+  };
 }
 
 // ── GERAÇÃO DA MINUTA ────────────────────────────────────────────────────────────────────────
@@ -614,8 +711,12 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
   const prontidao = avaliarProntidao({ fatos: sessao.fatos, pedidos: (sessao.pedidos as string[] | null) ?? [] });
   if (!prontidao.pronto) return { error: `Não é possível gerar ainda: falta ${prontidao.faltando.join(" e ")}.` };
 
-  const janela = await avaliarContextoDaSessao(sessaoId);
-  if (janela.acao === "bloqueado") return { error: janela.aviso ?? "Contexto grande demais mesmo após resumir." };
+  // Baixa e LÊ cada documento AQUI, uma única vez para toda a geração (prioridade 1 do dono:
+  // "fazer o agente ler toda a documentação, pois é imprescindível") — nunca chama a ação pública
+  // avaliarContextoDaSessao, que devolve a versão SANITIZADA (sem o texto) pensada para o
+  // cliente; esta função precisa do texto de verdade para montar a mensagem ao Hermes.
+  const { avaliacao, documentos } = await calcularAvaliacaoDeContexto(sessaoId, user.officeId);
+  if (avaliacao.acao === "bloqueado") return { error: avaliacao.aviso ?? "Contexto grande demais mesmo após resumir." };
 
   if (!hermesConfigurado()) {
     await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "FALHA_GERACAO" } });
@@ -624,11 +725,18 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
 
   await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "GERANDO" } });
 
-  const documentosExistentesIds = ((sessao.documentosExistentesIds as string[] | null) ?? []) as string[];
-  const documentosExistentes = documentosExistentesIds.length
-    ? await prisma.attachment.findMany({ where: { id: { in: documentosExistentesIds }, officeId: user.officeId }, select: { name: true } })
-    : [];
-  const anexosNovos = await prisma.peticionamentoAnexo.findMany({ where: { sessaoId } });
+  // `avaliacao.itens` carrega o TEXTO FINAL de cada documento (já cortado, se a janela precisou
+  // resumir) — casa de volta com `documentos` (que sabe quem leu/não leu) pelo id.
+  const itensPorId = new Map(avaliacao.itens.map((item) => [item.id, item]));
+  const documentosParaPrompt = documentos.map((doc) => {
+    if (!doc.resultado.ok) {
+      // NUNCA manda string vazia (era a raiz do defeito original: o Hermes via o NOME do
+      // documento sob "Documentos disponíveis nesta sessão" e preenchia o vazio sozinho). O
+      // marcador abaixo é explícito: não presuma, não invente, não liste como usado.
+      return { nome: doc.nome, texto: `[NÃO FOI POSSÍVEL LER ESTE DOCUMENTO — ${doc.resultado.motivo} Não presuma nem invente o conteúdo deste documento; não inclua "${doc.nome}" na lista de documentos usados.]` };
+    }
+    return { nome: doc.nome, texto: itensPorId.get(doc.id)?.textoFinal ?? doc.resultado.texto };
+  });
 
   const mensagem = montarMensagemParaHermes({
     materia: sessao.materiaNome ?? "(não informada)",
@@ -640,13 +748,17 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
     pedidos: ((sessao.pedidos as string[] | null) ?? []) as string[],
     teses: ((sessao.teses as string[] | null) ?? []) as string[],
     observacoes: sessao.observacoes,
-    // Nomes/metadados, não o conteúdo binário extraído — ver limitação registrada no relatório
-    // da entrega (leitura de conteúdo de documento fica a cargo das ferramentas do próprio
-    // Hermes, quando configuradas).
-    documentos: [...documentosExistentes.map((d) => ({ nome: d.name, texto: "" })), ...anexosNovos.map((a) => ({ nome: a.nome, texto: "" }))],
-    contextoFoiResumido: janela.acao === "resumido",
-    avisoDeResumo: janela.aviso,
+    documentos: documentosParaPrompt,
+    contextoFoiResumido: avaliacao.acao === "resumido",
+    avisoDeResumo: avaliacao.aviso,
   });
+
+  // A lista de "documentos consultados" só pode conter quem foi de fato LIDO e ENVIADO — nunca
+  // "todos os selecionados" (o comportamento antigo: um documento nunca lido aparecia como
+  // "consultado" só por estar marcado na sessão) — ver relatório da entrega, prioridade 1.
+  const nomesLidos = documentos.filter((d) => d.resultado.ok).map((d) => d.nome);
+  const documentosNaoLidos: { nome: string; motivo: string }[] = [];
+  for (const d of documentos) if (!d.resultado.ok) documentosNaoLidos.push({ nome: d.nome, motivo: d.resultado.motivo });
 
   try {
     const resposta = await perguntarAoHermesComPerfil({
@@ -657,7 +769,13 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
     const estruturada = interpretarRespostaHermes(resposta.resposta);
     const corpoComFecho = garantirFecho(estruturada.corpo);
     const riscosFiltrados = filtrarNotaDeRiscos(estruturada.riscos);
-    const riscosComAviso = comAvisoDeContextoResumido(riscosFiltrados.aceitas, janela.acao === "resumido");
+    const riscosComAviso = comAvisoDeContextoResumido(riscosFiltrados.aceitas, avaliacao.acao === "resumido");
+
+    // Filtra a declaração do agente contra o que REALMENTE foi lido — nunca aceita um nome
+    // alucinado (citado sem ter vindo no pacote), e nunca cai de volta para "todos os
+    // selecionados" quando a declaração vem vazia: cai para os que FORAM lidos, o único conjunto
+    // que pode ser chamado de "consultado" com verdade.
+    const declaradosEValidos = estruturada.documentosUsados.filter((nome) => nomesLidos.includes(nome));
 
     await prisma.peticionamentoSessao.update({
       where: { id: sessaoId },
@@ -666,7 +784,8 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
         minutaTexto: corpoComFecho,
         notaRiscos: riscosComAviso,
         jurisprudenciaCitada: estruturada.jurisprudencia as unknown as object,
-        documentosBaseConsultados: estruturada.documentosUsados.length ? estruturada.documentosUsados : [...documentosExistentes.map((d) => d.name), ...anexosNovos.map((a) => a.nome)],
+        documentosBaseConsultados: declaradosEValidos.length ? declaradosEValidos : nomesLidos,
+        documentosNaoLidos,
         tipoPecaInferido: !sessao.tipoPeca && !!estruturada.tipoPecaInferido,
         tipoPeca: !sessao.tipoPeca && estruturada.tipoPecaInferido ? estruturada.tipoPecaInferido : sessao.tipoPeca,
         hermesSessionId: resposta.sessao || sessao.hermesSessionId,
@@ -733,6 +852,7 @@ export async function confirmarExportacao(
   const notaObrigatoria = montarNotaObrigatoria({
     precedentes: ((sessao.jurisprudenciaCitada as { texto: string; fonte: string | null }[] | null) ?? []) as { texto: string; fonte: string | null }[],
     documentosBaseConsultados: ((sessao.documentosBaseConsultados as string[] | null) ?? []) as string[],
+    documentosNaoLidos: ((sessao.documentosNaoLidos as { nome: string; motivo: string }[] | null) ?? []) as { nome: string; motivo: string }[],
     contextoVinculadoDescricao: await descricaoDoContexto(sessaoId, user.officeId),
     geradoEm: sessao.geradoEm ?? agora,
     perfil: perfilDePeticionamento(),

@@ -40,6 +40,16 @@ export type SectionPanelItem = {
   subParam?: string;
   subDefaultValue?: string;
   subItems?: SubNavItem[];
+  /**
+   * ABRE EM ABA NOVA DO NAVEGADOR — decisão do dono para o Peticionamento (ver
+   * app/peticionamento/layout.tsx): "sensação de sair do Lúmen", nunca a navegação em-página
+   * (router.push/openTab do components/TabsProvider.tsx) que troca só o conteúdo desta MESMA
+   * aba/processo — fechar ou usar a aba de destino não pode interferir em nada no uso do Lúmen.
+   * Quem consome este item (PageSectionTabs, GlobalSearch) precisa renderizar `<a target="_blank"
+   * rel="noopener">` de verdade para este, nunca passar pelo mecanismo comum de clique único/
+   * duplo clique dos demais itens.
+   */
+  abrirEmNovaAba?: boolean;
 };
 
 export type SectionKey = "agenda" | "comunicacao" | "juridico" | "financeiro" | "gestao";
@@ -92,7 +102,7 @@ export const RAIL_SECTIONS: SectionDef[] = [
       // lib/peticionamentoAcesso.ts:podeAcessarAba — recepção nunca entra, mesmo clicando aqui).
       // O link fica sempre visível, como "Configurações": a régua de verdade é decidida dentro
       // da própria rota, não escondendo o item do menu (mesmo padrão já usado no resto do rail).
-      { href: "/peticionamento", label: "Peticionamento" },
+      { href: "/peticionamento", label: "Peticionamento", abrirEmNovaAba: true },
     ],
   },
   {

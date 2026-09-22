@@ -49,6 +49,14 @@ export type ItemAvaliado = {
   tokensAposResumo: number;
   foiResumido: boolean;
   protegido: boolean;
+  /**
+   * O TEXTO QUE REALMENTE DEVE SER ENVIADO ao agente — igual ao original quando não houve
+   * resumo; cortado (com aviso embutido, para o próprio agente saber que aquele trecho foi
+   * condensado) quando houve. Prioridade 1 da entrega: antes deste campo, o corte de tamanho e
+   * o texto de fato mandado ao Hermes eram DOIS lugares desencontrados — este campo é o que
+   * fecha essa costura (ver lib/actions/peticionamento.ts:confirmarTriagemEGerar).
+   */
+  textoFinal: string;
 };
 
 export type AvaliacaoDeJanela = {
@@ -70,6 +78,20 @@ function resumoEstrutural(rotulo: string, tokensOriginais: number, tokensAlvo: n
   return Math.max(500, Math.min(tokensOriginais, tokensAlvo));
 }
 
+// Corta o TEXTO de verdade para o tamanho decidido acima, com um aviso EMBUTIDO no próprio texto
+// enviado ao agente — não só no campo `aviso` da tela: o Hermes precisa saber, dentro do próprio
+// pacote que recebe, que aquele documento específico foi condensado, para nunca tratar o corte
+// como "isto é tudo que existe no documento" e nunca presumir o que ficou de fora.
+function textoCortado(texto: string, rotulo: string, tokensOriginais: number, tokensAlvo: number): string {
+  const charsAlvo = Math.max(0, tokensAlvo * 4);
+  const cortado = texto.slice(0, charsAlvo);
+  return (
+    `${cortado}\n\n[RESUMO AUTOMÁTICO DESTA SESSÃO — "${rotulo}" tinha ~${comMilhar(tokensOriginais)} tokens estimados; ` +
+    `foi condensado para os primeiros ~${comMilhar(tokensAlvo)} tokens para caber na janela de contexto. ` +
+    "O restante NÃO foi enviado ao agente — não presuma nem invente o que não veio.]"
+  );
+}
+
 /**
  * Avalia a janela inteira. Tenta resumir só os itens NÃO protegidos, do maior para o menor,
  * até caber no limite; itens protegidos nunca são tocados. Se mesmo resumindo tudo o que pode
@@ -77,6 +99,10 @@ function resumoEstrutural(rotulo: string, tokensOriginais: number, tokensAlvo: n
  * (para a tela oferecer "remover um vínculo" / "selecionar menos documentos").
  */
 export function avaliarJanela(itens: ItemDeContexto[], limite: number = LIMITE_PADRAO_TOKENS): AvaliacaoDeJanela {
+  // Mapa por id para o corte de texto (abaixo) achar o ORIGINAL de cada item resumido pelo id,
+  // sem precisar carregar o array `itens` inteiro dentro do laço de resumo.
+  const textoOriginalPorId = new Map(itens.map((item) => [item.id, item.texto]));
+
   const avaliados: ItemAvaliado[] = itens.map((item) => ({
     id: item.id,
     rotulo: item.rotulo,
@@ -84,6 +110,7 @@ export function avaliarJanela(itens: ItemDeContexto[], limite: number = LIMITE_P
     tokensAposResumo: estimarTokens(item.texto),
     foiResumido: false,
     protegido: Boolean(item.protegido),
+    textoFinal: item.texto,
   }));
 
   const tokensTotaisOriginais = avaliados.reduce((soma, i) => soma + i.tokensOriginais, 0);
@@ -102,6 +129,10 @@ export function avaliarJanela(itens: ItemDeContexto[], limite: number = LIMITE_P
     if (economizado <= 0) continue;
     item.tokensAposResumo = alvo;
     item.foiResumido = true;
+    // Corta o TEXTO de verdade — não só o número de tokens. Sem isto, `textoFinal` continuaria
+    // sendo o documento inteiro mesmo quando `foiResumido` diz que ele deveria ter sido cortado:
+    // exatamente o desencontro que a prioridade 1 desta entrega fecha.
+    item.textoFinal = textoCortado(textoOriginalPorId.get(item.id) ?? "", item.rotulo, item.tokensOriginais, alvo);
     excedente -= economizado;
   }
 
