@@ -24,7 +24,7 @@ import { avaliarCandidatos, validarNovoVinculo, ehSessaoAvulsa, type ItemDeConte
 import { MATERIAS_DO_LUMEN, validarNovaMateria, lerMateriasDaSessao, normalizarSelecaoDeMaterias, type MateriaEscolhida } from "@/lib/peticionamentoMateria";
 import { LIMITE_DE_RESULTADOS, ehTipoDeBuscaConhecido, normalizarTermo, termoEhBuscavel, subtipoEfetivo, type TipoDeBusca } from "@/lib/peticionamentoBusca";
 import { naturezaWhere } from "@/lib/caseNatureza";
-import { avaliarJanela, comMilhar, LIMITE_PADRAO_CARACTERES, type ItemDeContexto as ItemDeJanela, type ItemAvaliado } from "@/lib/peticionamentoJanelaDeContexto";
+import { avaliarJanela, bytesDaMensagemNoCorpo, comMilhar, LIMITE_DE_BYTES_DA_MENSAGEM, LIMITE_PADRAO_CARACTERES, type ItemDeContexto as ItemDeJanela, type ItemAvaliado } from "@/lib/peticionamentoJanelaDeContexto";
 import { extrairTextoDeDocumento } from "@/lib/peticionamentoExtracaoDocumento";
 import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
 import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, type DeducaoDeNatureza } from "@/lib/peticionamentoNatureza";
@@ -1328,6 +1328,32 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
     return { error: motivo, contextoExcedido: true };
   }
 
+  // A SEGUNDA TRAVA, E ELA É EM BYTES — porque o segundo teto da ponte é em bytes.
+  //
+  // A de cima mede CARACTERES contra `PERGUNTA_MAXIMA` (um teto de caracteres). Esta mede os
+  // BYTES que a mensagem ocupa dentro do corpo JSON contra `CORPO_MAXIMO` (um teto de bytes,
+  // aplicado sobre o `content-length`). São dois limites diferentes, em duas unidades
+  // diferentes, e aplicar um só deixaria o outro chegar cru à tela: o 413 da ponte diz
+  // literalmente "corpo ausente ou grande demais", que não é instrução para ninguém.
+  //
+  // Em português normal esta trava nunca dispara — 190.000 caracteres precisariam de 2,7 bytes
+  // cada para alcançá-la. Ela existe para o texto que NÃO é português normal: a extração de um
+  // PDF que veio cheio de símbolo, ideograma ou emoji, onde um caractere custa 3 ou 4 bytes. É
+  // barata e fecha o buraco por completo, em vez de fechá-lo "para o caso comum".
+  const bytesNoCorpo = bytesDaMensagemNoCorpo(mensagem);
+  if (bytesNoCorpo > LIMITE_DE_BYTES_DA_MENSAGEM) {
+    const motivo =
+      `O pedido ao agente ficou com ${comMilhar(bytesNoCorpo)} bytes (são ${comMilhar(mensagem.length)} caracteres, ` +
+      `e em texto com acento cada caractere pesa mais de um byte), acima do limite de ` +
+      `${comMilhar(LIMITE_DE_BYTES_DA_MENSAGEM)} bytes que o agente aceita receber de uma vez. ` +
+      "Selecione menos documentos, encurte os fatos ou divida a peça em sessões separadas.";
+    await prisma.peticionamentoSessao.update({
+      where: { id: sessaoId },
+      data: { status: "FALHA_GERACAO", contextoBloqueadoMotivo: motivo },
+    });
+    return { error: motivo, contextoExcedido: true };
+  }
+
   // A lista de "documentos consultados" só pode conter quem foi de fato LIDO e ENVIADO — nunca
   // "todos os selecionados" (o comportamento antigo: um documento nunca lido aparecia como
   // "consultado" só por estar marcado na sessão) — ver relatório da entrega, prioridade 1.
@@ -1379,14 +1405,33 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
   } catch (e) {
     await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "FALHA_GERACAO" } });
     const motivo = e instanceof FalhaDoHermes ? e.motivo : mensagemDeErro(e);
-    // REDE DE SEGURANÇA DA RECUSA FALADA: se, apesar de tudo, a ponte for quem recusar por
-    // tamanho, o advogado NUNCA lê `{"erro": "mensagem ausente ou longa demais"}` — uma frase que
-    // não diz o que ele deve fazer, e que foi o que ele leu no dia em que este defeito apareceu.
-    if (/mensagem ausente ou longa demais|corpo ausente ou grande demais/i.test(motivo)) {
+    // REDE DE SEGURANÇA DA RECUSA FALADA: se, apesar de tudo, quem recusar for a ponte, o
+    // advogado NUNCA lê o texto cru do erro dela — frases que não dizem o que ele deve fazer, e
+    // que foram exatamente o que ele leu nos dois dias em que este defeito apareceu.
+    //
+    // AS QUATRO FRASES, e por que cada uma está aqui:
+    //
+    //   · "mensagem ausente ou longa demais" — o 400 de tamanho da ponte (o primeiro dia);
+    //   · "corpo ausente ou grande demais"   — o 413 de corpo, em bytes;
+    //   · "falha ao executar o Hermes"       — o 500 genérico da ponte. Foi ELE que chegou cru à
+    //     tela no segundo dia: a pergunta ia como argumento de linha de comando, estourava
+    //     MAX_ARG_STRLEN e morria com `[Errno 7]` antes de o Hermes existir. A causa daquele dia
+    //     está consertada na raiz (a pergunta viaja por `--query-file -`, fora do argv), mas a
+    //     tradução FICA: "falha ao executar o Hermes" é o balde onde a ponte joga toda exceção
+    //     inesperada, e um 500 opaco não pode ser o que o advogado lê, seja qual for a causa;
+    //   · "Argument list too long" / "E2BIG"  — o texto do próprio sistema operacional, caso ele
+    //     chegue aqui por algum caminho que não passe pelo balde acima.
+    //
+    // A FRASE FALADA NÃO AFIRMA QUE A CAUSA É TAMANHO. Tamanho é a causa mais comum e é o que o
+    // advogado pode resolver sozinho, então é o que vem primeiro; mas quando o pedido é pequeno,
+    // insistir em "reduza o tamanho" mandaria ele para um beco. Por isso a última linha nomeia a
+    // outra saída — avisar o suporte — em vez de fingir certeza que não existe.
+    if (/mensagem ausente ou longa demais|corpo ausente ou grande demais|falha ao executar o Hermes|Argument list too long|E2BIG/i.test(motivo)) {
       const falado =
-        `O agente recusou o pedido por tamanho (o pacote enviado tinha ${comMilhar(mensagem.length)} caracteres). ` +
-        "Selecione menos documentos, encurte o texto dos fatos ou divida a peça em sessões separadas. " +
-        "A triagem continua salva — nada do que você preencheu se perdeu.";
+        `O agente não conseguiu receber este pedido (o pacote enviado tinha ${comMilhar(mensagem.length)} caracteres, ` +
+        `${comMilhar(bytesNoCorpo)} bytes). A causa mais comum é tamanho: selecione menos documentos, encurte o texto ` +
+        "dos fatos ou divida a peça em sessões separadas. Se o pedido já for pequeno, isto é falha do servidor do " +
+        "agente e não do que você preencheu — avise o suporte. A triagem continua salva: nada do que você preencheu se perdeu.";
       await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { contextoBloqueadoMotivo: falado } });
       return { error: falado, contextoExcedido: true };
     }

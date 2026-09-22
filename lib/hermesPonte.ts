@@ -14,6 +14,7 @@
 // ponte sem o segredo de autenticação não é uma ponte aberta, é uma ponte que não existe.
 
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
+import { CORPO_MAXIMO_DA_PONTE_BYTES } from "@/lib/peticionamentoJanelaDeContexto";
 
 /**
  * Quanto se espera pelo Hermes antes de desistir.
@@ -42,10 +43,11 @@ export const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 105_000);
  * QUANTO SE ESPERA PELO PETICIONAMENTO — e só por ele.
  *
  * Um pedido de peticionamento não é uma pergunta de chat: leva o TEXTO dos documentos anexados,
- * até 200.000 caracteres (`PERGUNTA_MAXIMA` da ponte, espelhado em
- * lib/peticionamentoJanelaDeContexto.ts). Ler algumas dezenas de páginas e redigir uma peça
- * inteira demora mais que responder "quais processos estão parados" — e os 105s de `ESPERA_MS`,
- * dimensionados para conversa, cortariam no meio da redação.
+ * até 200.000 CARACTERES (`PERGUNTA_MAXIMA` da ponte, espelhado em
+ * lib/peticionamentoJanelaDeContexto.ts) — que, em português com acento, são mais de 200.000
+ * BYTES; as duas unidades e por que elas importam estão no cabeçalho daquele módulo. Ler algumas
+ * dezenas de páginas e redigir uma peça inteira demora mais que responder "quais processos estão
+ * parados" — e os 105s de `ESPERA_MS`, dimensionados para conversa, cortariam no meio da redação.
  *
  * SUBIR O TETO DE TAMANHO SEM SUBIR O DE TEMPO SERIA TROCA RUIM: o advogado deixaria de receber
  * um 400 limpo ("não cabe, faça assim") para receber um tempo esgotado depois de dois minutos de
@@ -121,6 +123,28 @@ async function chamar(
   const token = process.env.HERMES_TOKEN;
   if (!base || !token) throw new FalhaDoHermes("ponte não configurada");
 
+  // ── A TRAVA DE CORPO, E ELA É EM BYTES ────────────────────────────────────────────────────
+  //
+  // A ponte recusa `content-length` acima de CORPO_MAXIMO com `413 {"erro": "corpo ausente ou
+  // grande demais"}` — um erro que não diz nada a quem o lê. Aqui o corpo já está serializado, o
+  // que permite medir o NÚMERO EXATO de bytes que sairia, em vez de estimar a partir do número
+  // de caracteres (em português a diferença chega a 15%, e foi um erro dessa família que pôs um
+  // 500 cru na tela do advogado).
+  //
+  // Mora em `chamar`, e não em quem chama, porque é AQUI que o corpo vira texto: uma segunda
+  // medição escrita noutro arquivo divergiria desta no dia em que o corpo ganhasse um campo.
+  const textoDoCorpo = opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo);
+  if (textoDoCorpo !== undefined) {
+    const bytes = Buffer.byteLength(textoDoCorpo, "utf8");
+    if (bytes > CORPO_MAXIMO_DA_PONTE_BYTES) {
+      // MESMA FRASE que a ponte usa para o 413 — de propósito: quem chama já sabe traduzir
+      // "corpo ausente ou grande demais" numa recusa falada, com os botões de saída da tela de
+      // limite (ver o `catch` de confirmarTriagemEGerar). Uma frase nova aqui criaria um caminho
+      // novo para o advogado ficar sem instrução nenhuma.
+      throw new FalhaDoHermes(`corpo ausente ou grande demais (${bytes} bytes, teto de ${CORPO_MAXIMO_DA_PONTE_BYTES})`);
+    }
+  }
+
   const controle = new AbortController();
   const relogio = setTimeout(() => controle.abort(), opcoes.esperaMs ?? ESPERA_MS);
 
@@ -131,7 +155,7 @@ async function chamar(
         "content-type": "application/json",
         authorization: `Bearer ${token}`,
       },
-      body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
+      body: textoDoCorpo,
       signal: controle.signal,
       cache: "no-store",
     });

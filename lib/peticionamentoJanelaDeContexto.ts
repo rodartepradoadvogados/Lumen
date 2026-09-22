@@ -26,6 +26,31 @@
 //
 // Módulo PURO — nunca chama rede, banco nem IA.
 //
+// ────────────────────────────────────────────────────────────────────────────────────────────
+// CARACTERE OU BYTE? A DECISÃO, CASO A CASO — e ela é o assunto da entrega seguinte a esta.
+//
+// A entrega #306 subiu o teto para 200.000 e ele não era alcançável: a pergunta ia ao Hermes
+// como UM argumento de linha de comando, e o Linux limita um argumento a MAX_ARG_STRLEN =
+// 131.072 BYTES — que em português com acento são ~110.000 a ~125.000 caracteres. Um pedido de
+// 160.059 caracteres morria com `[Errno 7] Argument list too long` em 9 milésimos de segundo, e
+// o advogado lia `500 {"erro": "falha ao executar o Hermes"}` na tela.
+//
+// O conserto NÃO foi baixar o teto: o binário aceita `--query-file -`, e a pergunta passou a
+// viajar pela entrada padrão (ver `executar_hermes` em servidor-hermes/servidor.py). Fora do
+// argv, MAX_ARG_STRLEN deixa de existir como teto do produto.
+//
+// O que sobrou dessa investigação, e vale para sempre: DIZER SEMPRE QUAL É A UNIDADE.
+//
+//   · ESTE MÓDULO mede CARACTERES, e está certo: o teto que ele espelha (PERGUNTA_MAXIMA) é um
+//     teto de caracteres, aplicado com `len(mensagem)` do lado de lá, que em Python 3 também é
+//     caractere. Medir a janela em bytes contra um teto de caracteres seria o mesmo erro de
+//     unidade virado do avesso — recusaria pedidos que a ponte aceita;
+//   · A TRAVA DE CORPO (`LIMITE_DE_BYTES_DA_MENSAGEM`, mais abaixo) mede BYTES, e está certa: o
+//     `content-length` é bytes, e é em bytes que a ponte devolve 413;
+//   · `lib/actions/peticionamento.ts` aplica as DUAS, cada uma na sua unidade, antes de mandar;
+//   · `lib/hermesPonte.ts` mede o corpo inteiro, já serializado, em bytes — última defesa.
+// ────────────────────────────────────────────────────────────────────────────────────────────
+//
 // LIMITAÇÃO REGISTRADA (ver relatório da entrega): a "sumarização automática" desta versão é
 // determinística — corta o TEXTO dos itens marcados `resumivel` para o começo dele, com aviso
 // embutido, nunca reescreve com IA. É honesto (nunca finge ter lido o que cortou) mas é mais
@@ -55,6 +80,52 @@ export type ItemDeContexto = {
  * lib/testes/peticionamentoLimiteDaPonte.teste.ts lê `servidor.py` e exige IGUALDADE exata.
  */
 export const PERGUNTA_MAXIMA_DA_PONTE = 200_000;
+
+// ────────────────────────────────────────────────────────────────────────────────────────────
+// A OUTRA TRAVA DA PONTE, E ELA É EM BYTES — não confundir as duas é o assunto desta entrega.
+//
+// A ponte tem DOIS tetos, e eles não estão na mesma unidade:
+//
+//   · PERGUNTA_MAXIMA (acima) conta CARACTERES. É o comprimento do texto da pergunta, e é por
+//     isso que TUDO neste módulo — orçamento, corte, avisos — trabalha em caracteres. Medir a
+//     janela em bytes contra um teto de caracteres seria o MESMO erro de unidade, de cabeça para
+//     baixo;
+//   · CORPO_MAXIMO conta BYTES. É o `content-length` do JSON que chega pela rede, e o que a
+//     ponte recusa com `413 {"erro": "corpo ausente ou grande demais"}` — sem explicar nada.
+//
+// Em português com acento, UTF-8 gasta 2 bytes em cada acento: 190.000 caracteres de peça viram
+// perto de 210.000 BYTES, e o JSON ainda acrescenta um escape por aspa e por quebra de linha.
+// Dividir 512 KiB por "mais ou menos um byte e meio por caractere" é chute, não conta — e chute
+// de unidade é exatamente como um teto de 200.000 virou, em produção, um teto inalcançável de
+// ~125.000. Por isso a medição abaixo é EXATA: `JSON.stringify` da própria mensagem, medida em
+// bytes UTF-8, que é byte a byte o que vai no corpo.
+// ────────────────────────────────────────────────────────────────────────────────────────────
+
+/** Espelho de `CORPO_MAXIMO` em `servidor-hermes/servidor.py`, em BYTES. */
+export const CORPO_MAXIMO_DA_PONTE_BYTES = 512 * 1024;
+
+/**
+ * O que o corpo gasta FORA do texto da mensagem: as chaves do JSON, o nome do perfil (até 63
+ * caracteres), o id da sessão (até 128) e, quando existirem, a URL e a credencial das
+ * ferramentas. 4 KiB é folgado de propósito — esta trava é rede de segurança, e uma rede de
+ * segurança larga demais só recusa cedo demais; estreita demais deixa passar o 413 cru.
+ */
+export const ENVELOPE_DO_CORPO_BYTES = 4 * 1024;
+
+/** Quantos BYTES a mensagem pode ocupar dentro do corpo, já serializada. */
+export const LIMITE_DE_BYTES_DA_MENSAGEM = CORPO_MAXIMO_DA_PONTE_BYTES - ENVELOPE_DO_CORPO_BYTES;
+
+/**
+ * Quantos BYTES esta mensagem ocupa DENTRO DO CORPO JSON — medição exata, não estimativa.
+ *
+ * `JSON.stringify(mensagem)` devolve a mensagem já entre aspas e com os escapes aplicados (`\n`,
+ * `\"`), que é exatamente o que viaja; `Buffer.byteLength(..., "utf8")` conta os bytes que o
+ * `content-length` vai declarar. NUNCA `.length` de string: em português a diferença entre
+ * caractere e byte é de 10% a 15%, e essa diferença foi o defeito.
+ */
+export function bytesDaMensagemNoCorpo(mensagem: string): number {
+  return Buffer.byteLength(JSON.stringify(mensagem), "utf8");
+}
 
 /**
  * Folga entre o nosso teto e o da ponte.
