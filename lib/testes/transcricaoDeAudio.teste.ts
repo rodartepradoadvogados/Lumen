@@ -494,8 +494,17 @@ teste("MUTAÇÃO-ALVO: atendenteResponde.ts busca a transcrição no banco E a u
     /transcricao:\s*\{\s*select:/.test(corpo),
     "a consulta das mensagens parou de trazer a transcrição junto (select sem `transcricao`) — o histórico nunca vai vê-la",
   );
-  verdade(/texto:\s*textoParaAgente\(m\)/.test(corpo), "o histórico (historico.map) parou de passar cada mensagem por textoParaAgente");
-  verdade(/mensagem:\s*textoParaAgente\(ultima\)/.test(corpo), "a MENSAGEM DE AGORA parou de passar por textoParaAgente — se a ÚLTIMA mensagem for o áudio, a Ana perguntaria sem ter ouvido nada");
+  // F-figurinha (lib/avisoFigurinha.ts) passou a tratar a figurinha ANTES de textoParaAgente (que
+  // é escopo só de áudio) — mas para qualquer mensagem que NÃO seja o rótulo de figurinha, a
+  // chamada a textoParaAgente continua exatamente a mesma, e é isso que os regex abaixo exigem.
+  verdade(
+    /texto:\s*m\.body === ROTULO_FIGURINHA \? TEXTO_FIGURINHA_PARA_AGENTE : textoParaAgente\(m\)/.test(corpo),
+    "o histórico (historico.map) parou de passar cada mensagem por textoParaAgente (fora do caso de figurinha)",
+  );
+  verdade(
+    /mensagem:\s*ultima\.body === ROTULO_FIGURINHA \? TEXTO_FIGURINHA_PARA_AGENTE : textoParaAgente\(ultima\)/.test(corpo),
+    "a MENSAGEM DE AGORA parou de passar por textoParaAgente (fora do caso de figurinha) — se a ÚLTIMA mensagem for o áudio, a Ana perguntaria sem ter ouvido nada",
+  );
 });
 
 teste("MUTAÇÃO-ALVO: atendenteResponde.ts decide 'a última mensagem' através de mensagensReaisEUltima, não de novo inline", () => {

@@ -6,6 +6,7 @@ import { parseEntradaEvolution } from "@/lib/whatsappEvolution";
 import { atendenteResponde } from "@/lib/atendenteResponde";
 import { confirmarRecebimentoDeAudio } from "@/lib/confirmacaoDeAudio";
 import { dispararTranscricaoAssincrona } from "@/lib/transcricaoAssincrona";
+import { dispararAvisoFigurinha } from "@/lib/avisoFigurinha";
 
 export const dynamic = "force-dynamic";
 // O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido — isto
@@ -78,6 +79,9 @@ export async function POST(req: NextRequest) {
       if (entrada.midia?.tipo === "AUD") {
         await confirmarRecebimentoDeAudio(attendanceId);
         dispararTranscricaoAssincrona(entrada.waMessageId);
+      } else if (entrada.figurinha) {
+        // FIGURINHA: mesma regra da rota da Meta — ver o comentário lá e lib/avisoFigurinha.ts.
+        dispararAvisoFigurinha(entrada.waMessageId);
       } else {
         await atendenteResponde(attendanceId);
       }

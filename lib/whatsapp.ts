@@ -231,7 +231,34 @@ export type IncomingMessage = {
   anuncio?: { sourceUrl?: string; sourceId?: string; titulo?: string };
   /** Presente quando a mensagem trouxe imagem/documento/áudio/vídeo (ver extrairMidiaMeta). */
   midia?: IncomingMidia;
+  /**
+   * true quando a mensagem inteira é uma figurinha — nada de texto, nenhuma outra mídia junto
+   * (o WhatsApp não permite legenda em figurinha, então as duas coisas nunca vêm juntas). Ver
+   * lib/avisoFigurinha.ts: DIFERENTE das quatro mídias de `IncomingMidia`, uma figurinha nunca
+   * vira Attachment nem sobe pro Drive — ninguém pediu para guardá-la, só para a Ana avisar,
+   * depois de esperar, que não consegue identificar esse tipo de mensagem.
+   */
+  figurinha?: boolean;
 };
+
+// ============================================================================
+// A FIGURINHA — RECONHECIDA, MAS NUNCA "MÍDIA" NO SENTIDO DA F5 ACIMA.
+//
+// `ROTULO_FIGURINHA` é o `body` gravado para ela (curto, como os rótulos "[imagem]"/"[áudio]" de
+// rotuloDaMidiaWhatsapp — o que aparece na bolha da conversa para quem tem acesso ao atendimento).
+// `TEXTO_FIGURINHA_PARA_AGENTE` é o texto mais longo que SUBSTITUI esse rótulo quando a mensagem
+// é lida pela Ana (lib/atendenteResponde.ts) — mesma técnica de textoParaAgente
+// (lib/transcricaoDeAudio.ts) para áudio: um rótulo curto para gente, uma instrução explícita
+// para a máquina, nunca o mesmo texto para as duas pontas.
+//
+// Moram aqui (e não em lib/avisoFigurinha.ts) para lib/avisoFigurinha.ts poder importar
+// ROTULO_FIGURINHA sem criar import circular: aquele arquivo já importa lib/atendenteResponde.ts,
+// que importa este arquivo — se este arquivo importasse de volta lib/avisoFigurinha.ts, o ciclo
+// se fecharia.
+// ============================================================================
+export const ROTULO_FIGURINHA = "[figurinha]";
+export const TEXTO_FIGURINHA_PARA_AGENTE =
+  "[a pessoa mandou uma figurinha (sticker) do WhatsApp — você NÃO consegue visualizar figurinhas; diga a ela, com naturalidade, que não conseguiu identificar esse tipo de mensagem e peça para escrever o que precisa]";
 
 // Um dos quatro campos de mídia que a Meta manda, conforme `message.type` — a forma é a mesma nos
 // quatro (id + mime_type, e document/image/video ainda trazem caption; document também traz
@@ -250,6 +277,9 @@ type MetaMessage = {
   video?: MetaMediaField;
   audio?: MetaMediaField;
   document?: MetaMediaField;
+  // Figurinha — NUNCA vira IncomingMidia (ver a nota em ROTULO_FIGURINHA): só o `type` importa
+  // aqui, o conteúdo do bloco não é lido para nada (a Ana não vê a figurinha, só é avisada dela).
+  sticker?: { id?: string; mime_type?: string };
   // Click-to-WhatsApp da Meta: a origem vem aqui, e só na primeira mensagem.
   referral?: { source_url?: string; source_id?: string; headline?: string };
 };
@@ -296,9 +326,9 @@ export function extrairMidiaMeta(
 }
 
 /**
- * Extrai a primeira mensagem processável (texto OU mídia) de um payload de webhook da Meta.
- * Retorna null para o que não é nenhum dos dois (ex.: eventos de status de entrega, sticker,
- * localização...), sinalizando "nada a fazer".
+ * Extrai a primeira mensagem processável (texto, mídia OU figurinha) de um payload de webhook da
+ * Meta. Retorna null para o que não é nenhum dos três (ex.: eventos de status de entrega,
+ * localização, contato, reação, enquete...), sinalizando "nada a fazer".
  */
 export function parseIncoming(payload: unknown): IncomingMessage | null {
   try {
@@ -322,6 +352,12 @@ export function parseIncoming(payload: unknown): IncomingMessage | null {
       const text = message.text?.body;
       if (!text) return null;
       return { fromNumber, waMessageId, text, profileName, phoneNumberId, anuncio };
+    }
+
+    // FIGURINHA. O WhatsApp não permite legenda em figurinha — o que chega é só o tipo, nada mais
+    // — por isso não há `text` nem `midia` aqui (ver a nota em ROTULO_FIGURINHA, lib/whatsapp.ts).
+    if (message.type === "sticker") {
+      return { fromNumber, waMessageId, text: "", profileName, phoneNumberId, anuncio, figurinha: true };
     }
 
     const midia = extrairMidiaMeta(message);
@@ -428,6 +464,7 @@ export async function ingestIncomingWhatsapp({
   phoneNumberId,
   anuncio,
   midia,
+  figurinha,
 }: IncomingMessage): Promise<string | null> {
   // Dedupe: reenvio da Meta não deve reprocessar. Devolve nulo também aqui: uma mensagem repetida
   // não pode acionar o atendente de novo, senão o cliente recebe duas respostas iguais.
@@ -489,10 +526,12 @@ export async function ingestIncomingWhatsapp({
       officeId,
       attendanceId: attendance.id,
       direction: "IN",
-      // Mídia não tem como virar texto (WhatsappMessage.body é NOT NULL) — vira um rótulo
-      // ("[imagem]", "[documento: nome.pdf]"...) com a legenda junto, se houver. O arquivo de
-      // verdade mora no Attachment que processarMidiaRecebida cria logo abaixo.
-      body: midia ? rotuloDaMidiaWhatsapp(midia.tipo, text, midia.nomeOriginal) : text,
+      // Mídia (e figurinha) não têm como virar texto (WhatsappMessage.body é NOT NULL) — viram um
+      // rótulo curto ("[imagem]", "[documento: nome.pdf]", "[figurinha]"...), com a legenda junto
+      // quando houver uma. O arquivo de verdade da mídia mora no Attachment que
+      // processarMidiaRecebida cria logo abaixo — a figurinha não tem arquivo nenhum guardado
+      // (ver ROTULO_FIGURINHA, acima neste arquivo): ninguém pediu para guardá-la.
+      body: figurinha ? ROTULO_FIGURINHA : midia ? rotuloDaMidiaWhatsapp(midia.tipo, text, midia.nomeOriginal) : text,
       waMessageId,
       status: "RECEIVED",
       fromNumber,

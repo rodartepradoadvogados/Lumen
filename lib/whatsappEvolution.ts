@@ -248,6 +248,9 @@ type EvolutionMessage = {
   audioMessage?: EvolutionMediaField;
   documentMessage?: EvolutionMediaField;
   documentWithCaptionMessage?: { message?: { documentMessage?: EvolutionMediaField } };
+  // Figurinha — a Baileys não embrulha legenda nela (diferente de documentWithCaptionMessage).
+  // Só a PRESENÇA do campo importa: ver a nota em ROTULO_FIGURINHA, lib/whatsapp.ts.
+  stickerMessage?: { mimetype?: string };
 };
 
 type EnvelopeEvolution = {
@@ -290,10 +293,10 @@ export function extrairMidiaEvolution(
  * Traduz o webhook da Evolution para a MESMA forma que o da Meta produz, para que tudo o que vem
  * depois (`ingestIncomingWhatsapp`) não saiba de qual dos dois veio a mensagem.
  *
- * Devolve nulo para tudo o que não for texto OU mídia (das quatro suportadas) de terceiro: eventos
- * de status, figurinha/localização/etc., mensagem de grupo (`@g.us`) e — importante — mensagem
- * enviada PELO próprio escritório (`fromMe`), que chega aqui também e criaria um atendimento com o
- * escritório como se fosse o cliente.
+ * Devolve nulo para tudo o que não for texto, mídia (das quatro suportadas) OU figurinha, de
+ * terceiro: eventos de status, localização/contato/reação/enquete/etc., mensagem de grupo
+ * (`@g.us`) e — importante — mensagem enviada PELO próprio escritório (`fromMe`), que chega aqui
+ * também e criaria um atendimento com o escritório como se fosse o cliente.
  */
 export function parseEntradaEvolution(payload: unknown): IncomingMessage | null {
   try {
@@ -312,7 +315,10 @@ export function parseEntradaEvolution(payload: unknown): IncomingMessage | null 
     if (!waMessageId || !instancia) return null;
 
     const midia = extrairMidiaEvolution(e.data?.message);
-    if (!texto.trim() && !midia) return null;
+    // FIGURINHA. A Baileys não bota legenda nela (diferente de documentWithCaptionMessage) — só a
+    // presença do campo importa. Ver a nota em ROTULO_FIGURINHA, lib/whatsapp.ts.
+    const figurinha = Boolean(e.data?.message?.stickerMessage);
+    if (!texto.trim() && !midia && !figurinha) return null;
 
     const ad = e.data?.message?.extendedTextMessage?.contextInfo?.externalAdReply;
 
@@ -329,6 +335,7 @@ export function parseEntradaEvolution(payload: unknown): IncomingMessage | null 
       midia: midia
         ? { tipo: midia.tipo, mimeType: midia.mimeType, nomeOriginal: midia.nomeOriginal, evolution: { remoteJid: jid, waMessageId } }
         : undefined,
+      figurinha: figurinha ? true : undefined,
     };
   } catch {
     return null;

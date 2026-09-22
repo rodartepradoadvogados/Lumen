@@ -175,10 +175,20 @@ teste("parseIncoming lê um documento sem legenda, com o texto vazio (não nulo)
   igual(r?.midia?.nomeOriginal, "rg.pdf");
 });
 
-teste("parseIncoming ignora o que não é texto nem uma das quatro mídias", () => {
-  igual(parseIncoming(payloadMeta({ type: "sticker", sticker: { id: "S1" } })), null, "figurinha: ");
+teste("parseIncoming ignora o que não é texto, mídia nem figurinha", () => {
   igual(parseIncoming(payloadMeta({ type: "location", location: { latitude: 1, longitude: 2 } })), null, "localização: ");
   igual(parseIncoming(payloadMeta({ type: "image", image: { mime_type: "image/jpeg" } })), null, "imagem sem id pra baixar: ");
+});
+
+// F-figurinha: a figurinha DEIXOU de ser descartada como null — ela agora é reconhecida (para a
+// Ana avisar, depois de esperar, que não identifica esse tipo de mensagem — ver
+// lib/avisoFigurinha.ts), mas continua NUNCA virando IncomingMidia (nunca sobe pro Drive).
+teste("parseIncoming reconhece a figurinha, mas ela nunca vira midia (sem texto, sem upload)", () => {
+  const r = parseIncoming(payloadMeta({ type: "sticker", sticker: { id: "S1", mime_type: "image/webp" } }));
+  verdade(r !== null, "uma figurinha solitária não pode mais ser descartada como null");
+  igual(r?.figurinha, true);
+  igual(r?.text, "");
+  igual(r?.midia, undefined, "figurinha não pode virar mídia — ela não é pra subir pro Drive");
 });
 
 teste("parseIncoming continua recusando payload sem os três identificadores", () => {
@@ -237,6 +247,16 @@ teste("parseEntradaEvolution aceita uma imagem sozinha, sem legenda nenhuma", ()
 
 teste("parseEntradaEvolution continua descartando mídia vazia (evento de status) sem texto", () => {
   igual(parseEntradaEvolution(eventoEvolution({ message: { imageMessage: {} } })), null);
+});
+
+// F-figurinha: mesma regra da Meta, do lado da Evolution — a Baileys nunca embrulha legenda numa
+// figurinha (diferente de documentWithCaptionMessage), então só a presença do campo importa.
+teste("parseEntradaEvolution reconhece a figurinha, mas ela nunca vira midia (sem texto, sem upload)", () => {
+  const r = parseEntradaEvolution(eventoEvolution({ message: { stickerMessage: { mimetype: "image/webp" } } }));
+  verdade(r !== null, "uma figurinha solitária não pode mais ser descartada como null");
+  igual(r?.figurinha, true);
+  igual(r?.text, "");
+  igual(r?.midia, undefined, "figurinha não pode virar mídia — ela não é pra subir pro Drive");
 });
 
 teste("parseEntradaEvolution lê um documento com legenda, e a legenda vira o texto", () => {
@@ -337,6 +357,18 @@ teste("MUTAÇÃO-ALVO: o áudio é baixado UMA VEZ SÓ — o mesmo buffer sobe p
   verdade(
     ingest.includes("storageProvider: uploadInfo?.storageProvider ?? null") && ingest.includes("storageFileId: uploadInfo?.storageFileId ?? null"),
     "o registro de transcrição parou de guardar onde o Drive salvou o MESMO arquivo — a transcrição assíncrona não teria de onde ler depois",
+  );
+});
+
+teste("MUTAÇÃO-ALVO: figurinha grava o rótulo curto e NUNCA entra no bloco de upload de mídia (F-figurinha)", () => {
+  // Achado de propósito, ANTES de existir código: se `figurinha` virasse `midia` (ou se o `body`
+  // esquecesse o ternário), a figurinha tentaria subir pro Drive como se fosse uma das quatro
+  // mídias suportadas — e ninguém pediu isso; o pedido é só um aviso da Ana, sem arquivo nenhum.
+  const ingest = corpoDeIngestIncomingWhatsapp();
+  verdade(/^\s*figurinha,?\s*$/m.test(ingest), "ingestIncomingWhatsapp parou de receber `figurinha` da desestruturação — o rótulo nunca seria gravado");
+  verdade(
+    /body:\s*figurinha\s*\?\s*ROTULO_FIGURINHA\s*:/.test(ingest),
+    "o `body` da figurinha parou de usar o ternário `figurinha ? ROTULO_FIGURINHA : ...` — o rótulo curto pode ter sumido ou trocado de forma",
   );
 });
 
