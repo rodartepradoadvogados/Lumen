@@ -174,10 +174,12 @@ ponte-hermes-vigia` mostra a última.
 | `GET /saude` | `200` com o estado, sem exigir segredo (serve para o nginx e para você) |
 | qualquer outra rota sem o segredo, ou com o segredo errado | `401` |
 | perfil fora do formato (minúsculas, dígitos, `.`, `-`, `_`) | `400` |
-| mensagem vazia, ou acima de 200.000 caracteres (`PERGUNTA_MAXIMA`) | `400` |
-| corpo acima de 512 KiB (`CORPO_MAXIMO`) | `413` |
+| mensagem vazia, ou acima de 200.000 **caracteres** (`PERGUNTA_MAXIMA`) | `400` |
+| corpo acima de 512 KiB = 524.288 **bytes** (`CORPO_MAXIMO`) | `413` |
+| algum argumento da linha de comando acima do teto do sistema (`TETO_DE_ARGUMENTO_BYTES`) | `400`, com a mesma frase de tamanho |
 | escritório sem perfil provisionado no Hermes | `404` |
 | provisionamento pedido numa instalação sem o script | `501` |
+| binário do `hermes` velho demais, sem `--query-file` | `501`, dizendo para atualizar o binário |
 | Hermes passou de 240 segundos (`HERMES_TIMEOUT_S`) | `504` |
 | resposta boa em `POST /chat` | `200` com `{"resposta": ..., "sessao": ...}` |
 | `GET /perfis` | a lista de escritórios provisionados |
@@ -186,7 +188,64 @@ ponte-hermes-vigia` mostra a última.
 | `POST /estado` com `{perfis: [...]}` | se cada perfil existe, quanto ocupa, quantas conversas |
 | slug fora do formato, `officeId` fora do formato, nome vazio | `400` |
 
-Quatro decisões que valem explicação:
+Cinco decisões que valem explicação:
+
+**A pergunta não viaja pela linha de comando — e o motivo não é elegância.**
+
+Esta é a correção mais importante que este arquivo já recebeu, e ela custou dois dias de
+produção. Vale escrever por extenso, porque o número aqui não é redondo por acidente.
+
+O Linux limita o tamanho de **um único argumento** de linha de comando. A constante chama-se
+`MAX_ARG_STRLEN`, está em `include/uapi/linux/binfmts.h`, e vale `32 * PAGE_SIZE`. Numa máquina de
+página de 4 KiB — todo x86-64, esta VPS inclusive — são **131.072 bytes**, contando o byte nulo do
+fim. Não é ajustável por `ulimit`; não é o `ARG_MAX` do `getconf`, que é outro limite (a soma de
+tudo, argumentos mais ambiente) e é muito maior. É um teto por argumento, e é duro.
+
+A ponte mandava a pergunta inteira como um argumento: `hermes -p <perfil> chat -q "<pergunta>"`.
+Com isso, o teto de 200.000 **caracteres** que este serviço anuncia era **inalcançável**, e por uma
+razão de unidade: 131.072 é um limite de **bytes**, e em português com acento o UTF-8 gasta 2 bytes
+em cada acento. Na prática o teto real era algo entre **110.000 e 125.000 caracteres** — e nada
+dizia isso em lugar nenhum. O registro da VPS, numa geração real:
+
+```
+[ponte-hermes] pergunta para peticionamento-lumen (160059 caracteres, nova conversa, ferramentas: nao)
+[ponte-hermes] falha ao executar o Hermes: [Errno 7] Argument list too long: '/usr/local/bin/hermes'
+```
+
+Nove milésimos de segundo. Nunca chegou ao Hermes. E como o Lúmen aprovava o pedido (a trava dele
+é 190.000 caracteres), o que o advogado lia na tela era `500 {"erro": "falha ao executar o
+Hermes"}` — pior que o `400` que existia antes, porque um 500 não diz o que fazer.
+
+**O conserto não foi baixar o teto.** `hermes chat` aceita `--query-file PATH`, que lê a pergunta
+de um arquivo em vez da linha de comando, e `-` como caminho significa "leia da entrada padrão".
+É por aí que a pergunta viaja agora. Fora do `argv`, `MAX_ARG_STRLEN` deixa de ser teto do produto,
+e 200.000 caracteres passam a ser alcançáveis de verdade — que é o que o número sempre disse que
+era. (`-q` e `--query-file` são mutuamente exclusivos: não se manda os dois.)
+
+Entrada padrão, e não arquivo temporário, por quatro razões, nesta ordem de peso:
+
+1. **sigilo.** A pergunta é dado de cliente de escritório de advocacia. Um arquivo temporário põe a
+   peça inteira no disco, ainda que por segundos, onde backup, snapshot da VPS e qualquer outro
+   processo da máquina alcançam. A entrada padrão não encosta no disco;
+2. **não há o que apagar**, logo não há caminho de erro em que o apagar não aconteça. Com arquivo
+   seria preciso um `try/finally` que sobrevivesse ao tempo esgotado e a qualquer exceção — e
+   "quase sempre apaga", em dado sigiloso, é o mesmo que "vaza às vezes";
+3. **não há nome para colidir.** Esta ponte é `ThreadingHTTPServer`: duas gerações simultâneas são
+   o caso normal, não a exceção;
+4. **não há permissão para errar.** O arquivo que não existe não precisa de `chmod 600`.
+
+A codificação da entrada é **UTF-8 explícita** (`encoding="utf-8"` no `subprocess.run`), e não a
+do ambiente: numa VPS com `LANG=C` o padrão do Python escreveria em ASCII e quebraria no primeiro
+"ção".
+
+Sobrou no código uma conferência de tamanho de argumento (`checar_argumentos`), que hoje nunca
+dispara. Ela fica **de propósito**: se alguém um dia reintroduzir `-q`, a recusa vem como `400`
+falado, com a mesma frase de tamanho que o Lúmen já sabe traduzir, em vez de `[Errno 7]` virando
+`500` opaco na tela do advogado.
+
+> **Ao atualizar a ponte, atualize o `hermes` junto.** Um binário velho, sem `--query-file`,
+> responde `501` dizendo exatamente isso — em vez de um erro genérico que mandaria você procurar
+> defeito na ponte. Para conferir antes: `hermes chat --help | grep query-file`.
 
 **O serviço não sobe sem o segredo.** Nem com um segredo curto (mínimo de 32 caracteres). Uma
 ponte sem autenticação não é uma ponte aberta: é um buraco, e falhar na hora de subir é a única
@@ -265,6 +324,17 @@ journalctl -u ponte-hermes-vigia -n 20  # quantas vezes ela caiu, e quando
 **Trocar o segredo:** gere um novo, grave no `/etc/lumen-hermes.env`, reinicie o serviço e
 atualize `HERMES_TOKEN` na Vercel. Entre um passo e outro a caixa de conversa cai na reserva
 (o Claude) em vez de dar erro — então a troca pode ser feita sem avisar ninguém.
+
+**Para a próxima entrega (TEMPO), e só para não ter de redescobrir:** `hermes chat` tem
+`--run-budget SECONDS` — um teto de tempo de relógio por conversa. Aos 80% do orçamento o agente
+recebe um aviso único para ir concluindo, e os tempos de espera implícitos do provedor passam a
+ser limitados ao que sobra do orçamento, de modo que uma chamada travada não consuma a execução
+inteira. A ajuda do binário diz que é feito justamente para invocação one-shot com teto duro — que
+é exatamente o caso desta ponte. **Não está ligado**, e ligar não é assunto desta entrega: o
+defeito de tempo (a geração real do dono passou de 240s e o Lúmen desistiu aos 230s) exige tirar a
+espera de dentro da requisição web, e `--run-budget` será a peça central disso. Os números da
+corrente de tempos continuam os da tabela acima e do topo de `servidor.py` — **não mexa em um sem
+conferir a corrente inteira.**
 
 **Uma trava que ficou de fora:** o serviço roda como root, porque os perfis do Hermes estão em
 `/root/.hermes`. Se um dia esses perfis mudarem para um diretório próprio, vale mudar o `User=` da

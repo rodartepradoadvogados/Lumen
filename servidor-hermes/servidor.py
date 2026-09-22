@@ -67,12 +67,26 @@ PORTA = int(os.environ.get("HERMES_PORT", "8787"))
 # do lado do Lumen, muito antes deste teto. Subir o teto daqui nao afrouxa nada do lado dela.
 ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "240"))
 
-CORPO_MAXIMO = 512 * 1024  # 512 KiB — ver PERGUNTA_MAXIMA: 200.000 caracteres de portugues com
-# acento, dentro de um JSON com escapes, passam com folga de 64 KiB. O corpo tem de caber a maior
-# pergunta que a linha de baixo aceita, ou a trava de tamanho do corpo recusaria (com 413, e sem
-# explicar nada) justamente o pedido que a trava de tamanho da pergunta acabou de aprovar.
-PERGUNTA_MAXIMA = 200_000  # caracteres
-# A HISTORIA DESTE NUMERO, que ja vai em tres capitulos:
+CORPO_MAXIMO = 512 * 1024  # 512 KiB, e este numero e em BYTES.
+#
+# AS DUAS UNIDADES DESTE ARQUIVO, e nao confundi-las e metade do que esta entrega existe para
+# consertar:
+#   · CORPO_MAXIMO conta BYTES   — e o `content-length` do JSON que chega pela rede;
+#   · PERGUNTA_MAXIMA conta CARACTERES — e o comprimento do texto da pergunta.
+#
+# Em portugues com acento o UTF-8 gasta 2 bytes por caractere acentuado: 200.000 caracteres de
+# peca juridica dao cerca de 210.000 a 230.000 BYTES, e o JSON ainda acrescenta os escapes de
+# aspas e de quebra de linha. 512 KiB = 524.288 bytes cobre isso com mais do que o dobro de
+# folga. O corpo TEM de caber a maior pergunta que a linha de baixo aceita, ou a trava de corpo
+# recusaria (com 413, e sem explicar nada) justamente o pedido que a trava de pergunta aprovou.
+#
+# A conta esta PROVADA em lib/testes/peticionamentoLimiteDaPonte.teste.ts, montando uma string de
+# portugues de verdade de 200.000 caracteres, serializando o corpo com JSON.stringify e medindo
+# os bytes que saem. Antes ela era uma RAZAO CHUTADA ("1,5 byte por caractere e margem de sobra")
+# — e razao chutada nao e medicao: e exatamente o genero de conta que deixou passar o defeito
+# anterior.
+PERGUNTA_MAXIMA = 200_000  # CARACTERES
+# A HISTORIA DESTE NUMERO, que ja vai em quatro capitulos:
 #
 #   8.000  — o valor original, tamanho de uma conversa de chat.
 #  16.000  — a maquina de producao passou a rodar com este valor quando o orcamento do prompt do
@@ -83,13 +97,23 @@ PERGUNTA_MAXIMA = 200_000  # caracteres
 # 200.000  — o Peticionamento passou a mandar o TEXTO dos documentos anexados, e nao so o nome
 #            deles. No primeiro uso real (dois documentos), o dono recebeu na tela
 #            `400 {"erro": "mensagem ausente ou longa demais"}` — porque 16.000 caracteres sao
-#            oito paginas, e nenhum processo de verdade cabe em oito paginas. Este e o capitulo
-#            que conserta aquilo.
+#            oito paginas, e nenhum processo de verdade cabe em oito paginas.
+# 200.000  — (o mesmo numero, por um triz) o teste seguinte do dono mostrou que este teto era
+#            INALCANCAVEL: a pergunta ia como UM argumento de linha de comando, e o Linux limita
+#            um unico argumento a MAX_ARG_STRLEN = 32 paginas = 131.072 BYTES. Uma mensagem de
+#            160.059 caracteres morreu em 9 milesimos de segundo, antes de chegar ao Hermes:
+#            `[Errno 7] Argument list too long: '/usr/local/bin/hermes'`. Pior que o 400 antigo,
+#            porque virava `500 {"erro": "falha ao executar o Hermes"}` na tela do advogado.
+#            O conserto NAO foi baixar o teto: foi tirar a pergunta do argv. O binario aceita
+#            `--query-file PATH` (com `-` lendo a entrada padrao), e e assim que ela viaja agora
+#            — ver `executar_hermes`. Com a pergunta fora da linha de comando, MAX_ARG_STRLEN
+#            deixa de ser o teto do produto e 200.000 caracteres passam a ser alcancaveis DE
+#            VERDADE, que e o que este numero sempre disse que era.
 #
-# POR QUE 200.000 E NAO "SEM LIMITE": sao ~50 mil tokens, algumas dezenas de paginas — grande o
-# bastante para o processo real que o dono quer que o agente leia inteiro, e pequeno o bastante
-# para continuar sendo um TETO. Um teto existe para que a recusa venha cedo, barata e explicada,
-# em vez de a maquina aceitar um pedido de tamanho arbitrario e morrer sem resposta la na frente.
+# POR QUE 200.000 E NAO "SEM LIMITE": sao algumas dezenas de paginas — grande o bastante para o
+# processo real que o dono quer que o agente leia inteiro, e pequeno o bastante para continuar
+# sendo um TETO. Um teto existe para que a recusa venha cedo, barata e explicada, em vez de a
+# maquina aceitar um pedido de tamanho arbitrario e morrer sem resposta la na frente.
 #
 # QUEM RECUSA DEVE SER O LUMEN, NAO ESTA LINHA. Este numero e espelhado em
 # lib/peticionamentoJanelaDeContexto.ts (PERGUNTA_MAXIMA_DA_PONTE), que recusa ANTES de mandar e
@@ -98,8 +122,29 @@ PERGUNTA_MAXIMA = 200_000  # caracteres
 # divergirem — mudar um lado so foi exatamente como o defeito chegou a producao.
 #
 # O CAMINHO DA ANA NAO MUDA: LIMITE_DA_PERGUNTA (7.500) continua sendo o orcamento dela, e
-# lib/testes/limiteDoPedido.teste.ts continua exigindo que ele caiba aqui dentro. Subir este teto
-# nao afrouxa nada do lado do atendimento — so deixa de estrangular o peticionamento.
+# lib/testes/limiteDoPedido.teste.ts continua exigindo que ele caiba aqui dentro.
+
+# O TETO DE UM UNICO ARGUMENTO DE LINHA DE COMANDO, em BYTES.
+#
+# MAX_ARG_STRLEN do Linux, definido em include/uapi/linux/binfmts.h como 32 * PAGE_SIZE. Numa
+# maquina de pagina de 4 KiB (todo x86-64, e a VPS do escritorio) sao 32 * 4096 = 131.072 bytes,
+# contando o byte nulo do fim. Paginas maiores (16 KiB ou 64 KiB em alguns ARM) so AUMENTAM o
+# teto, entao 131.072 e o PISO — e piso e o unico numero seguro de usar num teto.
+#
+# Desde que a pergunta viaja por `--query-file -`, NADA no argv depende do tamanho do pedido:
+# sobram o caminho do binario, `-p <perfil>`, `chat`, `--query-file`, `-`, `--oneshot`, `-Q` e,
+# quando ha sessao, `--resume <id>` — algumas centenas de bytes no pior caso. A conferencia
+# abaixo, portanto, NAO e o que segura o tamanho do pedido: ela e o cinto que garante que a
+# pergunta nao VOLTE para o argv por descuido. Se alguem um dia reintroduzir `-q`, a recusa vem
+# como 400 falado, e nao como E2BIG virando 500 opaco na tela do advogado — que foi exatamente o
+# que aconteceu em producao.
+TETO_DE_ARGUMENTO_BYTES = 32 * 4096
+
+# Folga sobre TETO_DE_ARGUMENTO_BYTES na conferencia do argv. Nao e para o tamanho do pedido (a
+# pergunta nao esta mais ali): e para o que o argv tem de variavel e nao controlamos de perto —
+# HERMES_BIN pode ser um caminho longo, e o id de sessao vem do Hermes.
+FOLGA_DO_ARGV_BYTES = 8 * 1024
+
 
 # O nome do perfil é conferido contra um formato, não contra uma lista: minúsculas, dígitos, ponto,
 # hífen e sublinhado. NÃO se exige mais o prefixo "lumen-tenant-" — esse prefixo era invenção do
@@ -129,11 +174,51 @@ class PerfilAusente(Exception):
     """O escritório ainda não tem perfil provisionado no Hermes."""
 
 
+class ArgumentoGrandeDemais(Exception):
+    """A linha de comando montada não caberia no teto do sistema operacional.
+
+    Recusar AQUI, antes do `subprocess.run`, é o ponto inteiro: deixar o `exec` estourar devolve
+    `[Errno 7] Argument list too long`, que vira `500 {"erro": "falha ao executar o Hermes"}` —
+    um erro opaco, que não diz ao advogado nada que ele possa fazer. Uma recusa 400 falada é
+    infinitamente melhor que um 500 mudo.
+    """
+
+
+class HermesDesatualizado(Exception):
+    """Este binário do Hermes não conhece `--query-file`.
+
+    Só pode acontecer numa instalação que ficou para trás. Merece mensagem própria porque o
+    conserto é do lado do servidor (atualizar o binário), não do lado de quem perguntou — e um
+    "falha ao executar o Hermes" genérico mandaria o dono procurar defeito no lugar errado, que
+    foi como o prefixo inventado `lumen-tenant-` manteve esta integração quebrada por dias.
+    """
+
+
+def checar_argumentos(argumentos: list) -> None:
+    """Recusa ANTES de executar, se algum argumento passar do teto do sistema operacional.
+
+    Mede em BYTES UTF-8, e não em caracteres: MAX_ARG_STRLEN é um limite de bytes, e foi
+    justamente medir em caracteres o que fez `200.000` parecer alcançável quando o teto real
+    eram 131.072 bytes — em português com acento, a diferença é de 10% a 15%.
+
+    O `+ 1` é o byte nulo com que o sistema termina cada argumento; ele conta para o teto.
+    """
+    teto = TETO_DE_ARGUMENTO_BYTES - FOLGA_DO_ARGV_BYTES
+    for argumento in argumentos:
+        tamanho = len(argumento.encode("utf-8")) + 1
+        if tamanho > teto:
+            raise ArgumentoGrandeDemais(
+                "um argumento da linha de comando tem %d bytes, acima do teto de %d" % (tamanho, teto)
+            )
+
+
 def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas: dict | None = None):
     """Roda o Hermes e devolve (resposta, id_da_sessao).
 
     Sem shell: `subprocess.run` recebe a lista de argumentos e o sistema operacional a entrega ao
-    programa como está. É o que torna seguro passar a pergunta de um usuário aqui dentro.
+    programa como está. A pergunta do usuário nem sequer passa por essa lista — vai pela entrada
+    padrão, via `--query-file -` (ver o comentário longo abaixo). Sem shell e fora do argv, não há
+    injeção de comando nem teto de tamanho de argumento a respeitar.
 
     AS FERRAMENTAS VÃO PELO AMBIENTE, e só deste processo. O Lúmen manda, junto com a pergunta, o
     endereço onde o agente consulta os dados e a credencial daquela pergunta. Aqui elas viram duas
@@ -146,14 +231,54 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas:
     """
     # O COMANDO REAL, confirmado com `hermes --help` e `hermes chat --help` na máquina:
     #
-    #   hermes -p <perfil> chat -q "<pergunta>" --oneshot -Q [--resume <id>]
+    #   hermes -p <perfil> chat --query-file - --oneshot -Q [--resume <id>]
     #
     # `-p` vem ANTES do subcomando: é opção do programa, não do `chat`. O código antigo usava
     # `chat --profile <perfil>`, opção que NÃO EXISTE — por isso nunca funcionou.
     # `--oneshot` responde e sai, em vez de abrir sessão interativa. `-Q` cala o supérfluo.
-    argumentos = [HERMES_BIN, "-p", perfil, "chat", "-q", mensagem, "--oneshot", "-Q"]
+    #
+    # ── A PERGUNTA NÃO VAI MAIS NA LINHA DE COMANDO, e é esta a correção desta entrega ────────
+    #
+    # Era `-q <mensagem>`: a pergunta inteira como UM argumento. O Linux limita um único argumento
+    # a MAX_ARG_STRLEN (ver TETO_DE_ARGUMENTO_BYTES) — 131.072 bytes, que em português com acento
+    # são entre ~110.000 e ~125.000 caracteres. Uma geração real do dono, com 160.059 caracteres,
+    # morreu em 9 milésimos de segundo sem nunca chegar ao Hermes:
+    #
+    #   [ponte-hermes] pergunta para peticionamento-lumen (160059 caracteres, nova conversa, ...)
+    #   [ponte-hermes] falha ao executar o Hermes: [Errno 7] Argument list too long
+    #
+    # `--query-file PATH` lê a pergunta de um arquivo, e `-` lê da ENTRADA PADRÃO. É por ela que a
+    # pergunta viaja agora. `-q` e `--query-file` são MUTUAMENTE EXCLUSIVOS — mandar os dois é erro
+    # de uso, então `-q` desapareceu daqui inteiro.
+    #
+    # POR QUE STDIN E NÃO UM ARQUIVO TEMPORÁRIO, que `--query-file PATH` também aceita:
+    #
+    #   · a pergunta é dado de cliente de escritório de advocacia. Sigilo profissional não é
+    #     detalhe: um arquivo temporário coloca a peça inteira no disco, ainda que por segundos,
+    #     onde backup, snapshot da VPS e qualquer outro processo da máquina podem alcançá-la. A
+    #     entrada padrão não encosta no disco;
+    #   · não há o que apagar, logo não há caminho de erro em que o apagar não aconteça. Com
+    #     arquivo seria preciso um `try/finally` que sobrevivesse ao tempo esgotado e a qualquer
+    #     exceção — e "quase sempre apaga" é, em dado sigiloso, o mesmo que "vaza às vezes";
+    #   · não há nome para colidir entre duas perguntas simultâneas (esta ponte é
+    #     `ThreadingHTTPServer`: duas gerações ao mesmo tempo são o caso normal, não a exceção);
+    #   · a permissão do arquivo deixaria de ser um problema porque o arquivo deixa de existir.
+    #
+    # `encoding="utf-8"` é EXPLÍCITO de propósito: sem ele o Python usa a codificação do ambiente,
+    # e uma VPS com `LANG=C` escreveria a pergunta em ASCII e quebraria no primeiro "ção". O mesmo
+    # `encoding` vale para a resposta que volta.
+    #
+    # SE UM DIA PRECISAR VOLTAR A SER ARQUIVO (por exemplo, se alguma versão do Hermes deixar de
+    # aceitar `-`): o único lugar a mexer é este bloco — trocar `"-"` pelo caminho e `input=` por
+    # um `try/finally` que grave e apague. Nada mais neste arquivo sabe por onde a pergunta viaja.
+    argumentos = [HERMES_BIN, "-p", perfil, "chat", "--query-file", "-", "--oneshot", "-Q"]
     if sessao:
         argumentos += ["--resume", sessao]
+
+    # RECUSA ANTES DE EXECUTAR. Com a pergunta fora do argv isto nunca deve disparar — e é
+    # exatamente por isso que fica: se alguém reintroduzir `-q` aqui, a recusa vem falada e 400,
+    # em vez de `[Errno 7]` virando 500 opaco na tela do advogado.
+    checar_argumentos(argumentos)
 
     ambiente = os.environ.copy()
     if ferramentas:
@@ -162,8 +287,12 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas:
 
     concluido = subprocess.run(
         argumentos,
+        # A PERGUNTA ENTRA POR AQUI, e não pelo argv — ver o bloco acima.
+        input=mensagem,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=ESPERA_S,
         check=False,
         env=ambiente,
@@ -171,9 +300,15 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas:
 
     if concluido.returncode != 0:
         erro = (concluido.stderr or "").strip()
+        minusculo = erro.lower()
+        # Binário antigo, que ainda não conhece `--query-file`. Merece resposta própria: o
+        # conserto é atualizar o Hermes na máquina, e um "falha ao executar" genérico mandaria
+        # quem cuida do servidor procurar defeito no lugar errado.
+        if "--query-file" in erro and ("unrecognized" in minusculo or "no such option" in minusculo or "invalid" in minusculo):
+            raise HermesDesatualizado(erro[:300])
         # O Hermes diz "profile ... not found" quando o escritório não foi provisionado. Esse caso
         # tem conserto pelo painel mestre, e não por quem cuida do servidor — por isso vira 404.
-        if "profile" in erro.lower() and ("not found" in erro.lower() or "unknown" in erro.lower()):
+        if "profile" in minusculo and ("not found" in minusculo or "unknown" in minusculo):
             raise PerfilAusente(erro[:300])
         raise RuntimeError(erro[:300] or f"o Hermes terminou com código {concluido.returncode}")
 
@@ -401,6 +536,10 @@ class Ponte(BaseHTTPRequestHandler):
         if not PERFIL_VALIDO.match(perfil):
             self._responder(400, {"erro": "perfil inválido"})
             return
+        # EM CARACTERES, e de propósito: PERGUNTA_MAXIMA é um teto de CARACTERES (é assim que ele
+        # está escrito, é assim que o Lúmen o espelha, e é o texto da pergunta que ele mede).
+        # Quem conta BYTES aqui dentro é CORPO_MAXIMO, lá em cima, sobre o `content-length` —
+        # duas travas, duas unidades, cada uma medindo o que de fato limita.
         if not mensagem or len(mensagem) > PERGUNTA_MAXIMA:
             self._responder(400, {"erro": "mensagem ausente ou longa demais"})
             return
@@ -412,11 +551,30 @@ class Ponte(BaseHTTPRequestHandler):
         # Nem a pergunta nem a credencial entram no registro: uma é dado de cliente, a outra abre
         # a consulta ao escritório. Fica o tamanho, o perfil, e se há ferramentas — o suficiente
         # para investigar, longe de virar uma segunda cópia do que passou por aqui.
-        log.info("pergunta para %s (%d caracteres, %s, ferramentas: %s)", perfil, len(mensagem),
+        # O TAMANHO VAI NAS DUAS UNIDADES. Foi este registro que revelou o defeito do argv — e ele
+        # mostrava só caracteres, justamente a unidade que NÃO era a do limite estourado. Com os
+        # bytes ao lado, a próxima investigação começa com o número certo na mão.
+        log.info("pergunta para %s (%d caracteres, %d bytes, %s, ferramentas: %s)", perfil,
+                 len(mensagem), len(mensagem.encode("utf-8")),
                  "continuando" if sessao else "nova conversa", "sim" if ferramentas else "nao")
 
         try:
             resposta, nova_sessao = executar_hermes(perfil, mensagem, sessao, ferramentas)
+        except ArgumentoGrandeDemais as erro:
+            # MESMA FRASE da trava de tamanho lá em cima, e isso é intencional: o Lúmen já sabe
+            # traduzir "mensagem ausente ou longa demais" numa recusa falada e acionável, com os
+            # botões de saída da tela de limite. Uma segunda frase para o mesmo motivo só criaria
+            # um caminho novo para o advogado ficar sem instrução nenhuma.
+            log.error("argumento grande demais em %s: %s", perfil, erro)
+            self._responder(400, {"erro": "mensagem ausente ou longa demais"})
+            return
+        except HermesDesatualizado as erro:
+            log.error("hermes sem --query-file em %s: %s", perfil, erro)
+            self._responder(
+                501,
+                {"erro": "esta instalação do hermes não conhece --query-file — atualize o binário (ver LEIA-ME.md)"},
+            )
+            return
         except PerfilAusente as erro:
             log.warning("perfil ausente: %s", erro)
             self._responder(404, {"erro": "perfil não provisionado"})
