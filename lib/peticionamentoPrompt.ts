@@ -115,7 +115,9 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   partes.push(MARCADORES.corpo);
   partes.push("(o texto completo da petição, do endereçamento ao fecho)");
   partes.push(MARCADORES.jurisprudencia);
-  partes.push("(uma linha por precedente citado, no formato: texto do precedente || url da fonte — ou deixe esta seção vazia se nenhum precedente foi citado)");
+  partes.push(
+    "(uma linha por precedente citado, no formato: texto do precedente || url da fonte original || url da fonte secundária de validação cruzada, se houver uma segunda fonte — o terceiro campo é opcional, omita o \"||\" final quando não tiver uma segunda fonte; deixe esta seção vazia se nenhum precedente foi citado)",
+  );
   partes.push(MARCADORES.riscos);
   partes.push("(uma linha por risco identificado — cada frase apontando algo, nunca decidindo ou prognosticando; deixe vazio se nada a apontar)");
   partes.push(MARCADORES.documentos);

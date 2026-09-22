@@ -25,12 +25,15 @@ export function ExportarModal({
   sessaoId,
   podeExportar,
   jaExportada,
+  citacoesPendentes,
   onFechar,
 }: {
   sessaoId: string;
   arquivoNomeSugerido: string;
   podeExportar: AvaliacaoDeExportacao;
   jaExportada: boolean;
+  /** Decisão do dono (22/09/2026): quantas citações ainda faltam confirmar — bloqueia o botão e diz quantas faltam. */
+  citacoesPendentes: number;
   onFechar: () => void;
 }) {
   const [ciente, setCiente] = useState(false);
@@ -90,6 +93,12 @@ export function ExportarModal({
 
             {erro && <div className="callout callout-danger" style={{ marginBottom: 12 }}>{erro}</div>}
             {jaExportada && <div className="callout callout-warn" style={{ marginBottom: 12 }}>Esta sessão já foi exportada antes — exportar de novo cria um novo registro de confirmação.</div>}
+            {citacoesPendentes > 0 && (
+              <div className="callout callout-warn" style={{ marginBottom: 12 }}>
+                Ainda falta{citacoesPendentes === 1 ? "" : "m"} confirmar {citacoesPendentes} cita{citacoesPendentes === 1 ? "ção" : "ções"} na tela da minuta —
+                cada uma precisa da marca &quot;li e revisei&quot; individual antes de exportar.
+              </div>
+            )}
 
             <label className="consent-box">
               <input type="checkbox" checked={ciente} onChange={(e) => setCiente(e.target.checked)} />
@@ -108,8 +117,14 @@ export function ExportarModal({
               <button className="btn btn-ghost" onClick={onFechar}>
                 Cancelar
               </button>
-              <button className="btn btn-primary" disabled={!ciente || pendente} onClick={exportar}>
-                {pendente ? "Exportando…" : "Exportar"}
+              <button className="btn btn-primary" disabled={!ciente || pendente || citacoesPendentes > 0} onClick={exportar}>
+                {pendente
+                  ? "Exportando…"
+                  : citacoesPendentes > 0
+                    ? citacoesPendentes === 1
+                      ? "Falta 1 citação"
+                      : `Faltam ${citacoesPendentes} citações`
+                    : "Exportar"}
               </button>
             </div>
           </>

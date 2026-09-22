@@ -30,6 +30,20 @@ teste("precedente sem fonte (sem '||'): texto inteiro vira o texto, fonte null",
   igual(r.jurisprudencia[0].texto, "Tema fictício sem link");
 });
 
+teste("precedente com as DUAS fontes (terceiro campo '||'): fonte E fonteSecundaria preenchidas — lista de validação de citações", () => {
+  const bruto = `${M.corpo}\ncorpo\n${M.jurisprudencia}\nSTJ, REsp 1.874.782/SP (Tema 990) || https://stj.jus.br/x || https://conjur.com.br/y`;
+  const r = interpretarRespostaHermes(bruto);
+  igual(r.jurisprudencia[0].fonte, "https://stj.jus.br/x");
+  igual(r.jurisprudencia[0].fonteSecundaria, "https://conjur.com.br/y");
+});
+
+teste("precedente com fonte única (dois campos '||'): fonteSecundaria fica null, nunca undefined silencioso", () => {
+  const bruto = `${M.corpo}\ncorpo\n${M.jurisprudencia}\nTema 990 || https://stj.jus.br/x`;
+  const r = interpretarRespostaHermes(bruto);
+  igual(r.jurisprudencia[0].fonte, "https://stj.jus.br/x");
+  igual(r.jurisprudencia[0].fonteSecundaria, null);
+});
+
 teste("seções vazias (só o placeholder entre parênteses) viram lista vazia, nunca um item fantasma", () => {
   const bruto = `${M.corpo}\ncorpo\n${M.jurisprudencia}\n(nenhum precedente citado)\n${M.riscos}\n(nada a apontar)`;
   const r = interpretarRespostaHermes(bruto);

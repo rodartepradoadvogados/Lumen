@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { atualizarCorpoDaMinuta } from "@/lib/actions/peticionamento";
 import { ExportarModal } from "@/components/peticionamento/ExportarModal";
+import { CitacoesClient } from "@/components/peticionamento/CitacoesClient";
 import type { AvaliacaoDeExportacao } from "@/lib/peticionamentoAcesso";
 
 export function MinutaClient({
@@ -25,6 +26,10 @@ export function MinutaClient({
   const [corpo, setCorpo] = useState(corpoInicial);
   const [modalAberto, setModalAberto] = useState(false);
   const [salvo, setSalvo] = useState(true);
+  // Incrementa a cada salvamento do corpo — CitacoesClient observa isto para recarregar a lista,
+  // já que editar a minuta pode ter invalidado a confirmação de alguma citação (decisão do dono).
+  const [versaoSalva, setVersaoSalva] = useState(0);
+  const [citacoesPendentes, setCitacoesPendentes] = useState(0);
 
   useEffect(() => {
     if (corpo === corpoInicial) return;
@@ -32,6 +37,7 @@ export function MinutaClient({
     const t = setTimeout(async () => {
       await atualizarCorpoDaMinuta(sessaoId, corpo);
       setSalvo(true);
+      setVersaoSalva((v) => v + 1);
     }, 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,6 +120,12 @@ export function MinutaClient({
             />
           </article>
         </div>
+
+        {/* Decisão do dono (22/09/2026): a lista de validação de citações vive AQUI, na mesma tela
+            de onde se exporta — quem vai clicar "Exportar" vê, logo acima, o que ainda falta revisar. */}
+        <div className="paper-wrap">
+          <CitacoesClient sessaoId={sessaoId} atualizarQuando={versaoSalva} onContagemMudou={setCitacoesPendentes} />
+        </div>
       </div>
 
       {modalAberto && (
@@ -122,6 +134,7 @@ export function MinutaClient({
           arquivoNomeSugerido={titulo}
           podeExportar={podeExportar}
           jaExportada={exportada}
+          citacoesPendentes={citacoesPendentes}
           onFechar={() => setModalAberto(false)}
         />
       )}

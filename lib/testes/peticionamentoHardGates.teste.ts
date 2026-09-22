@@ -135,6 +135,62 @@ teste("HARD GATE: o metadado de rascunho de IA é sempre passado ao gerar o .doc
   verdade(chamaMetadados, "montarPeticaoWord deveria sempre acrescentar os metadados obrigatórios");
 });
 
+// ── Citações: uma a uma, sem atalho — decisão do dono (22/09/2026) ─────────────────────────────
+
+teste("HARD GATE: confirmarExportacao recusa exportar com citação pendente, ANTES de montar o .docx", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarExportacao"));
+  verdade(corpo.length > 300, "corpoDaFuncao não encontrou confirmarExportacao");
+  verdade(corpo.includes("sincronizarCitacoes("), "deveria resincronizar a lista de citações antes de contar as pendentes");
+  verdade(/peticionamentoCitacao\.count\(\{\s*where:\s*\{\s*sessaoId,\s*confirmadaPorId:\s*null\s*\}/.test(corpo), "deveria contar citações com confirmadaPorId nulo desta sessão");
+  // CHAMAR NÃO É OBEDECER (mesma armadilha já documentada acima para avaliarExportacao): o veredito
+  // precisa DESVIAR a execução, não só ser calculado e ignorado.
+  verdade(/if \(citacoesPendentes > 0\) \{/.test(corpo), "o veredito de citações pendentes precisa interromper a exportação, não só ser calculado");
+  const idxContagem = corpo.indexOf("peticionamentoCitacao.count(");
+  const idxDocx = corpo.indexOf("montarPeticaoWord(");
+  verdade(idxContagem !== -1 && idxDocx !== -1 && idxContagem < idxDocx, "a checagem de citações pendentes precisa vir ANTES de montar o arquivo");
+});
+
+teste("HARD GATE: NÃO existe ação de 'confirmar todas as citações' — é uma por vez, sempre", () => {
+  // Varre TODO o arquivo (não só uma função) porque o ponto desta trava é a AUSÊNCIA de uma
+  // funcionalidade inteira — não há uma função específica para isolar e conferir por dentro.
+  const codigo = codigoDe(FONTE_ACOES);
+  const proibido = /confirmarTodas|confirmarcitacoes\(|marcarTodasComoLidas|revisarTodas/i;
+  verdade(!proibido.test(codigo.replace(/\s+/g, "")), "não deveria existir nenhuma rotina de confirmação em lote das citações");
+  // A ÚNICA escrita em PeticionamentoCitacao.confirmadaPorId é dentro de confirmarCitacaoIndividual,
+  // sempre por UM id específico (`where: { id: citacaoId }`) — nunca um updateMany.
+  verdade(!codigo.includes("peticionamentoCitacao.updateMany("), "confirmação de citação nunca pode ser um updateMany (confirmaria mais de uma de uma vez)");
+});
+
+teste("HARD GATE: confirmarCitacaoIndividual grava quem confirmou e quando, uma citação por chamada", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarCitacaoIndividual"));
+  verdade(corpo.length > 150, "corpoDaFuncao não encontrou confirmarCitacaoIndividual");
+  verdade(corpo.includes("confirmadaPorId: user.id"), "deveria gravar quem confirmou");
+  verdade(corpo.includes("confirmadaEm: new Date()"), "deveria gravar quando confirmou");
+  verdade(corpo.includes("hashDoTexto: hashDeTexto("), "deveria gravar a impressão do texto no momento da confirmação");
+});
+
+teste("HARD GATE: sincronizarCitacoes apaga a citação cuja identidade não bate mais — é assim que editar invalida a confirmação", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  verdade(corpo.length > 300, "corpoDaFuncao não encontrou sincronizarCitacoes");
+  verdade(corpo.includes("peticionamentoCitacao.delete("), "deveria apagar citação cujo texto (na forma normalizada) não existe mais na lista atual");
+  verdade(
+    /if \(!chavesMantidas\.has\(chave\)\) operacoes\.push\(prisma\.peticionamentoCitacao\.delete\(/.test(corpo),
+    "a exclusão precisa ser condicionada a 'não estar mais entre as chaves mantidas' — sem isso, apagaria tudo ou nada",
+  );
+});
+
+teste("HARD GATE: sincronizarCitacoes NUNCA mexe em confirmadaPorId/confirmadaEm ao atualizar uma citação existente", () => {
+  // Isola só o UPDATE de citação já existente (não o create, não o delete) — é aqui que uma
+  // confirmação que deveria sobreviver (texto não mudou) poderia ser apagada por engano.
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  const inicioUpdate = corpo.indexOf("prisma.peticionamentoCitacao.update(");
+  verdade(inicioUpdate !== -1, "sincronizarCitacoes deveria ter um update para citação já existente");
+  const fimUpdate = corpo.indexOf("})),", inicioUpdate);
+  const trechoUpdate = corpo.slice(inicioUpdate, fimUpdate === -1 ? undefined : fimUpdate);
+  verdade(!trechoUpdate.includes("confirmadaPorId"), "o update de sincronização não deveria tocar em confirmadaPorId — apagaria uma confirmação válida");
+  verdade(!trechoUpdate.includes("confirmadaEm"), "o update de sincronização não deveria tocar em confirmadaEm");
+});
+
 // ── Clientes diferentes nunca se misturam ────────────────────────────────────────────────────
 
 teste("HARD GATE: alternarVinculo valida o cliente ANTES de gravar qualquer vínculo novo", () => {

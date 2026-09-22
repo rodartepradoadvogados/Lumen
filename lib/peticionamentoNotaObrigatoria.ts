@@ -17,6 +17,14 @@ export type PrecedenteCitado = {
   texto: string;
   /** Link da fonte original — sem link, o hard gate ainda escreve a linha, mas avisa que falta. */
   fonte: string | null;
+  /**
+   * Link da SEGUNDA fonte da dupla validação (ex.: Conjur/Migalhas/Jusbrasil), quando o agente
+   * informou uma — usado pela lista de validação de citações (lib/peticionamentoCitacoes.ts),
+   * nunca por este módulo (a nota obrigatória continua citando só a fonte original na linha de
+   * jurisprudência). Opcional/undefined por compatibilidade com quem já montava este objeto antes
+   * desta entrega, sem essa segunda fonte.
+   */
+  fonteSecundaria?: string | null;
 };
 
 /** Um documento que NÃO pôde ser lido — nunca entra em documentosBaseConsultados. */
