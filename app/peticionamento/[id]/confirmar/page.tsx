@@ -6,6 +6,17 @@ import { obterSessaoPeticionamento, obterResumoTriagem, avaliarTrabalhoEmAndamen
 
 export const dynamic = "force-dynamic";
 
+// É DESTA TELA que sai `confirmarTriagemEGerar`, a Server Action que fala com o Hermes — e uma
+// Server Action herda o `maxDuration` do segmento de onde é chamada. Sem esta linha, a geração
+// corria no tempo PADRÃO da plataforma, muito abaixo do que uma peça com dezenas de páginas de
+// documento leva para ser redigida: o advogado veria a função ser cortada no meio, sem erro que
+// se possa explicar.
+//
+// 300s é o elo MAIS LONGO da corrente de tempos (Lúmen 230s < ponte 240s < nginx 280s < aqui),
+// de propósito: quem desiste primeiro tem de ser o Lúmen, o único lado capaz de dizer ao
+// advogado o que aconteceu. Ver ESPERA_PETICIONAMENTO_MS em lib/hermesPonte.ts.
+export const maxDuration = 300;
+
 export default async function ConfirmarPage({ params }: { params: { id: string } }) {
   const user = await getCurrentUser();
   if (!user) notFound();

@@ -24,8 +24,8 @@ import { mensagemDeErro } from "@/lib/mensagemDeErro";
  * título, número e cliente" morreu aqui. O agente estava trabalhando; quem desistiu fomos nós.
  *
  * 90s, com `maxDuration = 120` na rota: sobram 30s de folga para o resto do trabalho da função.
- * O serviço do outro lado corta em 110s e o nginx em 150s, então esta é a trava mais curta da
- * corrente — que é onde ela deve estar, para o erro vir com explicação em vez de um corte seco.
+ * O serviço do outro lado e o nginx cortam depois, então esta é a trava mais curta da corrente —
+ * que é onde ela deve estar, para o erro vir com explicação em vez de um corte seco.
  */
 // 105s, e o número não é arbitrário: a Vercel corta a função em 120s (maxDuration), e o servidor
 // da ponte, do outro lado, espera 110s pelo Hermes. Com 90s aqui, o Lúmen desistia enquanto a
@@ -37,6 +37,33 @@ import { mensagemDeErro } from "@/lib/mensagemDeErro";
 // nunca espera MAIS do que já esperava antes, mesmo quando sobra orçamento de pedido de sobra
 // (ex.: mensagem de texto, sem mídia nem transcrição pela frente).
 export const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 105_000);
+
+/**
+ * QUANTO SE ESPERA PELO PETICIONAMENTO — e só por ele.
+ *
+ * Um pedido de peticionamento não é uma pergunta de chat: leva o TEXTO dos documentos anexados,
+ * até 200.000 caracteres (`PERGUNTA_MAXIMA` da ponte, espelhado em
+ * lib/peticionamentoJanelaDeContexto.ts). Ler algumas dezenas de páginas e redigir uma peça
+ * inteira demora mais que responder "quais processos estão parados" — e os 105s de `ESPERA_MS`,
+ * dimensionados para conversa, cortariam no meio da redação.
+ *
+ * SUBIR O TETO DE TAMANHO SEM SUBIR O DE TEMPO SERIA TROCA RUIM: o advogado deixaria de receber
+ * um 400 limpo ("não cabe, faça assim") para receber um tempo esgotado depois de dois minutos de
+ * espera — erro pior, porque não diz nada e ainda cobra a espera.
+ *
+ * É uma constante SEPARADA, e não `ESPERA_MS` aumentado, porque o caminho da Ana (atendimento,
+ * WhatsApp) não pode herdar isto: lá, esperar quatro minutos por uma resposta de chat é um
+ * defeito, não uma paciência. Ali o orçamento continua sendo o de lib/orcamentoDoPedido.ts.
+ *
+ * A CORRENTE, do mais curto para o mais longo — cada elo precisa ser menor que o próximo, para
+ * quem desiste primeiro ser sempre quem sabe explicar:
+ *   este número                                        230s
+ *     < ponte (ESPERA_S, servidor-hermes/servidor.py)  240s
+ *       < nginx (proxy_read_timeout, LEIA-ME.md)       280s
+ *         < Vercel (maxDuration em
+ *           app/peticionamento/[id]/confirmar/page.tsx) 300s
+ */
+export const ESPERA_PETICIONAMENTO_MS = Number(process.env.HERMES_TIMEOUT_PETICIONAMENTO_MS || 230_000);
 
 /**
  * O nome do perfil do Hermes para um escritório.
