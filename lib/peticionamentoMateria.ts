@@ -42,3 +42,55 @@ export function validarNovaMateria(nomeDigitado: string, materiasJaDoEscritorio:
   if (jaExiste) return { ok: false, erro: "Este escritório já cadastrou uma matéria com este nome." };
   return { ok: true, nomeNormalizado: nome };
 }
+
+// ── MAIS DE UMA MATÉRIA (pedido do dono, 22/09/2026: "Em vincular contexto, precisa de permitir
+// marcar mais de uma matéria") ────────────────────────────────────────────────────────────────
+//
+// O contrato está escrito no schema (PeticionamentoSessao.materiasNomes): `materiaNome` continua
+// sendo a matéria PRINCIPAL (a primeira marcada) e `materiasNomes` é a lista COMPLETA, incluindo
+// a principal, na ordem em que foram marcadas. As duas funções abaixo são o lado PURO disso — a
+// leitura fail-open do dado antigo e a normalização do que a tela mandou.
+
+export type MateriaEscolhida = { nome: string; ehDoEscritorio: boolean };
+
+/**
+ * A LEITURA FAIL-OPEN, exigida pelo schema: "uma sessão antiga (materiasNomes vazia, materiaNome
+ * preenchida) tem de ser lida como 'uma matéria só' sem nenhum passo de migração".
+ *
+ * Recebe `materiasNomes` como `unknown` de propósito — é uma coluna Json, e o que vem do Prisma
+ * pode ser array, null, ou (se alguém gravar torto um dia) qualquer outra coisa. Nada aqui
+ * estoura: lista inválida vira lista vazia, e a matéria principal salva o caso antigo.
+ */
+export function lerMateriasDaSessao(materiasNomes: unknown, materiaNome: string | null | undefined): string[] {
+  const lista = Array.isArray(materiasNomes)
+    ? materiasNomes.filter((n): n is string => typeof n === "string" && n.trim().length > 0).map((n) => n.trim())
+    : [];
+  if (lista.length > 0) return lista;
+  const principal = (materiaNome ?? "").trim();
+  return principal ? [principal] : [];
+}
+
+/** A matéria-cabeça — a primeira da lista, ou a antiga `materiaNome` quando a lista não existe. */
+export function materiaPrincipalDaSessao(materiasNomes: unknown, materiaNome: string | null | undefined): string | null {
+  return lerMateriasDaSessao(materiasNomes, materiaNome)[0] ?? null;
+}
+
+/**
+ * O que a tela mandou, pronto para gravar: sem vazio, sem repetida, ordem de marcação preservada
+ * (é ela que decide quem é a principal). A comparação de duplicata ignora caixa — "Cível" e
+ * "cível" são a mesma matéria, e deixar as duas entrarem faria o prompt listar a mesma coisa
+ * duas vezes ao agente.
+ */
+export function normalizarSelecaoDeMaterias(selecao: MateriaEscolhida[]): MateriaEscolhida[] {
+  const vistas = new Set<string>();
+  const saida: MateriaEscolhida[] = [];
+  for (const item of selecao) {
+    const nome = (item?.nome ?? "").trim();
+    if (!nome) continue;
+    const chave = nome.toLowerCase();
+    if (vistas.has(chave)) continue;
+    vistas.add(chave);
+    saida.push({ nome, ehDoEscritorio: !!item.ehDoEscritorio });
+  }
+  return saida;
+}

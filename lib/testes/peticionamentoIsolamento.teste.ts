@@ -33,7 +33,12 @@ teste("a varredura encontra as ações de sessão — uma lista vazia passaria v
   const acoes = acoesQueRecebemSessaoId();
   verdade(acoes.length >= 10, `só ${acoes.length} ação(ões) com sessaoId encontradas: ${acoes.join(", ")}`);
   // Âncoras: se alguma destas desaparecer da varredura, é a varredura que quebrou, não o código.
-  for (const esperada of ["definirMateria", "alternarVinculo", "salvarWizard", "confirmarTriagemEGerar", "confirmarExportacao", "atualizarCorpoDaMinuta"]) {
+  // ADAPTADA 22/09/2026: "definirMateria" virou "definirMaterias" quando o dono pediu para poder
+  // marcar mais de uma matéria — a âncora existe para provar que a VARREDURA acha as ações, e
+  // apontar para um nome que não existe mais a faria acusar quebra da varredura em vez de quebra
+  // do código. "excluirRascunho" e "buscarContextoParaVincular" entram como âncoras novas: são as
+  // duas ações desta entrega que recebem sessaoId, e é exatamente delas que a trava é cobrada.
+  for (const esperada of ["definirMaterias", "excluirRascunho", "buscarContextoParaVincular", "alternarVinculo", "salvarWizard", "confirmarTriagemEGerar", "confirmarExportacao", "atualizarCorpoDaMinuta"]) {
     verdade(acoes.includes(esperada), `a varredura não achou "${esperada}"`);
   }
 });
@@ -94,7 +99,11 @@ teste("TRAVA: a ação que entra por anexoId (não por sessaoId) confere o escri
 // peticionamentoAnexo e peticionamentoExportacao pendem de uma sessão já conferida, então ali o
 // corte por sessaoId basta. Estas outras cinco são tabelas do escritório inteiro: uma consulta
 // sem officeId nelas vaza processo, atendimento, assessoria, documento e timbrado alheios.
-const MODELOS_DE_ESCRITORIO = ["case", "attendance", "assessoria", "attachment", "peticionamentoMateria", "office"];
+// "licitacao" e "parecer" entraram em 22/09/2026 com a busca por tipo (item 3 do pedido do dono):
+// procurar uma licitação ou uma demanda passa por essas duas tabelas, que são do ESCRITÓRIO
+// inteiro — uma consulta sem officeId nelas mostraria a licitação e o parecer de outro escritório
+// na caixa de busca, com o nome da empresa junto.
+const MODELOS_DE_ESCRITORIO = ["case", "attendance", "assessoria", "attachment", "peticionamentoMateria", "office", "licitacao", "parecer"];
 
 /**
  * O TRECHO DA PRÓPRIA CHAMADA: do `(` que abre até o `)` que o fecha, contando parênteses e

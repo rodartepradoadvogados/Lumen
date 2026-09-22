@@ -13,7 +13,15 @@
 // e a ausência total de qualquer chamada de protocolo em todo este módulo).
 
 export type DadosParaPrompt = {
-  materia: string;
+  /**
+   * TODAS as matérias marcadas na sessão, na ordem em que foram marcadas — a primeira é a
+   * PRINCIPAL (contrato de schema em PeticionamentoSessao.materiasNomes). Era `materia: string`
+   * até 22/09/2026, quando o dono pediu para permitir marcar mais de uma: um caso de sucessões
+   * que também é tributário não é um caso de uma matéria só, e mandar só a principal ao agente
+   * jogava a segunda matéria fora exatamente no ponto em que ela importa — a redação da peça.
+   * Lista vazia é tratada como "não informada", nunca estoura.
+   */
+  materias: string[];
   categoriaPeca: string | null; // Petição | Contrato | Parecer | Notificação Extrajudicial | Geral (espec. §7 + decisão do dono 22/09/2026)
   tipoPeca: string | null;
   tipoPecaOutro: string | null;
@@ -96,7 +104,20 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   partes.push('- Um documento marcado abaixo como "NÃO FOI POSSÍVEL LER" não tem texto nenhum nesta mensagem — nunca presuma, nunca invente o que ele diria, e nunca o inclua na lista de documentos usados. Declare como usado SÓ o documento cujo texto de verdade você leu aqui embaixo.');
 
   partes.push("");
-  partes.push(`Matéria: ${dados.materia}`);
+  // UMA matéria: a linha de sempre. VÁRIAS: a lista inteira, dizendo qual é a principal — sem
+  // isso o agente lê a segunda matéria como detalhe de contexto, não como fundamento a
+  // desenvolver, e a peça sai com metade do que o advogado marcou.
+  const materias = dados.materias.map((m) => m.trim()).filter((m) => m.length > 0);
+  if (materias.length <= 1) {
+    partes.push(`Matéria: ${materias[0] ?? "(não informada)"}`);
+  } else {
+    partes.push(`Matérias desta peça (${materias.length}), na ordem marcada pelo advogado: ${materias.join("; ")}.`);
+    partes.push(
+      `A matéria PRINCIPAL é "${materias[0]}" — ela define a estrutura e o vocabulário do documento. As demais (${materias
+        .slice(1)
+        .join("; ")}) NÃO são pano de fundo: desenvolva o que cada uma exige desta peça e diga, no corpo, onde cada matéria entra. Se alguma delas não tiver como ser desenvolvida com o que foi informado aqui, aponte isso na seção de riscos em vez de omitir em silêncio.`,
+    );
+  }
   partes.push(`Categoria da peça: ${dados.categoriaPeca ?? "Petição"}`);
   partes.push(`Tipo de peça: ${dados.tipoPeca ?? "(não informado — infira pelo contexto vinculado, se houver, e diga que inferiu)"}${dados.tipoPecaOutro ? ` (${dados.tipoPecaOutro})` : ""}`);
   partes.push(`Contexto vinculado: ${dados.contextoDescricao ?? "sem vínculo — petição avulsa"}`);

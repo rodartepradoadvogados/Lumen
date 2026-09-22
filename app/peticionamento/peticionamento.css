@@ -249,11 +249,20 @@
 }
 
 /* ---- shell (rail + topo + rodapé) ---- */
+/* ITEM 5 DO PEDIDO DO DONO (22/09/2026): "o menu à esquerda e a parte de cima" ficam
+   CONGELADOS. A altura é FIXA (não `min-height`), e a linha do meio é `minmax(0, 1fr)` —
+   as duas coisas juntas. Com `min-height: 100vh` + `1fr`, a linha do meio tem mínimo
+   automático (= o tamanho do conteúdo): o grid inteiro crescia além da tela, o `overflow: auto`
+   de `.main` nunca chegava a valer nada, e quem rolava era a PÁGINA — levando embora o rail e a
+   barra de cima. `minmax(0, 1fr)` zera esse mínimo e devolve a rolagem para dentro de `.main`.
+   `100dvh` antes de `100vh` porque no navegador de celular a barra de endereço entra e sai da
+   tela: com `100vh` o rodapé fica escondido atrás dela. */
 .peticionamento .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: grid;
   grid-template-columns: 220px 1fr;
-  grid-template-rows: 48px 1fr 28px;
+  grid-template-rows: 48px minmax(0, 1fr) 28px;
   grid-template-areas: "rail top" "rail main" "rail foot";
 }
 .peticionamento .rail {
@@ -353,6 +362,12 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+/* `.main-fixa` (Shell: rolagemSoNoMiolo) — a caixa em si não rola NADA: quem rola é a região
+   que a página marcar como tal. Usada pela tela de contexto, onde o dono pediu que "a rolagem só
+   deve afetar às demandas filtradas". */
+.peticionamento .main.main-fixa {
+  overflow: hidden;
 }
 .peticionamento .content {
   flex: 1 0 auto;
@@ -695,6 +710,142 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* ---- contexto: topo fixo · resultados rolando · barra congelada (item 5 do dono) ---- */
+.peticionamento .ctx-page {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* topo (fixo) · resultados (a ÚNICA região que rola) · barra de baixo (congelada) */
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.peticionamento .ctx-topo {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-0);
+}
+/* O CABEÇALHO DESTA TELA é mais apertado que o das demais: aqui ele fica FIXO (item 5), e cada
+   pixel dele é um pixel a menos de resultado visível num notebook de 768px de altura. */
+.peticionamento .ctx-cabecalho {
+  padding: 14px 32px 0;
+}
+.peticionamento .ctx-cabecalho h1 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+.peticionamento .ctx-topo-corpo {
+  padding: 10px 32px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 1180px;
+}
+.peticionamento .ctx-topo-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 12px;
+  align-items: start;
+}
+.peticionamento .ctx-cartao {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  padding: 10px 12px;
+}
+/* Os chips de matéria ficam um pouco menores SÓ dentro do cartão do topo fixo — mesma razão do
+   cabeçalho apertado acima; a régua visual (cor, borda, estado marcado) é a mesma de sempre. */
+.peticionamento .ctx-cartao .matter-chip {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.peticionamento .ctx-cartao .matter-grid {
+  gap: 6px;
+}
+.peticionamento .ctx-cartao h2 {
+  margin: 0 0 9px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.peticionamento .ctx-natureza-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.peticionamento .ctx-nota {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--tx-2);
+}
+.peticionamento .ctx-filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.peticionamento .ctx-campo-curto {
+  min-width: 0;
+}
+.peticionamento .ctx-campo .segmented {
+  margin: 0;
+}
+.peticionamento .ctx-filtro-linha {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.peticionamento .ctx-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 190px;
+}
+.peticionamento .ctx-campo > span {
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tx-2);
+}
+.peticionamento .ctx-campo select,
+.peticionamento .ctx-campo input {
+  height: 34px;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--tx-0);
+  font-family: inherit;
+  font-size: 13px;
+}
+.peticionamento .ctx-campo select:focus,
+.peticionamento .ctx-campo input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.peticionamento .ctx-campo-busca {
+  flex: 1 1 260px;
+}
+.peticionamento .ctx-rolagem {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 14px 32px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1180px;
+  width: 100%;
+}
+.peticionamento .ctx-bloco h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tx-2);
+  font-weight: 600;
 }
 
 /* ---- wizard ---- */
@@ -1327,9 +1478,77 @@
   color: var(--tx-2);
 }
 
+/* NOTEBOOK BAIXO (1366x768 é o mais comum no escritório): o parágrafo de apoio do cabeçalho cede
+   lugar aos resultados. Nada de informação obrigatória mora nele — a regra do mesmo cliente
+   aparece na tarja do cliente travado e no motivo de cada item bloqueado, que continuam sempre
+   visíveis. */
+@media (max-height: 820px) {
+  .peticionamento .ctx-cabecalho p {
+    display: none;
+  }
+  .peticionamento .ctx-cabecalho {
+    padding-top: 10px;
+  }
+}
+
 @media (max-width: 860px) {
   .peticionamento .app-shell {
     grid-template-columns: 60px 1fr;
+  }
+  /* NO TELEFONE a divisão em três faixas fixas não cabe: sobrariam ~100px para a lista, e o
+     remédio do item 5 viraria a doença. A tela volta a ser uma coluna só que rola dentro de
+     `.main` — o rail e a barra de cima continuam congelados (é o grid de altura fixa que
+     garante isso, não esta regra), e a barra de baixo continua colada no fim da tela pelo
+     `position: sticky` de `.sticky-bar`. */
+  .peticionamento .main.main-fixa {
+    overflow: auto;
+  }
+  .peticionamento .ctx-page {
+    display: block;
+  }
+  .peticionamento .ctx-rolagem {
+    overflow: visible;
+  }
+  .peticionamento .ctx-topo-grade {
+    grid-template-columns: 1fr;
+  }
+  .peticionamento .ctx-topo-corpo,
+  .peticionamento .ctx-rolagem {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .peticionamento .page-head {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .peticionamento .sticky-bar {
+    padding-left: 16px;
+    padding-right: 16px;
+    /* Na largura de um telefone, "Cliente confirmado: <nome longo>" e os dois botões não cabem na
+       mesma linha: sem isto o texto quebrava em quatro linhas e o botão "Continuar" saía pela
+       borda direita da tela — o botão mais importante da tela, inalcançável. Quebra em duas
+       faixas, com os botões inteiros na de baixo. */
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .peticionamento .sticky-bar .left {
+    flex: 1 1 100%;
+  }
+  /* O rodapé do rail (nome e OAB) numa coluna de 60px vira uma coluna de letras soltas por cima
+     da barra de baixo. O nome de quem está logado continua no Menu da barra de cima. */
+  .peticionamento .rail-foot {
+    display: none;
+  }
+  .peticionamento .rail-brand {
+    padding: 6px 8px;
+    font-size: 10px;
+    overflow: hidden;
+  }
+  /* A barra de status tem 28px de altura fixa: três colunas de texto monoespaçado não cabem em
+     390px e transbordavam para fora dela. Fica a identificação do escritório. */
+  .peticionamento .statusbar > :nth-child(2),
+  .peticionamento .statusbar > :nth-child(3) {
+    display: none;
   }
   .peticionamento .rail span.lbl {
     display: none;
