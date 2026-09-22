@@ -423,7 +423,7 @@ teste("o reconhecedor NÃO aceita documento comum — senão o auditor pararia d
     "20260920_WHATSAPP_IMG-abc.jpg",
     "relatorio_WHATSAPP_AUD-x.ogg",
     // O reconhecedor é uma LICENÇA PARA PULAR A AUDITORIA: tudo que ele aceitar por engano deixa
-    // de ser conferido no Drive. Por isso as três formas de afrouxaá-lo têm caso próprio — um
+    // de ser conferido no Drive. Por isso as três formas de afrouxá-lo têm caso próprio — um
     // documento qualquer que só CONTENHA o padrão no meio do nome, um nome sem extensão, e um
     // ano de dois dígitos. Sem estes, dá para tirar a âncora do começo, a exigência de extensão
     // ou o tamanho do ano e a suíte continua verde.
