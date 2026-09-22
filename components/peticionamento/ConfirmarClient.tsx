@@ -13,6 +13,8 @@ type Resumo = {
   tipoPecaOutro: string | null;
   fatos: string;
   pedidos: string[];
+  prazoFatal: string | null;
+  prazoPreclusivo: boolean;
   documentos: string[];
   teses: string[];
 };
@@ -29,7 +31,13 @@ export function ConfirmarClient({ sessaoId, resumo }: { sessaoId: string; resumo
       if ("error" in resultado) {
         // Contexto grande demais tem tela própria (especificação §8) — os demais erros ficam
         // aqui mesmo, visíveis, nunca escondidos atrás de um redirecionamento silencioso.
-        if (resultado.error.toLowerCase().includes("contexto") && resultado.error.toLowerCase().includes("exced")) {
+        //
+        // A DECISÃO VEM DE UM CAMPO (`contextoExcedido`), não de procurar as palavras "contexto"
+        // e "exced" dentro da frase do erro. A leitura do texto era uma amarra invisível: bastava
+        // reescrever a mensagem de recusa — que é justamente o que esta entrega fez, para ela
+        // passar a dizer ao advogado o que fazer — e o advogado ficaria preso nesta tela com um
+        // parágrafo de erro, sem os botões de saída que a tela de limite oferece.
+        if (resultado.contextoExcedido) {
           router.push(`/peticionamento/${sessaoId}/excedido`);
           return;
         }
@@ -84,6 +92,18 @@ export function ConfirmarClient({ sessaoId, resumo }: { sessaoId: string; resumo
           </div>,
           `/peticionamento/${sessaoId}/wizard`,
         )}
+        {resumo.prazoFatal &&
+          linha(
+            "Prazo",
+            resumo.prazoPreclusivo ? (
+              <>
+                <span className="mono">{resumo.prazoFatal}</span> · <strong>preclusivo</strong> — vai ganhar tópico próprio no documento gerado
+              </>
+            ) : (
+              <span className="mono">{resumo.prazoFatal}</span>
+            ),
+            `/peticionamento/${sessaoId}/wizard`,
+          )}
         {linha("Documentos", resumo.documentos.length ? resumo.documentos.join(", ") : "(nenhum)", `/peticionamento/${sessaoId}/documentos`)}
         {linha(
           "Teses",

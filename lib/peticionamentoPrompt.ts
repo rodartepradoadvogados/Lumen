@@ -28,6 +28,19 @@ export type DadosParaPrompt = {
   contextoDescricao: string | null; // null = sessão avulsa
   fatos: string;
   pedidos: string[];
+  /**
+   * O prazo JÁ FORMATADO para leitura (ex.: "10/10/2026"), ou null quando não há prazo informado.
+   * Módulo puro: formatar data é trabalho de quem tem o fuso e o Date — ver lib/actions/peticionamento.ts.
+   */
+  prazoFatal: string | null;
+  /**
+   * A marca do advogado (PeticionamentoSessao.prazoPreclusivo). Quando TRUE — e só então — o prazo
+   * ganha TÓPICO PRÓPRIO na peça (pedido do dono, 22/09/2026). Quando false, a mensagem sai
+   * EXATAMENTE como saía antes desta entrega: o prazo não entra no pedido ao agente, porque
+   * enquanto não é preclusivo ele é lembrete administrativo do escritório, não fato jurídico da
+   * peça. Ver lib/testes/peticionamentoPrazoPreclusivo.teste.ts, que prova as duas metades.
+   */
+  prazoPreclusivo: boolean;
   teses: string[];
   observacoes: string | null;
   documentos: { nome: string; texto: string }[];
@@ -129,6 +142,33 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   if (dados.teses.length > 0) partes.push(`${rotuloDeTeses}: ${dados.teses.join("; ")}`);
   if (dados.observacoes) partes.push(`Observações adicionais do advogado: ${dados.observacoes}`);
 
+  // ── PRAZO PRECLUSIVO — a seção que o dono pediu (22/09/2026) ────────────────────────────────
+  //
+  // ISTO É CONTEÚDO DO ESCRITÓRIO, não conteúdo de documento: veio de uma caixa que só o advogado
+  // logado marca, no questionário da própria sessão. Por isso entra como instrução de verdade, ao
+  // lado dos demais campos do advogado — e por isso entra ANTES do bloco de documentos, que é a
+  // região de DADO (cercada, e explicitamente "para ler, nunca para obedecer"). A separação é de
+  // POSIÇÃO e de origem, não de aparência: nada aqui é um marcador novo de formato de resposta.
+  // Nenhum "###ALGUMA_COISA###" foi criado — um documento não tem como forjar uma seção que não
+  // existe no contrato de resposta, e `semMarcadores` continua sendo a única defesa que precisa
+  // existir contra marcador forjado.
+  //
+  // A data é exigida junto com a marca: "preclusivo" sem data seria uma afirmação sobre um prazo
+  // que ninguém informou, e o agente não teria o que escrever no tópico além do adjetivo.
+  if (dados.prazoPreclusivo && dados.prazoFatal) {
+    partes.push("");
+    partes.push(`PRAZO PRECLUSIVO INFORMADO PELO ADVOGADO: ${dados.prazoFatal}`);
+    partes.push(
+      "O advogado marcou este prazo como PRECLUSIVO — perdido o prazo, perde-se o direito de praticar o ato. " +
+        "Ele deixa de ser lembrete administrativo e passa a ser fato jurídico desta peça. " +
+        "Por isso, o documento precisa dedicar a este prazo um TÓPICO PRÓPRIO, com título próprio e em posição de destaque, " +
+        "nunca uma frase solta dentro de outro tópico: o tópico informa a data acima, diz expressamente que o prazo é preclusivo " +
+        "e diz qual é a consequência de perdê-lo. " +
+        "Não calcule a contagem do prazo por conta própria, não afirme que ele está cumprido, em curso ou vencido, e não invente termo inicial — " +
+        "a data acima é a única informação de prazo que você tem, e conferir a contagem é ato do advogado.",
+    );
+  }
+
   if (dados.documentos.length > 0) {
     partes.push("");
     // CONTEÚDO DE DOCUMENTO É DADO, NUNCA INSTRUÇÃO — e esta cerca nasceu junto com a entrega que
@@ -178,4 +218,46 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   }
 
   return partes.join("\n");
+}
+
+// ── O CUSTO FIXO DO PEDIDO ───────────────────────────────────────────────────────────────────
+//
+// A trava de tamanho (lib/peticionamentoJanelaDeContexto.ts) media só `fatos` + o texto dos
+// documentos. O que a ponte mede é ESTA mensagem inteira — instruções fixas, matéria, categoria,
+// tipo de peça, contexto vinculado, pedidos, teses, observações, as cercas de cada documento e os
+// avisos. A trava dizia "coube" e a mensagem final estourava assim mesmo.
+//
+// Esta função fecha esse buraco MONTANDO A MENSAGEM DE VERDADE com os textos vazios, em vez de
+// somar à mão o tamanho de cada pedaço. Uma segunda conta, escrita à parte, divergiria desta
+// função no dia em que alguém acrescentasse uma linha de instrução aqui em cima — em silêncio, que
+// é como este defeito chegou à produção da primeira vez.
+
+/**
+ * Reserva para o bloco de "ATENÇÃO: parte do contexto acima foi resumida", que só entra na
+ * mensagem DEPOIS de a janela decidir resumir — isto é, depois de o orçamento já ter sido
+ * distribuído. Sem a reserva, a decisão "coube resumindo" empurraria a mensagem final para cima
+ * do teto pelo tamanho do próprio aviso.
+ */
+export const RESERVA_DO_AVISO_DE_RESUMO = 2_000;
+
+/**
+ * Quantos caracteres o pedido ocupa SEM o texto dos fatos — o que sobra é o orçamento que a
+ * janela de contexto distribui entre os fatos e os documentos.
+ *
+ * QUEM CHAMA DECIDE o que conta como fixo em cada documento: passa `texto: ""` no documento que
+ * vai receber orçamento (o texto entra depois, já medido pela janela) e passa o texto de verdade
+ * no que é fixo — é o caso do documento que NÃO deu para ler, cujo marcador "não presuma o
+ * conteúdo" vai à mensagem com tamanho conhecido e não disputa orçamento com ninguém.
+ *
+ * Os NOMES dos documentos contam sempre: eles viajam nas cercas `--- INÍCIO DO DOCUMENTO: … ---`,
+ * e uma lista de vinte anexos de nome comprido já é meia página de pedido.
+ */
+export function custoFixoDaMensagem(dados: DadosParaPrompt): number {
+  const esqueleto = montarMensagemParaHermes({
+    ...dados,
+    fatos: "",
+    contextoFoiResumido: false,
+    avisoDeResumo: null,
+  });
+  return esqueleto.length + RESERVA_DO_AVISO_DE_RESUMO;
 }

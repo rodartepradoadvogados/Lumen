@@ -83,8 +83,13 @@ server {
     location / {
         proxy_pass http://127.0.0.1:8787;
         proxy_set_header Host $host;
-        # O Hermes pode levar dois minutos para responder. Sem isto, o nginx corta antes.
-        proxy_read_timeout 150s;
+        # ERA 150s. Um pedido de peticionamento com dezenas de páginas de documento pode levar
+        # bem mais que dois minutos, e o nginx cortava no meio — 504 sem explicação nenhuma.
+        # 280s fica ACIMA do teto da ponte (HERMES_TIMEOUT_S, 240s) e ABAIXO do teto da Vercel
+        # (maxDuration da tela de confirmação, 300s): quem desiste primeiro é sempre o lado que
+        # sabe explicar ao advogado o que aconteceu. Se você mudar um destes números, confira a
+        # corrente inteira — ela está escrita por extenso no topo de servidor.py.
+        proxy_read_timeout 280s;
     }
 }
 ```
@@ -169,11 +174,11 @@ ponte-hermes-vigia` mostra a última.
 | `GET /saude` | `200` com o estado, sem exigir segredo (serve para o nginx e para você) |
 | qualquer outra rota sem o segredo, ou com o segredo errado | `401` |
 | perfil fora do formato (minúsculas, dígitos, `.`, `-`, `_`) | `400` |
-| mensagem vazia, ou acima de 8.000 caracteres | `400` |
-| corpo acima de 64 KiB | `413` |
+| mensagem vazia, ou acima de 200.000 caracteres (`PERGUNTA_MAXIMA`) | `400` |
+| corpo acima de 512 KiB (`CORPO_MAXIMO`) | `413` |
 | escritório sem perfil provisionado no Hermes | `404` |
 | provisionamento pedido numa instalação sem o script | `501` |
-| Hermes passou de 110 segundos | `504` |
+| Hermes passou de 240 segundos (`HERMES_TIMEOUT_S`) | `504` |
 | resposta boa em `POST /chat` | `200` com `{"resposta": ..., "sessao": ...}` |
 | `GET /perfis` | a lista de escritórios provisionados |
 | `POST /provisionar` com `{slug, officeId, nome}` | cria o perfil do escritório |

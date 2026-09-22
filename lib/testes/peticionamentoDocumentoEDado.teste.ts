@@ -45,6 +45,11 @@ function perguntaComDocumento(texto: string): string {
     contextoDescricao: "Processo nº 1234",
     fatos: "O cliente contratou e não recebeu.",
     pedidos: ["Rescisão", "Danos"],
+    // ADAPTADO (entrega do prazo preclusivo): campos novos e obrigatórios de DadosParaPrompt. Aqui
+    // ficam nos valores que NÃO ligam a seção nova — é isso que torna honesto o caso "um documento
+    // hostil não consegue fazer nascer o tópico de prazo preclusivo" logo abaixo.
+    prazoFatal: null,
+    prazoPreclusivo: false,
     teses: [],
     observacoes: null,
     documentos: [{ nome: "contrato-da-parte-contraria.pdf", texto }],
@@ -107,6 +112,8 @@ teste("sem documento nenhum, nada disso aparece — a cerca não polui a pergunt
     contextoDescricao: null,
     fatos: "Fatos.",
     pedidos: ["Pedido"],
+    prazoFatal: null,
+    prazoPreclusivo: false,
     teses: [],
     observacoes: null,
     documentos: [],

@@ -25,6 +25,14 @@ const base: DadosParaPrompt = {
   contextoDescricao: "Processo nº 5432109-87.2024.8.09.0051",
   fatos: "O autor firmou contrato de prestação de serviços em 10/01/2026.",
   pedidos: ["Rescisão contratual", "Devolução de valores pagos"],
+  // ADAPTADO (entrega do prazo preclusivo, 22/09/2026): `DadosParaPrompt` passou a exigir estes
+  // dois campos, porque quem monta a mensagem tem de DECIDIR sobre o prazo em vez de omiti-lo por
+  // esquecimento. O caso-base continua sendo o de antes — sem prazo e sem preclusão —, então
+  // nenhuma asserção deste arquivo muda de sentido: elas seguem descrevendo a mensagem de sempre.
+  // A prova de que a marca muda a mensagem (e de que a ausência dela não muda nada) está em
+  // lib/testes/peticionamentoPrazoPreclusivo.teste.ts.
+  prazoFatal: null,
+  prazoPreclusivo: false,
   teses: [],
   observacoes: null,
   documentos: [],
@@ -153,13 +161,30 @@ teste("lista vazia ou suja não quebra a mensagem — cai em '(não informada)',
 // verde e o agente seguiria recebendo metade do que o advogado marcou. Varredura de código pela
 // mesma razão do resto da casa (camada de IO, sem prisma falso).
 
-teste("TRAVA: confirmarTriagemEGerar manda a LISTA de matérias ao Hermes, lida com a leitura fail-open", () => {
+// ADAPTADO NO MERGE com a entrega do limite de tamanho (#306), e ficou MAIS forte. A montagem da
+// mensagem passou a partir de `...dadosDoPrompt`, e as matérias subiram para lá — dentro de
+// `calcularAvaliacaoDeContexto`, que é a estrutura que `custoFixoDaMensagem` MEDE. O motivo é o
+// defeito que aquela entrega consertou: com várias matérias o bloco cresce, e um bloco que cresce
+// sem ocupar lugar no orçamento faz o orçamento medir menos do que se manda.
+teste("TRAVA: a LISTA de matérias vai ao Hermes POR DENTRO do que o orçamento mede", () => {
   const acoes = readFileSync(join(process.cwd(), "lib", "actions", "peticionamento.ts"), "utf8");
-  const corpo = codigoDe(corpoDaFuncao(acoes, "confirmarTriagemEGerar"));
-  verdade(corpo.length > 400, `corpoDaFuncao("confirmarTriagemEGerar") devolveu ${corpo.length} caracteres — varredura cega`);
-  verdade(corpo.includes("montarMensagemParaHermes"), "a varredura não achou a montagem da mensagem — está cega");
-  verdade(/materias:\s*lerMateriasDaSessao\(/.test(corpo),
-    "a ação voltou a mandar só a matéria principal ao agente — as demais matérias marcadas pelo advogado seriam jogadas fora na geração");
+  const corpo = codigoDe(corpoDaFuncao(acoes, "calcularAvaliacaoDeContexto"));
+  verdade(corpo.length > 300, `corpoDaFuncao("calcularAvaliacaoDeContexto") devolveu ${corpo.length} caracteres — varredura cega`);
+  const idxDados = corpo.indexOf("const dadosDoPrompt");
+  verdade(idxDados !== -1, "sumiu dadosDoPrompt — é ele que custoFixoDaMensagem mede");
+  const medido = corpo.slice(idxDados, corpo.indexOf("custoFixoDaMensagem(", idxDados));
+  verdade(/materias:\s*lerMateriasDaSessao\(/.test(medido),
+    "a ação voltou a mandar só a matéria principal ao agente — as demais matérias marcadas pelo advogado seriam jogadas fora na geração, ou entrariam fora do orçamento");
+
+  // E a montagem final não pode reintroduzir as matérias por fora do que foi medido.
+  const corpoGerar = codigoDe(corpoDaFuncao(acoes, "confirmarTriagemEGerar"));
+  verdade(corpoGerar.includes("montarMensagemParaHermes"), "a varredura não achou a montagem da mensagem — está cega");
+  const idxPrompt = corpoGerar.indexOf("montarMensagemParaHermes({");
+  const chamada = corpoGerar.slice(idxPrompt, corpoGerar.indexOf("});", idxPrompt));
+  verdade(chamada.includes("...dadosDoPrompt"),
+    "a montagem final deixou de partir de dadosDoPrompt — o que se mede e o que se manda voltam a ser coisas diferentes");
+  verdade(!/materias?:/.test(chamada),
+    "as matérias voltaram a ser injetadas na montagem final, por fora da medição do orçamento");
 });
 
 resumo("Peticionamento — mensagem ao Hermes (prioridade 1)");
