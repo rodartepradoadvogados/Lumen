@@ -701,13 +701,37 @@ async function sincronizarCitacoes(sessaoId: string, officeId: string): Promise<
     chavesMantidas.add(chave);
     const existente = porChave.get(chave);
     if (existente) {
-      // Mesma identidade — nunca mexe em confirmadaPorId/confirmadaEm/hashDoTexto: é exatamente a
-      // confirmação que precisa sobreviver quando o texto (na forma normalizada) não mudou.
-      if (existente.texto !== item.texto || existente.fonteUrl !== item.fonteUrl || existente.fonteSecundariaUrl !== item.fonteSecundariaUrl) {
+      // Mesma identidade de TEXTO. Duas mudanças possíveis aqui, e elas NÃO valem o mesmo:
+      //
+      //  · só a FORMA do texto mudou (um espaço, uma quebra de linha, uma maiúscula — tudo que a
+      //    normalização já ignora): a confirmação SOBREVIVE. É para isso que a identidade é a
+      //    forma normalizada, e não a string crua.
+      //
+      //  · mudaram os LINKS: a confirmação CAI. Achado da revisão — antes, `fonteUrl` e
+      //    `fonteSecundariaUrl` eram atualizados junto com o texto e a confirmação seguia de pé.
+      //    A decisão do dono é explícita sobre o que o advogado está confirmando: "os links
+      //    utilizados na dupla validação para conferência, uma a uma". O "li e revisei" é sobre
+      //    a citação E os links por onde ela foi conferida. Como `jurisprudenciaCitada` é
+      //    repovoada a cada geração do Hermes, uma mesma ementa pode voltar com outra fonte
+      //    secundária (ou com uma que antes não existia) sem uma vírgula do texto mudar — e, com
+      //    o comportamento antigo, o "li e revisei" de ontem passava a responder por um link que
+      //    o advogado nunca abriu. É exatamente a responsabilidade que esta tela existe para
+      //    criar ("ninguém poderá dizer que não viu"), assinada em branco.
+      //
+      // hashDoTexto não socorre aqui: ele é impressão do TEXTO, e o texto não mudou.
+      const mudouAFormaDoTexto = existente.texto !== item.texto;
+      const mudaramOsLinks =
+        existente.fonteUrl !== item.fonteUrl || existente.fonteSecundariaUrl !== item.fonteSecundariaUrl;
+      if (mudouAFormaDoTexto || mudaramOsLinks) {
         operacoes.push(
           prisma.peticionamentoCitacao.update({
             where: { id: existente.id },
-            data: { texto: item.texto, fonteUrl: item.fonteUrl, fonteSecundariaUrl: item.fonteSecundariaUrl },
+            data: {
+              texto: item.texto,
+              fonteUrl: item.fonteUrl,
+              fonteSecundariaUrl: item.fonteSecundariaUrl,
+              ...(mudaramOsLinks ? { confirmadaPorId: null, confirmadaEm: null, hashDoTexto: null } : {}),
+            },
           }),
         );
       }

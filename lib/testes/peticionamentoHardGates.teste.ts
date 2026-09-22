@@ -179,16 +179,57 @@ teste("HARD GATE: sincronizarCitacoes apaga a citação cuja identidade não bat
   );
 });
 
-teste("HARD GATE: sincronizarCitacoes NUNCA mexe em confirmadaPorId/confirmadaEm ao atualizar uma citação existente", () => {
-  // Isola só o UPDATE de citação já existente (não o create, não o delete) — é aqui que uma
-  // confirmação que deveria sobreviver (texto não mudou) poderia ser apagada por engano.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA REVISÃO — O "LI E REVISEI" PODIA PASSAR A RESPONDER POR UM LINK NUNCA ABERTO.
+//
+// O teste que estava aqui exigia que o update de sincronização NUNCA tocasse em
+// confirmadaPorId/confirmadaEm. Ele guardava uma coisa de verdade — uma confirmação que deve
+// sobreviver (só a FORMA do texto mudou) não pode ser apagada por engano — mas enunciava a regra
+// de forma absoluta demais, e por isso deixava passar o caso inverso: o mesmo update trocava
+// `fonteUrl`/`fonteSecundariaUrl` e mantinha a confirmação de pé.
+//
+// A decisão do dono é explícita sobre o objeto da confirmação: "os links utilizados na dupla
+// validação para conferência, uma a uma". O "li e revisei" é sobre a citação E os links por onde
+// ela foi conferida. `jurisprudenciaCitada` é repovoada a cada geração do Hermes, então a MESMA
+// ementa pode voltar com outra fonte secundária (ou com uma que antes não existia) sem uma
+// vírgula do texto mudar — e a confirmação de ontem passava a valer por um link que o advogado
+// nunca viu. hashDoTexto não pega isso: ele é impressão do TEXTO, e o texto não mudou.
+//
+// Os dois testes abaixo são as duas metades da regra. Nenhum deles afrouxa o anterior: o primeiro
+// é a garantia que o teste antigo dava, agora dita com precisão; o segundo é a que faltava.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("HARD GATE: mudança só na FORMA do texto preserva a confirmação — a invalidação é condicionada, nunca automática", () => {
   const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  verdade(corpo.length > 300, "corpoDaFuncao não encontrou sincronizarCitacoes");
   const inicioUpdate = corpo.indexOf("prisma.peticionamentoCitacao.update(");
   verdade(inicioUpdate !== -1, "sincronizarCitacoes deveria ter um update para citação já existente");
   const fimUpdate = corpo.indexOf("})),", inicioUpdate);
   const trechoUpdate = corpo.slice(inicioUpdate, fimUpdate === -1 ? undefined : fimUpdate);
-  verdade(!trechoUpdate.includes("confirmadaPorId"), "o update de sincronização não deveria tocar em confirmadaPorId — apagaria uma confirmação válida");
-  verdade(!trechoUpdate.includes("confirmadaEm"), "o update de sincronização não deveria tocar em confirmadaEm");
+  // Se confirmadaPorId aparecer SEM condição, uma confirmação válida cai a cada resincronização —
+  // e como listarCitacoesParaValidacao resincroniza a CADA abertura da tela, o advogado nunca
+  // conseguiria terminar de confirmar.
+  if (trechoUpdate.includes("confirmadaPorId")) {
+    verdade(/\.\.\.\(\s*mudaramOsLinks\s*\?/.test(trechoUpdate),
+      "o update zera confirmadaPorId sem condicionar à mudança dos links — toda resincronização apagaria confirmação válida, e a tela resincroniza a cada abertura");
+  }
+});
+
+teste("HARD GATE: mudança nos LINKS derruba a confirmação — o \"li e revisei\" não pode responder por um link que ninguém abriu", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "sincronizarCitacoes"));
+  verdade(/const mudaramOsLinks\s*=/.test(corpo),
+    "sumiu a distinção entre mudou-a-forma-do-texto e mudaram-os-links — sem ela a confirmação sobrevive a uma troca de fonte");
+  verdade(/existente\.fonteUrl !== item\.fonteUrl/.test(corpo) && /existente\.fonteSecundariaUrl !== item\.fonteSecundariaUrl/.test(corpo),
+    "a comparação de links deixou de cobrir as DUAS fontes (a original e a secundária da dupla validação)");
+  const inicioUpdate = corpo.indexOf("prisma.peticionamentoCitacao.update(");
+  const fimUpdate = corpo.indexOf("})),", inicioUpdate);
+  const trechoUpdate = corpo.slice(inicioUpdate, fimUpdate === -1 ? undefined : fimUpdate);
+  verdade(/mudaramOsLinks\s*\?/.test(trechoUpdate),
+    "o update não usa mudaramOsLinks — os links seriam trocados com a confirmação de pé");
+  for (const campo of ["confirmadaPorId: null", "confirmadaEm: null", "hashDoTexto: null"]) {
+    verdade(trechoUpdate.includes(campo),
+      `a invalidação por troca de link não zera ${campo} — sobraria rastro de uma confirmação que já não vale`);
+  }
 });
 
 // ── Clientes diferentes nunca se misturam ────────────────────────────────────────────────────
