@@ -44,6 +44,13 @@ export function ConfirmarClient({ sessaoId, resumo }: { sessaoId: string; resumo
         setErro(resultado.error);
         return;
       }
+      // A GERAÇÃO NÃO TERMINOU AQUI — ela COMEÇOU. Desde que a espera saiu de dentro da
+      // requisição web (ver lib/peticionamentoGeracaoAssincrona.ts), esta ação volta assim que o
+      // pedido é entregue ao agente; quem acompanha a redação é a tela de minuta, que já sabe
+      // mostrar o andamento e dizer que a aba pode ser fechada.
+      //
+      // O DESTINO É O MESMO DE ANTES, de propósito: um caminho só para o advogado, dê a geração
+      // dois segundos ou quatro minutos.
       router.push(`/peticionamento/${sessaoId}/minuta`);
     });
   }
@@ -120,7 +127,10 @@ export function ConfirmarClient({ sessaoId, resumo }: { sessaoId: string; resumo
             Cancelar
           </button>
           <button className="btn btn-primary" onClick={confirmar} disabled={pendente}>
-            {pendente ? "Gerando…" : "Confirmar e gerar minuta"}
+            {/* "Enviando" e não "Gerando": o que acontece enquanto este botão está desabilitado é a
+                entrega do pedido ao agente, que leva segundos. A redação em si é acompanhada na
+                tela seguinte — dizer "Gerando…" aqui faria a tela prometer o que ela não faz. */}
+            {pendente ? "Enviando ao agente…" : "Confirmar e gerar minuta"}
           </button>
         </div>
       </div>

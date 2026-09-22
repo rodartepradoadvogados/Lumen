@@ -4450,6 +4450,37 @@ model PeticionamentoSessao {
   hermesSessionId String?
   geradoEm        DateTime?
 
+  /// CONTRATO DE SCHEMA 22/09/2026 — A GERAÇÃO QUE NÃO CABE NUMA REQUISIÇÃO WEB.
+  ///
+  /// O teto duro da Vercel é de 300 segundos. Uma peça a partir de um processo de dezenas de
+  /// páginas pode legitimamente precisar de mais, e em produção o Hermes foi MORTO aos 240s com o
+  /// agente ainda escrevendo — o trabalho inteiro (e o custo) perdido por causa do relógio de uma
+  /// requisição HTTP. Por isso a geração deixou de ser "esperar" e passou a ser um TRABALHO COM
+  /// NOME: o Lúmen dispara na ponte, recebe um identificador, e volta na hora.
+  ///
+  /// `hermesTarefaId` é esse identificador, do lado da PONTE (servidor-hermes/servidor.py,
+  /// `POST /chat-async`). NÃO CONFUNDIR com `hermesSessionId` acima, que é a conversa do lado do
+  /// HERMES e sobrevive entre gerações: a tarefa é de UMA geração só e morre quando ela termina.
+  ///
+  /// QUEM MEXER AQUI É OBRIGADO A MANTER EM PÉ, ao mesmo tempo:
+  ///
+  ///   · os três campos andam JUNTOS com `status = "GERANDO"`. Gravar GERANDO sem `hermesTarefaId`
+  ///     cria uma sessão que ninguém consegue colher: ela fica na tela "gerando" até o prazo
+  ///     máximo e só então vira falha — o advogado esperando por nada;
+  ///   · `geracaoIniciadaEm` é o relógio da rede de segurança por cron
+  ///     (app/api/cron/minutas-pendentes). Sem ele, uma sessão de aba fechada nunca é varrida;
+  ///   · `geracaoDocumentosLidos` é a lista de nomes dos documentos que FORAM LIDOS e ENVIADOS
+  ///     nesta geração. Ela tem de ser gravada no DISPARO, e não na colheita, porque quem colhe
+  ///     pode ser o cron, noutra requisição, sem nada do que foi montado em memória. É ela que
+  ///     filtra a declaração do agente contra o que de fato foi lido — sem ela, um nome alucinado
+  ///     entraria em `documentosBaseConsultados` e a nota obrigatória mentiria ao juiz.
+  ///
+  /// Os três são limpos quando a geração é colhida (GERADA) ou desiste (FALHA_GERACAO): uma
+  /// tarefa que já foi colhida não pode ser colhida de novo, e deixá-la gravada seria um convite.
+  hermesTarefaId         String?
+  geracaoIniciadaEm      DateTime?
+  geracaoDocumentosLidos Json      @default("[]")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -4464,6 +4495,10 @@ model PeticionamentoSessao {
 
   @@index([officeId, criadoPorId])
   @@index([officeId, status])
+  /// A rede de segurança por cron varre por `status` + `geracaoIniciadaEm` e ATRAVESSA os
+  /// escritórios (uma sessão em GERANDO tem de terminar seja de quem for) — por isso o índice
+  /// NÃO começa por officeId, ao contrário dos dois acima.
+  @@index([status, geracaoIniciadaEm])
 }
 
 // Anexo NOVO desta sessão (upload — seção 10 da especificação), distinto dos documentos que já

@@ -182,13 +182,102 @@ ponte-hermes-vigia` mostra a última.
 | binário do `hermes` velho demais, sem `--query-file` | `501`, dizendo para atualizar o binário |
 | Hermes passou de 240 segundos (`HERMES_TIMEOUT_S`) | `504` |
 | resposta boa em `POST /chat` | `200` com `{"resposta": ..., "sessao": ...}` |
+| `POST /chat-async` (mesmo corpo de `/chat`) | `202` com `{"tarefa": "<id>"}`, **na hora** |
+| `POST /chat-async` com a memória de tarefas cheia (`HERMES_TAREFAS_MAXIMAS`) | `503`, falado |
+| `GET /resultado/<id>` sem o segredo, ou com o errado | `401` — a MESMA autorização de `/chat` |
+| `GET /resultado/<id>` em andamento | `200` com `{"estado": "trabalhando"}` |
+| `GET /resultado/<id>` pronto | `200` com `{"estado": "pronto", "resposta": ..., "sessao": ...}` — **e a tarefa some da memória** |
+| `GET /resultado/<id>` que falhou | `200` com `{"estado": "falhou", "erro": ..., "codigo": ...}` |
+| `GET /resultado/<id>` desconhecido (ponte reiniciada, vencido, ou já lido) | `404` com `{"estado": "desconhecida"}` |
 | `GET /perfis` | a lista de escritórios provisionados |
 | `POST /provisionar` com `{slug, officeId, nome}` | cria o perfil do escritório |
 | `POST /desprovisionar` com `{slug}` | remove o perfil |
 | `POST /estado` com `{perfis: [...]}` | se cada perfil existe, quanto ocupa, quantas conversas |
 | slug fora do formato, `officeId` fora do formato, nome vazio | `400` |
 
+### As variáveis de ambiente desta entrega
+
+Todas têm padrão seguro; nenhuma precisa ser definida para a ponte funcionar.
+
+| variável | padrão | o que faz |
+|---|---|---|
+| `HERMES_TIMEOUT_S` | `240` | teto do processo do Hermes — **o segundo elo da corrente de tempos** |
+| `HERMES_RUN_BUDGET_FOLGA_S` | `25` | folga entre o orçamento do agente e a morte do processo |
+| `HERMES_MAX_TURNS` | `60` | teto de iterações de ferramenta por turno (o padrão do binário é 500) |
+| `HERMES_TAREFAS_MAXIMAS` | `32` | quantas gerações assíncronas cabem na memória ao mesmo tempo |
+| `HERMES_TAREFA_VALIDADE_S` | `1800` | quanto tempo uma tarefa não buscada continua de pé |
+
+O **orçamento do agente não é uma variável**: ele é `HERMES_TIMEOUT_S` menos
+`HERMES_RUN_BUDGET_FOLGA_S`, com piso de 30s (a constante `ORCAMENTO_S`, no `servidor.py`). Isso é
+de propósito — um segundo número solto voltaria a permitir a combinação que matou uma geração real
+em produção: o processo morto antes de o agente sequer ser avisado de que havia prazo.
+
 Cinco decisões que valem explicação:
+
+**`--run-budget`: o agente conclui em vez de morrer.**
+
+O registro da VPS, numa geração real do dono com dois documentos anexados (uma decisão judicial em
+PDF e um parecer em DOCX):
+
+```
+subprocess.TimeoutExpired: Command '['/usr/local/bin/hermes', '-p', 'peticionamento-lumen',
+'chat', ...]' timed out after 240 seconds
+BrokenPipeError: [Errno 32] Broken pipe
+```
+
+O Hermes passou de 240s **sem terminar** e foi morto no meio da redação. O cano quebrado veio logo
+atrás: o Lúmen já havia desistido aos 230s, então quando a ponte tentou responder não havia mais
+ninguém do outro lado. O advogado leu `DEMORA: o Hermes não respondeu em 230s`, e todo o trabalho
+— e o custo das chamadas de modelo — se perdeu.
+
+`hermes chat --run-budget SEGUNDOS` conserta o que dava para consertar aqui: aos 80% do orçamento o
+agente recebe um aviso único para ir concluindo, e os tempos de espera implícitos do provedor
+passam a ser limitados ao que sobra, de modo que uma chamada travada não consuma a execução
+inteira. Com os padrões de hoje: orçamento de **215s**, aviso aos **172s**, 43s para concluir, e
+25s de margem entre o fim do orçamento e a machadada do `subprocess`. Quem termina a execução passa
+a ser o agente, e não o sistema operacional.
+
+`--max-turns 60` entra junto e pelo mesmo motivo: o padrão do binário é 500 iterações de chamada de
+ferramenta, e uma ferramenta em laço gasta o orçamento **inteiro** sem escrever uma linha — aí o
+aviso dos 80% chega a um agente que passou o tempo todo girando, e o que ele entrega é o nada que
+ele tem. Sessenta é várias vezes o que uma geração saudável usa, e ainda assim um teto.
+
+**`/chat-async`: a espera sai de dentro da requisição web.**
+
+`--run-budget` faz o agente entregar o que tem dentro do prazo. Mas o prazo em si não tem para onde
+crescer: **o teto duro é a Vercel, 300 segundos**, e nenhuma função da plataforma passa disso. Uma
+peça a partir de um processo de dezenas de páginas pode legitimamente precisar de mais — limitar o
+agente para caber numa requisição HTTP é limitar a *qualidade* do trabalho ao tempo de um cano de
+rede.
+
+Por isso a geração deixou de ser "esperar" e passou a ser um trabalho com nome:
+
+```
+POST /chat-async   → 202 {"tarefa": "<id>"}          (na hora; o trabalho corre numa thread)
+GET  /resultado/id → {"estado": "trabalhando"}       (ainda redigindo)
+                   → {"estado": "pronto", ...}       (e a tarefa some da memória)
+                   → {"estado": "falhou", ...}       (e a tarefa some da memória)
+                   → 404 {"estado": "desconhecida"}  (a ponte reiniciou, venceu, ou já foi lida)
+```
+
+`POST /chat` **continua existindo, intacto** — é por ele que o atendimento (a Ana) fala, com o teto
+de 105s do lado do Lúmen. Nada desta entrega chega até ele: mesmo corpo, mesmos códigos, mesmas
+frases de recusa.
+
+As tarefas vivem **em memória**, com teto de quantidade e validade, e somem depois de lidas. Uma
+tarefa pronta guarda uma peça inteira; sem teto, a ponte viraria um vazamento de memória guardando
+peças, e esta VPS tem 1,6 GB livres. Com a memória cheia a ponte **recusa** (`503`, falado) em vez
+de aceitar e ficar sem memória no meio de três gerações.
+
+> **Se a ponte reiniciar, as tarefas somem.** Isso é estado possível do mundo, não defeito:
+> `/resultado/<id>` responde `404 {"estado": "desconhecida"}`, e o Lúmen transforma isso numa
+> recusa falada ("a geração se perdeu, tente de novo"). Do lado do Lúmen há ainda uma rede de
+> segurança por cron (`/api/cron/minutas-pendentes`, a cada 5 minutos) que colhe a geração de quem
+> fechou a aba — é ela que torna verdadeira a frase que a tela mostra ao advogado.
+
+> **O conteúdo nunca vai ao registro.** Nem a pergunta, nem a resposta, nem a credencial: fica o
+> tamanho, o perfil e o estado. São dados de cliente de escritório de advocacia passando por aqui.
+
 
 **A pergunta não viaja pela linha de comando — e o motivo não é elegância.**
 
@@ -325,16 +414,11 @@ journalctl -u ponte-hermes-vigia -n 20  # quantas vezes ela caiu, e quando
 atualize `HERMES_TOKEN` na Vercel. Entre um passo e outro a caixa de conversa cai na reserva
 (o Claude) em vez de dar erro — então a troca pode ser feita sem avisar ninguém.
 
-**Para a próxima entrega (TEMPO), e só para não ter de redescobrir:** `hermes chat` tem
-`--run-budget SECONDS` — um teto de tempo de relógio por conversa. Aos 80% do orçamento o agente
-recebe um aviso único para ir concluindo, e os tempos de espera implícitos do provedor passam a
-ser limitados ao que sobra do orçamento, de modo que uma chamada travada não consuma a execução
-inteira. A ajuda do binário diz que é feito justamente para invocação one-shot com teto duro — que
-é exatamente o caso desta ponte. **Não está ligado**, e ligar não é assunto desta entrega: o
-defeito de tempo (a geração real do dono passou de 240s e o Lúmen desistiu aos 230s) exige tirar a
-espera de dentro da requisição web, e `--run-budget` será a peça central disso. Os números da
-corrente de tempos continuam os da tabela acima e do topo de `servidor.py` — **não mexa em um sem
-conferir a corrente inteira.**
+**O TEMPO, e o que já está feito:** `--run-budget` **está ligado** (ver a seção acima), derivado de
+`HERMES_TIMEOUT_S`, e a espera saiu de dentro da requisição web (`/chat-async` + `/resultado/<id>`).
+Os números da corrente de tempos continuam os da tabela acima e do topo de `servidor.py` — **não
+mexa em um sem conferir a corrente inteira**, e lembre que o orçamento do agente é *derivado* do
+teto do processo: mudar `HERMES_TIMEOUT_S` move os dois juntos, de propósito.
 
 **Uma trava que ficou de fora:** o serviço roda como root, porque os perfis do Hermes estão em
 `/root/.hermes`. Se um dia esses perfis mudarem para um diretório próprio, vale mudar o `User=` da
