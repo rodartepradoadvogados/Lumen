@@ -71,6 +71,119 @@ const MARCADORES = {
 
 export { MARCADORES as MARCADORES_RESPOSTA_HERMES };
 
+// ── A SEÇÃO DE REQUERIMENTOS (pedido do dono depois de avaliar a primeira minuta) ─────────────
+//
+// Antes disto a lista de pedidos do advogado viajava quase crua — "Pedidos a reiterar/formular:
+// a; b; c" — e mais nada dizia ao agente COMO montar a parte final do documento. O resultado
+// tendia ao genérico: "requer a produção de todas as provas em direito admitidas", dano moral
+// sustentado só em dano presumido, litigância de má-fé pedida por reflexo.
+//
+// ISTO É CÓDIGO DE PLATAFORMA: roda para TODO escritório contratante. Por isso o que entra aqui é
+// ESTRUTURA e TÉCNICA processual — nada de nome de advogado, número de inscrição, endereço,
+// e-mail, comarca ou tribunal. Dado de identificação continua vindo do cadastro (matéria,
+// categoria, contexto vinculado) ou fica como LACUNA explícita para o advogado preencher; embutir
+// aqui o dado de um escritório o vazaria para a minuta de todos os outros. A trava disso é
+// lib/testes/peticionamentoPromptSemDadoDeEscritorio.teste.ts.
+//
+// E nada aqui é marcador de formato de resposta: nenhum "###ALGUMA_COISA###" novo nasceu, então um
+// documento hostil não tem seção nova para forjar (lib/testes/peticionamentoDocumentoEDado.teste.ts
+// prova que as palavras desta seção, escritas dentro de um PDF, não a fazem nascer fora da cerca).
+
+/**
+ * As regras de técnica do pedido, uma por chave — compostas por categoria logo abaixo em vez de
+ * escritas cinco vezes. Cinco redações seriam cinco chances de uma delas dizer o conceito errado
+ * (é a mesma razão pela qual ROTULO_PRAZO_PRECLUSIVO é um texto só).
+ */
+const TECNICA_DO_PEDIDO = {
+  coerencia:
+    "- Coerência na ordem certa: os fatos sustentam os fundamentos, e os fundamentos sustentam os pedidos — nunca o inverso. Todo pedido precisa da causa de pedir correspondente narrada nos fatos acima. Se um pedido não tiver lastro fático no que o advogado escreveu, APONTE a lacuna na seção de riscos; nunca invente o fato que a preencheria.",
+  pedidoCerto:
+    '- Pedido certo e determinado: nada de "o que for devido" ou equivalente. Quando o valor depender de apuração, diga isso expressamente e indique o critério de apuração.',
+  danoMoral:
+    "- Dano moral nunca se fundamenta apenas em dano presumido (in re ipsa): a causa de pedir indenizatória é autônoma e circunstanciada, apontando os elementos concretos deste caso. Em negativa de cobertura de plano de saúde há tese vinculante do STJ em repetitivo (Tema 1.365) no sentido de que a simples recusa indevida NÃO gera dano moral presumido — trate isso como regra, exija circunstância concreta e registre nos riscos que a aplicação da tese pelo tribunal local precisa ser conferida.",
+  maFe:
+    "- Litigância de má-fé só entra quando houver elemento concreto nos autos que a caracterize, e descrito. Sem base fática, a seção simplesmente não existe — nunca por padrão, nunca em termos genéricos.",
+  jurosCorrecao:
+    "- Ao pedir atualização, indique o critério e o marco inicial da correção monetária e dos juros, sem afirmar índice, taxa ou termo inicial como pacificado sem conferência.",
+  lacuna:
+    "- Dado de identificação que você não tem (qualificação das partes, endereço, juízo ou comarca, número de inscrição do advogado, valor exato) fica como lacuna explícita entre colchetes, para o advogado preencher. Nunca invente e nunca preencha por semelhança com outro caso.",
+} as const;
+
+type ChaveDeTecnica = keyof typeof TECNICA_DO_PEDIDO;
+
+/**
+ * A ESTRUTURA da parte final, por categoria, e quais regras de técnica cada categoria carrega.
+ *
+ * A instrução NÃO pode ser a mesma para as cinco (lib/peticionamentoCategoriaPeca.ts): notificação
+ * extrajudicial não pede nada a juízo — interpela; parecer não tem requerimento — tem conclusão e
+ * recomendações; contrato não tem pedido — tem cláusulas. Mandar a estrutura de petição para as
+ * cinco é exatamente como sai "requer a citação do réu" no fim de um parecer. Mesmo espírito de
+ * lib/peticionamentoQuestionario.ts, que já muda o RÓTULO e o SENTIDO de cada campo por categoria.
+ *
+ * As técnicas seguem a pertinência: má-fé só existe onde há autos (petição e o documento deduzido
+ * em "Geral"); juros e correção só onde se pede pagamento com atualização; dano moral acompanha
+ * quem pode pedir indenização (petição, notificação) e quem pode OPINAR sobre ela (parecer).
+ */
+const FECHO_POR_CATEGORIA: Record<string, { estrutura: string[]; tecnicas: ChaveDeTecnica[] }> = {
+  Petição: {
+    estrutura: [
+      "REQUERIMENTOS — COMO ESTRUTURAR A SEÇÃO FINAL DA PEÇA",
+      "Ordene os requerimentos assim, usando SÓ o que for pertinente a este caso (o que não for pertinente simplesmente não entra, e não se anuncia que não entrou):",
+      "1. Pedido principal: o que se quer no mérito, com precisão sobre a obrigação (dar, fazer, não fazer, pagar), contra quem se dirige e em que prazo deve ser cumprida.",
+      "2. Pedidos subsidiários, quando houver: rotulados expressamente como subsidiários e na ordem de preferência, invocando o princípio da eventualidade.",
+      "3. Tutela provisória (de urgência ou de evidência), quando pedida: diga de forma executável o que se pretende que o juízo determine e a quem, e peça a fixação de multa para o caso de descumprimento.",
+      "4. Citação ou notificação da parte contrária, na forma da lei.",
+      "5. Produção de provas, nunca genérica: especifique os meios pretendidos — depoimento pessoal sob pena de confissão, oitiva de testemunhas, prova pericial e a especialidade do perito, juntada de documentos novos, expedição de ofícios a quem detém o documento.",
+      "6. Condenação em custas, despesas processuais e honorários advocatícios sucumbenciais, com o percentual pretendido quando cabível.",
+      "7. Valor da causa, indicado de forma coerente com o proveito econômico pretendido.",
+      "8. Requerimentos instrumentais: intimações em nome do advogado que subscreve a peça; gratuidade ou diferimento de custas, quando for o caso; prioridade de tramitação, quando houver fundamento.",
+    ],
+    tecnicas: ["coerencia", "pedidoCerto", "danoMoral", "maFe", "jurosCorrecao", "lacuna"],
+  },
+  "Notificação Extrajudicial": {
+    estrutura: [
+      "A PARTE FINAL DE UMA NOTIFICAÇÃO EXTRAJUDICIAL NÃO É PEDIDO A JUÍZO — É INTERPELAÇÃO",
+      "Não há requerimento processual, citação, produção de provas, sucumbência nem valor da causa. Feche com, nesta ordem: o que exatamente se exige do notificado (a obrigação, o valor ou a conduta); o prazo para cumprimento e de quando ele começa a contar; a consequência do descumprimento, isto é, as medidas que o notificante poderá adotar — apontadas, nunca prometidas como resultado; e a advertência de que esta notificação serve como prova de constituição em mora.",
+    ],
+    tecnicas: ["coerencia", "pedidoCerto", "danoMoral", "jurosCorrecao", "lacuna"],
+  },
+  Parecer: {
+    estrutura: [
+      "A PARTE FINAL DE UM PARECER NÃO É REQUERIMENTO — É CONCLUSÃO E RECOMENDAÇÕES",
+      "Não há pedido a juízo, citação, produção de provas, sucumbência nem valor da causa. Feche com, nesta ordem: a conclusão, respondendo objetivamente cada pergunta formulada e dizendo o que não deu para responder e por quê; as recomendações, uma por linha; e as diligências e os próximos passos sugeridos ao cliente ou ao advogado. Conclusão é resposta jurídica fundamentada, nunca prognóstico de resultado.",
+    ],
+    tecnicas: ["coerencia", "danoMoral", "lacuna"],
+  },
+  Contrato: {
+    estrutura: [
+      "UM CONTRATO NÃO TEM PEDIDO — TEM CLÁUSULAS",
+      "Não há requerimento, citação, produção de provas, sucumbência nem valor da causa. Cuide obrigatoriamente de: hipóteses de inadimplemento e o que cada uma autoriza; rescisão (motivada, imotivada, prazo de aviso prévio e efeitos); penalidades (multa, juros, perdas e danos, retenção); e foro de eleição ou outra forma de solução de conflitos.",
+    ],
+    tecnicas: ["coerencia", "lacuna"],
+  },
+  Geral: {
+    estrutura: [
+      "A PARTE FINAL DO DOCUMENTO DEPENDE DO TIPO QUE VOCÊ DEDUZIU",
+      "Depois de declarar qual tipo você deduziu, aplique a estrutura final daquele tipo, e só dela. Petição termina em REQUERIMENTOS, nesta ordem e só o pertinente: pedido principal (obrigação de dar, fazer, não fazer ou pagar, e contra quem); pedidos subsidiários rotulados como tais, pelo princípio da eventualidade; tutela provisória de urgência ou de evidência, executável, com pedido de multa por descumprimento; citação da parte contrária na forma da lei; produção de provas especificada (depoimento pessoal sob pena de confissão, oitiva de testemunhas, prova pericial e sua especialidade, documentos novos, expedição de ofícios); custas, despesas processuais e honorários sucumbenciais, com o percentual pretendido; valor da causa coerente com o proveito econômico; requerimentos instrumentais (intimação em nome do advogado que subscreve, gratuidade ou diferimento de custas, prioridade de tramitação). Notificação extrajudicial termina em INTERPELAÇÃO: o que se exige, o prazo, a consequência do descumprimento e a advertência de constituição em mora. Parecer termina em CONCLUSÃO, recomendações e próximos passos. Contrato termina em CLÁUSULAS de inadimplemento, rescisão, penalidades e foro.",
+    ],
+    tecnicas: ["coerencia", "pedidoCerto", "danoMoral", "maFe", "jurosCorrecao", "lacuna"],
+  },
+};
+
+/**
+ * As linhas da instrução da parte final, já na categoria certa. Sem categoria escolhida cai em
+ * "Petição", como o resto do módulo (e como obterConfiguracaoQuestionario) — nunca em nada, porque
+ * a categoria ausente não é motivo para o agente ficar sem orientação de estrutura.
+ */
+export function instrucaoDeRequerimentos(categoriaPeca: string | null): string[] {
+  const escolhido = (categoriaPeca && FECHO_POR_CATEGORIA[categoriaPeca]) || FECHO_POR_CATEGORIA["Petição"];
+  return [
+    ...escolhido.estrutura,
+    "Técnica obrigatória nesta seção:",
+    ...escolhido.tecnicas.map((chave) => TECNICA_DO_PEDIDO[chave]),
+  ];
+}
+
 export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   const partes: string[] = [];
 
@@ -168,6 +281,12 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
         "a data acima é a única informação de prazo que você tem, e conferir a contagem é ato do advogado.",
     );
   }
+
+  // A INSTRUÇÃO DA PARTE FINAL entra aqui: depois dos campos do advogado (é sobre eles que ela
+  // fala) e ANTES do bloco de documentos, que é a região de DADO. A posição é a defesa: instrução
+  // do escritório fica fora da cerca, conteúdo de documento fica dentro dela.
+  partes.push("");
+  for (const linha of instrucaoDeRequerimentos(dados.categoriaPeca)) partes.push(linha);
 
   if (dados.documentos.length > 0) {
     partes.push("");
