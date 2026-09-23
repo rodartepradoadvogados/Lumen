@@ -307,19 +307,33 @@ teste("ESPELHO: o caminho instalado do script (servidor.py) aponta para dentro d
 //
 // COMO SIMULAR ISTO DE FORMA HONESTA. `chmod 000` num arquivo do modelo NÃO funciona aqui: os
 // testes rodam como root, e root ignora permissão de leitura — a simulação passaria mesmo que a
-// trava de atomicidade tivesse sumido, o que seria um teste que finge testar. Em vez disso, o
-// modelo ganha um LINK SIMBÓLICO QUEBRADO (para um caminho que não existe): `shutil.copytree`
-// tenta copiar o alvo do link e falha com "No such file or directory" — uma falha genuína, que
-// não depende de privilégio nenhum, no MEIO de uma cópia que já tinha copiado outros arquivos.
+// trava de atomicidade tivesse sumido, o que seria um teste que finge testar. A falha genuína, que
+// não depende de privilégio nenhum, é um LINK SIMBÓLICO QUEBRADO no lugar do `auth.json`.
+//
+// A PREMISSA MUDOU DE MECANISMO, E O GUARDA CONTINUA O MESMO. A versão anterior punha o link
+// quebrado num arquivo qualquer (`quebrado.lnk`) e contava com `shutil.copytree` estourar ao
+// seguir o link — o script copiava a árvore inteira. Com a cópia por LISTA BRANCA
+// (ARQUIVOS_DO_MODELO), arquivo estranho no modelo não é mais copiado, então um link quebrado em
+// `quebrado.lnk` deixou de ser falha nenhuma — e deve deixar mesmo: ele não faz parte do perfil.
+//
+// O link quebrado vai então onde ele de fato importa: no `auth.json`, que é OBRIGATÓRIO. Ali a
+// falha é real e é a que interessa — o `.env` já foi copiado quando ela acontece, então a
+// interrupção pega a cópia NO MEIO, que é exatamente a situação que a travessia atômica existe
+// para cobrir. Adaptar a premissa, e não apagar o teste: o que se prova continua sendo "nunca um
+// perfil pela metade".
 teste("EXERCITADO: uma cópia interrompida no meio não deixa perfil pela metade", () => {
-  const pasta = novaPastaDePerfis();
+  const pasta = novaPastaDePerfis({ comAuth: false });
   try {
     const master = join(pasta, "lumen-master");
-    writeFileSync(join(master, "normal.txt"), "arquivo que copia sem problema");
-    symlinkSync("/caminho/que/definitivamente/nao/existe", join(master, "quebrado.lnk"));
+    writeFileSync(join(master, ".env"), "arquivo que copia sem problema");
+    // O `auth.json` do modelo EXISTE como entrada de diretório (a checagem de ausência não
+    // dispara) e é ilegível como arquivo: aponta para lugar nenhum.
+    symlinkSync("/caminho/que/definitivamente/nao/existe", join(master, "auth.json"));
+    writeFileSync(join(master, "normal.txt"), "arquivo estranho, que a lista branca ignora");
+    symlinkSync("/caminho/que/tambem/nao/existe", join(master, "quebrado.lnk"));
 
     const r = rodar(["provision", "--slug", "meio-pronto", "--id", "off_9", "--name", "Nove"], pasta);
-    verdade(r.status !== 0, "a cópia com um link quebrado precisa FALHAR — essa é a premissa do teste");
+    verdade(r.status !== 0, `a cópia com o auth.json ilegível precisa FALHAR — essa é a premissa do teste; stderr: "${r.ultimaLinhaStderr}"`);
 
     const conteudo = readdirSync(pasta);
     igual(conteudo, ["lumen-master"], `depois da falha, a pasta de perfis só pode conter lumen-master; achei: ${conteudo.join(", ")}`);
@@ -327,6 +341,106 @@ teste("EXERCITADO: uma cópia interrompida no meio não deixa perfil pela metade
   } finally {
     rmSync(pasta, { recursive: true, force: true });
   }
+});
+
+// ── A LISTA BRANCA DO MODELO — isolamento entre inquilinos ────────────────────────────────────
+//
+// O script copiava a ÁRVORE INTEIRA do `lumen-master` (`shutil.copytree`). Duas consequências, e a
+// segunda é grave:
+//
+//   · `scripts/` ia junto — e este próprio script mora em `lumen-master/scripts/`, então cada
+//     escritório novo nascia com uma cópia dele dentro;
+//   · O ESTADO DE CONVERSA DO MODELO ia junto. O roteiro de instalação manda rodar
+//     `hermes -p lumen-master config check`; qualquer pergunta feita ao modelo — um teste, uma
+//     conferência — passaria a ser clonada para dentro de TODO escritório criado depois. Num
+//     produto multi-inquilino de advocacia, é a garantia de isolamento se rompendo em silêncio.
+//
+// Agora a cópia é por lista branca. Estes testes montam um modelo SUJO — com script, com estado,
+// com pasta de sessão — e provam que nada disso atravessa.
+
+/** Suja o `lumen-master` com tudo o que NÃO pode ser copiado para um perfil de escritório. */
+function sujarOModelo(pasta: string): void {
+  const master = join(pasta, "lumen-master");
+  mkdirSync(join(master, "scripts"), { recursive: true });
+  writeFileSync(join(master, "scripts", "provision_tenant.py"), "# a copia que nao pode viajar\n");
+  mkdirSync(join(master, "sessions"), { recursive: true });
+  writeFileSync(join(master, "sessions", "20260101_conversa.json"), '{"conversa":"do modelo"}');
+  writeFileSync(join(master, "state.db"), "estado-de-conversa-do-modelo");
+  writeFileSync(join(master, "logs.txt"), "log do modelo");
+}
+
+teste("EXERCITADO: o perfil novo NÃO herda scripts, estado nem sessão do perfil-modelo", () => {
+  const pasta = novaPastaDePerfis();
+  try {
+    sujarOModelo(pasta);
+    const r = rodar(["provision", "--slug", "escritorio-limpo", "--id", "off_limpo", "--name", "Escritório Limpo"], pasta);
+    igual(r.status, 0, `provision falhou: ${r.ultimaLinhaStderr}`);
+
+    const novo = join(pasta, "escritorio-limpo");
+    for (const proibido of ["scripts", "sessions", "state.db", "logs.txt"]) {
+      verdade(
+        !existsSync(join(novo, proibido)),
+        `${proibido} do perfil-modelo atravessou para o perfil do escritório — o isolamento entre inquilinos depende de isso NÃO acontecer`,
+      );
+    }
+    // E o que DEVE atravessar, atravessou: sem isto o teste acima passaria com uma cópia vazia.
+    verdade(existsSync(join(novo, "auth.json")), "o auth.json precisava ter sido copiado");
+    verdade(existsSync(join(novo, "profile.yaml")), "o profile.yaml precisava ter sido copiado");
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
+});
+
+// ── O NOME DO ESQUELETO DO .env ────────────────────────────────────────────────────────────────
+//
+// No repositório o esqueleto se chama `env.modelo`, e não `.env`, por um motivo de git: um arquivo
+// chamado `.env` RASTREADO deixa de ser protegido pela regra `.env` do `.gitignore` — a regra não
+// vale para arquivo já versionado —, e é justamente esse o arquivo que alguém vai preencher com
+// valor de verdade. Na VPS ele se chama `.env`. O script aceita os dois nomes e SEMPRE escreve
+// `.env` no perfil novo, então nada depende de alguém lembrar de renomear.
+
+teste("EXERCITADO: env.modelo no perfil-modelo chega ao perfil novo já com o nome .env", () => {
+  const pasta = novaPastaDePerfis();
+  try {
+    writeFileSync(join(pasta, "lumen-master", "env.modelo"), "# esqueleto\n");
+    const r = rodar(["provision", "--slug", "escritorio-env", "--id", "off_env", "--name", "Escritório Env"], pasta);
+    igual(r.status, 0, `provision falhou: ${r.ultimaLinhaStderr}`);
+    const novo = join(pasta, "escritorio-env");
+    verdade(existsSync(join(novo, ".env")), "o env.modelo do modelo precisava chegar ao perfil novo como .env");
+    verdade(!existsSync(join(novo, "env.modelo")), "o perfil novo não pode ficar com o nome env.modelo — o Hermes lê .env");
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
+});
+
+teste("EXERCITADO: um .env de verdade no perfil-modelo vence o esqueleto env.modelo", () => {
+  const pasta = novaPastaDePerfis();
+  try {
+    writeFileSync(join(pasta, "lumen-master", ".env"), "CHAVE=valor-de-verdade\n");
+    writeFileSync(join(pasta, "lumen-master", "env.modelo"), "# esqueleto que nao pode vencer\n");
+    const r = rodar(["provision", "--slug", "escritorio-env2", "--id", "off_env2", "--name", "Escritório Env2"], pasta);
+    igual(r.status, 0, `provision falhou: ${r.ultimaLinhaStderr}`);
+    const conteudo = readFileSync(join(pasta, "escritorio-env2", ".env"), "utf8");
+    verdade(
+      /valor-de-verdade/.test(conteudo),
+      "o esqueleto sobrescreveu o .env de verdade do modelo — na VPS isso apagaria a configuração do perfil",
+    );
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
+});
+
+teste("o repositório NÃO versiona um arquivo chamado .env no perfil-modelo", () => {
+  // Guarda contra a regressão de nome. A regra `.env` do .gitignore não protege arquivo que já
+  // esteja rastreado, então o único lugar onde esta trava pode morar é aqui.
+  verdade(
+    !existsSync("servidor-hermes/perfil-modelo/.env"),
+    "voltou a existir servidor-hermes/perfil-modelo/.env — use env.modelo: o .gitignore não protege arquivo já rastreado",
+  );
+  verdade(
+    existsSync("servidor-hermes/perfil-modelo/env.modelo"),
+    "servidor-hermes/perfil-modelo/env.modelo desapareceu — é o esqueleto que o roteiro de instalação copia",
+  );
 });
 
 resumo("hermesProvisionamento");

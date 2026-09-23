@@ -506,7 +506,7 @@ cp servidor-hermes/provision_tenant.py /root/.hermes/profiles/lumen-master/scrip
 ```bash
 mkdir -p /root/.hermes/profiles/lumen-master
 cp servidor-hermes/perfil-modelo/profile.yaml /root/.hermes/profiles/lumen-master/profile.yaml
-cp servidor-hermes/perfil-modelo/.env /root/.hermes/profiles/lumen-master/.env
+cp servidor-hermes/perfil-modelo/env.modelo /root/.hermes/profiles/lumen-master/.env
 ```
 
 **3. Copie o `auth.json` — este passo é obrigatório, e só acontece na VPS.**

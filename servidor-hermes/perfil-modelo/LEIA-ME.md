@@ -11,7 +11,12 @@ está aqui é a fonte que se leva para lá.
   (`description`, `description_auto`, `ui_meta`, `_ui_meta_revisions`). Nenhuma outra chave foi
   inventada: se o Hermes de verdade usa mais alguma, ela precisa ser copiada de um perfil que já
   funciona (ex.: `atendimento-lumen`) na hora de instalar — este repositório não tem como saber.
-- **`.env`** — um esqueleto vazio, de propósito (ver o comentário dentro dele). Os nomes exatos das
+- **`env.modelo`** — o esqueleto do `.env` do perfil, vazio de propósito (ver o comentário dentro
+  dele). **Chama-se `env.modelo` aqui, e `.env` na VPS**, e a diferença de nome é deliberada: um
+  arquivo chamado `.env` RASTREADO pelo git deixa de ser protegido pela regra `.env` do
+  `.gitignore` (a regra não vale para arquivo já versionado) — e este é exatamente o arquivo que
+  alguém vai preencher com valor de verdade. O `provision_tenant.py` aceita os dois nomes e sempre
+  escreve `.env` no perfil novo, então nada depende de lembrar de renomear. Os nomes exatos das
   variáveis que o Hermes lê por perfil não foram confirmados daqui: só se sabe QUE elas existem e
   QUE `hermes -p <perfil> config check` mostra o que falta (ver `servidor-hermes/LEIA-ME.md`,
   seção 3, "Subir o serviço"). Preencha copiando de um perfil que já funciona.

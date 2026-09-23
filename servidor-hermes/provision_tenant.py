@@ -80,6 +80,41 @@ PASTA_PERFIS = Path(os.environ.get("HERMES_PROFILES_DIR", "/root/.hermes/profile
 # O nome do perfil-modelo, de onde cada escritório novo é copiado.
 PERFIL_MODELO = os.environ.get("HERMES_MASTER_PROFILE", "lumen-master")
 
+# ── O QUE SE COPIA DO MODELO — LISTA BRANCA, e o motivo é isolamento, não arrumação ──────────
+#
+# ESTA LISTA SUBSTITUIU UM `copytree` DA ÁRVORE INTEIRA, e a diferença não é de estilo. Copiar o
+# diretório todo copiava, junto, tudo o que o `lumen-master` tivesse acumulado:
+#
+#   · `scripts/` — este próprio arquivo mora em `lumen-master/scripts/provision_tenant.py` (ver
+#     SCRIPT_PROVISIONAMENTO no servidor.py). Cada escritório novo nascia com uma cópia do script
+#     de provisionamento dentro dele, e cópias velhas iam se espalhando pelo disco.
+#
+#   · O ESTADO DE CONVERSA DO MODELO — e este é o grave. O Hermes guarda por perfil o histórico e
+#     a sessão (`state.db` e o que mais a versão dele criar). O roteiro de instalação manda rodar
+#     `hermes -p lumen-master config check` para conferir o modelo, e qualquer pergunta feita ao
+#     modelo — um teste, uma conferência — passaria a ser CLONADA para dentro de todo escritório
+#     criado depois. Num produto multi-inquilino de advocacia, isso é a garantia de isolamento se
+#     rompendo em silêncio: o perfil de um escritório carregando conversa que não é dele.
+#
+# BRANCA, NUNCA NEGRA, pelo mesmo motivo de sempre: um arquivo de estado NOVO, criado por uma
+# versão futura do Hermes, não é copiado por padrão. Se um dia o perfil precisar legitimamente de
+# outro arquivo, ele entra AQUI, por decisão — e o sintoma do esquecimento é um `config check`
+# reclamando na hora da instalação, não um vazamento meses depois.
+#
+# A ORIGEM PODE TER OUTRO NOME QUE O DESTINO: no repositório o esqueleto do `.env` se chama
+# `env.modelo`, porque um arquivo chamado `.env` RASTREADO pelo git deixa de ser protegido pela
+# regra `.env` do `.gitignore` (a regra não vale para arquivo já versionado) — e este é justamente
+# o arquivo que alguém vai preencher com valor de verdade. Na VPS ele se chama `.env`; o script
+# aceita os dois nomes e SEMPRE escreve `.env` no perfil novo, então nada depende de alguém
+# lembrar de renomear.
+ARQUIVOS_DO_MODELO = (
+    # (nome no modelo, nome no perfil novo, obrigatório)
+    ("auth.json", "auth.json", True),
+    ("profile.yaml", "profile.yaml", False),
+    (".env", ".env", False),
+    ("env.modelo", ".env", False),
+)
+
 # ── ESPELHOS DE servidor-hermes/servidor.py — MESMA REGRA, DOIS LUGARES ────────────────────────
 #
 # O script pode ser chamado direto (sem passar pela ponte), então ele revalida tudo por conta
@@ -206,14 +241,22 @@ def cmd_provision(args: argparse.Namespace) -> None:
             f"{PASTA_PERFIS}/{PERFIL_MODELO} antes de provisionar (ver servidor-hermes/perfil-modelo/LEIA-ME.md)"
         )
 
-    # SEM auth.json NO MODELO, O PROVISIONAMENTO FALHA — E DIZ O QUE FAZER. Um perfil nascido sem
-    # credencial de provedor só se descobriria quebrado na primeira pergunta do advogado.
-    if not (modelo / "auth.json").is_file():
-        falhar(
-            f"o perfil-modelo ({modelo}) nao tem auth.json — copie o auth.json de um perfil que ja "
-            "funciona para dentro do perfil-modelo, NA VPS, antes de provisionar; essa credencial "
-            "nunca entra no repositorio (ver servidor-hermes/perfil-modelo/LEIA-ME.md)"
-        )
+    # ARQUIVO OBRIGATÓRIO AUSENTE NO MODELO: O PROVISIONAMENTO FALHA — E DIZ O QUE FAZER. Um perfil
+    # nascido sem credencial de provedor só se descobriria quebrado na primeira pergunta do
+    # advogado.
+    #
+    # A LISTA É A MESMA DA CÓPIA (ARQUIVOS_DO_MODELO), e isto não é economia de código: enquanto
+    # esta checagem citava `auth.json` escrito à mão, ela e a lista da cópia eram duas verdades
+    # sobre o mesmo assunto — tirar um arquivo da lista sem lembrar desta linha (ou o contrário)
+    # daria um perfil publicado sem o que precisa, calado. Uma lista só, dois usos.
+    for origem_nome, _destino_nome, obrigatorio in ARQUIVOS_DO_MODELO:
+        if obrigatorio and not (modelo / origem_nome).is_file():
+            falhar(
+                f"o perfil-modelo ({modelo}) nao tem {origem_nome} — copie o {origem_nome} de um "
+                "perfil que ja funciona para dentro do perfil-modelo, NA VPS, antes de "
+                "provisionar; essa credencial nunca entra no repositorio (ver "
+                "servidor-hermes/perfil-modelo/LEIA-ME.md)"
+            )
 
     # CRIAÇÃO ATÔMICA: monta o perfil inteiro num diretório temporário IRMÃO do destino final
     # (dentro da própria PASTA_PERFIS, para o `os.rename` de baixo ser uma troca atômica no mesmo
@@ -223,7 +266,40 @@ def cmd_provision(args: argparse.Namespace) -> None:
     tmp = Path(tempfile.mkdtemp(prefix=f".{slug}.tmp-", dir=PASTA_PERFIS))
     try:
         provisorio = tmp / slug
-        shutil.copytree(modelo, provisorio, symlinks=False)
+        provisorio.mkdir()
+        # CÓPIA POR ARQUIVO, pela lista branca (ver ARQUIVOS_DO_MODELO): nada de `copytree`, que
+        # levaria também `scripts/` e o estado de conversa do modelo. `copy2` preserva o modo do
+        # arquivo, que importa para o `auth.json`.
+        for origem_nome, destino_nome, _obrigatorio in ARQUIVOS_DO_MODELO:
+            origem = modelo / origem_nome
+            # `is_file()` recusa diretório E link simbólico apontando para lugar nenhum — um link
+            # quebrado no modelo não pode virar exceção crua no meio da criação.
+            if not origem.is_file():
+                continue
+            alvo = provisorio / destino_nome
+            # O primeiro nome da lista que existir ganha: `.env` vem antes de `env.modelo`, então
+            # um `.env` de verdade no modelo nunca é sobrescrito pelo esqueleto.
+            if alvo.exists():
+                continue
+            shutil.copy2(origem, alvo)
+
+        # CONFERÊNCIA ANTES DA TRAVESSIA. A checagem lá em cima olha o MODELO; esta olha o que de
+        # fato CHEGOU ao perfil. Agora que as duas saem da mesma lista, o que sobra para esta cobrir
+        # é a janela entre uma e outra: o arquivo que existia na checagem e sumiu, ficou ilegível ou
+        # virou link quebrado antes da cópia. O `os.rename` abaixo publica o perfil de uma vez —
+        # depois dele não há mais onde descobrir que faltava a credencial, a não ser na primeira
+        # pergunta do advogado.
+        #
+        # NENHUM TESTE ALCANÇA ESTA LINHA, e está dito de propósito em vez de ficar implícito:
+        # simular a janela entre a checagem e a cópia exigiria mexer no disco no meio da execução do
+        # script, e uma simulação torta seria pior que nenhuma. Seis linhas baratas contra uma falha
+        # sem volta — fica, sabendo-se que é a parte não provada deste arquivo.
+        for _origem_nome, destino_nome, obrigatorio in ARQUIVOS_DO_MODELO:
+            if obrigatorio and not (provisorio / destino_nome).is_file():
+                raise RuntimeError(
+                    f"{destino_nome} nao chegou ao perfil novo — o modelo ({modelo}) tem esse "
+                    "arquivo ilegivel ou como link quebrado"
+                )
         metadados = {
             "officeId": identificador,
             "nome": nome,
