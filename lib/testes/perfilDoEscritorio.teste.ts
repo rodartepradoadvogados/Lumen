@@ -416,4 +416,53 @@ teste("a resposta cobre as CINCO raízes de destino de documento, nenhuma esquec
   verdade(/acentua/i.test(perfil.armazenamento.subpastaPorCategoria), "a regra não exige a grafia/acentuação exata da categoria");
 });
 
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA REVISÃO — A COLUNA NOVA DERRUBARIA O DEPLOY DE PRODUÇÃO, NÃO SÓ O DE STAGING.
+//
+// O build desta entrega falhou no prerender de /blog com
+// `P2022: The column Office.descricaoAtuacao does not exist`. A leitura natural é "o staging
+// está atrás, em produção o db push resolve". Está errada. O `package.json` roda:
+//
+//     prisma generate && next build && if [ "$VERCEL_ENV" = "production" ]; then npx prisma db push; fi
+//
+// O `db push` vem DEPOIS do `next build`. As páginas do blog são geradas DURANTE o build, contra
+// o banco que ainda não tem a coluna — então produção falharia exatamente como o staging falhou,
+// e o deploy inteiro cairia por causa de um campo que /blog nem usa.
+//
+// A causa não é a coluna: é `getPlatformOffice` pedir TODAS as colunas de Office quando os três
+// chamadores usam só o `id`. Pedir mais do que se usa, num caminho que roda no build, é marcar
+// encontro com o próximo campo que alguém acrescentar — e esse dia chega sempre.
+//
+// A trava abaixo é por PROPRIEDADE (a consulta tem de restringir as colunas), não por grafia.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("TRAVA: getPlatformOffice restringe as colunas — ela roda no BUILD, contra o banco antigo", () => {
+  const fonte = codigoDe(readFileSync(join(process.cwd(), "lib", "officeModules.ts"), "utf8"));
+  const corpo = codigoDe(corpoDaFuncao(fonte, "getPlatformOffice"));
+  verdade(corpo.length > 30, `corpoDaFuncao("getPlatformOffice") devolveu ${corpo.length} caracteres — varredura cega`);
+  verdade(/select:\s*\{/.test(corpo),
+    "getPlatformOffice voltou a pedir TODAS as colunas de Office. Ela roda durante o `next build`, e o `prisma db push` só roda DEPOIS — então a próxima coluna nova em Office derruba o deploy de produção com P2022, por um campo que o blog nem usa");
+  verdade(/\bid:\s*true/.test(corpo),
+    "o select de getPlatformOffice não traz o `id`, que é a única coisa que os três chamadores usam");
+});
+
+teste("TRAVA: quem chama getPlatformOffice usa só o id — se passar a usar mais, o select precisa acompanhar", () => {
+  // Esta trava existe para o caso inverso: alguém passa a ler `office.name` num dos chamadores e
+  // o select acima, silenciosamente, deixa de bastar. O erro apareceria em produção, não aqui.
+  const arquivos = [
+    join("app", "blog", "page.tsx"),
+    join("app", "blog", "[slug]", "page.tsx"),
+    join("app", "api", "blog", "draft", "route.ts"),
+  ];
+  for (const arq of arquivos) {
+    const fonte = codigoDe(readFileSync(join(process.cwd(), arq), "utf8"));
+    const usos = [...fonte.matchAll(/\boffice\??\.(\w+)/g)].map((m) => m[1]);
+    for (const campo of usos) {
+      verdade(campo === "id",
+        `${arq} lê \`office.${campo}\`, mas getPlatformOffice só traz o id — acrescente o campo ao select, lembrando que TODA coluna trazida ali precisa existir no banco na hora do build`);
+    }
+  }
+});
+
 resumo("Perfil do escritório — atuação cercada, pastas derivadas, recorte por escritório");
