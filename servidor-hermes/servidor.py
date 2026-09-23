@@ -175,6 +175,37 @@ ORCAMENTO_S = max(30, ESPERA_S - FOLGA_DO_ORCAMENTO_S)
 # mais, sobe-se HERMES_MAX_TURNS na maquina sem esperar deploy nenhum do Lumen.
 MAX_TURNS = int(os.environ.get("HERMES_MAX_TURNS", "60"))
 
+# ── A PAREDE DE FERRAMENTAS ──────────────────────────────────────────────────────────────────
+#
+# O QUE ESTA LINHA DECIDE: quais famílias de ferramenta o agente pode usar dentro de uma geração
+# de minuta. Sem `--toolsets` o binário habilita o conjunto PADRÃO dele — que inclui ler e
+# escrever arquivo e rodar comando na máquina. Numa ponte que recebe texto de documento vindo de
+# fora, isso é uma superfície que ninguém pediu: a peça não precisa abrir arquivo (o texto já vem
+# DENTRO da pergunta, ver PERGUNTA_MAXIMA) e não precisa rodar comando nenhum.
+#
+# O VALOR PADRÃO É `web`, e a escolha é do escritório: manter a busca na web (precedente, texto de
+# lei, conferência de citação — a regra da casa nº 1 depende dela) e tirar arquivo e comando.
+#
+# POR QUE VEM DO AMBIENTE, E ISSO AQUI É O PONTO IMPORTANTE. O binário NÃO recusa nome de conjunto
+# que não conhece: ele responde `Warning: Unknown toolsets: <nome>` e SEGUE, sem ferramenta
+# nenhuma. Quer dizer que um nome errado escrito aqui não derruba a ponte — ele apaga a busca na
+# web CALADO, e o defeito só apareceria semanas depois numa citação que o agente não conferiu.
+# Por isso o nome não está escrito no código: mora em HERMES_TOOLSETS, no arquivo de ambiente da
+# máquina, e se estiver errado se corrige lá, sem upload de arquivo e sem espera de deploy.
+#
+# `HERMES_TOOLSETS=""` (vazio) DESLIGA a parede: a opção não é enviada e o binário volta ao padrão
+# dele. É a saída de emergência — se um dia uma geração legítima precisar de mais que a web, ela
+# existe e não depende de mexer neste arquivo.
+#
+# E A CONFERÊNCIA DO NOME NÃO FICA POR CONTA DA BOA VONTADE: o aviso do binário é lido na volta
+# (ver o fim de `executar_hermes`) e registrado como ERRO no log. Um nome errado passa a gritar no
+# `journalctl` em vez de sumir.
+#
+# USA-SE A FORMA LONGA `--toolsets`, e não `-t`, de propósito: a conferência de binário antigo
+# logo abaixo varre as opções que começam com `--`. Com a forma longa, um Hermes que não conheça
+# a opção já nasce coberto pelo 501 falado ("atualize o binário") em vez de cair no 500 genérico.
+TOOLSETS = os.environ.get("HERMES_TOOLSETS", "web").strip()
+
 CORPO_MAXIMO = 512 * 1024  # 512 KiB, e este numero e em BYTES.
 #
 # AS DUAS UNIDADES DESTE ARQUIVO, e nao confundi-las e metade do que esta entrega existe para
@@ -401,6 +432,10 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas:
         "--run-budget", str(ORCAMENTO_S),
         "--max-turns", str(MAX_TURNS),
     ]
+    # A PAREDE. Só entra quando há nome configurado — vazio significa "sem parede", de propósito
+    # (ver o comentário de TOOLSETS). Nunca escrita à mão nesta linha.
+    if TOOLSETS:
+        argumentos += ["--toolsets", TOOLSETS]
     if sessao:
         argumentos += ["--resume", sessao]
 
@@ -453,10 +488,58 @@ def executar_hermes(perfil: str, mensagem: str, sessao: str | None, ferramentas:
             raise PerfilAusente(erro[:300])
         raise RuntimeError(erro[:300] or f"o Hermes terminou com código {concluido.returncode}")
 
+    # ── O AVISO QUE IA PARAR DENTRO DA PECA ───────────────────────────────────────────────────
+    #
+    # O binario escreve avisos de linha de comando na MESMA saida da resposta, antes do
+    # `session_id:`. Registro real, colhido na VPS:
+    #
+    #     Warning: Unknown toolsets: __invalido__
+    #
+    #     session_id: 20260923_054842_abaa0e
+    #     Oi
+    #
+    # Ate esta entrega a extracao tirava UMA linha — a do `session_id:` — e devolvia todo o resto
+    # como resposta. Com `--toolsets` passando a ser enviado, um nome de conjunto errado colocaria
+    # a palavra "Warning: Unknown toolsets: web" NO COMECO DA MINUTA, e ela sairia assim para o
+    # advogado, dentro do documento exportado. O defeito nao existia antes porque a ponte nunca
+    # mandava opcao capaz de gerar aviso; ele nasceria junto com a parede.
+    #
+    # ENTAO A LINHA DE AVISO SAI DA RESPOSTA E VAI PARA O LOG. Tirar linha que comeca por
+    # "Warning:" e seguro aqui: a resposta e peca juridica em portugues, e nenhuma linha dela
+    # comeca com essa palavra inglesa seguida de dois-pontos. O que sai nao e descartado — e
+    # registrado, com o perfil, para quem cuida da maquina ver no `journalctl`.
     linhas = (concluido.stdout or "").strip().split("\n")
+    avisos = [l for l in linhas if l.startswith("Warning:")]
+    for aviso in avisos:
+        log.warning("aviso do hermes em %s: %s", perfil, aviso.strip())
+
+    # ── A CONFERENCIA DO NOME DO CONJUNTO ─────────────────────────────────────────────────────
+    #
+    # Esta e a unica prova de que a parede esta de pe. Nome de conjunto desconhecido NAO e erro
+    # para o binario: ele avisa e segue SEM FERRAMENTA NENHUMA — quer dizer que a ponte
+    # continuaria respondendo normalmente, so que com o agente cego para a web, e a regra da casa
+    # nº 1 (validacao dupla de jurisprudencia) passaria a ser impossivel de cumprir em silencio.
+    #
+    # Por isso o aviso vira ERRO no log, com o valor configurado e o caminho do conserto escrito
+    # por extenso: quem abrir o `journalctl` ja sai sabendo o que fazer, sem precisar voltar aqui.
+    # Nao derrubamos a geracao por causa disso: a peca sai, e sai util; o que nao pode e o defeito
+    # ficar mudo.
+    alerta_conjunto = [l for l in avisos if "unknown toolsets" in l.lower()]
+    alerta_conjunto += [l for l in (concluido.stderr or "").split("\n") if "unknown toolsets" in l.lower()]
+    if alerta_conjunto:
+        log.error(
+            "HERMES_TOOLSETS tem nome que este binario nao conhece (%s) — o agente rodou SEM "
+            "ferramenta, inclusive sem busca na web; corrija HERMES_TOOLSETS no arquivo de "
+            "ambiente da maquina. Aviso do binario: %s",
+            TOOLSETS or "(vazio)",
+            alerta_conjunto[0].strip(),
+        )
+
     linha_sessao = next((l for l in linhas if l.startswith("session_id:")), None)
     nova_sessao = linha_sessao.replace("session_id:", "").strip() if linha_sessao else (sessao or "")
-    resposta = "\n".join(l for l in linhas if not l.startswith("session_id:")).strip()
+    resposta = "\n".join(
+        l for l in linhas if not l.startswith("session_id:") and not l.startswith("Warning:")
+    ).strip()
     return resposta, nova_sessao
 
 
