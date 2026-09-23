@@ -42,9 +42,11 @@ const RAIZ = process.cwd();
  * Todas as skills de plataforma do Hermes, pelo nome do diretório — que é também o `name` do
  * cabeçalho. As três primeiras são do lote 1 (conflict check, ética na publicidade e pesquisa de
  * jurisprudência); as quatro seguintes são do lote 2 (análise de sentença, análise de risco
- * processual, preparação de audiências e revisão de contratos). Nova skill de plataforma entra
- * nesta lista — é o que estende as travas gerais abaixo (sem dado de escritório, quatro regras da
- * casa, convenção de cabeçalho) a ela também.
+ * processual, preparação de audiências e revisão de contratos); as quatro últimas são do lote 3
+ * (análise de legislação, diagnóstico de LGPD do próprio escritório, onboarding de cliente e
+ * precificação de honorários). Nova skill de plataforma entra nesta lista — é o que estende as
+ * travas gerais abaixo (sem dado de escritório, quatro regras da casa, convenção de cabeçalho) a
+ * ela também.
  */
 const SKILLS = [
   "conflict-check",
@@ -54,6 +56,10 @@ const SKILLS = [
   "analise-risco-processual",
   "preparacao-audiencias",
   "revisao-contratos",
+  "analise-legislacao",
+  "lgpd-escritorio",
+  "onboarding-cliente",
+  "precificacao-honorarios",
 ] as const;
 
 function caminhoDa(skill: string): string {
@@ -472,6 +478,73 @@ teste("HARD GATE: em analise-sentenca a data do prazo nunca sai sozinha — nem 
   verdade(
     /(origem|conferid|confirm|condicionad)/i.test(bloco),
     "o bloco de prazo do formato da saída não marca a data como dependente de conferência",
+  );
+});
+
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// LGPD — O LIMITE QUE FALTAVA, e ele erra para os DOIS lados
+// ──────────────────────────────────────────────────────────────────────────────────────────
+//
+// A primeira versão de `lgpd-escritorio` derrubava, com razão, a desculpa "somos advogados, o
+// sigilo profissional nos isenta da lei de dados" — e depois nunca devolvia o limite LEGÍTIMO.
+// Sobrava um passo mandando montar "um caminho definido para responder a pedido de titular
+// (cliente, parte contrária, terceiro)", com os três no mesmo balde e com "pedir eliminação" na
+// lista do que se atende.
+//
+// Seguido à risca, esse caminho único entrega À PARTE CONTRÁRIA o que o escritório guarda sobre
+// ela — que é o material do caso do cliente, com estratégia e confidência dentro — e acolhe pedido
+// de eliminação sobre prova que o escritório tem dever de guardar. O primeiro erro (a desculpa
+// geral) custa sanção administrativa; este custa o cliente, o processo e a inscrição de quem
+// assinou.
+//
+// O guarda confere a TRIAGEM, que é o que resolve os dois lados de uma vez: quem é o titular em
+// relação ao escritório, e sobre que material recai o pedido. As asserções aceitam variantes de
+// redação — guarda preso a uma grafia já bloqueou, neste repositório, a própria correção que devia
+// proteger.
+
+teste("HARD GATE: em lgpd-escritorio, pedido de titular passa por TRIAGEM — não por um caminho só", () => {
+  const texto = textoDa("lgpd-escritorio");
+  const passo = secaoDe(texto, "Passo 6");
+  verdade(passo.length > 800, `a seção de direitos dos titulares saiu com ${passo.length} caracteres — varredura cega`);
+
+  // O sigilo profissional tem de aparecer AQUI como limite, e não só lá no começo como desculpa
+  // derrubada. É a diferença entre negar a isenção geral e reconhecer o limite concreto.
+  verdade(
+    /sigilo\s+profissional/i.test(passo),
+    "lgpd-escritorio voltou a tratar direitos dos titulares sem mencionar o sigilo profissional como limite",
+  );
+  verdade(
+    /dever\s+de\s+guard/i.test(passo),
+    "lgpd-escritorio não invoca o dever de guarda do material de caso",
+  );
+  // A parte contrária precisa ser tratada como caso PRÓPRIO, não como mais um titular na lista.
+  verdade(
+    /parte\s+contr[áa]ria/i.test(passo) && /(material\s+de\s+caso|material\s+do\s+caso)/i.test(passo),
+    "lgpd-escritorio não distingue o pedido da parte contrária sobre material de caso",
+  );
+  // Eliminação não é automática.
+  verdade(
+    /(n[ãa]o\s+se\s+atende[^.\n]{0,60}porque\s+foi\s+pedido|n[ãa]o\s+.{0,80}s[óo]\s+porque\s+foi\s+pedido)/i.test(passo),
+    "lgpd-escritorio perdeu a regra de que pedido de eliminação sobre material de guarda obrigatória não se atende só porque foi pedido",
+  );
+  // Quem decide é o advogado, não a rotina administrativa.
+  verdade(
+    /advogado\s+respons[áa]vel/i.test(passo),
+    "lgpd-escritorio não diz que a recusa fundamentada é decidida pelo advogado responsável",
+  );
+  // E o limite não pode virar a desculpa geral de novo.
+  verdade(
+    /(item\s+a\s+item|nunca\s+em\s+bloco)/i.test(passo),
+    "lgpd-escritorio perdeu a trava contra invocar o limite em bloco — é a desculpa geral vestida de resposta",
+  );
+});
+
+teste("HARD GATE: o formato da saída de lgpd-escritorio cobra a triagem, não só a existência do caminho", () => {
+  const formato = secaoDe(textoDa("lgpd-escritorio"), "Formato da saída");
+  verdade(formato.length > 200, `o formato da saída saiu com ${formato.length} caracteres — varredura cega`);
+  verdade(
+    /triagem/i.test(formato),
+    "o bloco de lacunas não cobra a triagem dos pedidos de titular — a ressalva ficaria só na prosa, que é como o defeito do prazo em analise-sentenca chegou à tela",
   );
 });
 
