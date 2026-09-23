@@ -67,6 +67,7 @@ const SKILLS = [
   "follow-up-inteligente",
   "pos-venda-satisfacao",
   "conteudo-autoridade",
+  "resumo-pecas",
 ] as const;
 
 function caminhoDa(skill: string): string {
@@ -608,6 +609,71 @@ teste("HARD GATE: em qualificacao-perfil-financeiro a recusa vem com orientaçã
   verdade(
     /(orienta[çc][ãa]o|custas)/i.test(formato),
     "o formato da saída não cobra a orientação nem a separação das contas — a ressalva ficaria só na prosa",
+  );
+});
+
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// REFERÊNCIAS CRUZADAS — "ver passo N" tem de apontar para um passo que existe
+// ──────────────────────────────────────────────────────────────────────────────────────────
+//
+// Estas skills são LIDAS POR UM AGENTE, e ele segue a referência. "Ver passo 8" quando o assunto
+// está no 9 não é erro de revisão: é o agente indo ao lugar errado e seguindo a instrução errada.
+//
+// E o risco cresce sozinho: `resumo-pecas` tem treze passos, e qualquer inserção no meio
+// renumera tudo o que vem depois sem tocar numa única referência. O guarda é barato e cobre as
+// dezesseis skills de uma vez — inclusive as que ainda não existem.
+//
+// O QUE ELE NÃO PEGA, e está dito para ninguém confiar demais nele: referência que aponta para um
+// passo QUE EXISTE mas é o errado. Foi exatamente esse o caso encontrado em `resumo-pecas` — "ver
+// passo 8" para tutela provisória, que mora no 9 — e nenhuma varredura automática o distingue de
+// uma referência correta. Isso continua sendo trabalho de quem lê.
+
+teste("HARD GATE: nenhuma skill referencia um 'passo N' que não existe nela", () => {
+  for (const skill of SKILLS) {
+    const texto = textoDa(skill);
+    const existentes = new Set(
+      [...texto.matchAll(/^##\s+Passo\s+(\d+)/gm)].map((m) => Number(m[1])),
+    );
+    // Skill sem passos numerados não tem o que conferir — e não é defeito: várias organizam o
+    // trabalho por frentes ou domínios em vez de passos.
+    if (existentes.size === 0) continue;
+
+    // O PLURAL E OS INTERVALOS CONTAM. A primeira versão deste laço procurava `passo\s+\d+` e
+    // passava batido por "passos 11 e 12" e "passos 10 a 12" — o `s` do plural quebrava o casamento
+    // logo no começo, e o segundo número de um intervalo nunca era olhado. Uma mutação que trocou
+    // "passos 11 e 12" por "passos 11 e 20" passou verde, e foi assim que o buraco apareceu.
+    //
+    // Agora casa `passo` ou `passos`, captura a LISTA inteira que vem depois — "11", "11 e 12",
+    // "10 a 12", "1, 2 e 3" — e confere cada número dela.
+    for (const m of texto.matchAll(/\bpassos?\s+(\d+(?:\s*(?:,|e|a|até)\s*\d+)*)/gi)) {
+      const linha = texto.slice(0, m.index ?? 0).split("\n").length;
+      for (const bruto of m[1].match(/\d+/g) ?? []) {
+        const numero = Number(bruto);
+        verdade(
+          existentes.has(numero),
+          `${skill}/SKILL.md, linha ${linha}: referencia o passo ${numero}, que não existe — a skill vai do 1 ao ${Math.max(...existentes)}`,
+        );
+      }
+    }
+  }
+});
+
+teste("HARD GATE: em resumo-pecas, a remissão da tutela provisória aponta para o passo da tutela provisória", () => {
+  const texto = textoDa("resumo-pecas");
+  // O número do passo da tutela sai do CABEÇALHO, não escrito à mão aqui: se alguém inserir um
+  // passo no meio e renumerar, este teste continua conferindo a coisa certa.
+  const cabecalho = texto.match(/^##\s+Passo\s+(\d+)\s+—\s+Tutela provis[óo]ria/m);
+  verdade(cabecalho !== null, "resumo-pecas perdeu o passo de tutela provisória");
+  const numeroDaTutela = Number((cabecalho as RegExpMatchArray)[1]);
+
+  const remissao = texto.match(/tutela\s+provis[óo]ria\s*\([^)]*ver\s+passo\s+(\d+)\)/i);
+  verdade(remissao !== null, "resumo-pecas perdeu a remissão da tutela provisória no passo do pedido implícito");
+  const numeroApontado = Number((remissao as RegExpMatchArray)[1]);
+
+  igual(
+    numeroApontado,
+    numeroDaTutela,
+    "a remissão da tutela provisória aponta para o passo errado — o agente seguiria a instrução de outra seção",
   );
 });
 
