@@ -323,6 +323,13 @@ export async function gravarMinutaGerada(dados: {
     data: {
       status: "GERADA",
       minutaTexto: corpoComFecho,
+      // A FORMATAÇÃO MORRE COM O TEXTO ANTIGO, pelo mesmo motivo que a aprovação morre (abaixo):
+      // gerar de novo troca o corpo inteiro, e o HTML da folha anterior descreve um texto que não
+      // existe mais. Deixá-lo aqui faria a tela mostrar a minuta de ontem enquanto `minutaTexto`
+      // — a fonte do Word, das citações e do fecho — já é a de hoje: as duas representações
+      // divergindo em silêncio, que é exatamente o que a coluna nova existe para não permitir.
+      // Nulo aqui é "ainda não formatada", e a tela semeia a folha do texto puro novo.
+      minutaFormatadaHtml: null,
       notaRiscos: riscosComAviso,
       jurisprudenciaCitada: estruturada.jurisprudencia as unknown as object,
       documentosBaseConsultados: documentosConsultados(estruturada.documentosUsados, dados.nomesLidos),

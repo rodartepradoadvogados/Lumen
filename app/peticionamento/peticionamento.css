@@ -1807,3 +1807,281 @@
   font-size: 11.5px !important;
   color: var(--tx-2) !important;
 }
+
+/* ============================================================
+   EDITOR DE MINUTA — ETAPA A: folha A4, régua em cima, barra de formatação embaixo.
+   Pedido do dono (23/09/2026). Nenhum hex cru aqui: só var(--token) do bloco do
+   topo deste arquivo, que é o que faz o modo claro e o escuro saírem de graça.
+   A medida da folha NÃO é escrita aqui — ela vem em milímetro de
+   lib/peticionamentoPaginaA4.ts, aplicada inline pelo componente, para a tela e o
+   .docx não terem duas cópias da mesma régua.
+   ============================================================ */
+.peticionamento .minuta-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ---- régua de cima ---- */
+.peticionamento .minuta-regua-faixa {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0 8px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  /* Em tela estreita a faixa rola na horizontal junto com a folha, em vez de a régua encolher:
+     régua mais curta que a folha alinharia o marcador de recuo num ponto que não é o do texto —
+     uma régua que mente é pior que nenhuma. */
+  overflow-x: auto;
+}
+.peticionamento .minuta-regua {
+  position: relative;
+  /* Exatamente a largura da folha, sempre: é isto que faz o milímetro da régua ser o milímetro do
+     papel, e é sobre esta medida que o arrasto converte pixel em milímetro. */
+  width: 210mm;
+  flex: 0 0 auto;
+  height: 22px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  /* A régua tem de poder receber o ponteiro nas alças até fora dela (arrasto longo). */
+  touch-action: none;
+}
+.peticionamento .minuta-regua-fora {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+}
+.peticionamento .minuta-regua-marca {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid var(--tx-ghost);
+}
+.peticionamento .minuta-regua-marca span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--tx-2);
+  line-height: 1;
+}
+.peticionamento .minuta-regua-meia {
+  position: absolute;
+  bottom: 0;
+  height: 6px;
+  width: 0;
+  border-left: 1px solid var(--tx-ghost);
+}
+.peticionamento .minuta-alca {
+  position: absolute;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: ew-resize;
+  z-index: 2;
+}
+.peticionamento .minuta-alca-margem {
+  top: -3px;
+  bottom: -3px;
+  width: 9px;
+  margin-left: -4px;
+  background: var(--accent-bg);
+  border-left: 2px solid var(--accent-strong);
+}
+/* Os três marcadores de recuo repetem o desenho do Word de propósito: triangulinho para baixo
+   em cima (primeira linha do parágrafo) e para cima embaixo (recuo do bloco à esquerda e à
+   direita). É a única parte desta tela em que copiar a convenção alheia é a decisão certa —
+   o advogado já sabe ler esta régua. */
+.peticionamento .minuta-alca-primeira,
+.peticionamento .minuta-alca-esquerda,
+.peticionamento .minuta-alca-direita {
+  width: 12px;
+  height: 9px;
+  margin-left: -6px;
+  background: var(--accent);
+}
+.peticionamento .minuta-alca-primeira {
+  top: 1px;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.peticionamento .minuta-alca-esquerda,
+.peticionamento .minuta-alca-direita {
+  bottom: 1px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.peticionamento .minuta-regua-legenda {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--tx-2);
+}
+
+/* ---- a folha A4 ---- */
+.peticionamento .minuta-folha-area {
+  display: flex;
+  justify-content: center;
+  /* Desktop (decisão do dono: "não é o caso de celular agora"): a folha nunca encolhe abaixo de
+     A4 — em tela estreita quem rola é ESTA faixa, não a página, e o chassi de
+     lib/testes/peticionamentoRolagem.teste.ts continua valendo. */
+  overflow-x: auto;
+  padding: 20px 0 24px;
+}
+.peticionamento .minuta-folha {
+  /* Largura/altura/margem vêm inline, em mm, de lib/peticionamentoPaginaA4.ts. */
+  width: 210mm;
+  min-height: 297mm;
+  flex: 0 0 auto;
+}
+.peticionamento .minuta-corpo {
+  outline: none;
+  min-height: 120mm;
+}
+.peticionamento .minuta-corpo:focus-visible {
+  outline: none;
+}
+.peticionamento .minuta-corpo p {
+  margin: 0 0 10px;
+}
+.peticionamento .minuta-corpo ul,
+.peticionamento .minuta-corpo ol {
+  margin: 0 0 10px;
+  padding-left: 9mm;
+}
+.peticionamento .minuta-corpo li {
+  margin: 2px 0;
+}
+/* "Desenhar linhas de tabela ao redor de texto" e "inserir tabelas": a MOLDURA é o que o dono
+   pediu ver, então toda tabela do corpo sai com linha nas quatro faces — inclusive a de uma
+   célula só, que é como lib/peticionamentoDocx.ts já emoldura bloco no Word. */
+.peticionamento .minuta-corpo table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 10px;
+}
+.peticionamento .minuta-corpo td,
+.peticionamento .minuta-corpo th {
+  border: 1px solid var(--paper-tx-2);
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
+/* ---- barra de formatação de baixo ---- */
+.peticionamento .minuta-barra {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 14px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+}
+.peticionamento .minuta-barra-risco {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--border-strong);
+}
+.peticionamento .minuta-ferramenta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--tx-1);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.peticionamento .minuta-ferramenta:hover {
+  background: var(--bg-3);
+  color: var(--tx-0);
+}
+.peticionamento .minuta-ferramenta.ativa {
+  background: var(--accent-bg);
+  border-color: var(--accent-strong);
+  color: var(--accent);
+}
+.peticionamento .minuta-cor {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 26px;
+  padding: 0 4px;
+  color: var(--tx-1);
+  cursor: pointer;
+}
+.peticionamento .minuta-cor input[type="color"] {
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  cursor: pointer;
+}
+.peticionamento .minuta-menu {
+  position: relative;
+  display: inline-flex;
+}
+.peticionamento .minuta-menu-caixa {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  padding: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-modal);
+}
+.peticionamento .minuta-menu-caixa button[role="menuitem"] {
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--tx-0);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.peticionamento .minuta-menu-caixa button[role="menuitem"]:hover {
+  background: var(--bg-3);
+}
+.peticionamento .minuta-menu-tabela {
+  gap: 8px;
+  min-width: 150px;
+  padding: 10px;
+}
+.peticionamento .minuta-menu-tabela label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--tx-1);
+}
+.peticionamento .minuta-menu-tabela input[type="number"] {
+  width: 58px;
+  padding: 3px 5px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--tx-0);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

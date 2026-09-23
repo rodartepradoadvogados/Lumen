@@ -1,4 +1,5 @@
 import PizZip from "pizzip";
+import { PAGINA_A4, mmParaTwips } from "@/lib/peticionamentoPaginaA4";
 
 // GERA O .DOCX DA PETIÇÃO — sempre Word, sempre com o timbrado do escritório quando houver
 // (especificação §11 + decisions.md §9 item 5: "Word é o único formato em qualquer cenário...
@@ -128,9 +129,16 @@ function corpoDaPeticao(dados: DadosPeticaoDocx): string {
   return blocos.join("");
 }
 
+// A GEOMETRIA DA FOLHA vem de lib/peticionamentoPaginaA4.ts, em milímetro, e é convertida para
+// twip aqui. Ela NÃO é mais escrita à mão nesta string: a tela da minuta desenha a mesma folha
+// A4 e a mesma margem na régua, e duas cópias da mesma medida divergem no dia em que alguém
+// ajusta uma só. 708 twips de cabeçalho/rodapé continuam literais — são posição de header/footer
+// do OOXML, que a tela não desenha e não tem como discordar.
 const SECT_PR_A4 =
-  `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>` +
-  `<w:pgMar w:top="1418" w:right="1134" w:bottom="1418" w:left="1701" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`;
+  `<w:sectPr><w:pgSz w:w="${mmParaTwips(PAGINA_A4.larguraMm)}" w:h="${mmParaTwips(PAGINA_A4.alturaMm)}"/>` +
+  `<w:pgMar w:top="${mmParaTwips(PAGINA_A4.margens.topoMm)}" w:right="${mmParaTwips(PAGINA_A4.margens.direitaMm)}" ` +
+  `w:bottom="${mmParaTwips(PAGINA_A4.margens.baseMm)}" w:left="${mmParaTwips(PAGINA_A4.margens.esquerdaMm)}" ` +
+  `w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`;
 
 // ---------------------------------------------------------------------------
 // METADADOS — docProps/custom.xml. Hard gate: nunca omite que é rascunho de IA (especificação
