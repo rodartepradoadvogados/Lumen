@@ -55,3 +55,12 @@ lib/testes/__pycache__/
 
 # claude code — preferências/hooks locais de cada máquina, não do time
 .claude/settings.local.json
+
+# claude code — cópias isoladas de trabalho de agente. O resto de .claude/ é RASTREADO de
+# propósito (agentes e skills são do time); esta pasta é a exceção, e por um motivo concreto: cada
+# subpasta aqui é um clone inteiro deste repositório, criado pela ferramenta para um agente
+# trabalhar sem colidir com outro. Sem esta linha ela aparece como não rastreada, e um `git add -A`
+# distraído commitaria centenas de megabytes de cópias do próprio projeto dentro dele. Já houve,
+# nesta casa, duas varreduras de `add` levando arquivo para o commit errado — esta é a mesma
+# família de acidente, só maior.
+.claude/worktrees/
