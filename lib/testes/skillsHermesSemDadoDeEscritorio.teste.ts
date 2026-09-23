@@ -70,6 +70,8 @@ const SKILLS = [
   "resumo-pecas",
   "usar-o-lumen",
   "comunicados-clientes",
+  "pecas-juridicas-html",
+  "edicao-cirurgica",
 ] as const;
 
 function caminhoDa(skill: string): string {
@@ -769,6 +771,57 @@ teste("HARD GATE: em comunicados-clientes, o valor de acordo chega ao cliente �
       `comunicados-clientes voltou a usar a posição negocial do escritório como motivo para não informar o valor: "${invertida[0].trim()}"`,
     );
   }
+});
+
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// pecas-juridicas-html — a numeração de página NÃO sai do HTML sozinha
+// ──────────────────────────────────────────────────────────────────────────────────────────
+//
+// A skill exige numeração de página em cada folha, e a exigência é certa: sem ela não se
+// referencia "vide fl. 3" em manifestação posterior, e uma folha extraviada passa despercebida.
+//
+// O QUE FALTAVA É QUE O HTML NÃO ENTREGA ISSO SOZINHO. Numeração e cabeçalho repetido dependem de
+// qual motor converte para PDF, e os dois grandes se comportam de formas opostas: um motor baseado
+// em navegador — a via mais comum — NÃO implementa as caixas de margem de página do CSS, e o
+// rodapé declarado no documento simplesmente não aparece; um motor de paginação dedicado o produz
+// normalmente.
+//
+// Sem a ressalva, o agente escreve o HTML acreditando ter cumprido o item, entrega ao advogado, e
+// a peça sai SEM NUMERAÇÃO — descoberto na hora de juntar aos autos, que é o pior momento
+// possível. Mesmo padrão do defeito do prazo em `analise-sentenca`: a exigência no texto, a
+// ressalva sem viajar junto, e o resultado chegando confiante e errado.
+//
+// Por isso a trava confere os DOIS lugares: o corpo, onde a ressalva é explicada, e o BLOCO DA
+// SAÍDA, que é o que chega a quem lê o resultado.
+
+teste("HARD GATE: pecas-juridicas-html não promete que o HTML sozinho numera as páginas", () => {
+  const texto = textoDa("pecas-juridicas-html");
+
+  verdade(
+    /motor\s+de\s+convers[ãa]o/i.test(texto),
+    "pecas-juridicas-html deixou de falar do motor de conversão — sem ele, a numeração vira promessa que o HTML não cumpre",
+  );
+  verdade(
+    /(motor\s+baseado\s+em\s+navegador|baseado\s+em\s+navegador)/i.test(texto),
+    "pecas-juridicas-html perdeu a distinção do motor baseado em navegador, que é justamente o que não produz o rodapé",
+  );
+  verdade(
+    /(n[ãa]o\s+implementa\s+as\s+caixas\s+de\s+margem|n[ãa]o\s+aparece|fora\s+do\s+HTML)/i.test(texto),
+    "pecas-juridicas-html perdeu a explicação de que o rodapé declarado no documento não sai nesse motor",
+  );
+  verdade(
+    /(pergunte|perguntar)[^.\n]{0,40}(n[ãa]o\s+presuma|em\s+vez\s+de\s+presumir)/i.test(texto),
+    "pecas-juridicas-html perdeu a regra de perguntar qual motor será usado em vez de presumir",
+  );
+
+  // E O BLOCO DA SAÍDA TEM DE CARREGAR ISSO. Ressalva que fica só na prosa não chega a quem lê o
+  // resultado — foi assim que o defeito do prazo em analise-sentenca chegou à tela.
+  const formato = secaoDe(texto, "Formato da saída");
+  verdade(formato.length > 200, `o formato da saída saiu com ${formato.length} caracteres — varredura cega`);
+  verdade(
+    /motor\s+de\s+convers[ãa]o/i.test(formato),
+    "o bloco da saída de pecas-juridicas-html não declara o motor de conversão — a ressalva ficaria só na prosa",
+  );
 });
 
 // ──────────────────────────────────────────────────────────────────────────────────────────
