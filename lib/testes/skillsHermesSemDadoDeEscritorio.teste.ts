@@ -397,6 +397,85 @@ teste("HARD GATE: pesquisa-jurisprudencia é um roteiro executável, não uma bo
 });
 
 // ──────────────────────────────────────────────────────────────────────────────────────────
+// PRAZO EM analise-sentenca — o único erro desta pasta que não tem conserto depois
+// ──────────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Recorta uma seção de nível `##` pelo TÍTULO, terminando no próximo `##`.
+ *
+ * NÃO é janela de caracteres, e a diferença é a armadilha registrada em `executar.ts`: uma fatia
+ * por número de caracteres escorrega para a seção vizinha e passa a "provar" o que está escrito
+ * do lado. Aqui o fim do recorte é o próximo cabeçalho, que é o limite real da seção — se a
+ * redação crescer ou encurtar, o recorte continua certo.
+ */
+function secaoDe(texto: string, titulo: string): string {
+  const linhas = texto.split("\n");
+  const inicio = linhas.findIndex((l) => l.startsWith("## ") && l.includes(titulo));
+  if (inicio < 0) return "";
+  const resto = linhas.slice(inicio + 1);
+  const fim = resto.findIndex((l) => l.startsWith("## "));
+  return (fim < 0 ? resto : resto.slice(0, fim)).join("\n");
+}
+
+/**
+ * POR QUE ESTE GUARDA EXISTE, e vale registrar porque o defeito foi real.
+ *
+ * A primeira versão desta skill se contradizia sobre prazo: um passo mandava dizer "até quando o
+ * prazo corre", e o passo seguinte proibia afirmar o número de dias de memória. Uma skill não pode
+ * obedecer aos dois, e o FORMATO DA SAÍDA decidia qual venceria — o bloco de prazo pedia "o marco
+ * usado, a contagem", uma data apresentada como fato, e a ressalva não aparecia em nenhum dos seis
+ * blocos. Na prática o advogado leria uma data calculada, com o prazo em dias vindo da memória do
+ * agente. Prazo em dias errado é PERDA DE PRAZO: o único erro desta pasta que não tem conserto
+ * depois e que responde na esfera disciplinar e civil.
+ *
+ * Por isso a trava não fica só no corpo do texto, onde uma reescrita a apagaria sem ninguém notar:
+ * ela confere TAMBÉM o bloco de prazo do formato da saída, que é o que chega à tela.
+ *
+ * AS ASSERÇÕES ACEITAM VARIANTES DE REDAÇÃO de propósito. Guarda preso a UMA grafia já bloqueou,
+ * neste repositório, exatamente a correção que devia proteger — três vezes.
+ */
+teste("HARD GATE: em analise-sentenca a data do prazo nunca sai sozinha — nem no corpo, nem no formato da saída", () => {
+  const texto = textoDa("analise-sentenca");
+
+  // ── O CORPO ──────────────────────────────────────────────────────────────────────────────
+  const prazo = secaoDe(texto, "Passo 4");
+  verdade(prazo.length > 400, `a seção de prazo de analise-sentenca saiu com ${prazo.length} caracteres — varredura cega`);
+
+  verdade(
+    /(n[ãa]o\s+afirme[^.\n]{0,90}de\s+mem[óo]ria|sem\s+afirmar[^.\n]{0,90}de\s+mem[óo]ria|n[ãa]o[^.\n]{0,70}dias[^.\n]{0,50}de\s+mem[óo]ria)/i.test(prazo),
+    "analise-sentenca não proíbe mais afirmar o prazo em dias de memória",
+  );
+  verdade(
+    /prazo\s+em\s+dias/i.test(prazo),
+    "analise-sentenca não exige que a data venha acompanhada do prazo em dias que a produziu",
+  );
+  verdade(
+    /(origem|conferid|confirm)/i.test(prazo),
+    "analise-sentenca não exige dizer se o prazo em dias foi conferido na fonte",
+  );
+  verdade(
+    /n[ãa]o\s+estime/i.test(prazo),
+    "analise-sentenca perdeu a proibição de estimar quando falta a data de intimação",
+  );
+
+  // ── O FORMATO DA SAÍDA, que é o que chega à tela do advogado ──────────────────────────────
+  const formato = secaoDe(texto, "Formato da saída");
+  verdade(formato.length > 200, `o formato da saída de analise-sentenca saiu com ${formato.length} caracteres — varredura cega`);
+
+  const blocos = formato.split(/\n(?=\d+\.\s)/);
+  const bloco = blocos.find((b) => /^\s*\d+\.\s*Prazo/i.test(b)) ?? "";
+  verdade(bloco.length > 0, "o formato da saída de analise-sentenca não tem mais o bloco de prazo");
+  verdade(
+    /prazo\s+em\s+dias/i.test(bloco),
+    "o bloco de prazo do formato da saída entrega a data sem o prazo em dias que a produziu",
+  );
+  verdade(
+    /(origem|conferid|confirm|condicionad)/i.test(bloco),
+    "o bloco de prazo do formato da saída não marca a data como dependente de conferência",
+  );
+});
+
+// ──────────────────────────────────────────────────────────────────────────────────────────
 // CABEÇALHO — a convenção do repositório, conferida num exemplo real (.claude/skills/*/SKILL.md)
 // ──────────────────────────────────────────────────────────────────────────────────────────
 
