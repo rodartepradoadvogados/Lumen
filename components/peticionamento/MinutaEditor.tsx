@@ -22,6 +22,7 @@ import {
 import {
   AREA_DE_TEXTO_MINIMA_MM,
   PAGINA_A4,
+  PASSO_DE_RECUO_MM,
   larguraUtilMm,
   limitarMargem,
   type MargensDaPagina,
@@ -53,8 +54,9 @@ import {
 
 const SELETOR_DE_BLOCO = "p, div, li, h1, h2, h3, blockquote, td, th";
 
-/** Um passo de recuo — 1,25 cm, o mesmo salto de tabulação que o Word usa por padrão. */
-const PASSO_DE_RECUO_MM = 12.5;
+// `PASSO_DE_RECUO_MM` (1,25 cm) vem de lib/peticionamentoPaginaA4.ts: o recuo de cada nível de
+// lista do .docx é montado com o MESMO passo, e escrevê-lo aqui de novo faria a tela e o Word
+// discordarem na primeira vez que alguém ajustasse um dos dois.
 const RECUO_MAXIMO_MM = 80;
 /** Recuo negativo de primeira linha (parágrafo "pendente") até este limite — é uso corrente em petição. */
 const RECUO_PRIMEIRA_LINHA_MINIMO_MM = -20;

@@ -1885,7 +1885,13 @@ export async function confirmarExportacao(
     {
       notaObrigatoriaTexto: notaObrigatoria,
       notaRiscos: ((sessao.notaRiscos as string[] | null) ?? []) as string[],
+      // O TEXTO PURO, com o fecho RECONFERIDO aqui — `atualizarCorpoDaMinuta` já garantiu o fecho
+      // ao gravar, e a exportação confere de novo (defesa em profundidade, nunca uma trava só).
       corpoMinuta: garantirFecho(sessao.minutaTexto),
+      // A FORMATAÇÃO DA FOLHA, quando existe: é ela que monta o corpo do Word, para o arquivo sair
+      // com o negrito, a cor, o alinhamento, o recuo, a lista e a tabela que o advogado revisou na
+      // tela. Nula em sessão anterior ao editor — e aí o corpo sai do texto puro, como sempre saiu.
+      corpoMinutaFormatadaHtml: sessao.minutaFormatadaHtml,
       tituloPeca: `${sessao.tipoPeca ?? "Petição"}${sessao.clienteNome ? ` — ${sessao.clienteNome}` : ""}`,
     },
     { confirmadoPorNome: user.name, confirmadoPorOab: user.oab ?? "", confirmadoEm: agora, sessaoId: sessao.id },

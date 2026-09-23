@@ -1,5 +1,7 @@
 import PizZip from "pizzip";
 import { PAGINA_A4, mmParaTwips } from "@/lib/peticionamentoPaginaA4";
+import { FECHO_PETICAO, terminaComFechoCorreto } from "@/lib/peticionamentoFecho";
+import { corpoDocxDoHtmlDaMinuta, type CorpoFormatadoDocx, type NumeracaoDocx } from "@/lib/peticionamentoDocxFormatado";
 
 // GERA O .DOCX DA PETIÇÃO — sempre Word, sempre com o timbrado do escritório quando houver
 // (especificação §11 + decisions.md §9 item 5: "Word é o único formato em qualquer cenário...
@@ -13,6 +15,21 @@ import { PAGINA_A4, mmParaTwips } from "@/lib/peticionamentoPaginaA4";
 // tem tabela de indicadores) sem um quebrar o outro por acoplamento acidental. É a mesma
 // justificativa que lib/driveNamingOffice.ts já registra para não reaproveitar
 // lib/publicationGrouping.ts.
+//
+// DOIS CAMINHOS PARA O CORPO DA PEÇA, e a razão de os dois continuarem existindo:
+//
+//   • COM `corpoMinutaFormatadaHtml` — o corpo é montado da FOLHA, por
+//     lib/peticionamentoDocxFormatado.ts, com negrito, itálico, sublinhado, cor da letra, cor de
+//     fundo, alinhamento, os três recuos, as listas (os oito formatos da setinha e o sub-tópico
+//     aninhado, via word/numbering.xml) e as tabelas, inclusive a moldura de uma célula. O que o
+//     advogado revisou na tela é o que sai no Word.
+//   • SEM ela (nulo ou vazio) — o corpo é montado do TEXTO PURO, por `corpoDaMinuta`, exatamente
+//     como antes desta entrega. Sessão anterior ao editor é estado LEGÍTIMO (ver o contrato de
+//     `minutaFormatadaHtml` no schema), e para ela o arquivo tem de sair byte a byte igual ao que
+//     saía. É por isso que `corpoDaMinuta` e a heurística `pareceTitulo` continuam aqui, intactas.
+//
+// O TEXTO PURO continua sendo a fonte de tudo o que NÃO é aparência: o fecho, a identidade de cada
+// citação e a resposta a "já existe minuta?". Nenhuma das três passou para o HTML.
 //
 // A TRAVA DE METADADO (especificação §3 e §5): todo .docx gerado aqui carrega, nas propriedades
 // do PRÓPRIO ARQUIVO (docProps/custom.xml — nunca texto visível no corpo), que é rascunho de IA,
@@ -76,6 +93,18 @@ export type DadosPeticaoDocx = {
   notaObrigatoriaTexto: string; // já montado por lib/peticionamentoNotaObrigatoria.ts, uma linha por item
   notaRiscos: string[]; // já filtrada por lib/peticionamentoRiscos.ts — pode ser vazia (bloco não aparece)
   corpoMinuta: string; // texto do Hermes, com o fecho já garantido por lib/peticionamentoFecho.ts
+  /**
+   * A FORMATAÇÃO DA FOLHA (`PeticionamentoSessao.minutaFormatadaHtml`) — OPCIONAL de propósito.
+   *
+   * Quando existe, é ELA que monta o corpo, com negrito, cor, alinhamento, recuo, lista e tabela de
+   * verdade (lib/peticionamentoDocxFormatado.ts). Quando é nula ou vazia — sessão anterior ao
+   * editor, estado legítimo pelo contrato do schema — o corpo é montado do TEXTO PURO exatamente
+   * como sempre foi, e o arquivo sai idêntico ao de antes desta entrega.
+   *
+   * `corpoMinuta` continua obrigatório nos dois casos: é dele que sai o caminho antigo, e é o texto
+   * puro que continua sendo a fonte do fecho e da identidade das citações.
+   */
+  corpoMinutaFormatadaHtml?: string | null;
   tituloPeca: string; // ex.: "Réplica — Processo nº ..."
 };
 
@@ -107,7 +136,26 @@ function corpoDaMinuta(texto: string): string {
     .join("");
 }
 
-function corpoDaPeticao(dados: DadosPeticaoDocx): string {
+/**
+ * O CORPO VINDO DA FOLHA — e a rede de segurança do fecho.
+ *
+ * O XML já vem montado por lib/peticionamentoDocxFormatado.ts. O que se decide aqui é uma coisa só:
+ * o fecho. `garantirFecho()` continua conferindo o TEXTO PURO (é ele que `confirmarExportacao`
+ * reconfere, defesa em profundidade que esta entrega não afrouxa), e o texto puro da SESSÃO pode ter
+ * ganhado o fecho na gravação sem que o HTML da folha o tivesse. Nesse caso o corpo sairia sem o
+ * fecho — e o hard gate do fecho existe justamente para isso não acontecer nunca.
+ *
+ * Então: se o texto puro DERIVADO DO HTML não termina no fecho literal, um parágrafo com o fecho é
+ * ACRESCENTADO ao fim. Nada é apagado — nem uma variação errada que o advogado tenha deixado na
+ * folha. Apagar texto de peça com base num regex é um erro pior do que repetir uma linha, e a
+ * variação errada está visível na tela para ele corrigir.
+ */
+function corpoDaMinutaFormatada(formatado: CorpoFormatadoDocx): string {
+  if (terminaComFechoCorreto(formatado.textoPuro)) return formatado.corpoXml;
+  return `${formatado.corpoXml}${paragrafo(run(FECHO_PETICAO, { tamanho: 11 }), { alinhamento: "both", espacoDepois: 160 })}`;
+}
+
+function corpoDaPeticao(dados: DadosPeticaoDocx, formatado: CorpoFormatadoDocx | null): string {
   const blocos: string[] = [];
   blocos.push(
     caixa(
@@ -125,7 +173,7 @@ function corpoDaPeticao(dados: DadosPeticaoDocx): string {
       ),
     );
   }
-  blocos.push(corpoDaMinuta(dados.corpoMinuta));
+  blocos.push(formatado ? corpoDaMinutaFormatada(formatado) : corpoDaMinuta(dados.corpoMinuta));
   return blocos.join("");
 }
 
@@ -200,6 +248,93 @@ function acrescentarMetadados(zip: PizZip, meta: MetadadosPeticaoDocx): void {
   }
 }
 
+// ---------------------------------------------------------------------------
+// NUMERAÇÃO — word/numbering.xml, a parte mais pesada da formatação no Word.
+//
+// Lista com marcador e lista numerada não são estilo de parágrafo em OOXML: cada item traz um
+// `<w:numPr>` que APONTA para uma definição guardada numa parte separada do pacote. Sem
+// `word/numbering.xml`, sem a relação em `word/_rels/document.xml.rels` e sem o Override em
+// `[Content_Types].xml`, o Word abre o arquivo e mostra os itens como parágrafos comuns — sem
+// bolinha, sem número, sem recuo de sub-tópico. As três partes são obrigatórias juntas.
+
+const TIPO_DE_NUMERACAO = "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml";
+const RELACAO_DE_NUMERACAO = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering";
+
+/**
+ * O primeiro id de numeração LIVRE do pacote.
+ *
+ * Num .docx do zero é 1. Num TIMBRADO é um acima de tudo o que ele já usa: o timbrado do escritório
+ * pode ter lista própria (um rodapé numerado, por exemplo), e reusar um `numId` dele faria a lista
+ * da peça sair com o marcador da lista do timbrado — ou apagar a dele. Ler o máximo e somar um é o
+ * que mantém as duas numerações independentes.
+ */
+function primeiroIdDeNumeracaoLivre(zip: PizZip): number {
+  const arquivo = zip.file("word/numbering.xml");
+  if (!arquivo) return 1;
+  const xml = arquivo.asText();
+  let maior = 0;
+  for (const casa of xml.matchAll(/w:(?:abstractNumId|numId)="(\d+)"/g)) {
+    const n = Number.parseInt(casa[1], 10);
+    if (Number.isFinite(n) && n > maior) maior = n;
+  }
+  return maior + 1;
+}
+
+/**
+ * Acrescenta a numeração da peça ao pacote — criando `word/numbering.xml` quando não há, e
+ * MESCLANDO quando o timbrado já tem um (nunca substituindo: sobrescrever apagaria a numeração do
+ * timbrado). Falha ALTO se as partes de controle não tiverem a forma esperada, em vez de gerar em
+ * silêncio um arquivo em que a lista da peça sai sem marcador.
+ */
+function acrescentarNumeracao(zip: PizZip, numeracao: NumeracaoDocx): void {
+  const existente = zip.file("word/numbering.xml");
+  if (existente) {
+    const xml = existente.asText();
+    const fim = xml.lastIndexOf("</w:numbering>");
+    if (fim === -1) throw new Error("word/numbering.xml do timbrado em formato inesperado — a numeração das listas da minuta não pode ser acrescentada com segurança.");
+    // O ESQUEMA EXIGE TODOS os <w:abstractNum> ANTES de qualquer <w:num>. Por isso as definições
+    // entram antes do primeiro <w:num> existente, e só as instâncias vão para o fim.
+    const primeiroNum = xml.search(/<w:num[\s>]/);
+    const ondeAbstratos = primeiroNum === -1 ? fim : primeiroNum;
+    zip.file(
+      "word/numbering.xml",
+      `${xml.slice(0, ondeAbstratos)}${numeracao.abstratosXml}${xml.slice(ondeAbstratos, fim)}${numeracao.instanciasXml}${xml.slice(fim)}`,
+    );
+  } else {
+    zip.file(
+      "word/numbering.xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="${NS_W}">${numeracao.abstratosXml}${numeracao.instanciasXml}</w:numbering>`,
+    );
+  }
+
+  const contentTypes = zip.file("[Content_Types].xml");
+  if (!contentTypes) throw new Error("Pacote .docx sem [Content_Types].xml — a numeração das listas da minuta não pode ser declarada.");
+  const ctXml = contentTypes.asText();
+  const fimTypes = ctXml.lastIndexOf("</Types>");
+  if (fimTypes === -1) throw new Error("[Content_Types].xml do .docx em formato inesperado — a numeração das listas da minuta não pode ser declarada.");
+  if (!ctXml.includes('PartName="/word/numbering.xml"')) {
+    const override = `<Override PartName="/word/numbering.xml" ContentType="${TIPO_DE_NUMERACAO}"/>`;
+    zip.file("[Content_Types].xml", `${ctXml.slice(0, fimTypes)}${override}${ctXml.slice(fimTypes)}`);
+  }
+
+  // A relação é do DOCUMENTO (word/_rels/document.xml.rels), não do pacote (_rels/.rels) — é
+  // word/document.xml que referencia a numeração.
+  const rels = zip.file("word/_rels/document.xml.rels");
+  const bruto = rels
+    ? rels.asText()
+    : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+  // Um pacote SEM relação nenhuma escreve `<Relationships .../>` fechado em si mesmo — é o que
+  // `docxDoZero` produz. Abrir a tag antes de acrescentar evita o erro de "formato inesperado" num
+  // arquivo que está perfeitamente bem formado.
+  const relsXml = bruto.includes("</Relationships>") ? bruto : bruto.replace(/<Relationships([^>]*?)\s*\/>/, "<Relationships$1></Relationships>");
+  const fimRels = relsXml.lastIndexOf("</Relationships>");
+  if (fimRels === -1) throw new Error("word/_rels/document.xml.rels do .docx em formato inesperado — a numeração das listas da minuta não pode ser relacionada.");
+  if (!relsXml.includes('Target="numbering.xml"')) {
+    const novaRel = `<Relationship Id="rIdLumenMinutaNumeracao" Type="${RELACAO_DE_NUMERACAO}" Target="numbering.xml"/>`;
+    zip.file("word/_rels/document.xml.rels", `${relsXml.slice(0, fimRels)}${novaRel}${relsXml.slice(fimRels)}`);
+  }
+}
+
 function docxDoZero(conteudo: string): PizZip {
   const zip = new PizZip();
   zip.file(
@@ -228,8 +363,11 @@ function docxDoZero(conteudo: string): PizZip {
 
 // Mesma técnica de lib/relatorioDocx.ts:injetarNoTimbrado — acrescenta ANTES do <w:sectPr> final
 // (que carrega margens/cabeçalho/rodapé do timbrado, precisa continuar sendo o último elemento).
-function injetarNoTimbrado(timbrado: Buffer, conteudo: string): PizZip {
-  const zip = new PizZip(timbrado);
+//
+// Recebe o PizZip já aberto, e não o Buffer, porque o pacote do timbrado precisa ser LIDO antes de
+// o conteúdo ser montado: é dele que sai o primeiro id de numeração livre (ver
+// `primeiroIdDeNumeracaoLivre`), e o `<w:numPr>` de cada item de lista já sai escrito com esse id.
+function injetarNoTimbrado(zip: PizZip, conteudo: string): PizZip {
   const arquivo = zip.file("word/document.xml");
   if (!arquivo) throw new Error("O arquivo cadastrado como timbrado não é um .docx válido (falta word/document.xml).");
   const xml = arquivo.asText();
@@ -242,8 +380,15 @@ function injetarNoTimbrado(timbrado: Buffer, conteudo: string): PizZip {
 }
 
 export function montarPeticaoWord(dados: DadosPeticaoDocx, meta: MetadadosPeticaoDocx, timbradoDocx?: Buffer | null): Buffer {
-  const conteudo = `${paragrafo(run(dados.tituloPeca, { negrito: true, tamanho: 13 }), { alinhamento: "center", espacoDepois: 200 })}${corpoDaPeticao(dados)}`;
-  const zip = timbradoDocx ? injetarNoTimbrado(timbradoDocx, conteudo) : docxDoZero(conteudo);
+  // O pacote do timbrado é aberto ANTES de o corpo ser montado: o id de numeração das listas da
+  // peça depende do que o timbrado já usa, e ele é escrito dentro do próprio XML do corpo.
+  const doTimbrado = timbradoDocx ? new PizZip(timbradoDocx) : null;
+  const htmlDaFolha = (dados.corpoMinutaFormatadaHtml ?? "").trim();
+  const formatado = htmlDaFolha.length > 0 ? corpoDocxDoHtmlDaMinuta(htmlDaFolha, doTimbrado ? primeiroIdDeNumeracaoLivre(doTimbrado) : 1) : null;
+
+  const conteudo = `${paragrafo(run(dados.tituloPeca, { negrito: true, tamanho: 13 }), { alinhamento: "center", espacoDepois: 200 })}${corpoDaPeticao(dados, formatado)}`;
+  const zip = doTimbrado ? injetarNoTimbrado(doTimbrado, conteudo) : docxDoZero(conteudo);
+  if (formatado?.numeracao) acrescentarNumeracao(zip, formatado.numeracao);
   acrescentarMetadados(zip, meta);
   return zip.generate({ type: "nodebuffer", compression: "DEFLATE" });
 }
