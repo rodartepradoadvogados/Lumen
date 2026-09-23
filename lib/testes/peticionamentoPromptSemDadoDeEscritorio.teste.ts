@@ -47,6 +47,19 @@ const PADROES_DE_DADO_DE_ESCRITORIO: [string, RegExp][] = [
   ["CPF ou CNPJ", /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b|\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/],
   ["número de processo (padrão CNJ)", /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/],
   ["sigla de tribunal", /\bTJ-?[A-Z]{2}\b|\bTR[TF]-?\d{1,2}\b/],
+  // ACHADO DA REVISÃO — a sigla estava proibida, o NOME POR EXTENSO não. Escrevi
+  // "Enderece ao Tribunal de Justiça do Estado de Minas Gerais." dentro do prompt e esta suíte
+  // ficou verde. O estrago é o mesmo da sigla, e maior: o prompt é de plataforma, então uma
+  // corte fixada aqui manda o agente de TODO escritório contratante endereçar para ela — um
+  // escritório de outro estado receberia a minuta endereçada ao tribunal errado, e a única coisa
+  // que apontaria o motivo estaria dentro do nosso código.
+  //
+  // O juízo competente vem do contexto vinculado da sessão, NUNCA daqui. O prompt pode falar de
+  // "juízo competente" ou pedir "tribunal/link" como fonte de jurisprudência (ambos genéricos, e
+  // por isso os padrões abaixo exigem o que só um nome concreto tem); o que ele não pode é NOMEAR
+  // uma corte.
+  ["tribunal nomeado por extenso", /\bTribunal\s+(de\s+Justi[çc]a|Regional|Superior|de\s+Contas)\b/i],
+  ["corte ou seção nomeada", /\b(Supremo\s+Tribunal|Superior\s+Tribunal|C[âa]mara\s+C[íi]vel|Turma\s+Recursal)\b/i],
   ["comarca, vara ou juízo com nome próprio", /\b(Comarca|Vara|Ju[íi]zo|Foro)\s+(de|da|do)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/],
   ["endereço com nome próprio", /\b(Rua|Avenida|Av\.|Alameda|Pra[çc]a|Edif[íi]cio|Sala|Bairro)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/],
   ["site, domínio ou link", /https?:\/\/|\bwww\.|\.com\.br\b|\.adv\.br\b/i],
@@ -182,6 +195,9 @@ teste("a varredura de fato falha na presença de cada padrão — prova negativa
     "CNPJ 12.345.678/0001-99",
     "Processo nº 1234567-89.2026.8.09.0051",
     "distribuído ao TJGO",
+    // Os dois acrescentados na revisão: a sigla estava proibida, o nome por extenso não.
+    "Enderece ao Tribunal de Justiça do Estado de Minas Gerais",
+    "julgado pela Câmara Cível competente",
     "Comarca de Goiânia",
     "Rua Exemplo, 100",
     "https://exemplo.com.br",
