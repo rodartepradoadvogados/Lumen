@@ -4481,6 +4481,38 @@ model PeticionamentoSessao {
   geracaoIniciadaEm      DateTime?
   geracaoDocumentosLidos Json      @default("[]")
 
+  /// CONTRATO DE SCHEMA 23/09/2026 — A MEDIÇÃO QUE SUBSTITUI O NÚMERO INVENTADO.
+  ///
+  /// Quanto ESTA geração levou, em milissegundos, do disparo até a minuta gravada. Gravado UMA vez,
+  /// na mesma reivindicação atômica que grava a minuta (`gravarMinutaGerada`), e nunca depois.
+  ///
+  /// POR QUE ELE EXISTE. A tela de geração precisa dizer quanto tempo isto costuma levar, e o dono
+  /// pediu a frase "de x a 15 minutos". NINGUÉM MEDIU esse x — e número inventado numa tela é o que
+  /// esta casa mais evita (é o mesmo motivo pelo qual a tela de geração não mostra porcentagem).
+  /// Então o sistema MEDE: com medições suficientes, a tela mostra a faixa real DESTE escritório
+  /// (lib/peticionamentoTempoDeGeracao.ts); sem elas, fala só do teto e não inventa piso nenhum.
+  ///
+  /// NULO É ESTADO LEGÍTIMO, e quem lê tem de tratá-lo: as sessões geradas antes desta entrega não
+  /// têm medição, e uma geração cujo relógio de início se perdeu (`geracaoIniciadaEm` nulo) NÃO
+  /// recebe um número chutado a partir de `updatedAt` — ficaria "medido" sem ter sido medido.
+  geracaoDuracaoMs Int?
+
+  /// CONTRATO DE SCHEMA 23/09/2026 — O QUE FAZ O ALERTA DA CENTRAL SUMIR SOZINHO.
+  ///
+  /// Quando alguém abriu a tela da minuta DEPOIS de a geração terminar (com sucesso ou com falha).
+  /// Gravado pela própria página (app/peticionamento/[id]/minuta/page.tsx), no mesmo lugar em que
+  /// ela já grava `passoAtual` a cada navegação.
+  ///
+  /// É O CORTE DO ALERTA "minuta pronta" (lib/alerts.ts): o alerta existe enquanto isto é nulo.
+  /// Assim o advogado que gera cinco minutas num dia vê cinco alertas e cada um SOME quando ele
+  /// abre aquela minuta — sem botão de dispensar, porque existe uma ação que resolve o alerta, e
+  /// a ação é justamente abrir o que ficou pronto.
+  ///
+  /// NÃO PODE SER GRAVADO NO ESTADO GERANDO: a tela da minuta é a MESMA que mostra o andamento da
+  /// geração, e marcá-la como vista enquanto o agente ainda redige apagaria o alerta antes de ele
+  /// nascer — o advogado de aba fechada nunca saberia que a peça ficou pronta.
+  minutaVistaEm DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -1,6 +1,7 @@
 import {
   AlertTriangle, Wallet, AtSign, CalendarClock, Gavel, PhoneCall, UserPlus,
-  FolderSync, ClipboardList, AlarmClock, Bell, MessageSquare, PhoneOff, type LucideIcon,
+  FolderSync, ClipboardList, AlarmClock, Bell, MessageSquare, PhoneOff, FileCheck2, FileWarning,
+  type LucideIcon,
 } from "lucide-react";
 import type { AlertItem } from "@/lib/alerts";
 
@@ -30,6 +31,8 @@ export const ALERT_KIND_META: Record<AlertItem["kind"], { label: string; icon: L
   RESPOSTA_PRAZO_ESTOURADO: { label: "Prazo de Resposta Estourado", icon: AlarmClock },
   LEAD_TRANSFERIDO: { label: "Lead novo", icon: MessageSquare },
   LEAD_SEM_RESPOSTA: { label: "Lead sem atendimento", icon: PhoneOff },
+  MINUTA_PRONTA: { label: "Minuta pronta", icon: FileCheck2 },
+  MINUTA_FALHOU: { label: "Geração da minuta falhou", icon: FileWarning },
 };
 
 const PADRAO = { label: "Alerta", icon: Bell } as const;
@@ -40,6 +43,10 @@ export function metaDoAlerta(kind: string): { label: string; icon: LucideIcon } 
 
 // Alertas que são de UMA PESSOA, não do escritório. Tudo o mais que a Central mostra vale para
 // quem quer que abra a tela — inclusive prazo vencido de colega.
+// Os dois avisos de geração de minuta NÃO entram aqui, e a decisão é de desenho, não de descuido:
+// a sessão de peticionamento é do ESCRITÓRIO (a lista de rascunhos mostra as de todos, com o nome de
+// quem começou), e uma peça que ficou pronta — ou que falhou — é assunto de quem estiver por perto
+// para tocá-la, não só de quem clicou em gerar.
 export const ALERTAS_PESSOAIS: ReadonlySet<string> = new Set([
   "MENCAO",
   "TAREFA_DELEGADA",

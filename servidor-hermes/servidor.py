@@ -67,23 +67,46 @@ SCRIPT_PROVISIONAMENTO = os.environ.get(
 TOKEN = os.environ.get("HERMES_TOKEN", "")
 ENDERECO = os.environ.get("HERMES_BIND", "127.0.0.1")
 PORTA = int(os.environ.get("HERMES_PORT", "8787"))
-# 240s, e NAO 110s: ver o comentario de PERGUNTA_MAXIMA logo abaixo. Um pedido de peticionamento
-# com dezenas de paginas de documento e uma pergunta muito maior do que qualquer conversa de
-# atendimento, e demora proporcionalmente mais para ser respondida. Subir o teto de TAMANHO sem
-# subir o teto de TEMPO trocaria um 400 limpo ("nao cabe, faca assim") por um 504 no meio da
-# geracao — que e pior: o advogado espera dois minutos para nao receber nada.
+# 900s = QUINZE MINUTOS, e este numero e O TETO DO PROCESSO DA GERACAO — nao ha nenhum outro elo
+# mais curto que o constranja. Pedido do dono, textual: "tem muita coisa que e complexa". Era 240s,
+# e 240s era o teto de uma requisicao HTTP disfarcado de teto de trabalho: uma peca a partir de um
+# processo de dezenas de paginas leva o tempo que leva, e em producao o Hermes foi MORTO aos 240s
+# com o agente ainda escrevendo.
 #
-# A CORRENTE INTEIRA, do mais curto para o mais longo, e cada elo tem de ser menor que o seguinte
-# para o erro sempre vir de quem sabe explica-lo:
-#   Lumen (ESPERA_PETICIONAMENTO_MS em lib/hermesPonte.ts) 230s
-#     < esta ponte (ESPERA_S)                              240s
-#       < nginx (proxy_read_timeout, ver LEIA-ME.md)       280s
-#         < Vercel (maxDuration da tela de confirmacao)    300s
-# Quem desiste primeiro e o Lumen, que e o unico lado capaz de dizer ao advogado o que aconteceu.
+# POR QUE SUBIR AGORA PODE, E ANTES NAO PODIA. Antes desta corrente, a geracao acontecia DENTRO de
+# uma requisicao web, e por isso o teto duro da Vercel (300s) limitava o trabalho. Com
+# `/chat-async` NINGUEM segura conexao esperando a geracao: o disparo responde na hora (202) e
+# `GET /resultado/<id>` responde na hora. O teto do trabalho deixou de ser o teto de um cano de
+# rede — que e o ponto inteiro da entrega anterior, agora cobrado.
+#
+# A CORRENTE DE HOJE, e cada elo existe por um motivo diferente:
+#
+#   O TRABALHO (o caminho assincrono, que e o normal do peticionamento):
+#     esta ponte (ESPERA_S, teto do processo)                          900s  ← 15 min
+#       < Lumen (PRAZO_MAXIMO_DA_GERACAO_MS, quando desiste de esperar) 1200s
+#         < validade da tarefa aqui (TAREFA_VALIDADE_S)                2400s
+#     e a janela do cron (JANELA_DE_BUSCA_DO_CRON_MS, 24h) cobre tudo isso.
+#     Aqui quem desiste primeiro e o AGENTE, avisado pelo proprio orcamento (ORCAMENTO_S) —
+#     e nao um relogio de rede matando o processo no meio da redacao.
+#
+#   A REQUISICAO WEB (o caminho sincrono de compatibilidade, e o da Ana):
+#     Ana (ESPERA_MS no Lumen)                             105s
+#       < peticionamento sincrono (ESPERA_PETICIONAMENTO_MS) 230s
+#         < nginx (proxy_read_timeout, ver LEIA-ME.md)       280s
+#           < Vercel (maxDuration da tela de confirmacao)    300s
+#     Quem desiste primeiro continua sendo o Lumen, que e o unico lado capaz de dizer ao advogado
+#     o que aconteceu.
+#
+# O NGINX NAO CONSTRANGE MAIS A GERACAO, e isso e consequencia do desenho, nao sorte: as duas
+# rotas do caminho assincrono respondem na hora, entao nenhuma conexao fica aberta 900s para o
+# `proxy_read_timeout` cortar. Ele continua valendo para quem AINDA segura conexao — o `/chat`
+# sincrono —, e 280s ja esta acima do teto do Lumen nesse caminho (230s). Nao ha nada a editar na
+# VPS por causa deste arquivo. Ver LEIA-ME.md, secao 4.
 #
 # O caminho da Ana (atendimento) NAO muda com isto: ela continua desistindo em ESPERA_MS (105s)
-# do lado do Lumen, muito antes deste teto. Subir o teto daqui nao afrouxa nada do lado dela.
-ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "240"))
+# do lado do Lumen, muito antes deste teto. Subir o teto daqui nao afrouxa nada do lado dela — e
+# ela nunca chega perto dele, porque quem desiste primeiro e sempre ela.
+ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "900"))
 
 # ── O ORCAMENTO DO AGENTE, E POR QUE ELE E DERIVADO DE ESPERA_S ──────────────────────────────
 #
@@ -107,7 +130,7 @@ ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "240"))
 #
 # A diferenca e entre "perdeu tudo" e "entregou uma minuta".
 #
-# DERIVADO, NUNCA UM SEGUNDO NUMERO SOLTO. Se o orcamento fosse escrito a mao (por exemplo, 215),
+# DERIVADO, NUNCA UM SEGUNDO NUMERO SOLTO. Se o orcamento fosse escrito a mao (por exemplo, 840),
 # bastaria alguem baixar HERMES_TIMEOUT_S para 120 numa maquina menor para o `subprocess` voltar a
 # matar o agente antes de o orcamento sequer avisa-lo — o defeito de hoje, de volta, em silencio.
 # Aqui o orcamento e SEMPRE ESPERA_S menos uma folga, entao mover um move o outro junto.
@@ -115,13 +138,19 @@ ESPERA_S = int(os.environ.get("HERMES_TIMEOUT_S", "240"))
 # O QUE A FOLGA COMPRA: o aviso de conclusao chega aos 80% do orcamento; do aviso ate o fim do
 # orcamento o agente ainda tem 20% para fechar o texto; e depois do fim do orcamento ele ainda tem
 # a FOLGA inteira para escrever a resposta na saida padrao antes de o `subprocess` matar o
-# processo. Com os padroes de hoje (240s e 25s): orcamento de 215s, aviso aos 172s, 43s para
-# concluir, e 25s de margem entre o fim do orcamento e a machadada. Quem termina a execucao passa
+# processo. Com os padroes de hoje (900s e 60s): orcamento de 840s, aviso aos 672s, 168s para
+# concluir, e 60s de margem entre o fim do orcamento e a machadada. Quem termina a execucao passa
 # a ser o AGENTE, e nao o sistema operacional — que e o ponto inteiro desta mudanca.
+#
+# A FOLGA SUBIU DE 25s PARA 60s junto com o teto, e nao por proporcao: o que ela paga e ESCREVER a
+# resposta na saida padrao depois do fim do orcamento, e uma execucao de quinze minutos produz uma
+# peca MAIOR do que uma de quatro. Vinte e cinco segundos eram folga para uma peca curta; sessenta
+# cobrem uma peca longa sem depender de a maquina estar descarregada naquele instante. Continua
+# sendo uma fracao pequena do teto (60 de 900), entao nao rouba tempo de trabalho do agente.
 #
 # O PISO DE 30s existe para uma instalacao com HERMES_TIMEOUT_S muito curto nao acabar com um
 # orcamento zero ou negativo, que o binario rejeitaria (ou, pior, trataria como "sem orcamento").
-FOLGA_DO_ORCAMENTO_S = int(os.environ.get("HERMES_RUN_BUDGET_FOLGA_S", "25"))
+FOLGA_DO_ORCAMENTO_S = int(os.environ.get("HERMES_RUN_BUDGET_FOLGA_S", "60"))
 ORCAMENTO_S = max(30, ESPERA_S - FOLGA_DO_ORCAMENTO_S)
 
 # ── O TETO DE ITERACOES DE FERRAMENTA ────────────────────────────────────────────────────────
@@ -140,7 +169,7 @@ ORCAMENTO_S = max(30, ESPERA_S - FOLGA_DO_ORCAMENTO_S)
 # de dezenas de rodadas para ABRIR arquivo: ele precisa de algumas para consultar os dados do
 # escritorio pelas ferramentas do Lumen e conferir precedentes. Sessenta iteracoes sao varias
 # vezes o que uma geracao saudavel usa, e ainda assim um TETO — uma ferramenta travada bate nele
-# em vez de consumir os 215 segundos.
+# em vez de consumir o orcamento inteiro (hoje, 840 segundos).
 #
 # CONFIGURAVEL de proposito, e com padrao seguro: se um dia uma peca legitimamente precisar de
 # mais, sobe-se HERMES_MAX_TURNS na maquina sem esperar deploy nenhum do Lumen.
@@ -491,11 +520,15 @@ def classificar_falha(erro: Exception, perfil: str):
 # O CAMINHO ASSINCRONO — a espera sai de dentro da requisicao web
 # ══════════════════════════════════════════════════════════════════════════════════════════════
 #
-# O TETO DURO E A VERCEL: 300 segundos. Nenhuma funcao da plataforma passa disso, entao a corrente
-# de tempos de hoje (Lumen 230s < ponte 240s < nginx 280s < Vercel 300s) nao tem para onde
-# crescer. "Aumentar os tempos" nao e conserto: e adiar. Uma peca a partir de um processo de
-# dezenas de paginas pode legitimamente precisar de mais do que 300s, e limitar o agente para
+# O TETO DURO DE UMA REQUISICAO WEB E A VERCEL: 300 segundos. Nenhuma funcao da plataforma passa
+# disso, e a corrente antiga (Lumen 230s < ponte 240s < nginx 280s < Vercel 300s) nao tinha para
+# onde crescer. "Aumentar os tempos" nao era conserto: era adiar. Uma peca a partir de um processo
+# de dezenas de paginas pode legitimamente precisar de mais do que 300s, e limitar o agente para
 # caber numa requisicao HTTP e limitar a QUALIDADE do trabalho ao tempo de um cano de rede.
+#
+# E E POR ISTO QUE O TETO DO TRABALHO PODE SER 900s HOJE (ver ESPERA_S): as duas rotas daqui
+# respondem NA HORA, entao nenhum dos relogios de rede — nem o do nginx, nem o da Vercel — fica
+# contando durante a geracao. Quando o teto de 15 minutos subiu, nada na VPS precisou mudar.
 #
 # Por isso a geracao passa a ser um TRABALHO COM NOME: `POST /chat-async` comeca o trabalho numa
 # thread e devolve NA HORA um identificador; `GET /resultado/<id>` diz em que pe esta. O Lumen
@@ -528,7 +561,20 @@ def classificar_falha(erro: Exception, perfil: str):
 # vez de um erro cru na tela ou, pior, de uma espera que nunca termina.
 
 TAREFAS_MAXIMAS = int(os.environ.get("HERMES_TAREFAS_MAXIMAS", "32"))
-TAREFA_VALIDADE_S = int(os.environ.get("HERMES_TAREFA_VALIDADE_S", "1800"))
+# 2400s = QUARENTA MINUTOS, e este numero e DEPOIS do prazo maximo do Lumen, nunca antes.
+#
+# A ORDEM E A REGRA, e ela e o que separa "geracao concluida" de "trabalho pago que virou geracao
+# perdida": teto do processo (900s) < prazo maximo do Lumen (1200s) < validade da tarefa (2400s).
+# Uma tarefa que vence ANTES de o Lumen desistir apagaria da memoria uma peca PRONTA — o advogado
+# leria "a geracao se perdeu" por causa de um relogio de limpeza, e nao por causa de uma falha.
+#
+# Subiu de 1800s junto com o resto da corrente, mantendo a mesma proporcao de antes (o dobro do
+# prazo maximo). A margem tem de caber a espera do cron: uma geracao que termina aos 900s com a
+# aba fechada so e colhida na proxima varredura, e o cron corre a cada cinco minutos.
+#
+# ISTO NAO AFETA O TETO DE MEMORIA: quem limita o que a ponte guarda e TAREFAS_MAXIMAS (quantidade),
+# nao a validade. Uma validade maior guarda pelo mesmo teto de pecas, por mais tempo.
+TAREFA_VALIDADE_S = int(os.environ.get("HERMES_TAREFA_VALIDADE_S", "2400"))
 
 # O identificador nao e sequencial de proposito. A autorizacao de `/resultado/<id>` e a MESMA de
 # `/chat` (o segredo da ponte), e ela e que segura a porta; mas um id sorteado e a segunda tranca:

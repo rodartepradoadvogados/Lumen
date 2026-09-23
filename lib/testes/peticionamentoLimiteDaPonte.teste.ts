@@ -14,6 +14,7 @@ import {
 import { montarMensagemParaHermes, custoFixoDaMensagem, RESERVA_DO_AVISO_DE_RESUMO, type DadosParaPrompt } from "@/lib/peticionamentoPrompt";
 import { LIMITE_DA_PERGUNTA } from "@/lib/agenteAtendimento";
 import { ESPERA_MS, ESPERA_PETICIONAMENTO_MS, FalhaDoHermes, perguntarAoHermesComPerfil } from "@/lib/hermesPonte";
+import { PRAZO_MAXIMO_DA_GERACAO_MS, TETO_DA_GERACAO_MS } from "@/lib/peticionamentoGeracaoAssincrona";
 
 // ============================================================================================
 // ESTE É O TESTE QUE TERIA PEGADO O DEFEITO.
@@ -369,17 +370,61 @@ teste("subir o teto da ponte NÃO afrouxou o orçamento do atendimento (Ana)", (
   igual(ESPERA_MS, 105_000, "a espera do caminho de conversa continua 105s — esperar quatro minutos por uma resposta de chat é defeito, não paciência");
 });
 
-// ── 3. A CORRENTE DE TEMPOS ─────────────────────────────────────────────────────────────────
+// ── 3. A CORRENTE DE TEMPOS, EM DUAS PERNAS ─────────────────────────────────────────────────
 //
-// Cada elo tem de ser menor que o seguinte. Se a espera não comportar o pedido maior, trocamos um
-// 400 limpo por um tempo esgotado — que é pior: não diz nada e ainda cobra a espera.
+// ADAPTADO em 23/09/2026, quando o teto da geração subiu para QUINZE MINUTOS a pedido do dono
+// ("tem muita coisa que é complexa"). A versão anterior deste caso exigia UMA corrente crescente,
+// com a ponte no meio dela:
+//
+//     Lúmen 230s < ponte 240s < nginx 280s < Vercel 300s
+//
+// Aquela ordem descrevia um mundo em que a geração acontecia DENTRO de uma requisição web — e era
+// exatamente isso que a entrega anterior desfez. Com `POST /chat-async`, o disparo responde na hora
+// e o acompanhamento responde na hora: NENHUMA conexão fica aberta durante a geração, então o teto
+// do trabalho deixou de precisar caber embaixo do nginx e da Vercel.
+//
+// A EXIGÊNCIA NÃO FOI APAGADA, FOI PARTIDA EM DUAS — e continua sendo sobre RELAÇÕES, nunca sobre
+// números:
+//
+//   · A PERNA DO TRABALHO: teto do processo na ponte < prazo máximo do Lúmen < validade da tarefa.
+//     Quem termina a geração é o agente avisado pelo próprio orçamento, e o Lúmen só desiste
+//     DEPOIS de o teto do trabalho ter passado.
+//   · A PERNA DA REQUISIÇÃO WEB: o que ainda segura conexão (o caminho síncrono de
+//     compatibilidade) < nginx < Vercel.
+//
+// E o caso guarda o que TORNA isso seguro: se alguém devolver a geração para dentro da requisição
+// (tirando o disparo assíncrono), o teto de 900s da ponte fica sem cobertura — e é este caso que
+// cai em vermelho dizendo isso, em vez de a geração voltar a ser cortada em produção.
 
-teste("a corrente de tempos é crescente: Lúmen < ponte < nginx < Vercel", () => {
-  // ESPERA_S vem de `int(os.environ.get("HERMES_TIMEOUT_S", "240"))` — o número que vale quando
+teste("a perna do TRABALHO: teto da geração na ponte < prazo máximo do Lúmen < validade da tarefa", () => {
+  // O default de `int(os.environ.get("HERMES_TIMEOUT_S", "900"))` — o número que vale quando
   // ninguém define a variável é o que precisa entrar na corrente.
   const espera = PONTE.match(/HERMES_TIMEOUT_S",\s*"(\d+)"/);
   verdade(Boolean(espera), "HERMES_TIMEOUT_S sumiu de servidor-hermes/servidor.py");
   const ponteS = Number(espera?.[1] ?? 0);
+  const validade = PONTE.match(/HERMES_TAREFA_VALIDADE_S",\s*"(\d+)"/);
+  verdade(Boolean(validade), "HERMES_TAREFA_VALIDADE_S sumiu de servidor-hermes/servidor.py");
+  const validadeS = Number(validade?.[1] ?? 0);
+
+  // O TETO QUE A TELA PROMETE É O ESPELHO DO TETO QUE A PONTE IMPÕE. Dois números que dizem a
+  // mesma coisa em arquivos diferentes: o teste lê os DOIS e falha se divergirem — a regra desta
+  // casa desde o defeito que abre este arquivo.
+  igual(
+    TETO_DA_GERACAO_MS / 1000,
+    ponteS,
+    "TETO_DA_GERACAO_MS (o número que a tela promete ao advogado) divergiu de HERMES_TIMEOUT_S (o número que a ponte impõe): ",
+  );
+  verdade(
+    PRAZO_MAXIMO_DA_GERACAO_MS > TETO_DA_GERACAO_MS,
+    `o prazo máximo do Lúmen (${PRAZO_MAXIMO_DA_GERACAO_MS / 1000}s) não pode ser menor que o teto do trabalho (${ponteS}s) — uma geração no seu último minuto legítimo seria declarada perdida`,
+  );
+  verdade(
+    PRAZO_MAXIMO_DA_GERACAO_MS / 1000 < validadeS,
+    `o prazo máximo (${PRAZO_MAXIMO_DA_GERACAO_MS / 1000}s) passou da validade da tarefa na ponte (${validadeS}s) — a ponte apagaria da memória uma peça PRONTA, e o advogado leria "a geração se perdeu" por causa de um relógio de limpeza`,
+  );
+});
+
+teste("a perna da REQUISIÇÃO WEB: o que ainda espera dentro dela cabe em nginx < Vercel", () => {
   const nginx = LEIAME.match(/proxy_read_timeout\s+(\d+)s/);
   verdade(Boolean(nginx), "proxy_read_timeout sumiu do LEIA-ME.md da ponte");
   const nginxS = Number(nginx?.[1] ?? 0);
@@ -387,10 +432,40 @@ teste("a corrente de tempos é crescente: Lúmen < ponte < nginx < Vercel", () =
   verdade(Boolean(vercel), "a tela de confirmação precisa de maxDuration — é dela que sai a Server Action que fala com o Hermes");
   const vercelS = Number(vercel?.[1] ?? 0);
 
+  // O ÚNICO caminho que ainda espera o Hermes dentro de uma requisição é o SÍNCRONO de
+  // compatibilidade (ponte antiga, sem /chat-async) — e o da Ana, mais curto ainda.
   const lumenS = ESPERA_PETICIONAMENTO_MS / 1000;
-  verdade(lumenS < ponteS, `o Lúmen (${lumenS}s) precisa desistir antes da ponte (${ponteS}s) — é ele quem sabe explicar ao advogado`);
-  verdade(ponteS < nginxS, `a ponte (${ponteS}s) precisa responder antes de o nginx cortar (${nginxS}s)`);
+  verdade(lumenS < nginxS, `o caminho síncrono (${lumenS}s) precisa desistir antes de o nginx cortar (${nginxS}s) — é o Lúmen quem sabe explicar ao advogado`);
   verdade(nginxS < vercelS, `o nginx (${nginxS}s) precisa cortar antes de a Vercel matar a função (${vercelS}s)`);
+  verdade(ESPERA_MS / 1000 < lumenS, "o caminho da Ana continua sendo o mais curto dos dois");
+  // E A VERCEL NÃO FOI ULTRAPASSADA: 300s é teto de plataforma, e prometer mais seria prometer o
+  // que ela não faz. O teto da geração passar de 300s não é conflito — é o que a perna de cima
+  // mede, e ela não tem requisição web esperando.
+  verdade(vercelS <= 300, `maxDuration = ${vercelS}: a plataforma não passa de 300s`);
+});
+
+teste("O QUE COBRE O TETO DE 900s: a geração é DISPARADA, não esperada — sem isso o nginx voltaria a constranger", () => {
+  // A ordem entre a ponte e o nginx se INVERTEU (900s > 280s), e isso só é seguro porque nenhuma
+  // conexão fica aberta durante a geração. Este caso é o que liga uma coisa à outra: se o disparo
+  // assíncrono sair de `confirmarTriagemEGerar`, o teto do trabalho fica sem cobertura e alguém
+  // precisa saber ANTES de a geração ser cortada em produção de novo.
+  const nginxS = Number(LEIAME.match(/proxy_read_timeout\s+(\d+)s/)?.[1] ?? 0);
+  const ponteS = Number(PONTE.match(/HERMES_TIMEOUT_S",\s*"(\d+)"/)?.[1] ?? 0);
+  const gerar = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarTriagemEGerar"));
+  verdade(gerar.length > 1_500, `confirmarTriagemEGerar devolveu ${gerar.length} caracteres — varredura cega`);
+  if (ponteS > nginxS) {
+    verdade(
+      /iniciarGeracaoNoHermes\(/.test(gerar),
+      `o teto do processo na ponte (${ponteS}s) passou do corte do nginx (${nginxS}s), e a geração NÃO é mais disparada de forma assíncrona — nessa combinação o nginx corta a geração no meio, que é o defeito que esta entrega desfez`,
+    );
+  }
+  // A ponte NÃO responde mais dentro do prazo do nginx quando o trabalho é longo — e é por isso que
+  // o LEIA-ME precisa dizer, por escrito, que não há nada a ajustar na VPS por causa disto. Uma
+  // instrução velha manda alguém mexer no servidor sem necessidade, e mexer sem necessidade quebra.
+  verdade(
+    /NÃO limita a geração da minuta/.test(LEIAME),
+    "o LEIA-ME deixou de dizer que o proxy_read_timeout não limita a geração — é a frase que impede alguém de ir subir o nginx na VPS por engano",
+  );
 });
 
 teste("a espera do peticionamento comporta o pedido maior — não se sobe o teto de tamanho sem subir o de tempo", () => {

@@ -9,6 +9,7 @@ import ProcessNumberChip from "@/components/ProcessNumberChip";
 import { metaDoAlerta } from "@/lib/alertKinds";
 import { AlertTriangle, Wallet, CalendarCheck2, Gavel, Stethoscope, ListTodo, LucideIcon } from "lucide-react";
 import { recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
+import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
   if (!viewer) redirect("/");
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
   const [alerts, todayItems] = await Promise.all([
-    getAlerts(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin, recorteDosAlertasDeAtendimento(viewer, viewer.id)),
+    getAlerts(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin, recorteDosAlertasDeAtendimento(viewer, viewer.id), podeAcessarAba(viewer)),
     getTodayItems(viewer.officeId, hasFinanceAccess),
   ]);
 

@@ -122,27 +122,7 @@ export default function SinoAlertas({ count }: { count: number }) {
               ehAvisoDeLead(a.kind) ? (
                 <AvisoDeLead key={a.id} a={a} aoAbrir={() => setAberto(false)} />
               ) : (
-                // A ÚNICA coisa aqui que troca de tela — exatamente o que foi pedido.
-                <Link
-                  key={a.id}
-                  href={a.href}
-                  onClick={() => setAberto(false)}
-                  className="flex gap-2.5 items-start px-3 py-2.5 border-b border-regua last:border-b-0 hover:bg-sf-apoio transition-colors duration-100 ease-out"
-                >
-                  {/* Severidade como filete, não como fundo colorido: cor é risco, e o filete diz o
-                      risco sem pintar a linha inteira. */}
-                  <span
-                    aria-hidden="true"
-                    className={clsx(
-                      "w-[3px] self-stretch shrink-0",
-                      a.severity === "alta" ? "bg-urgente" : a.severity === "media" ? "bg-aviso" : "bg-concluido"
-                    )}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-corpo font-semibold text-tx">{a.title}</span>
-                    {a.subtitle && <span className="block text-etiqueta text-tx-3 truncate">{a.subtitle}</span>}
-                  </span>
-                </Link>
+                <LinhaDoSino key={a.id} a={a} aoAbrir={() => setAberto(false)} />
               )
             )}
           </div>
@@ -176,6 +156,53 @@ export default function SinoAlertas({ count }: { count: number }) {
 // pressa acabou — o que resta é recuperar o que der, e um botão cheio ali competiria com o lead
 // que ainda dá para salvar.
 // ============================================================================
+/**
+ * UMA linha da gaveta — e ela existe como componente por causa de UM ramo: o alerta que abre ABA
+ * NOVA do navegador (`abrirEmNovaAba`, hoje os dois avisos de geração de minuta).
+ *
+ * `<Link>` troca o conteúdo da MESMA aba. Para o aviso de minuta pronta isso significaria a aba do
+ * LÚMEN indo para dentro do Peticionamento — que é uma aba separada por prioridade 0 do dono (ver
+ * lib/testes/peticionamentoAbaNova.teste.ts). Só `<a target="_blank" rel="noopener">` abre contexto
+ * novo de verdade, e sem o `noopener` a aba nova ganharia `window.opener` para a do Lúmen.
+ *
+ * A casca visual é a MESMA nos dois ramos, de propósito: o que muda é para onde o clique vai, não a
+ * aparência da linha — e escrever a casca duas vezes seria o começo de duas linhas diferentes.
+ */
+function LinhaDoSino({ a, aoAbrir }: { a: AlertaPrevia; aoAbrir: () => void }) {
+  const classe =
+    "flex gap-2.5 items-start px-3 py-2.5 border-b border-regua last:border-b-0 hover:bg-sf-apoio transition-colors duration-100 ease-out";
+  const conteudo = (
+    <>
+      {/* Severidade como filete, não como fundo colorido: cor é risco, e o filete diz o
+          risco sem pintar a linha inteira. */}
+      <span
+        aria-hidden="true"
+        className={clsx(
+          "w-[3px] self-stretch shrink-0",
+          a.severity === "alta" ? "bg-urgente" : a.severity === "media" ? "bg-aviso" : "bg-concluido"
+        )}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block text-corpo font-semibold text-tx">{a.title}</span>
+        {a.subtitle && <span className="block text-etiqueta text-tx-3 truncate">{a.subtitle}</span>}
+      </span>
+    </>
+  );
+  if (a.abrirEmNovaAba) {
+    return (
+      <a href={a.href} target="_blank" rel="noopener" onClick={aoAbrir} className={classe}>
+        {conteudo}
+      </a>
+    );
+  }
+  // A ÚNICA coisa aqui que troca de tela — exatamente o que foi pedido.
+  return (
+    <Link href={a.href} onClick={aoAbrir} className={classe}>
+      {conteudo}
+    </Link>
+  );
+}
+
 function AvisoDeLead({ a, aoAbrir }: { a: AlertaPrevia; aoAbrir: () => void }) {
   const novo = a.kind === "LEAD_TRANSFERIDO";
   const espera = esperaPorExtenso(a.esperandoHa ?? null);

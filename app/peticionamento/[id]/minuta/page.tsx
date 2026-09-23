@@ -8,6 +8,8 @@ import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos,
 import { montarNotaObrigatoria, type PrecedenteCitado } from "@/lib/peticionamentoNotaObrigatoria";
 import { perfilDePeticionamento } from "@/lib/hermesPonte";
 import { avaliarExportacao } from "@/lib/peticionamentoAcesso";
+import { faixaDeGeracaoDoEscritorio } from "@/lib/peticionamentoGeracaoAssincrona";
+import { marcarDesfechoDaGeracaoComoVisto } from "@/lib/actions/peticionamento";
 
 export const dynamic = "force-dynamic";
 
@@ -53,10 +55,14 @@ export default async function MinutaPage({ params }: { params: { id: string } })
     // `desdeMs` vem do servidor, medido: é o tempo desde que a geração começou, não uma estimativa
     // de quanto falta (que não existe).
     const inicio = (sessao.geracaoIniciadaEm ?? sessao.updatedAt).getTime();
+    // A FAIXA MEDIDA deste escritório, para o aviso de abertura dizer quanto isto costuma levar
+    // com número medido em vez de número inventado — ver lib/peticionamentoTempoDeGeracao.ts. Uma
+    // consulta curta (as vinte últimas durações), e só neste estado da tela.
+    const faixa = await faixaDeGeracaoDoEscritorio(sessao.officeId);
     return (
       <ShellPeticionamento sessaoId={params.id} ativo="minuta" crumbAtual="Minuta" nomeUsuario={user.name} papelUsuario={user.role} temTrabalho={temTrabalho} rascunhosCount={rascunhosCount}>
         <div className="content">
-          <GerandoClient sessaoId={params.id} desdeMsInicial={Math.max(0, Date.now() - inicio)} />
+          <GerandoClient sessaoId={params.id} desdeMsInicial={Math.max(0, Date.now() - inicio)} faixa={faixa} />
         </div>
       </ShellPeticionamento>
     );
@@ -70,6 +76,11 @@ export default async function MinutaPage({ params }: { params: { id: string } })
     // ÚNICA coisa que o advogado lê, que era como uma falha explicável virava um texto que não
     // explicava nada.
     const motivoGravado = sessao.contextoBloqueadoMotivo;
+    // O ALERTA DA CENTRAL SOME AO SER ABERTO, e a falha conta como aberta também: quem chegou aqui
+    // já leu o que aconteceu, e o alerta não tem mais o que avisar. Ver
+    // `marcarDesfechoDaGeracaoComoVisto` — não é gravado no estado GERANDO, senão o alerta morreria
+    // antes de nascer.
+    await marcarDesfechoDaGeracaoComoVisto(params.id);
     return (
       <ShellPeticionamento sessaoId={params.id} ativo="minuta" crumbAtual="Minuta" nomeUsuario={user.name} papelUsuario={user.role} temTrabalho={temTrabalho} rascunhosCount={rascunhosCount}>
         <div className="content">
@@ -91,6 +102,10 @@ export default async function MinutaPage({ params }: { params: { id: string } })
       </ShellPeticionamento>
     );
   }
+
+  // A minuta EXISTE e está sendo aberta: o aviso de "minuta pronta" da Central de Alertas cumpriu
+  // o que tinha para cumprir e sai da tela sozinho, sem ninguém precisar dispensá-lo.
+  await marcarDesfechoDaGeracaoComoVisto(params.id);
 
   const contextoDescricao = await descricaoDoContexto(sessao);
   const notaObrigatoria = montarNotaObrigatoria({

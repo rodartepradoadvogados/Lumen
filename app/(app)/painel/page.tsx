@@ -23,6 +23,7 @@ import OverdueTaskRow from "@/components/OverdueTaskRow";
 import DayQueueRow, { type DayQueueItem } from "@/components/DayQueueRow";
 import Regua from "@/components/Regua";
 import { veTodoOAtendimento, recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
+import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 
 export const dynamic = "force-dynamic";
 
@@ -124,7 +125,7 @@ export default async function DashboardPage() {
     // app/m/layout.tsx). A tarja abaixo precisa dela para se declarar como o RECORTE que é, em
     // vez de ser um terceiro número solto na tela. Roda em paralelo com as outras consultas
     // desta tela, então não custa latência nova — só contagens indexadas.
-    getAlertsCount(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin, recorteDosAlertasDeAtendimento(viewer, viewer.id))
+    getAlertsCount(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin, recorteDosAlertasDeAtendimento(viewer, viewer.id), podeAcessarAba(viewer))
   ]);
 
   const totalReceivableSoon = receivablesSoon.reduce((s, r) => s + saldoEmAberto(r.amount, r.discount, r.surcharge, r.payments.reduce((a, x) => a + x.amount, 0)), 0);

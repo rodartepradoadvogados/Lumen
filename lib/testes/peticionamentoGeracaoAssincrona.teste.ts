@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { teste, igual, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
-import { motivoFalado, GRACA_ANTES_DO_CRON_MS, JANELA_DE_BUSCA_DO_CRON_MS, PRAZO_MAXIMO_DA_GERACAO_MS, MOTIVO_GERACAO_PERDIDA, MOTIVO_GERACAO_EXPIRADA } from "@/lib/peticionamentoGeracaoAssincrona";
+import { motivoFalado, GRACA_ANTES_DO_CRON_MS, JANELA_DE_BUSCA_DO_CRON_MS, PRAZO_MAXIMO_DA_GERACAO_MS, TETO_DA_GERACAO_MS, MOTIVO_GERACAO_PERDIDA, MOTIVO_GERACAO_EXPIRADA } from "@/lib/peticionamentoGeracaoAssincrona";
 import { ESPERA_PETICIONAMENTO_MS, GeracaoPerdidaNaPonte, PonteSemCaminhoAssincrono, FalhaDoHermes, iniciarGeracaoNoHermes, consultarGeracaoNoHermes } from "@/lib/hermesPonte";
 
 // ============================================================================================
@@ -287,7 +287,7 @@ teste("A LISTA DE OPÇÕES É DERIVADA DO ARGV — uma opção nova amanhã já 
 
 // ── 5. A CORRENTE DE TEMPOS, E O TETO QUE NÃO SE MOVE ───────────────────────────────────────
 
-teste("o teto duro da Vercel continua sendo o fim da corrente — e o caminho síncrono cabe nele", () => {
+teste("o teto duro da Vercel NÃO foi ultrapassado — e não precisou ser: nada web espera a geração", () => {
   const confirmar = readFileSync(join(RAIZ, "app", "peticionamento", "[id]", "confirmar", "page.tsx"), "utf8");
   const vercelS = Number(codigoDe(confirmar).match(/export const maxDuration\s*=\s*(\d+)/)?.[1] ?? 0);
   verdade(vercelS > 0, "sumiu o maxDuration da tela de confirmação");
@@ -298,6 +298,34 @@ teste("o teto duro da Vercel continua sendo o fim da corrente — e o caminho s�
     `o caminho síncrono espera ${ESPERA_PETICIONAMENTO_MS / 1000}s dentro de uma função de ${vercelS}s`,
   );
   verdade(ESPERA_PETICIONAMENTO_MS / 1000 < FATOS.espera_s, "quem desiste primeiro tem de ser o Lúmen — é o único lado capaz de explicar ao advogado");
+
+  // ADAPTADO em 23/09/2026, com o teto da geração em quinze minutos. O teto do TRABALHO passou dos
+  // 300s da Vercel, e isso NÃO é conflito: nenhuma requisição web espera a geração (o disparo
+  // responde na hora). O que continua tendo de caber em 300s é o que ainda ESPERA dentro da
+  // função — o caminho síncrono de compatibilidade, conferido acima.
+  verdade(
+    FATOS.espera_s > vercelS,
+    `o teto do trabalho na ponte (${FATOS.espera_s}s) caiu para dentro do teto de uma função da Vercel (${vercelS}s) — se isso foi de propósito, a geração voltou a ser limitada pelo relógio de um cano de rede, que é o defeito que esta corrente existe para não repetir`,
+  );
+});
+
+teste("A ORDEM DA CORRENTE DO TRABALHO: teto da geração < prazo máximo — e o teto é ESPELHO da ponte", () => {
+  // O NÚMERO QUE A TELA PROMETE E O NÚMERO QUE A PONTE IMPÕE vivem em arquivos diferentes (um em
+  // TypeScript, na Vercel; o outro em Python, noutra máquina, com variável de ambiente própria). A
+  // regra desta casa para esse caso é sempre a mesma: o teste lê os DOIS e falha se divergirem.
+  igual(
+    TETO_DA_GERACAO_MS / 1000,
+    FATOS.espera_s,
+    "TETO_DA_GERACAO_MS (o teto que a tela promete ao advogado) divergiu de HERMES_TIMEOUT_S (o teto que a ponte impõe): ",
+  );
+  // E a ordem: uma geração no seu último minuto LEGÍTIMO não pode ser declarada perdida.
+  verdade(
+    PRAZO_MAXIMO_DA_GERACAO_MS > TETO_DA_GERACAO_MS,
+    `o prazo máximo (${PRAZO_MAXIMO_DA_GERACAO_MS / 60_000} min) não é maior que o teto do trabalho (${TETO_DA_GERACAO_MS / 60_000} min) — o Lúmen declararia perdida uma peça que a ponte ainda está escrevendo`,
+  );
+  // A folga do cron continua sendo MUITO menor que o trabalho: é o que faz a sessão de aba fechada
+  // ser colhida na primeira varredura depois de a peça ficar pronta.
+  verdade(GRACA_ANTES_DO_CRON_MS < TETO_DA_GERACAO_MS, "a folga do cron passou do teto do trabalho — a geração de aba fechada esperaria uma rodada extra por nada");
 });
 
 teste("os relógios do acompanhamento fecham entre si — e com a validade das tarefas na ponte", () => {
@@ -317,7 +345,9 @@ teste("os relógios do acompanhamento fecham entre si — e com a validade das t
     `o prazo máximo (${PRAZO_MAXIMO_DA_GERACAO_MS / 1000}s) precisa ser menor que a validade das tarefas na ponte (${validadeDaPonte}s)`,
   );
   // E o prazo máximo tem de ser maior que o teto do processo do lado da ponte — senão uma geração
-  // normal seria declarada perdida enquanto ainda está sendo escrita.
+  // normal seria declarada perdida enquanto ainda está sendo escrita. (Com o teto em quinze
+  // minutos isto deixou de ser folga sobrando e passou a ser a relação que a corrente vive: 900s
+  // de trabalho, 1200s de paciência.)
   verdade(
     PRAZO_MAXIMO_DA_GERACAO_MS / 1000 > FATOS.espera_s,
     `o prazo máximo (${PRAZO_MAXIMO_DA_GERACAO_MS / 1000}s) é menor que o teto do processo na ponte (${FATOS.espera_s}s)`,

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { getAlerts, getAlertsCount } from "@/lib/alerts";
 import { recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
+import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 
 // Tipos de alerta sem nenhuma ação de "resolver" (ver lib/alerts.ts) ganham um botão "Lido" —
 // por usuário, igual PublicationRead: dispensar não afeta os outros advogados do escritório.
@@ -47,7 +48,7 @@ export async function getUnreadAlertsCount(): Promise<number> {
   const user = await getCurrentUser();
   if (!user) return 0;
   const hasFinanceAccess = Boolean(user.isAdmin || user.financeAccess);
-  return getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id));
+  return getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id), podeAcessarAba(user));
 }
 
 // PRÉVIA DA CENTRAL — alimenta o painel que desce do sino na barra de topo
@@ -78,13 +79,22 @@ export type AlertaPrevia = {
   esperandoHa?: number;
   gatilho?: string;
   meu?: boolean;
+  /**
+   * O clique abre ABA NOVA (ver AlertItem.abrirEmNovaAba em lib/alerts.ts).
+   *
+   * ATRAVESSA a fronteira servidor→cliente de propósito: sem ele, o sino renderizaria o aviso de
+   * minuta pronta como um `<Link>` comum e o clique levaria a aba do LÚMEN para dentro do
+   * peticionamento — a prioridade 0 do dono quebrada pela porta lateral da gaveta do sino, com a
+   * Central de Alertas (que usa AlertRow) fazendo a coisa certa ao lado.
+   */
+  abrirEmNovaAba?: boolean;
 };
 
 export async function listarPreviaAlertas(): Promise<AlertaPrevia[]> {
   const user = await getCurrentUser();
   if (!user) return [];
   const hasFinanceAccess = Boolean(user.isAdmin || user.financeAccess);
-  const alertas = await getAlerts(user.officeId, hasFinanceAccess, user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id));
+  const alertas = await getAlerts(user.officeId, hasFinanceAccess, user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id), podeAcessarAba(user));
   return alertas.slice(0, 8).map((a) => ({
     id: a.id,
     kind: a.kind,
@@ -97,5 +107,6 @@ export async function listarPreviaAlertas(): Promise<AlertaPrevia[]> {
     esperandoHa: a.esperandoHa,
     gatilho: a.gatilho,
     meu: a.meu,
+    abrirEmNovaAba: a.abrirEmNovaAba,
   }));
 }

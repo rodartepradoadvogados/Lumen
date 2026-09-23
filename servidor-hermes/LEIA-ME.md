@@ -83,18 +83,36 @@ server {
     location / {
         proxy_pass http://127.0.0.1:8787;
         proxy_set_header Host $host;
-        # ERA 150s. Um pedido de peticionamento com dezenas de páginas de documento pode levar
-        # bem mais que dois minutos, e o nginx cortava no meio — 504 sem explicação nenhuma.
-        # 280s fica ACIMA do teto da ponte (HERMES_TIMEOUT_S, 240s) e ABAIXO do teto da Vercel
-        # (maxDuration da tela de confirmação, 300s): quem desiste primeiro é sempre o lado que
-        # sabe explicar ao advogado o que aconteceu. Se você mudar um destes números, confira a
-        # corrente inteira — ela está escrita por extenso no topo de servidor.py.
+        # 280s, E ESTE NÚMERO NÃO PRECISA MAIS SER MEXIDO — nem quando o teto da geração subiu
+        # para quinze minutos (HERMES_TIMEOUT_S = 900s). Leia o parágrafo abaixo do bloco antes
+        # de editar aqui: a geração NÃO passa por um cano aberto durante 900s.
+        # 280s fica ACIMA do único teto que ainda segura conexão aberta neste caminho (o
+        # peticionamento SÍNCRONO de compatibilidade, 230s do lado do Lúmen) e ABAIXO do teto da
+        # Vercel (maxDuration da tela de confirmação, 300s): quem desiste primeiro é sempre o
+        # lado que sabe explicar ao advogado o que aconteceu.
         proxy_read_timeout 280s;
     }
 }
 ```
 
 > **Não publique a porta 8787 direto.** Sem TLS, o segredo viaja em texto limpo na rede.
+
+**O `proxy_read_timeout` NÃO limita a geração da minuta, e não há nada a ajustar aqui quando o teto
+do trabalho subir.** Isto merece estar escrito, porque a versão anterior deste arquivo dizia que
+280s tinha de ficar *acima do teto da ponte* — e com `HERMES_TIMEOUT_S` em 900s alguém leria isso
+como "preciso subir o nginx para 900s ou mais". Não precisa:
+
+| caminho | quem segura a conexão aberta | o nginx conta? |
+|---|---|---|
+| `POST /chat-async` (o disparo da geração) | ninguém — responde `202` na hora | não |
+| `GET /resultado/<id>` (o acompanhamento) | ninguém — responde na hora | não |
+| `POST /chat` do atendimento (a Ana) | até 105s, teto do lado do Lúmen | sim, e 280s sobra |
+| `POST /chat` do peticionamento síncrono (ponte antiga) | até 230s, teto do lado do Lúmen | sim, e 280s sobra |
+
+A geração de quinze minutos corre numa **thread desta máquina**, sem ninguém do outro lado da rede
+esperando: é exatamente por isso que o teto do trabalho pôde deixar de ser o teto de uma requisição
+HTTP. Se um dia o `POST /chat` síncrono voltar a ser o caminho normal do peticionamento, então sim —
+aí o número aqui teria de ficar acima de `HERMES_TIMEOUT_S`, e a conta volta a valer.
 
 ### 5. Ligar o Lúmen nele
 
@@ -180,7 +198,7 @@ ponte-hermes-vigia` mostra a última.
 | escritório sem perfil provisionado no Hermes | `404` |
 | provisionamento pedido numa instalação sem o script | `501` |
 | binário do `hermes` velho demais, sem `--query-file` | `501`, dizendo para atualizar o binário |
-| Hermes passou de 240 segundos (`HERMES_TIMEOUT_S`) | `504` |
+| Hermes passou de 900 segundos (`HERMES_TIMEOUT_S`) | `504` |
 | resposta boa em `POST /chat` | `200` com `{"resposta": ..., "sessao": ...}` |
 | `POST /chat-async` (mesmo corpo de `/chat`) | `202` com `{"tarefa": "<id>"}`, **na hora** |
 | `POST /chat-async` com a memória de tarefas cheia (`HERMES_TAREFAS_MAXIMAS`) | `503`, falado |
@@ -201,11 +219,26 @@ Todas têm padrão seguro; nenhuma precisa ser definida para a ponte funcionar.
 
 | variável | padrão | o que faz |
 |---|---|---|
-| `HERMES_TIMEOUT_S` | `240` | teto do processo do Hermes — **o segundo elo da corrente de tempos** |
-| `HERMES_RUN_BUDGET_FOLGA_S` | `25` | folga entre o orçamento do agente e a morte do processo |
+| `HERMES_TIMEOUT_S` | `900` | teto do processo do Hermes — **quinze minutos, o teto do trabalho** |
+| `HERMES_RUN_BUDGET_FOLGA_S` | `60` | folga entre o orçamento do agente e a morte do processo |
 | `HERMES_MAX_TURNS` | `60` | teto de iterações de ferramenta por turno (o padrão do binário é 500) |
 | `HERMES_TAREFAS_MAXIMAS` | `32` | quantas gerações assíncronas cabem na memória ao mesmo tempo |
-| `HERMES_TAREFA_VALIDADE_S` | `1800` | quanto tempo uma tarefa não buscada continua de pé |
+| `HERMES_TAREFA_VALIDADE_S` | `2400` | quanto tempo uma tarefa não buscada continua de pé |
+
+**A corrente de tempos de hoje, e ela tem DUAS pernas.** A do trabalho (o caminho assíncrono, que é
+o normal do peticionamento) e a de uma requisição web (o síncrono e o atendimento):
+
+```
+TRABALHO    ponte 900s (HERMES_TIMEOUT_S)          ← o teto de 15 minutos que o dono pediu
+              < Lúmen 1200s (PRAZO_MAXIMO_DA_GERACAO_MS, quando desiste de esperar)
+                < validade da tarefa 2400s (HERMES_TAREFA_VALIDADE_S)
+            e a varredura por cron (a cada 5 min, janela de 24h) cobre tudo isso.
+
+REQUISIÇÃO  Ana 105s < peticionamento síncrono 230s < nginx 280s < Vercel 300s
+```
+
+A ordem da primeira perna é o que separa "minuta entregue" de "trabalho pago perdido": uma tarefa
+que vence antes de o Lúmen desistir apagaria da memória uma peça **pronta**.
 
 O **orçamento do agente não é uma variável**: ele é `HERMES_TIMEOUT_S` menos
 `HERMES_RUN_BUDGET_FOLGA_S`, com piso de 30s (a constante `ORCAMENTO_S`, no `servidor.py`). Isso é
@@ -233,8 +266,8 @@ ninguém do outro lado. O advogado leu `DEMORA: o Hermes não respondeu em 230s`
 `hermes chat --run-budget SEGUNDOS` conserta o que dava para consertar aqui: aos 80% do orçamento o
 agente recebe um aviso único para ir concluindo, e os tempos de espera implícitos do provedor
 passam a ser limitados ao que sobra, de modo que uma chamada travada não consuma a execução
-inteira. Com os padrões de hoje: orçamento de **215s**, aviso aos **172s**, 43s para concluir, e
-25s de margem entre o fim do orçamento e a machadada do `subprocess`. Quem termina a execução passa
+inteira. Com os padrões de hoje: orçamento de **840s**, aviso aos **672s**, 168s para concluir, e
+60s de margem entre o fim do orçamento e a machadada do `subprocess`. Quem termina a execução passa
 a ser o agente, e não o sistema operacional.
 
 `--max-turns 60` entra junto e pelo mesmo motivo: o padrão do binário é 500 iterações de chamada de
@@ -244,11 +277,16 @@ ele tem. Sessenta é várias vezes o que uma geração saudável usa, e ainda as
 
 **`/chat-async`: a espera sai de dentro da requisição web.**
 
-`--run-budget` faz o agente entregar o que tem dentro do prazo. Mas o prazo em si não tem para onde
-crescer: **o teto duro é a Vercel, 300 segundos**, e nenhuma função da plataforma passa disso. Uma
-peça a partir de um processo de dezenas de páginas pode legitimamente precisar de mais — limitar o
-agente para caber numa requisição HTTP é limitar a *qualidade* do trabalho ao tempo de um cano de
-rede.
+`--run-budget` faz o agente entregar o que tem dentro do prazo. Mas, enquanto a geração corria
+dentro de uma requisição web, o prazo em si não tinha para onde crescer: **o teto duro de uma função
+da Vercel é 300 segundos**, e nenhuma passa disso. Uma peça a partir de um processo de dezenas de
+páginas pode legitimamente precisar de mais — limitar o agente para caber numa requisição HTTP é
+limitar a *qualidade* do trabalho ao tempo de um cano de rede.
+
+**E foi esta rota que destravou o teto de quinze minutos.** Com o disparo respondendo na hora, o
+relógio da Vercel (300s) e o do nginx (280s) deixaram de contar durante a geração: os 900s de
+`HERMES_TIMEOUT_S` são o tempo de uma thread desta máquina, e nada mais. Os 300s continuam valendo
+para a requisição que dispara — e ela leva menos de um segundo.
 
 Por isso a geração deixou de ser "esperar" e passou a ser um trabalho com nome:
 

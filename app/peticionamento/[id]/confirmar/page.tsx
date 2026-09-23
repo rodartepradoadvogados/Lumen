@@ -12,9 +12,15 @@ export const dynamic = "force-dynamic";
 // documento leva para ser redigida: o advogado veria a função ser cortada no meio, sem erro que
 // se possa explicar.
 //
-// 300s é o elo MAIS LONGO da corrente de tempos (Lúmen 230s < ponte 240s < nginx 280s < aqui),
-// de propósito: quem desiste primeiro tem de ser o Lúmen, o único lado capaz de dizer ao
-// advogado o que aconteceu. Ver ESPERA_PETICIONAMENTO_MS em lib/hermesPonte.ts.
+// 300s é o elo MAIS LONGO da corrente de UMA REQUISIÇÃO WEB (Lúmen 230s < nginx 280s < aqui), de
+// propósito: quem desiste primeiro tem de ser o Lúmen, o único lado capaz de dizer ao advogado o
+// que aconteceu. Ver ESPERA_PETICIONAMENTO_MS em lib/hermesPonte.ts.
+//
+// E 300s CONTINUA VALENDO DEPOIS DE O TETO DA GERAÇÃO SUBIR PARA QUINZE MINUTOS. Não há conflito,
+// porque nenhuma requisição web espera a geração: esta ação DISPARA o trabalho na ponte e volta na
+// hora (lib/peticionamentoGeracaoAssincrona.ts). O único caminho que ainda espera aqui dentro é o
+// SÍNCRONO de compatibilidade (ponte antiga, sem `/chat-async`), e ele desiste aos 230s — dentro
+// destes 300. A plataforma não passa de 300s, e prometer mais seria prometer o que ela não faz.
 export const maxDuration = 300;
 
 export default async function ConfirmarPage({ params }: { params: { id: string } }) {
