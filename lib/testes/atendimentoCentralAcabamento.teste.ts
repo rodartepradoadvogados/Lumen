@@ -355,4 +355,39 @@ teste("a aba Triagem continua AUSENTE do DOM para quem não vê o escritório to
   verdade(iAba > 0, "a página não decide mais a lista pela aba Atendimentos");
 });
 
+// ── O DESTINO DO ÍCONE EXISTE NOS DOIS CASOS ────────────────────────────────────────────────────
+//
+// O painel de recusa não aparece para lead já convertido em processo, e isso está certo. Mas o
+// ícone "Ver a recusa" CONTINUA na fila nesse caso — ela busca por `estado: EM_ANALISE`, e converter
+// não muda esse estado. Sem um bloco para o caso convertido, o ícone promete a recusa e entrega tela
+// sem nada: o usuário clica de novo, acha que travou, e passa a desconfiar do resto.
+
+teste("o destino do ícone 'Ver a recusa' existe TAMBÉM para lead já convertido — a âncora nunca cai no vazio", () => {
+  // As duas pontas do `convertedCaseId`: uma com o painel, outra com a explicação. Se existisse só
+  // uma, metade dos cliques do ícone não teria onde chegar.
+  const comPainel = /\{!selecionado\.convertedCaseId && \(/.test(CORPO_PAGE);
+  const semPainel = /\{selecionado\.convertedCaseId && \(/.test(CORPO_PAGE);
+  verdade(comPainel, "sumiu o bloco do painel de recusa (lead NÃO convertido)");
+  verdade(semPainel, "não há bloco para o lead JÁ convertido — o ícone 'Ver a recusa' levaria a uma tela sem nada");
+
+  // A ÂNCORA É A MESMA NOS DOIS, e vem da constante — é ela que o endereço do ícone aponta. Duas
+  // âncoras diferentes, ou uma escrita à mão, fariam o ícone acertar num caso e errar no outro.
+  const ancoras = [...CORPO_PAGE.matchAll(/id=\{ANCORA_DA_RECUSA\}/g)].length;
+  igual(ancoras, 2, "esperava a MESMA âncora nos dois blocos (com painel e sem), vinda da constante");
+
+  // E o anel do foco também nos dois: ele é a garantia que não depende de o navegador ter rolado.
+  // Conta o ANEL, e não a comparação `foco === FOCO_DA_RECUSA`: essa aparece uma terceira vez na
+  // leitura do parâmetro da URL (`searchParams.foco === ...`), e contar a comparação faria este teste
+  // afirmar sobre linha que não é a que ele pensa estar lendo — a mesma armadilha da janela de
+  // caracteres, em outra roupa.
+  const aneis = [...CORPO_PAGE.matchAll(/ring-\[var\(--frame-accent\)\]/g)].length;
+  igual(aneis, 2, "o anel de foco tem de ser desenhado nos dois casos — senão quem clicou no ícone não acha o que procurava");
+
+  // O bloco do convertido precisa EXPLICAR, não só existir vazio. Asserção sobre o mecanismo
+  // (menciona a conversão e diz que o registro não se perdeu), tolerante à redação.
+  const trecho = CORPO_PAGE.slice(CORPO_PAGE.search(/\{selecionado\.convertedCaseId && \(/));
+  verdade(/convertid/i.test(trecho), "o bloco do lead convertido não diz que ele foi convertido");
+  verdade(/hist[oó]rico|registro/i.test(trecho), "o bloco não diz onde o registro da recusa continua — ficaria parecendo que a recusa se perdeu");
+});
+
 resumo("Central de Atendimento — etapa 3 (acabamento: chips, largura, escala, 'Ver a recusa', realce)");

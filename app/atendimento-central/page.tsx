@@ -515,6 +515,30 @@ export default async function AtendimentoCentralPage({
                   <RecusarLeadPainel attendanceId={selecionado.id} motivos={motivosDeRecusa} recusa={recusaNaTela} enderecoDoSite={enderecoDoSite} />
                 </div>
               )}
+              {/* O ÍCONE NUNCA PODE CAIR NO VAZIO. O painel acima não aparece para lead já convertido
+                  em processo — e isso está certo, porque recusar quem já virou cliente não faz sentido.
+                  Só que o ícone "Ver a recusa" CONTINUA na lista nesse caso: a fila de recusados busca
+                  por `estado: EM_ANALISE`, e converter um lead não muda esse estado. Sem este bloco, o
+                  ícone promete mostrar a recusa e entrega uma tela sem nada — o usuário clica de novo,
+                  acha que travou, e desconfia do resto da tela.
+                  A âncora e o anel são os MESMOS do painel, então o destino do ícone existe nos dois
+                  casos; o que muda é o que ele explica. */}
+              {selecionado.convertedCaseId && (
+                <div
+                  id={ANCORA_DA_RECUSA}
+                  className={`scroll-mt-4 border-t border-[var(--atd-border)] p-4 ${
+                    foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
+                  }`}
+                  style={{ boxShadow: "var(--atd-shadow-card)" }}
+                >
+                  <p className="text-etiqueta text-tx-3">Recusa</p>
+                  <p className="mt-1 max-w-[60ch] text-corpo text-tx-2">
+                    Este atendimento foi recusado e depois convertido em processo. O painel de recusa não
+                    se aplica a quem já é cliente — o registro da recusa continua no histórico do
+                    atendimento.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
