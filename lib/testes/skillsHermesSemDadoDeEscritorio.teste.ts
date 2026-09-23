@@ -69,6 +69,7 @@ const SKILLS = [
   "conteudo-autoridade",
   "resumo-pecas",
   "usar-o-lumen",
+  "comunicados-clientes",
 ] as const;
 
 function caminhoDa(skill: string): string {
@@ -720,6 +721,54 @@ teste("HARD GATE: usar-o-lumen não nomeia o console da plataforma como painel d
     /(n[ãa]o\s+presuma|confirme\s+com\s+o\s+L[úu]men|pergunte\s+ao\s+administrador)/i.test(texto),
     "usar-o-lumen perdeu a instrução de confirmar qual é a tela de indicadores em vez de nomeá-la",
   );
+});
+
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// comunicados-clientes — o valor de acordo é do CLIENTE, e a regra nasceu invertida
+// ──────────────────────────────────────────────────────────────────────────────────────────
+//
+// A primeira versão desta skill punha "valor de acordo em negociação" na lista do que NÃO entra num
+// comunicado ao cliente, com a justificativa de que divulgar a cifra "enfraquece a posição do
+// escritório na mesa".
+//
+// O instinto estava certo — mensagem que circula é risco real — e a regra, errada, num ponto que
+// não é de estilo: ACEITAR OU RECUSAR ACORDO É DECISÃO DO CLIENTE. A proposta, o valor, as
+// condições e o prazo de resposta são exatamente a informação sem a qual ele não decide nada.
+// Omitir a cifra não é cautela: é decidir por ele, colocando a posição negocial do escritório acima
+// de quem é dono do caso. Seguida à risca, aquela regra faria o agente ajudar a esconder do cliente
+// a proposta que estava sobre a mesa dele.
+//
+// O que a skill controla é o CANAL e o REGISTRO, nunca se informa. Estes guardas travam as duas
+// metades: que a cifra chega, e que o "preservar a posição na negociação" não volta como motivo
+// para não informar.
+
+teste("HARD GATE: em comunicados-clientes, o valor de acordo chega ao cliente — a decisão é dele", () => {
+  const texto = textoDa("comunicados-clientes");
+
+  verdade(
+    /(aceitar\s+ou\s+recusar\s+acordo\s+é\s+decis[ãa]o\s+do\s+cliente|decis[ãa]o\s+do\s+cliente,\s+n[ãa]o\s+do\s+escrit[óo]rio)/i.test(texto),
+    "comunicados-clientes deixou de dizer que aceitar ou recusar acordo é decisão do cliente",
+  );
+  verdade(
+    /(nunca\s+deixe\s+o\s+valor\s+de\s+fora|omitir\s+a\s+cifra[^.\n]{0,40}n[ãa]o\s+[ée]\s+cautela)/i.test(texto),
+    "comunicados-clientes perdeu a proibição de omitir o valor de acordo do cliente",
+  );
+  // O QUE A SKILL CONTROLA É O CANAL, não o silêncio: sem esta metade, "não mande por WhatsApp"
+  // viraria "não conte".
+  verdade(
+    /(canal\s+e\s+o\s+registro|o\s+canal\s+e\s+o\s+registro)/i.test(texto),
+    "comunicados-clientes perdeu a distinção entre escolher o canal e escolher se informa",
+  );
+
+  // E A REGRA INVERTIDA NÃO PODE VOLTAR pela porta da justificativa: a posição negocial do
+  // escritório não é motivo para não informar.
+  const invertida = texto.match(/[^.\n]{0,120}(enfraquece|preservar)[^.\n]{0,60}posi[çc][ãa]o[^.\n]{0,60}(negocia|mesa)[^.\n]{0,80}/i);
+  if (invertida) {
+    verdade(
+      /(nunca|n[ãa]o)\s/i.test(invertida[0]),
+      `comunicados-clientes voltou a usar a posição negocial do escritório como motivo para não informar o valor: "${invertida[0].trim()}"`,
+    );
+  }
 });
 
 // ──────────────────────────────────────────────────────────────────────────────────────────
