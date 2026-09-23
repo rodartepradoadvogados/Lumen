@@ -434,6 +434,133 @@ e quando — o suficiente para investigar um problema, sem virar uma segunda có
 
 ---
 
+## O script de provisionamento (`provision_tenant.py`)
+
+**Sem este arquivo instalado, `GET /perfis`, `POST /provisionar` e `POST /desprovisionar`
+respondem `501`** — é o próprio `servidor.py` dizendo "esta instalação não tem o script de
+provisionamento" (`ProvisionamentoIndisponivel`, em `executar_provisionamento`). E um `501` aqui
+não é um detalhe de API: sem ele, um escritório novo nasce com a caixa de conversa **muda** — o
+`/chat` responde `404` (perfil não encontrado) e não há nada que a tela do painel mestre possa
+fazer a respeito. `servidor-hermes/provision_tenant.py`, neste repositório, é o que fecha esse
+buraco.
+
+### O contrato, exatamente como `servidor.py` o impõe
+
+A ponte executa `python3 <script> <argumentos>` — uma **lista** de argumentos, nunca uma linha de
+comando montada como texto — e espera:
+
+| comando | argumentos | teto de tempo da ponte |
+|---|---|---|
+| listar perfis | `list` | 30s |
+| criar um perfil | `provision --slug S --id OFFICEID --name NOME` | 120s |
+| remover um perfil | `deprovision --slug S` | 60s |
+
+- **A última linha do stdout tem de ser JSON, sempre.** É literalmente o que a ponte faz:
+  `json.loads(stdout.strip().split("\n")[-1])`. Qualquer diagnóstico do script vai para o
+  **stderr** — uma linha solta no stdout quebraria esse `json.loads`.
+- **Saída diferente de zero** → a ponte lê a **última linha do stderr** como motivo. Se essa linha
+  contiver `not found` / `nao encontrado` / `não encontrado`, ela responde `404`; qualquer outra
+  frase vira `500`.
+- **O `--slug` é o nome do diretório do perfil**, não necessariamente o slug do escritório:
+  `lib/hermesPonte.ts:perfilDeCampanha` manda `lumen-campanha-<slug>` (módulo de campanhas), e
+  `app/api/hermes/provision/route.ts` manda o slug cru do escritório (atendimento). O script
+  recebe o que vier e não adivinha.
+- **`provision` é idempotente.** Perfil que já existe devolve sucesso dizendo que já existia
+  (`"jaExistia": true`), sem tocar em `auth.json` nem no estado de sessão dele — o disparo imediato
+  do webhook e o cron de segurança (`lib/actions/provisionamentoCampanhas.ts`) podem tentar o mesmo
+  perfil quase ao mesmo tempo, e a segunda chamada não pode estragar o que a primeira já fez.
+- **A criação é atômica.** O perfil é montado inteiro num diretório temporário, dentro da própria
+  pasta de perfis, e só então movido de uma vez para o nome definitivo. Uma cópia interrompida no
+  meio (disco cheio, processo morto) nunca deixa um perfil pela metade — o que sobraria seria pior
+  que "perfil não encontrado": o Hermes falharia de um jeito que ninguém sabe traduzir.
+- **`list` devolve o formato documentado no cabeçalho do próprio script** —
+  `{"perfis": [{"slug", "temAuth", ...}]}` — e é passado **opaco** por
+  `app/api/hermes/provision/route.ts:GET` direto para a tela.
+- **Nada de shell.** Nenhum `os.system`, nenhum `subprocess` com `shell=True`, nenhum caminho
+  montado por concatenação de texto vindo de argumento — só operações de sistema de arquivos sobre
+  um nome já validado e confinado à pasta de perfis (nada de `..`, nada de link simbólico seguido
+  às cegas).
+
+As expressões de validação (`SLUG_VALIDO`, `ID_VALIDO`, `NOME_MAXIMO`) são um **espelho** das que
+`servidor.py` já usa — copiadas à mão, porque o script pode ser chamado direto, sem passar pela
+ponte. `lib/testes/hermesProvisionamento.teste.ts` lê os dois arquivos e falha se algum dia
+divergirem, do mesmo jeito que já protege `PERGUNTA_MAXIMA`/`CORPO_MAXIMO`.
+
+### Instalação, passo a passo
+
+Também roda **no servidor onde o Hermes está instalado**, como root — continuando de onde o passo
+1 desta página parou.
+
+**1. Copie o script:**
+
+```bash
+cp servidor-hermes/provision_tenant.py /root/.hermes/profiles/lumen-master/scripts/provision_tenant.py
+```
+
+(crie a pasta `scripts/` dentro de `lumen-master` se ela ainda não existir). O caminho é fixo —
+`SCRIPT_PROVISIONAMENTO` em `servidor.py` — mas configurável por `HERMES_PROVISION_SCRIPT` em
+`/etc/lumen-hermes.env`, se um dia precisar viver noutro lugar.
+
+**2. Instale o perfil-modelo**, se `lumen-master` ainda não existir na máquina:
+
+```bash
+mkdir -p /root/.hermes/profiles/lumen-master
+cp servidor-hermes/perfil-modelo/profile.yaml /root/.hermes/profiles/lumen-master/profile.yaml
+cp servidor-hermes/perfil-modelo/env.modelo /root/.hermes/profiles/lumen-master/.env
+```
+
+**3. Copie o `auth.json` — este passo é obrigatório, e só acontece na VPS.**
+`auth.json` **não está no repositório** (é a credencial do provedor de modelo, e segredo de
+produção não mora em git, nem privado). Sem ele, `provision_tenant.py` **recusa provisionar** e
+diz exatamente este passo na mensagem de erro:
+
+```bash
+cp /root/.hermes/profiles/<algum-perfil-que-ja-funciona>/auth.json \
+   /root/.hermes/profiles/lumen-master/auth.json
+```
+
+Confira com `hermes -p lumen-master config check` que não falta nada — inclusive as variáveis do
+`.env`, cujos nomes exatos este repositório não tem como confirmar sem acesso à VPS (ver
+`servidor-hermes/perfil-modelo/LEIA-ME.md`).
+
+**4. Reinicie a ponte**, para ela conferir de novo se `SCRIPT_PROVISIONAMENTO` existe:
+
+```bash
+systemctl restart ponte-hermes
+```
+
+### Como confirmar que funcionou
+
+Antes do passo 1 acima, `GET /perfis` responde `501`:
+
+```bash
+curl -s -H "authorization: Bearer $HERMES_TOKEN" https://hermes.SEUDOMINIO.com.br/perfis
+# {"erro": "esta instalacao nao tem o script de provisionamento (/root/.hermes/profiles/lumen-master/scripts/provision_tenant.py)"}
+```
+
+Depois de instalado, o mesmo comando lista os perfis (pelo menos o `lumen-master`):
+
+```bash
+curl -s -H "authorization: Bearer $HERMES_TOKEN" https://hermes.SEUDOMINIO.com.br/perfis
+# {"perfis": [{"slug": "lumen-master", "temAuth": true}]}
+```
+
+E um provisionamento de teste prova o caminho inteiro:
+
+```bash
+curl -s -X POST -H "authorization: Bearer $HERMES_TOKEN" -H "content-type: application/json" \
+  -d '{"slug": "teste-provisionamento", "officeId": "off_teste", "nome": "Escritório de Teste"}' \
+  https://hermes.SEUDOMINIO.com.br/provisionar
+# {"slug": "teste-provisionamento", "officeId": "off_teste", "criado": true, "jaExistia": false}
+
+curl -s -X POST -H "authorization: Bearer $HERMES_TOKEN" -H "content-type: application/json" \
+  -d '{"slug": "teste-provisionamento"}' \
+  https://hermes.SEUDOMINIO.com.br/desprovisionar
+# {"slug": "teste-provisionamento", "removido": true}
+```
+
+---
+
 ## As ferramentas: como o agente consulta os dados do escritório
 
 O agente **não tem o banco do Lúmen**, e não deve ter. Quando precisa de um número, ele roda o
