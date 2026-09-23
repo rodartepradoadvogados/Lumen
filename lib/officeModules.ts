@@ -49,6 +49,23 @@ export async function hasBlogAccess(officeId: string): Promise<boolean> {
 // as duas pontas do mesmo fluxo respondiam "qual é o escritório do blog" de formas diferentes, e
 // matéria publicada podia ficar invisível na página pública sempre que os dois Office não
 // coincidissem (achado A34 da revisão gauntlet).
+/**
+ * O escritório dono da plataforma — usado pelas páginas públicas do blog e pela rota de rascunho.
+ *
+ * O `select` NÃO é otimização, é o que impede esta função de derrubar o DEPLOY. Sem ele, o Prisma
+ * pede TODAS as colunas de Office; e as páginas do blog são geradas DURANTE O BUILD, contra o
+ * banco que ainda está em produção. Como o `package.json` roda `prisma db push` DEPOIS do
+ * `next build`, uma coluna nova em Office existe no schema e ainda não existe no banco na hora em
+ * que esta consulta roda — o build morre com `P2022: The column Office.<nova> does not exist`, e
+ * o deploy inteiro cai por causa de um campo que nem é usado aqui.
+ *
+ * Foi exatamente isso que aconteceu ao acrescentar `descricaoAtuacao`: o build de staging apontou,
+ * e o de produção teria feito o mesmo, porque a ordem do `db push` é a mesma nos dois.
+ *
+ * Os três chamadores (app/blog/page.tsx, app/blog/[slug]/page.tsx, app/api/blog/draft/route.ts)
+ * usam SÓ o `id`. Pedir mais do que se usa era, aqui, pedir para quebrar no dia em que alguém
+ * acrescentasse um campo — e esse dia chega sempre.
+ */
 export async function getPlatformOffice() {
-  return prisma.office.findFirst({ where: { isInternal: true } });
+  return prisma.office.findFirst({ where: { isInternal: true }, select: { id: true } });
 }

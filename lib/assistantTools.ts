@@ -10,6 +10,7 @@ import { caseMatchesMateria } from "@/lib/caseMaterias";
 import { formatarEquipe } from "@/lib/equipeFormato";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 import { pendenciaKindLabel } from "@/lib/pendencias";
+import { montarPerfilDoEscritorio } from "@/lib/perfilDoEscritorio";
 
 // ============================================================================
 // Ferramentas do Assistente Claude (chat interno)
@@ -35,7 +36,12 @@ export type AssistantToolModule =
   | "equipe"
   | "documentos"
   | "tarefas"
-  | "assessorias";
+  | "assessorias"
+  // O escritório falando de si mesmo: quem ele é, como atua e onde ficam as pastas dele. Módulo
+  // próprio porque não é nenhum dos outros — não é "documentos" (que lista os arquivos já
+  // anexados) nem "equipe" (que é gente). Nada aqui é financeiro, então nenhuma régua de nível
+  // se aplica: ver `liberada` em app/api/agente/ferramentas/route.ts.
+  | "escritorio";
 
 // Entrada bruta de um tool_use — vem de fora (o modelo), então nunca é tipada
 // como a interface "ideal" da ferramenta; cada `executar` lê os campos que
@@ -746,6 +752,102 @@ async function executarConsultarIndicadores(input: ToolInput, officeId: string):
 // ver o comentário lá para o porquê de a trava ser uma função pura e não só este `select`.
 // ---------------------------------------------------------------------------
 
+// ============================================================================
+// O PERFIL DO ESCRITÓRIO DE QUEM ESTÁ PERGUNTANDO — quem é, como atua, e onde ficam as pastas.
+//
+// POR QUE ESTA FERRAMENTA EXISTE. O agente precisa salvar um documento na pasta certa do
+// armazenamento do escritório, e antes desta ferramenta não tinha como PERGUNTAR onde ela fica:
+// ou o caminho estava escrito à mão dentro de uma skill (e aí era o caminho de UM escritório,
+// carimbado na instalação de todos), ou ele adivinhava. As duas saídas são a mesma: um arquivo
+// no lugar errado, com cara de lugar certo.
+//
+// O QUE FICA AQUI E O QUE FICA NO MÓDULO PURO. Aqui ficam as CONSULTAS, cada uma com o recorte por
+// escritório no próprio `where`, como em todas as ferramentas vizinhas. A RESPOSTA é montada por
+// `montarPerfilDoEscritorio` (lib/perfilDoEscritorio.ts), que é pura e por isso pode ser
+// exercitada de verdade pelo teste — e não só varrida.
+//
+// NADA É NOME DE PASTA ESCRITO À MÃO. Os nomes saem de `montarNomeacao` (lib/driveNaming.ts), a
+// MESMA função que o servidor usa para criar as pastas de verdade e que a tela de Configurações usa
+// para montar a prévia. Um escritório que trocou a pasta-mãe ou tirou o prefixo recebe aqui o nome
+// que ele de fato vê no Drive — não o padrão do produto.
+//
+// ESCRITÓRIO SEM ARMAZENAMENTO CONECTADO É ESTADO NORMAL, NÃO ERRO. Nesse caso a resposta diz
+// isso com todas as letras e manda o agente NÃO inventar caminho — o mesmo princípio de
+// `hasPrimaryDriveCredential` (lib/googleDrive.ts), que existe justamente para o sync varrer sem
+// erro um escritório que nunca conectou. Um "não sei" explícito vale mais que um caminho plausível.
+//
+// O TEXTO DE ATUAÇÃO É DADO, NUNCA INSTRUÇÃO. Ele é escrito por um administrador do escritório e
+// lido por um modelo, sem ninguém no meio: sai neutralizado (`atuacaoParaOAgente`) e sempre
+// acompanhado da cerca falada (`AVISO_DE_TEXTO_DO_ESCRITORIO`) — ver lib/atuacaoDoEscritorio.ts.
+// ============================================================================
+
+async function executarPerfilDoEscritorio(officeId: string): Promise<string> {
+  try {
+    const escritorio = await prisma.office.findFirst({
+      // O RECORTE POR ESCRITÓRIO É A PRÓPRIA CHAVE aqui: a linha pedida é a do escritório de quem
+      // perguntou, e de nenhum outro. `findFirst` com o id da credencial mantém a forma das
+      // vizinhas deste arquivo — nunca um id vindo da entrada do agente.
+      where: { id: officeId },
+      select: { name: true, descricaoAtuacao: true, storageProvider: true, drivePastaMae: true, drivePrefixo: true },
+    });
+    if (!escritorio) {
+      return JSON.stringify({
+        erro: "Escritório não encontrado. Não presuma nome, atuação nem pasta: diga que não foi possível consultar.",
+      });
+    }
+
+    const provedor =
+      escritorio.storageProvider === "ONEDRIVE" ? "ONEDRIVE" : escritorio.storageProvider === "DROPBOX" ? "DROPBOX" : "GOOGLE_DRIVE";
+
+    // Só a credencial do provedor ATIVO é consultada: a conta de um provedor que este escritório
+    // não usa não diz nada sobre onde os arquivos dele vão parar. Cada consulta carrega o recorte
+    // por escritório no próprio `where`, como todas as vizinhas.
+    let conectado: boolean;
+    if (provedor === "ONEDRIVE") {
+      conectado = Boolean(
+        await prisma.microsoftCredential.findFirst({ where: { officeId, isPrimaryDrive: true }, select: { id: true } }),
+      );
+    } else if (provedor === "DROPBOX") {
+      conectado = Boolean(await prisma.dropboxCredential.findFirst({ where: { officeId }, select: { id: true } }));
+    } else {
+      conectado = Boolean(
+        await prisma.googleCredential.findFirst({ where: { officeId, isPrimaryDrive: true }, select: { id: true } }),
+      );
+    }
+
+    // As categorias que ESTE escritório criou (as nativas são catálogo do produto e não precisam de
+    // consulta) — mesma dupla contagem/amostra do resto do arquivo: quem mostra uma amostra conta o
+    // universo.
+    const [totalDeCategorias, categorias] = await Promise.all([
+      prisma.officeDocumentType.count({ where: { officeId, ativo: true } }),
+      prisma.officeDocumentType.findMany({
+        where: { officeId, ativo: true },
+        select: { rotulo: true, secao: true },
+        orderBy: { rotulo: "asc" },
+        take: 100,
+      }),
+    ]);
+
+    return JSON.stringify(
+      montarPerfilDoEscritorio({
+        nome: escritorio.name,
+        descricaoAtuacao: escritorio.descricaoAtuacao,
+        storageProvider: provedor,
+        drivePastaMae: escritorio.drivePastaMae,
+        drivePrefixo: escritorio.drivePrefixo,
+        conectado,
+        categoriasDoEscritorio: categorias,
+        totalDeCategoriasDoEscritorio: totalDeCategorias,
+        avisoDeAmostra: AVISO_AMOSTRA,
+        agora: new Date(),
+      }),
+    );
+  } catch (error) {
+    console.error("[assistantTools] erro em consultar_perfil_do_escritorio:", error);
+    return "Não foi possível consultar o perfil do escritório agora. Tente novamente em instantes.";
+  }
+}
+
 async function executarConsultarEquipe(input: ToolInput, officeId: string): Promise<string> {
   try {
     const nome = str(input, "nome");
@@ -1231,6 +1333,19 @@ async function executarHistoricoCliente(input: ToolInput, officeId: string, quem
 // ---------------------------------------------------------------------------
 
 export const assistantTools: AssistantTool[] = [
+  {
+    modulo: "escritorio",
+    spec: {
+      name: "consultar_perfil_do_escritorio",
+      description:
+        "O perfil do escritório de quem está perguntando: o nome dele, a descrição de atuação escrita pelo próprio escritório, e ONDE ficam as pastas dele no armazenamento (Google Drive/OneDrive/Dropbox), com a estrutura de pastas, a lista de categorias e o padrão de nome de arquivo. " +
+        "USE ANTES DE SALVAR, ORGANIZAR OU CITAR QUALQUER PASTA OU CAMINHO DE ARQUIVO — nunca presuma o nome do escritório, a atuação dele nem o caminho de uma pasta. " +
+        "Use também quando precisar saber em que áreas o escritório atua. " +
+        "A resposta pode dizer que o armazenamento não está conectado: isso é uma situação normal, e nesse caso NÃO existe caminho a informar.",
+      input_schema: { type: "object", properties: {}, required: [] },
+    },
+    executar: (_input, ctx) => executarPerfilDoEscritorio(ctx.officeId),
+  },
   {
     modulo: "processos",
     spec: {
