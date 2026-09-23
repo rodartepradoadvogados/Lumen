@@ -318,4 +318,52 @@ teste("a régua e a folha estão no CSS da aba, com token e sem hex cru", () => 
   igual(hex, null, "hex cru no CSS do editor (a paleta da aba é só var(--token), e é ela que dá o modo claro): ");
 });
 
+// ── SANEAMENTO NA LEITURA, NÃO SÓ NA GRAVAÇÃO ───────────────────────────────────────────────────
+//
+// `htmlParaAbrirAFolha` devolve o que vai direto para `corpo.innerHTML` no editor. Atribuir a
+// `innerHTML` não executa `<script>`, mas EXECUTA `<img onerror=...>`. Hoje só
+// `atualizarCorpoDaMinuta` grava a coluna, e ela saneia — então hoje não há furo. O que estes casos
+// guardam é o amanhã: etapa B, importação de .docx, colagem tratada por outro caminho, correção
+// feita direto no banco. Qualquer escritor novo que esqueça de sanear viraria XSS armazenado num
+// sistema de vários escritórios, e nenhum teste do lado que mudou acusaria.
+
+teste("SEGURANÇA: HTML gravado com gatilho de script é saneado AO ABRIR a folha, não só ao gravar", () => {
+  const sujo = '<p>Peça legítima.</p><img src=x onerror="alert(1)"><script>alert(2)</script><p onclick="roubar()">Clique</p>';
+  const aberto = htmlParaAbrirAFolha(sujo, null);
+  verdade(!/onerror/i.test(aberto), `sobrou manipulador onerror no que vai para innerHTML: ${aberto}`);
+  verdade(!/onclick/i.test(aberto), `sobrou manipulador onclick no que vai para innerHTML: ${aberto}`);
+  verdade(!/<script/i.test(aberto), `sobrou tag script: ${aberto}`);
+  verdade(!/<img/i.test(aberto), `sobrou tag img (nenhum recurso externo entra na folha): ${aberto}`);
+  // E o que era legítimo continua lá — saneamento que come a peça não serve de nada.
+  verdade(aberto.includes("Peça legítima."), `o texto legítimo foi perdido no saneamento: ${aberto}`);
+  verdade(aberto.includes("Clique"), `o texto do parágrafo com atributo sujo foi perdido junto com o atributo: ${aberto}`);
+});
+
+teste("SEGURANÇA: sanear na leitura NÃO muda a formatação legítima nem o texto puro derivado", () => {
+  // Se o saneamento de leitura alterasse HTML legítimo, abrir e salvar sem mexer em nada mudaria o
+  // corpo — e mudar o corpo invalida a confirmação de citação do advogado. Esta é a contraprova.
+  const legitimo =
+    '<p style="text-align: justify; text-indent: 12.5mm">Primeiro parágrafo, <b>com negrito</b> e <span style="color: #b91c1c">cor</span>.</p>' +
+    '<ul><li>Um item</li><li>Outro item</li></ul>' +
+    '<table><tbody><tr><td>A</td><td>B</td></tr></tbody></table>';
+  const aberto = htmlParaAbrirAFolha(legitimo, null);
+  igual(textoPuroDaMinutaHtml(aberto), textoPuroDaMinutaHtml(legitimo), "o texto puro derivado mudou por causa do saneamento de leitura");
+  for (const marca of ["text-align", "text-indent", "color", "<b>", "<li>", "<td>"]) {
+    verdade(aberto.includes(marca), `o saneamento de leitura comeu ${marca}, que é formatação que o dono pediu`);
+  }
+});
+
+teste("HARD GATE: o caminho que abre a folha passa pelo saneamento — em qualquer uma das duas saídas", () => {
+  const FONTE_FORMATADA = readFileSync(join(RAIZ, "lib", "peticionamentoMinutaFormatada.ts"), "utf8");
+  const corpo = codigoDe(corpoDaFuncao(FONTE_FORMATADA, "htmlParaAbrirAFolha"));
+  verdade(corpo.length > 50, "corpoDaFuncao não encontrou htmlParaAbrirAFolha — a varredura quebrou");
+  // As DUAS saídas (o HTML gravado e a semente do texto puro) têm de sair saneadas: uma saída sem
+  // saneamento é uma porta, e quem a usar amanhã não vai saber que ela existe.
+  const retornos = corpo.match(/return [^;]+;/g) ?? [];
+  verdade(retornos.length >= 2, `esperava ao menos 2 saídas em htmlParaAbrirAFolha, achei ${retornos.length}`);
+  for (const r of retornos) {
+    verdade(r.includes("sanitizarMinutaHtml("), `saída de htmlParaAbrirAFolha sem saneamento: ${r.trim()}`);
+  }
+});
+
 resumo("Peticionamento — folha A4, régua e derivação de texto puro da minuta");

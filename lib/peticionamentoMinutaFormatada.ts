@@ -33,7 +33,9 @@
 //
 // ── SEGURANÇA ─────────────────────────────────────────────────────────────────────────────────
 //
-// `sanitizarMinutaHtml` roda SEMPRE no servidor, antes de gravar e antes de derivar — mesma
+// `sanitizarMinutaHtml` roda SEMPRE no servidor, em TRÊS momentos — antes de gravar, antes de
+// derivar, e de novo ao ABRIR a folha (`htmlParaAbrirAFolha`), porque o que sai dela vai para
+// `innerHTML` e um escritor futuro que esqueça de sanear não pode virar XSS armazenado — mesma
 // disciplina de lib/richText.ts (achado V9 da auditoria de 05/09/2026: sanitizar HTML só com
 // regex é frágil contra mutation-XSS). A lista de tags aqui é MAIOR que a de lib/richText.ts
 // porque o editor da minuta faz mais que aquele: alinhamento, recuo, cor, tabela. Por isso as
@@ -252,6 +254,21 @@ export function htmlDaMinutaDoTextoPuro(texto: string): string {
  */
 export function htmlParaAbrirAFolha(minutaFormatadaHtml: string | null | undefined, minutaTexto: string | null | undefined): string {
   const gravado = (minutaFormatadaHtml ?? "").trim();
-  if (gravado.length > 0) return gravado;
-  return htmlDaMinutaDoTextoPuro(minutaTexto ?? "");
+  // SANEADO OUTRA VEZ NA LEITURA, e não só na gravação — defesa em profundidade, a mesma régua que
+  // `confirmarExportacao` já aplica ao reconferir o fecho que `atualizarCorpoDaMinuta` acabou de
+  // garantir ("nunca confiar numa trava só").
+  //
+  // O QUE ESTA LINHA DEFENDE. O que esta função devolve vai para `corpo.innerHTML` em
+  // components/peticionamento/MinutaEditor.tsx. Atribuir a `innerHTML` não executa `<script>`, mas
+  // executa `<img onerror=...>` — é um ponto de injeção de verdade, não teórico. Hoje quem grava a
+  // coluna é só `atualizarCorpoDaMinuta`, que saneia antes; então hoje não há furo. O risco é o
+  // AMANHÃ: a etapa B, uma importação de .docx, uma colagem vinda do Word tratada noutro caminho,
+  // uma correção feita direto no banco — qualquer escritor novo que esqueça de sanear vira XSS
+  // armazenado num sistema de vários escritórios, e o furo não apareceria em nenhum teste do lado
+  // que mudou. Sanear na leitura custa uma passada de sanitize-html por abertura de folha e fecha
+  // a porta pelo lado de dentro, independentemente de quem escreveu.
+  if (gravado.length > 0) return sanitizarMinutaHtml(gravado);
+  // A semente escapa o texto puro (`escaparHtml`), então ela já nasce segura — mas passa pelo mesmo
+  // saneamento para que exista UM caminho de saída, e não dois com garantias diferentes.
+  return sanitizarMinutaHtml(htmlDaMinutaDoTextoPuro(minutaTexto ?? ""));
 }
