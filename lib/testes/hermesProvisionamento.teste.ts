@@ -51,14 +51,27 @@ function rodar(args: string[], pastaPerfis: string, envExtra: Record<string, str
 }
 
 /** Uma pasta de perfis nova, com `lumen-master` já dentro (com ou sem `auth.json`, à escolha). */
-function novaPastaDePerfis(opts: { comAuth?: boolean } = { comAuth: true }): string {
+function novaPastaDePerfis(opts: { comAuth?: boolean; comConfig?: boolean } = {}): string {
   const pasta = mkdtempSync(join(tmpdir(), "hermes-perfis-"));
   const master = join(pasta, "lumen-master");
   mkdirSync(master, { recursive: true });
   if (opts.comAuth !== false) {
     writeFileSync(join(master, "auth.json"), JSON.stringify({ tipo: "credencial-de-mentira", conteudo: "original" }));
   }
-  writeFileSync(join(master, "profile.yaml"), "description: \"\"\ndescription_auto: true\nui_meta: {}\n_ui_meta_revisions: []\n");
+  writeFileSync(join(master, "profile.yaml"), "description: \"\"\ndescription_auto: true\n");
+  // `config.yaml` É OBRIGATÓRIO, e passou a ser depois de um `ls -la` num perfil de PRODUÇÃO: lá
+  // ele existe (2308 bytes, modo 600) e o `hermes config check` reporta "Config version: 45". Um
+  // perfil sem ele nasce com a configuração em branco — e nasce calado, que é o pior jeito.
+  if (opts.comConfig !== false) {
+    writeFileSync(join(master, "config.yaml"), "version: 45\n");
+  }
+  // `SOUL.md` é a persona do agente — sem ela o escritório novo ganha um assistente genérico em
+  // vez da atendente do Lúmen. Opcional no script, presente aqui porque o caso normal a tem.
+  writeFileSync(join(master, "SOUL.md"), "# Persona de mentira\n");
+  // AS SKILLS MORAM DENTRO DO PERFIL no Hermes (confirmado no perfil de produção: `skills/` com 17
+  // pastas). Sem esta pasta, o escritório novo nasce sem NENHUMA das skills jurídicas.
+  mkdirSync(join(master, "skills", "conflict-check"), { recursive: true });
+  writeFileSync(join(master, "skills", "conflict-check", "SKILL.md"), "---\nname: conflict-check\n---\n");
   return pasta;
 }
 
@@ -441,6 +454,58 @@ teste("o repositório NÃO versiona um arquivo chamado .env no perfil-modelo", (
     existsSync("servidor-hermes/perfil-modelo/env.modelo"),
     "servidor-hermes/perfil-modelo/env.modelo desapareceu — é o esqueleto que o roteiro de instalação copia",
   );
+});
+
+// ── O QUE UM PERFIL DE VERDADE PRECISA — medido, não suposto ──────────────────────────────────
+//
+// A primeira lista branca deste script copiava três arquivos: `auth.json`, `profile.yaml` e o
+// `.env`. Ela foi escrita sem nunca se ter olhado um perfil de produção — e um `ls -la` num perfil
+// real (209 MB, mais de sessenta entradas) mostrou que faltavam três coisas que importam:
+//
+//   · `config.yaml` — existe em produção e o `hermes config check` reporta a versão dele. Sem ele
+//     o perfil nasce com a configuração em branco;
+//   · `SOUL.md` — a persona do agente. Sem ela o escritório recebe um assistente genérico;
+//   · `skills/` — no Hermes AS SKILLS MORAM DENTRO DO PERFIL (17 pastas no perfil real). Sem esta
+//     pasta o escritório novo nasce sem nenhuma das skills jurídicas da plataforma.
+//
+// Nenhuma dessas faltas quebraria de forma barulhenta. É por isso que elas viram teste: o sintoma
+// seria um agente estranho conversando com o advogado, semanas depois, sem erro em log nenhum.
+
+teste("EXERCITADO: o perfil novo recebe config.yaml, SOUL.md e a pasta skills do modelo", () => {
+  const pasta = novaPastaDePerfis();
+  try {
+    sujarOModelo(pasta);
+    const r = rodar(["provision", "--slug", "escritorio-completo", "--id", "off_c", "--name", "Completo"], pasta);
+    igual(r.status, 0, `provision falhou: ${r.ultimaLinhaStderr}`);
+    const novo = join(pasta, "escritorio-completo");
+    for (const preciso of ["auth.json", "config.yaml", "profile.yaml", "SOUL.md"]) {
+      verdade(existsSync(join(novo, preciso)), `${preciso} não chegou ao perfil novo`);
+    }
+    verdade(
+      existsSync(join(novo, "skills", "conflict-check", "SKILL.md")),
+      "a pasta skills não atravessou — no Hermes as skills moram dentro do perfil, então o escritório nasceria sem nenhuma",
+    );
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
+});
+
+teste("EXERCITADO: provision SEM config.yaml no modelo falha e diz qual arquivo falta", () => {
+  const pasta = novaPastaDePerfis({ comConfig: false });
+  try {
+    const r = rodar(["provision", "--slug", "escritorio-sem-config", "--id", "off_sc", "--name", "Sem Config"], pasta);
+    verdade(r.status !== 0, "sem config.yaml no modelo, o provisionamento precisa FALHAR");
+    verdade(
+      !existsSync(join(pasta, "escritorio-sem-config")),
+      "nenhum perfil pode ter sido criado quando falta arquivo obrigatório no modelo",
+    );
+    verdade(
+      /config\.yaml/.test(r.ultimaLinhaStderr),
+      `a mensagem precisa nomear o arquivo que falta: "${r.ultimaLinhaStderr}"`,
+    );
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
 });
 
 resumo("hermesProvisionamento");

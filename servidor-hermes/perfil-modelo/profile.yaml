@@ -1,13 +1,19 @@
 # Perfil-modelo do Hermes (lumen-master) — de onde cada perfil de escritório novo é copiado por
 # servidor-hermes/provision_tenant.py.
 #
-# ESTAS QUATRO CHAVES SÃO AS ÚNICAS CONFIRMADAS. O dono colou o que existe hoje na VPS: cada
-# perfil em /root/.hermes/profiles/<nome>/ tem um profile.yaml com "description", "description_auto",
-# "ui_meta" e "_ui_meta_revisions". NENHUMA outra chave foi inventada aqui, e o FORMATO interno
-# exato de "ui_meta" e "_ui_meta_revisions" (se carregam algo além de vazio num perfil novo) NÃO
-# foi confirmado a partir deste repositório — ver o LEIA-ME.md desta pasta antes do primeiro uso.
+# DUAS CHAVES, E AGORA ISSO É MEDIDO, NÃO SUPOSTO. Um `profile.yaml` de um perfil em produção foi
+# lido na VPS: 79 bytes, duas chaves — "description" e "description_auto". Nada mais.
+#
+# ANTES ESTAVAM AQUI QUATRO CHAVES, com "ui_meta" e "_ui_meta_revisions". Elas apareceram num
+# `grep` que varria VÁRIOS perfis ao mesmo tempo, e a conclusão errada foi tratá-las como parte de
+# todo perfil. Não são: o perfil de produção lido depois não tem nenhuma das duas. Pelo que se vê,
+# a interface as escreve quando alguém mexe no perfil por lá — então elas nascem quando nascem, e
+# um perfil novo não precisa delas.
+#
+# A `description` fica VAZIA de propósito. Ela descreve o escritório, e o escritório não é este
+# arquivo: quem sabe disso é o Lúmen (o campo de atuação em Configurações, exposto pela ferramenta
+# `consultar_perfil_do_escritorio`). Preencher aqui criaria uma segunda verdade sobre o mesmo
+# assunto, e a errada seria esta, porque ela não muda quando o escritório muda.
 
 description: ""
 description_auto: true
-ui_meta: {}
-_ui_meta_revisions: []

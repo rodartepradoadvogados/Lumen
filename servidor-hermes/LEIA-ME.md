@@ -509,6 +509,23 @@ cp servidor-hermes/perfil-modelo/profile.yaml /root/.hermes/profiles/lumen-maste
 cp servidor-hermes/perfil-modelo/env.modelo /root/.hermes/profiles/lumen-master/.env
 ```
 
+**2b. Leve `config.yaml`, `SOUL.md` e a pasta `skills/` de um perfil que já funciona.** Nenhum dos
+três está no repositório, e os dois primeiros não são detalhe: `config.yaml` é **obrigatório** (sem
+ele o `provision` recusa) e, sem `SOUL.md`, o escritório novo ganha um assistente genérico em vez
+da atendente do Lúmen. A pasta `skills/` importa porque **no Hermes as skills moram dentro do
+perfil** — sem ela o escritório nasce sem nenhuma das skills jurídicas da plataforma.
+
+```bash
+ORIGEM=/root/.hermes/profiles/atendimento-lumen
+DESTINO=/root/.hermes/profiles/lumen-master
+cp -p "$ORIGEM/config.yaml" "$DESTINO/config.yaml"
+cp -p "$ORIGEM/SOUL.md"     "$DESTINO/SOUL.md"
+cp -a "$ORIGEM/skills"      "$DESTINO/skills"
+```
+
+Revise o `SOUL.md` e as `skills/` do modelo antes do primeiro `provision`: **o que estiver no
+perfil-modelo é o que todo escritório contratante vai receber.**
+
 **3. Copie o `auth.json` — este passo é obrigatório, e só acontece na VPS.**
 `auth.json` **não está no repositório** (é a credencial do provedor de modelo, e segredo de
 produção não mora em git, nem privado). Sem ele, `provision_tenant.py` **recusa provisionar** e

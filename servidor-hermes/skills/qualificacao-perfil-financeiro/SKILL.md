@@ -111,10 +111,44 @@ ele, registre isso como informação relevante para o advogado decidir — inclu
 recusar o caso por incompatibilidade de honorários — e não empurre o interessado para um modelo que
 ele já sinalizou não comportar, como desconto informal ou promessa de "resolver mais barato depois".
 
+### Duas contas diferentes, e confundi-las desalinha a conversa nos dois sentidos
+
+Quem chega perguntando de dinheiro quase sempre está somando duas coisas que não se somam, e esta
+skill tem de separá-las antes de qualquer alinhamento:
+
+- **As custas do processo** — o que se paga ao sistema de justiça para o processo andar, mais a
+  exposição a arcar com os honorários da parte adversária se o caso for perdido.
+- **O honorário contratado** — o que se paga ao advogado particular pelo trabalho dele.
+
+A gratuidade de justiça, quando deferida, alcança a **primeira** conta. Ela não torna gratuito o
+serviço de advogado particular, e dizer o contrário a alguém é prometer o que não se vai cumprir.
+O erro na direção oposta é igualmente comum e igualmente caro: alguém desiste de procurar
+advogado porque acha que "não tem dinheiro para processo", quando o que o assustava eram as custas,
+e o honorário caberia.
+
+**Não afirme, de memória, os requisitos da gratuidade, o que exatamente ela cobre, nem como se
+pleiteia.** Isso tem base normativa com número, e número aqui segue a etiqueta do resto desta
+skill: conferido nesta consulta, ou não conferido — e, se não conferido, dito com todas as letras.
+
+### Quem não comporta nenhum modelo não sai sem direção
+
+Recusar o caso por incompatibilidade de honorários é decisão legítima do advogado, e esta skill não
+a questiona. O que ela não aceita é a recusa **muda**: encerrar a conversa sem dizer nada a quem
+procurou ajuda e não tem como pagar.
+
+Orientar sobre onde essa pessoa pode buscar atendimento — a defensoria pública, o serviço de
+assistência judiciária da seccional aplicável, o juizado competente quando o rito dispensa
+advogado — **não é captação, não é consultoria gratuita e não cria vínculo**. É orientação, custa
+uma frase, e é o que separa uma recusa profissional de uma porta fechada na cara de alguém que pode
+ter prazo correndo.
+
+E vale o mesmo cuidado de sempre: **não afirme** que um caminho específico atende aquele caso sem
+ter conferido — diga onde procurar, não o resultado que a pessoa vai obter lá.
+
 ## Formato da saída
 
 **Regra da casa nº 2: resposta objetiva e informativa, fundamentação precisa, sem formatação
-excessiva.** Quatro blocos, nesta ordem:
+excessiva.** Cinco blocos, nesta ordem:
 
 1. Confirmação do status do conflict check para este interessado — e, se pendente, a instrução de
    resolvê-lo antes de qualquer qualificação, parando aqui.
@@ -123,6 +157,10 @@ excessiva.** Quatro blocos, nesta ordem:
    sugeridas para a próxima conversa — sempre sobre o serviço, nunca sobre a vida financeira.
 4. O que fica pendente para a skill `precificacao-honorarios` decidir: valor, conferência da
    tabela da seccional aplicável, e estrutura final da proposta.
+5. Quando o interessado sinalizar que nenhum modelo é viável: a separação entre custas e honorário
+   que foi explicada a ele, e a orientação de onde buscar atendimento — com a etiqueta de
+   conferência ao lado de qualquer requisito ou cobertura de gratuidade citada. Recusa sem
+   orientação é lacuna, não resultado.
 
 ## As quatro regras da casa, aplicadas aqui
 

@@ -110,10 +110,27 @@ PERFIL_MODELO = os.environ.get("HERMES_MASTER_PROFILE", "lumen-master")
 ARQUIVOS_DO_MODELO = (
     # (nome no modelo, nome no perfil novo, obrigatório)
     ("auth.json", "auth.json", True),
+    ("config.yaml", "config.yaml", True),
     ("profile.yaml", "profile.yaml", False),
+    ("SOUL.md", "SOUL.md", False),
     (".env", ".env", False),
     ("env.modelo", ".env", False),
 )
+
+# ── AS PASTAS QUE TAMBÉM ATRAVESSAM ──────────────────────────────────────────────────────────
+#
+# `skills/` é a única, e precisa atravessar porque no Hermes AS SKILLS MORAM DENTRO DO PERFIL —
+# um perfil de escritório sem esta pasta nasce sem nenhuma das skills jurídicas da plataforma.
+#
+# O QUE ESTÁ NO MODELO É O QUE TODO ESCRITÓRIO RECEBE, e esse é o contrato: o perfil-modelo não
+# guarda skill de um escritório só. É por isso que a cópia é simples aqui — o cuidado mora em
+# quem monta o modelo, não neste laço.
+#
+# E CONTINUA SENDO LISTA BRANCA: `sessions/`, `memories/`, `cache/`, `logs/`, `backups/`,
+# `state-snapshots/`, `pending_messages/` e as demais NÃO entram. Num perfil de produção de
+# verdade essas pastas somam centenas de megabytes de conversa do modelo — era isso que a cópia
+# da árvore inteira levava para dentro de cada escritório novo.
+PASTAS_DO_MODELO = ("skills",)
 
 # ── ESPELHOS DE servidor-hermes/servidor.py — MESMA REGRA, DOIS LUGARES ────────────────────────
 #
@@ -282,6 +299,28 @@ def cmd_provision(args: argparse.Namespace) -> None:
             if alvo.exists():
                 continue
             shutil.copy2(origem, alvo)
+
+        # AS PASTAS. `ignore_dangling_symlinks` porque um link quebrado dentro de `skills/` não
+        # pode derrubar a criação inteira do perfil; e `symlinks=False` para copiar conteúdo, não
+        # ponteiro — o perfil novo tem de ser independente do modelo depois de criado.
+        for pasta_nome in PASTAS_DO_MODELO:
+            origem = modelo / pasta_nome
+            if not origem.is_dir():
+                continue
+            shutil.copytree(
+                origem,
+                provisorio / pasta_nome,
+                symlinks=False,
+                ignore_dangling_symlinks=True,
+                # NADA DE SOCKET, FIFO OU DISPOSITIVO. Um perfil de produção tem `gateway.sock` na
+                # raiz, e `copytree` estoura ao encontrar um: a cópia da árvore inteira que este
+                # laço substituiu teria falhado num perfil real. `skills/` não deveria ter nenhum,
+                # mas quem garante isso é esta linha, não a expectativa.
+                ignore=lambda _origem, nomes: [
+                    n for n in nomes
+                    if not (Path(_origem) / n).is_file() and not (Path(_origem) / n).is_dir()
+                ],
+            )
 
         # CONFERÊNCIA ANTES DA TRAVESSIA. A checagem lá em cima olha o MODELO; esta olha o que de
         # fato CHEGOU ao perfil. Agora que as duas saem da mesma lista, o que sobra para esta cobrir
