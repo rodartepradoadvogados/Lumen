@@ -140,27 +140,56 @@ papel é um risco de descrédito na peça, não um adorno. Nesta formatação:
   faz o leitor de PDF, o software de indexação do protocolo eletrônico e a tela de leitura de um
   perito com dificuldade visual entenderem a peça como o documento estruturado que ela é.
 
-## Passo 3 — Margens, numeração de página e quebra controlada
+## Passo 3 — Margens e quebra controlada resolvem no HTML; numeração e cabeçalho repetido dependem do motor de conversão
 
 Página impressa tem regra própria, e o HTML de tela ignora essa regra por padrão — por isso ela
-precisa ser escrita explicitamente:
+precisa ser escrita explicitamente. Mas nem toda regra de página se garante só por escrevê-la no
+HTML: numeração de página e cabeçalho ou rodapé repetido em cada folha dependem de **qual motor
+faz a conversão para PDF**, e os dois caminhos mais comuns de conversão se comportam de formas
+opostas. Por isso este passo separa o que o HTML resolve sozinho do que não resolve.
+
+### O que o HTML resolve sozinho, em qualquer caminho de conversão
 
 - **Margens compatíveis com impressão e, quando o destino for juntada física, com encadernação** —
   margem generosa o bastante para não cortar texto na borda da folha e para deixar espaço de
   perfuração ou grampo sem tocar conteúdo.
-- **Numeração de página visível em cada folha**, no rodapé, com o total de páginas quando o padrão
-  do escritório previr isso — porque uma peça de várias páginas sem numeração é impossível de
-  referenciar em manifestação posterior ("vide fl. 3") e mais fácil de extraviar uma folha sem
-  ninguém notar.
 - **Quebra de página controlada, nunca deixada ao acaso do motor de conversão**: título de seção
   não fica sozinho na última linha de uma página com o corpo da seção na página seguinte; tabela
   não é cortada no meio de uma linha; bloco de assinatura nunca fica separado do nome que o
   precede. Regras de quebra evitável (manter título com o parágrafo seguinte, evitar corte dentro
   de uma linha de tabela, evitar folha órfã com uma única linha) valem sempre, mesmo que o
-  conteúdo mude de tamanho depois.
-- **Cabeçalho e rodapé de página consistentes** em todas as páginas da peça, com o que o perfil do
-  escritório definir (Passo 1) e a numeração — nunca variando de aparência de uma página para
-  outra dentro do mesmo documento.
+  conteúdo mude de tamanho depois. Essas regras de fragmentação do conteúdo costumam ser
+  respeitadas pela maioria dos caminhos de conversão, inclusive o baseado em navegador — ao
+  contrário da numeração e do cabeçalho repetido, tratados a seguir.
+
+### O que depende do motor de conversão: numeração de página e cabeçalho/rodapé repetido
+
+Numeração e cabeçalho ou rodapé repetido em cada página não nascem no corpo do documento — nascem
+de uma área de página reservada para esse fim, e essa área só é preenchida por quem implementa essa
+parte da conversão. Dois comportamentos, opostos entre si:
+
+- **Motor baseado em navegador** (o caminho mais comum de conversão, inclusive "imprimir" ou "salvar como PDF" pelo próprio navegador): não implementa as caixas de margem de página do CSS, e o rodapé declarado no documento simplesmente não aparece nesse caminho, por mais certo que o HTML esteja. Numeração e cabeçalho repetido, aqui, só existem se forem configurados no próprio conversor, fora do HTML — decisão de quem opera o conversor, não algo que este documento resolve sozinho.
+- **Motor de paginação dedicado** (o que implementa por completo a área reservada de página): a
+  numeração e o cabeçalho repetido saem do próprio documento, exatamente como escritos nele.
+
+Como consequência, esta skill nunca declara numeração de página ou cabeçalho repetido como
+resolvidos só porque o HTML foi escrito certo. Em vez disso:
+
+1. **Declare, na saída, para qual motor de conversão este HTML foi preparado** — baseado em navegador ou motor de paginação dedicado. Se isso não estiver claro, pergunte antes de prosseguir — não presuma o caminho mais comum só para simplificar.
+2. **Se o motor for baseado em navegador**, diga explicitamente que a numeração de página e o
+   cabeçalho ou rodapé repetido precisam ser configurados no conversor, fora deste documento, e
+   que o HTML sozinho não os produz nesse caminho — para que quem gerar o PDF saiba, antes de
+   juntar a peça aos autos, que falta esse passo.
+3. **Se o motor for de paginação dedicada**, escreva a numeração e o cabeçalho ou rodapé repetido
+   na área reservada de página, com o total de páginas quando o padrão do escritório previr isso, e
+   com o que o perfil do escritório definir (Passo 1) — sem variar de aparência de uma página para
+   outra dentro do mesmo documento.
+
+A exigência de numerar e de repetir o cabeçalho não fica mais fraca por causa disso: uma peça de
+várias páginas sem numeração continua impossível de referenciar em manifestação posterior ("vide
+fl. 3") e mais fácil de extraviar uma folha sem ninguém notar. O que muda é que esta skill deixa de
+prometer que o HTML, sozinho, resolve isso em qualquer caminho de conversão — ela declara a
+premissa e diz o que falta quando o caminho escolhido não permitir.
 
 ## Passo 4 — O que quebra na conversão para PDF, e como evitar cada quebra
 
@@ -224,7 +253,10 @@ advogado:
    ausência de identidade cadastrada — se for o caso — foi tratada como situação normal, avisada
    ao advogado.
 2. Nenhuma animação, cor decorativa ou elemento interativo restou na peça.
-3. Margens, numeração de página e cabeçalho/rodapé estão consistentes em todas as páginas.
+3. Margens seguem consistentes em todas as páginas, e **o motor de conversão está declarado**: se
+   for baseado em navegador, o aviso de que a numeração de página e o cabeçalho ou rodapé repetido
+   precisam ser configurados fora do documento está na saída; se for motor de paginação dedicada,
+   os dois saem escritos no próprio HTML.
 4. Nenhuma quebra de página deixa título órfão, tabela cortada ou assinatura separada do nome.
 5. Nenhuma tabela excede a largura da página, nenhuma imagem está sem dimensão declarada, e nenhum
    bloco de texto depende de rolagem para ser lido inteiro.
@@ -237,15 +269,19 @@ advogado:
 ## Formato da saída
 
 **Regra da casa nº 2: resposta objetiva e informativa, fundamentação precisa, sem formatação
-excessiva.** Cinco blocos curtos, nesta ordem, sem repetir o texto inteiro da peça:
+excessiva.** Seis blocos curtos, nesta ordem, sem repetir o texto inteiro da peça:
 
 1. O que foi consultado no perfil do escritório para a identidade visual, e o que fazer se ela não
    estiver cadastrada.
-2. Os pontos do Passo 4 que se aplicaram a esta peça (tabela, imagem, texto longo, link) e como
+2. **Para qual motor de conversão este HTML foi preparado**, e — se for um motor baseado em
+   navegador — o aviso de que a numeração de página e o cabeçalho repetido precisam ser
+   configurados no conversor, porque o documento sozinho não os produz. Se o motor não foi
+   informado, esta linha é a pergunta ao advogado, não uma suposição.
+3. Os pontos do Passo 4 que se aplicaram a esta peça (tabela, imagem, texto longo, link) e como
    cada um foi resolvido.
-3. O bloco de assinatura e qualificação, com a origem do dado (Lúmen ou lacuna a preencher).
-4. O checklist do Passo 6, com cada item marcado como cumprido ou pendente.
-5. Uma linha final dizendo que o conteúdo jurídico não foi alterado por esta skill — quem quiser
+4. O bloco de assinatura e qualificação, com a origem do dado (Lúmen ou lacuna a preencher).
+5. O checklist do Passo 6, com cada item marcado como cumprido ou pendente.
+6. Uma linha final dizendo que o conteúdo jurídico não foi alterado por esta skill — quem quiser
    confirmar a estrutura do pedido consulta a `resumo-pecas`.
 
 ## As quatro regras da casa, aplicadas aqui
