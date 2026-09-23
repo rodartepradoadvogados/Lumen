@@ -239,13 +239,57 @@ teste("HARD GATE: confirmarExportacao recusa exportar com citação pendente, AN
   const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarExportacao"));
   verdade(corpo.length > 300, "corpoDaFuncao não encontrou confirmarExportacao");
   verdade(corpo.includes("sincronizarCitacoes("), "deveria resincronizar a lista de citações antes de contar as pendentes");
-  verdade(/peticionamentoCitacao\.count\(\{\s*where:\s*\{\s*sessaoId,\s*confirmadaPorId:\s*null\s*\}/.test(corpo), "deveria contar citações com confirmadaPorId nulo desta sessão");
+  // ADAPTADA 23/09/2026: a contagem passou a excluir `excluidaEm: null` também (citação excluída
+  // pelo advogado não pede mais confirmação — ver excluirCitacao) — o regex tolera esse campo a
+  // mais sem deixar de exigir os dois campos originais (sessaoId e confirmadaPorId nulo).
+  verdade(/peticionamentoCitacao\.count\(\{\s*where:\s*\{\s*sessaoId,\s*confirmadaPorId:\s*null,\s*excluidaEm:\s*null\s*\}/.test(corpo), "deveria contar citações ATIVAS (não excluídas) com confirmadaPorId nulo desta sessão");
   // CHAMAR NÃO É OBEDECER (mesma armadilha já documentada acima para avaliarExportacao): o veredito
   // precisa DESVIAR a execução, não só ser calculado e ignorado.
   verdade(/if \(citacoesPendentes > 0\) \{/.test(corpo), "o veredito de citações pendentes precisa interromper a exportação, não só ser calculado");
   const idxContagem = corpo.indexOf("peticionamentoCitacao.count(");
   const idxDocx = corpo.indexOf("montarPeticaoWord(");
   verdade(idxContagem !== -1 && idxDocx !== -1 && idxContagem < idxDocx, "a checagem de citações pendentes precisa vir ANTES de montar o arquivo");
+});
+
+// ── Molde/exemplo nunca entra como citação, e a graduação de fonte bloqueia a aprovação ─────────
+// (endurecimento 23/09/2026 — ver lib/peticionamentoIdentificadorDeJulgado.ts e
+// lib/peticionamentoAprovacao.ts para as réguas puras; aqui só a prova de que a ação as USA).
+
+teste("HARD GATE: aprovarMinutaGerarPeca recusa aprovar quando avaliarAprovacaoDeMinuta reprova, ANTES de gravar", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "aprovarMinutaGerarPeca"));
+  verdade(corpo.length > 200, "corpoDaFuncao não encontrou aprovarMinutaGerarPeca — a varredura não está lendo certo");
+  verdade(corpo.includes("avaliarAprovacaoDeMinuta("), "deveria calcular a avaliação com a régua pura, não reimplementar a regra aqui");
+  verdade(/if \(!avaliacao\.podeAprovar\) \{/.test(corpo), "o veredito de avaliarAprovacaoDeMinuta precisa DESVIAR a execução, não só ser calculado");
+  const idxIf = corpo.indexOf("if (!avaliacao.podeAprovar)");
+  const idxUpdate = corpo.indexOf("peticionamentoSessao.update(");
+  verdade(idxIf !== -1 && idxUpdate !== -1 && idxIf < idxUpdate, "a recusa precisa vir ANTES de gravar minutaAprovadaEm");
+  verdade(corpo.includes("haAvisoDeMolde: avisosDeMolde.length > 0"), "a aprovação precisa considerar os avisos de molde, não só a confirmação de cada citação");
+});
+
+teste("HARD GATE: excluirCitacao apaga o REGISTRO, nunca o texto da minuta", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "excluirCitacao"));
+  verdade(corpo.length > 200, "corpoDaFuncao não encontrou excluirCitacao — a varredura não está lendo certo");
+  verdade(corpo.includes("excluidaPorId: user.id") && corpo.includes("excluidaEm: new Date()"), "deveria gravar quem excluiu e quando");
+  // A TROCA MAIS PERIGOSA POSSÍVEL AQUI seria excluirCitacao também apagar/editar `minutaTexto` —
+  // isso apagaria o texto da PEÇA por engano ao excluir só o REGISTRO de citação.
+  verdade(!/minutaTexto\s*:/.test(corpo), "excluirCitacao NUNCA pode escrever em minutaTexto — excluir o registro não apaga o texto da minuta");
+  verdade(corpo.includes("aindaNoCorpo"), "a resposta precisa dizer se o texto ainda está no corpo, já que excluir o registro não o remove de lá");
+});
+
+teste("HARD GATE: listarCitacoesParaValidacao separa ativas de excluídas, e não pede confirmação de uma citação excluída", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "listarCitacoesParaValidacao"));
+  verdade(corpo.length > 300, "corpoDaFuncao não encontrou listarCitacoesParaValidacao");
+  verdade(corpo.includes("!c.excluidaEm"), "deveria filtrar as citações ATIVAS (não excluídas) para a lista de confirmação");
+  verdade(corpo.includes("avaliarFonteDeCitacao("), "cada citação da tela precisa da graduação de fonte, não só de fonteUrl/fonteSecundariaUrl crus");
+  verdade(corpo.includes("avaliarAprovacaoDeMinuta("), "a tela precisa saber se pode aprovar, calculado pela régua pura");
+});
+
+teste("HARD GATE: atualizarCorpoDaMinuta desfaz a aprovação final junto com a confirmação de citação — editar depois de aprovar não pode deixar a aprovação de pé", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "atualizarCorpoDaMinuta"));
+  verdade(corpo.length > 150, "corpoDaFuncao não encontrou atualizarCorpoDaMinuta");
+  verdade(corpo.includes("sincronizarCitacoes("), "a regra antiga continua valendo: editar o corpo resincroniza as citações");
+  verdade(corpo.includes("minutaAprovadaEm: null") && corpo.includes("minutaAprovadaPorId: null"),
+    "editar o corpo precisa zerar a aprovação final — senão uma minuta aprovada continuaria 'aprovada' depois de mudar de conteúdo");
 });
 
 teste("HARD GATE: NÃO existe ação de 'confirmar todas as citações' — é uma por vez, sempre", () => {

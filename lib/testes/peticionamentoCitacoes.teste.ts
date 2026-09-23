@@ -1,5 +1,6 @@
 import { teste, igual, verdade, resumo } from "./executar";
 import { montarListaDeCitacoes, extrairTrechosSoltos, hashDeTexto, normalizarTextoCitacao } from "../peticionamentoCitacoes";
+import { classificarIdentificador } from "../peticionamentoIdentificadorDeJulgado";
 
 // A LISTA DE VALIDAÇÃO DE CITAÇÕES — decisão do dono (22/09/2026). A parte difícil é achar os
 // TRECHOS SOLTOS (referência a julgado/súmula/tema no corpo, sem estar estruturada como ementa) —
@@ -11,11 +12,12 @@ teste("ementas citadas passam direto, com as DUAS fontes quando o agente informo
     jurisprudenciaCitada: [{ texto: "STJ, REsp 1.874.782/SP (Tema 990)", fonte: "https://stj.jus.br/x", fonteSecundaria: "https://conjur.com.br/y" }],
     minutaTexto: "Conforme STJ, REsp 1.874.782/SP (Tema 990), o pedido procede.",
   });
-  const ementas = lista.filter((c) => c.tipo === "EMENTA");
+  const ementas = lista.citacoes.filter((c) => c.tipo === "EMENTA");
   igual(ementas.length, 1);
   igual(ementas[0].texto, "STJ, REsp 1.874.782/SP (Tema 990)");
   igual(ementas[0].fonteUrl, "https://stj.jus.br/x");
   igual(ementas[0].fonteSecundariaUrl, "https://conjur.com.br/y");
+  igual(lista.avisosDeMolde.length, 0, "número real não deveria gerar aviso de molde");
 });
 
 teste("uma ementa reproduzida literalmente no corpo NÃO vira também um trecho solto duplicado", () => {
@@ -23,14 +25,95 @@ teste("uma ementa reproduzida literalmente no corpo NÃO vira também um trecho 
     jurisprudenciaCitada: [{ texto: "STJ, REsp 1.874.782/SP (Tema 990)", fonte: "https://stj.jus.br/x" }],
     minutaTexto: "Conforme decidiu o STJ, REsp 1.874.782/SP (Tema 990), o pedido procede.",
   });
-  igual(lista.filter((c) => c.tipo === "TRECHO").length, 0, "o mesmo texto da ementa não deveria reaparecer como trecho");
+  igual(lista.citacoes.filter((c) => c.tipo === "TRECHO").length, 0, "o mesmo texto da ementa não deveria reaparecer como trecho");
+});
+
+// ── MOLDE/EXEMPLO — decisão do dono (23/09/2026): citação-molde não entra na lista, vira aviso ──
+//
+// Os três casos abaixo são EXATAMENTE os do print que motivou esta entrega: o quadro "Citações
+// desta minuta" mostrando três "citações" com número mascarado ou de exemplo clássico, cada uma
+// oferecendo "Li e revisei esta citação" como se fosse um julgado de verdade.
+
+teste("RECONHECEDOR DE FORMA: números reais passam como 'valido'", () => {
+  igual(classificarIdentificador("0001234-56.2023.5.18.0001"), "valido");
+  igual(classificarIdentificador("REsp 1.874.782/SP"), "valido");
+  igual(classificarIdentificador("AREsp 738.415/RJ"), "valido");
+});
+
+teste("RECONHECEDOR DE FORMA: os três exemplos exatos do print do dono são molde", () => {
+  igual(classificarIdentificador("TRT-18-RO-000XX-XX.20XX.5.18.XXXX"), "molde");
+  igual(classificarIdentificador("TST-RR-XXXXX-XX.20XX.5.XX.XXXX"), "molde");
+  igual(classificarIdentificador("STJ-REsp-1.234.567/SP"), "molde");
+});
+
+teste("RECONHECEDOR DE FORMA: outras variantes de molde/exemplo também são pegas", () => {
+  igual(classificarIdentificador("0000000-00.2020.8.09.0001"), "molde", "primeiro segmento todo zero");
+  igual(classificarIdentificador("0000000-00"), "molde", "número antigo todo zero, sem palavra-chave na frente");
+  igual(classificarIdentificador("NNNNNNN-NN.NNNN.N.NN.NNNN"), "molde", "máscara toda em N");
+  igual(classificarIdentificador("_______-__.____.5.18.0001"), "molde", "máscara em underscore");
+});
+
+teste("RECONHECEDOR DE FORMA: texto sem forma de identificador nenhuma é 'irreconhecível', nunca 'válido' por omissão", () => {
+  igual(classificarIdentificador(""), "irreconhecivel");
+  igual(classificarIdentificador("processo sem número informado"), "irreconhecivel");
+  igual(classificarIdentificador("processo 12345 do juiz"), "irreconhecivel", "número solto em meio a prosa, sem palavra-chave nem forma CNJ completa");
+});
+
+teste("EMENTA-molde (a citação inteira do print) não entra na lista de citações — vira aviso próprio", () => {
+  const lista = montarListaDeCitacoes({
+    jurisprudenciaCitada: [
+      { texto: "TRT-18-RO-000XX-XX.20XX.5.18.XXXX — Contrato de gestão com metas objetivas...", fonte: null, fonteSecundaria: null },
+      { texto: "TST-RR-XXXXX-XX.20XX.5.XX.XXXX — Veículo cedido para uso pessoal integral...", fonte: null, fonteSecundaria: null },
+      { texto: "STJ-REsp-1.234.567/SP — Cláusula de não concorrência...", fonte: null, fonteSecundaria: null },
+    ],
+    minutaTexto: null,
+  });
+  igual(lista.citacoes.length, 0, "nenhuma das três deveria virar citação de verdade");
+  igual(lista.avisosDeMolde.length, 3, `esperava 3 avisos de molde, veio ${lista.avisosDeMolde.length}`);
+  for (const aviso of lista.avisosDeMolde) {
+    igual(aviso.origem, "EMENTA");
+    verdade(aviso.identificadorMolde.length > 0, "o aviso precisa dizer QUAL pedaço foi reconhecido como molde");
+  }
+});
+
+teste("EMENTA real (não-molde) continua entrando normalmente na lista, mesmo ao lado de moldes rejeitados", () => {
+  const lista = montarListaDeCitacoes({
+    jurisprudenciaCitada: [
+      { texto: "STJ, REsp 1.874.782/SP (Tema 990)", fonte: "https://stj.jus.br/x", fonteSecundaria: "https://conjur.com.br/y" },
+      { texto: "STJ-REsp-1.234.567/SP — Cláusula de não concorrência...", fonte: null, fonteSecundaria: null },
+    ],
+    minutaTexto: null,
+  });
+  igual(lista.citacoes.length, 1, "só a citação real deveria sobreviver");
+  igual(lista.citacoes[0].texto, "STJ, REsp 1.874.782/SP (Tema 990)");
+  igual(lista.avisosDeMolde.length, 1);
+});
+
+teste("TRECHO-molde totalmente mascarado, solto no corpo (sem UM dígito sequer), também vira aviso — nunca escapa como trecho", () => {
+  const lista = montarListaDeCitacoes({
+    jurisprudenciaCitada: [],
+    minutaTexto: "Conforme decidiu o TRT-18-RO-000XX-XX.20XX.5.18.XXXX, o pedido merece provimento.",
+  });
+  igual(lista.citacoes.length, 0);
+  igual(lista.avisosDeMolde.length, 1);
+  igual(lista.avisosDeMolde[0].origem, "TRECHO");
+});
+
+teste("TRECHO com número de exemplo clássico (1.234.567) solto no corpo também vira aviso", () => {
+  const lista = montarListaDeCitacoes({ jurisprudenciaCitada: [], minutaTexto: "Vide REsp 1.234.567/SP, julgado recente." });
+  igual(lista.citacoes.length, 0);
+  igual(lista.avisosDeMolde.length, 1);
 });
 
 teste("EDGE CASE: número de processo CNJ quebrado em duas linhas ainda é reconhecido inteiro", () => {
-  const minuta = "Vide os autos do processo 1234567-89.2020.8.09.\n0051, em trâmite na comarca.";
+  // "1874782" (não "1234567") DE PROPÓSITO: "1234567" é uma sequência ascendente perfeita e, com
+  // o reconhecedor de molde/exemplo (23/09/2026), passaria a ser classificada como número de
+  // exemplo — o que faria este teste de RECONSTITUIÇÃO DE LINHA QUEBRADA (o que ele realmente se
+  // propõe a provar) parar de provar isso e passar a provar outra coisa por acidente.
+  const minuta = "Vide os autos do processo 1874782-89.2020.8.09.\n0051, em trâmite na comarca.";
   const trechos = extrairTrechosSoltos(minuta, []);
   igual(trechos.length, 1);
-  verdade(trechos[0].texto.replace(/\s+/g, "") === "1234567-89.2020.8.09.0051", `número não reconstituído: "${trechos[0].texto}"`);
+  verdade(trechos[0].texto.replace(/\s+/g, "") === "1874782-89.2020.8.09.0051", `número não reconstituído: "${trechos[0].texto}"`);
 });
 
 teste("EDGE CASE: súmula citada SEM a palavra 'súmula' — via 'Enunciado' — ainda é encontrada", () => {
@@ -64,9 +147,13 @@ teste("REsp com número pontuado e barra de UF é encontrado, mesmo sem estar em
 });
 
 teste("recurso e tema citados lado a lado se fundem num único item (mesma menção, não duas)", () => {
-  const trechos = extrairTrechosSoltos("Vide REsp 1.234.567/SP (Tema 990/STJ), julgado em repetitivo.", []);
+  // "1.874.782" (não "1.234.567") DE PROPÓSITO: este teste cobre a FUSÃO de recurso+tema, não a
+  // detecção de molde/exemplo — usar o número de exemplo clássico aqui faria a citação inteira
+  // ser rejeitada como molde (comportamento novo, coberto à parte acima) e o teste deixaria de
+  // provar o que se propõe a provar.
+  const trechos = extrairTrechosSoltos("Vide REsp 1.874.782/SP (Tema 990/STJ), julgado em repetitivo.", []);
   igual(trechos.length, 1, `esperava um único item fundido, veio: ${JSON.stringify(trechos.map((t) => t.texto))}`);
-  verdade(trechos[0].texto.includes("1.234.567/SP") && trechos[0].texto.includes("990"), `item fundido incompleto: "${trechos[0].texto}"`);
+  verdade(trechos[0].texto.includes("1.874.782/SP") && trechos[0].texto.includes("990"), `item fundido incompleto: "${trechos[0].texto}"`);
 });
 
 teste("a MESMA referência citada duas vezes no corpo vira UM item, não dois", () => {
@@ -97,8 +184,9 @@ teste("minutaTexto nulo/vazio nunca quebra a extração", () => {
 
 teste("sem jurisprudência estruturada nenhuma, a lista tem só os trechos soltos", () => {
   const lista = montarListaDeCitacoes({ jurisprudenciaCitada: [], minutaTexto: "Vide o Tema 990 do STJ." });
-  igual(lista.length, 1);
-  igual(lista[0].tipo, "TRECHO");
+  igual(lista.citacoes.length, 1);
+  igual(lista.citacoes[0].tipo, "TRECHO");
+  igual(lista.avisosDeMolde.length, 0);
 });
 
 // ── hashDeTexto / normalizarTextoCitacao — a base de "editar invalida a confirmação" ──────────

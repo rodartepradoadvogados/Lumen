@@ -18,7 +18,7 @@
 // ============================================================================================
 
 import { prisma } from "@/lib/prisma";
-import { montarListaDeCitacoes, normalizarTextoCitacao, type PrecedenteParaCitacao } from "@/lib/peticionamentoCitacoes";
+import { montarListaDeCitacoes, normalizarTextoCitacao, type AvisoDeCitacaoMolde, type PrecedenteParaCitacao } from "@/lib/peticionamentoCitacoes";
 
 /**
  * Recalcula as linhas de PeticionamentoCitacao a partir do estado ATUAL da sessão (jurisprudência
@@ -30,14 +30,19 @@ import { montarListaDeCitacoes, normalizarTextoCitacao, type PrecedenteParaCitac
  * entra sem confirmação nenhuma. É assim que "editar a minuta invalida a confirmação das citações
  * que mudaram" (decisão do dono) vira código — hashDoTexto é a impressão do texto gravada NA
  * confirmação, para auditoria; a invalidação em si acontece aqui, pela identidade deixar de bater.
+ *
+ * Devolve `avisosDeMolde` (decisão do dono, 23/09/2026): citação com identificador em forma de
+ * molde/exemplo NUNCA chega a ser gravada como PeticionamentoCitacao — ela nem entra em `atuais`
+ * (ver montarListaDeCitacoes) — e quem chama precisa do aviso para mostrar na tela e para travar a
+ * aprovação final (lib/peticionamentoAprovacao.ts), sem uma segunda consulta ao banco.
  */
-export async function sincronizarCitacoes(sessaoId: string, officeId: string): Promise<void> {
+export async function sincronizarCitacoes(sessaoId: string, officeId: string): Promise<{ avisosDeMolde: AvisoDeCitacaoMolde[] }> {
   // A MESMA GUARDA DE SEMPRE, escrita aqui em vez de importada: toda leitura/escrita de UMA
   // sessão reconfere o officeId, nunca confia num id sozinho. Estoura quando não acha — devolver
   // null deixaria quem chamou seguir com uma sessão que não é dele.
   const sessao = await prisma.peticionamentoSessao.findFirst({ where: { id: sessaoId, officeId } });
   if (!sessao) throw new Error("Sessão de peticionamento não encontrada.");
-  const atuais = montarListaDeCitacoes({
+  const { citacoes: atuais, avisosDeMolde } = montarListaDeCitacoes({
     jurisprudenciaCitada: ((sessao.jurisprudenciaCitada as PrecedenteParaCitacao[] | null) ?? []) as PrecedenteParaCitacao[],
     minutaTexto: sessao.minutaTexto,
   });
@@ -101,5 +106,6 @@ export async function sincronizarCitacoes(sessaoId: string, officeId: string): P
     if (!chavesMantidas.has(chave)) operacoes.push(prisma.peticionamentoCitacao.delete({ where: { id: existente.id } }));
   }
   await Promise.all(operacoes);
+  return { avisosDeMolde };
 }
 

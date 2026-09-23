@@ -12,6 +12,7 @@
 // decide o que fazer com o banco.
 
 import { createHash } from "node:crypto";
+import { classificarIdentificador, encontrarIdentificadoresNoTexto, piorMoldeNoTexto } from "./peticionamentoIdentificadorDeJulgado";
 
 export type TipoDeCitacao = "EMENTA" | "TRECHO";
 
@@ -20,6 +21,27 @@ export type CitacaoExtraida = {
   texto: string;
   fonteUrl: string | null;
   fonteSecundariaUrl: string | null;
+};
+
+/**
+ * Uma citação REJEITADA na entrada porque o identificador embutido nela tem forma de MOLDE — o
+ * agente devolveu um número de exemplo/máscara em vez de um julgado (ver
+ * lib/peticionamentoIdentificadorDeJulgado.ts). NUNCA vira uma CitacaoExtraida: não entra na
+ * lista de citações, não pode ser "li e revisei", e bloqueia a aprovação final da minuta
+ * (lib/peticionamentoAprovacao.ts) — é isto que impede o quadro de oferecer "Li e revisei" para
+ * uma citação que não existe.
+ */
+export type AvisoDeCitacaoMolde = {
+  origem: TipoDeCitacao;
+  /** O texto original que o agente devolveu (ementa) ou o trecho encontrado solto no corpo. */
+  textoOriginal: string;
+  /** O pedaço reconhecido como molde/exemplo dentro do texto acima. */
+  identificadorMolde: string;
+};
+
+export type ResultadoDaListaDeCitacoes = {
+  citacoes: CitacaoExtraida[];
+  avisosDeMolde: AvisoDeCitacaoMolde[];
 };
 
 /** O formato que lib/peticionamentoRespostaHermes.ts produz para cada linha de jurisprudência. */
@@ -44,15 +66,25 @@ export function hashDeTexto(texto: string): string {
   return createHash("sha256").update(normalizarTextoCitacao(texto)).digest("hex");
 }
 
-function extrairEmentas(precedentes: PrecedenteParaCitacao[]): CitacaoExtraida[] {
-  return precedentes
-    .filter((p) => typeof p?.texto === "string" && p.texto.trim().length > 0)
-    .map((p) => ({
-      tipo: "EMENTA" as const,
-      texto: p.texto.trim(),
-      fonteUrl: p.fonte ?? null,
-      fonteSecundariaUrl: p.fonteSecundaria ?? null,
-    }));
+/**
+ * ementas rejeitadas por serem MOLDE nunca entram no array devolvido — viram `avisos`, e são o
+ * que produziu o defeito relatado pelo dono: três "citações" com número mascarado (000XX, XXXXX)
+ * ou de exemplo clássico (1.234.567), e ainda assim "Li e revisei" oferecido para as três.
+ */
+function extrairEmentas(precedentes: PrecedenteParaCitacao[]): { ementas: CitacaoExtraida[]; avisos: AvisoDeCitacaoMolde[] } {
+  const ementas: CitacaoExtraida[] = [];
+  const avisos: AvisoDeCitacaoMolde[] = [];
+  for (const p of precedentes) {
+    if (typeof p?.texto !== "string" || p.texto.trim().length === 0) continue;
+    const texto = p.texto.trim();
+    const molde = piorMoldeNoTexto(texto);
+    if (molde) {
+      avisos.push({ origem: "EMENTA", textoOriginal: texto, identificadorMolde: molde.trecho });
+      continue;
+    }
+    ementas.push({ tipo: "EMENTA", texto, fonteUrl: p.fonte ?? null, fonteSecundariaUrl: p.fonteSecundaria ?? null });
+  }
+  return { ementas, avisos };
 }
 
 // ── PADRÕES DE TRECHO SOLTO ──────────────────────────────────────────────────────────────────
@@ -128,9 +160,17 @@ function encontrarOcorrencias(texto: string): Ocorrencia[] {
  * novo como "trecho". Prefere-se o risco de mostrar a mesma citação duas vezes (uma confirmação a
  * mais, inofensiva) ao risco oposto — matar por engano um trecho que não é, de fato, o mesmo da
  * ementa. É a mesma lógica do "mais perigoso é deixar escapar" que motivou esta entrega.
+ *
+ * MOLDE TAMBÉM AQUI, não só na ementa estruturada: um número mascarado ou de exemplo solto no
+ * corpo ("...conforme decidiu o TRT-18-RO-000XX-XX.20XX.5.18.XXXX...") é tão citação inexistente
+ * quanto o mesmo texto vindo estruturado como ementa — vira aviso, nunca trecho.
  */
 export function extrairTrechosSoltos(minutaTexto: string | null | undefined, ementas: CitacaoExtraida[]): CitacaoExtraida[] {
-  if (!minutaTexto) return [];
+  return extrairTrechosSoltosComAvisos(minutaTexto, ementas).trechos;
+}
+
+function extrairTrechosSoltosComAvisos(minutaTexto: string | null | undefined, ementas: CitacaoExtraida[]): { trechos: CitacaoExtraida[]; avisos: AvisoDeCitacaoMolde[] } {
+  if (!minutaTexto) return { trechos: [], avisos: [] };
 
   let semEmentas = minutaTexto;
   for (const e of ementas) {
@@ -140,23 +180,52 @@ export function extrairTrechosSoltos(minutaTexto: string | null | undefined, eme
   const ocorrencias = encontrarOcorrencias(semEmentas);
   const vistos = new Set<string>();
   const trechos: CitacaoExtraida[] = [];
+  const avisos: AvisoDeCitacaoMolde[] = [];
   for (const { inicio, fim } of ocorrencias) {
     const bruto = semEmentas.slice(inicio, fim).trim();
     if (!bruto) continue;
     const chave = normalizarTextoCitacao(bruto);
     if (vistos.has(chave)) continue;
     vistos.add(chave);
+    if (classificarIdentificador(bruto) === "molde") {
+      // `piorMoldeNoTexto` isola só o PEDAÇO reconhecido como molde (ex.: "1.234.567" dentro de
+      // "REsp 1.234.567/SP (Tema 990/STJ)" fundido) — cai no próprio `bruto` só se, por algum
+      // motivo, a varredura de trecho isolado não achar o mesmo padrão que a classificação achou.
+      const isolado = piorMoldeNoTexto(bruto);
+      avisos.push({ origem: "TRECHO", textoOriginal: bruto, identificadorMolde: isolado?.trecho ?? bruto });
+      // Marca também a chave do PEDAÇO isolado como vista — sem isso, a segunda varredura (mais
+      // abaixo) acharia o mesmo "1.234.567" de novo dentro do texto fundido e duplicaria o aviso.
+      if (isolado) vistos.add(normalizarTextoCitacao(isolado.trecho));
+      continue;
+    }
     // Fonte SEMPRE null aqui: um trecho solto não veio estruturado pelo Hermes, então não existe
     // link de dupla validação para ele — e essa ausência é um FATO a mostrar na tela, nunca um
     // silêncio (mesma régua do schema para EMENTA sem fonte).
     trechos.push({ tipo: "TRECHO", texto: bruto, fonteUrl: null, fonteSecundariaUrl: null });
   }
-  return trechos;
+
+  // SEGUNDA VARREDURA, tolerante a máscara: as regras de PADROES acima exigem dígito (\d) e por
+  // isso nunca alcançam um número TOTALMENTE mascarado ("000XX-XX.20XX.5.18.XXXX" não tem UM
+  // dígito sequer nas posições que o RE_PROCESSO_CNJ exige) — sem esta segunda passada, um molde
+  // inteiro solto no corpo escaparia da lista por completo, o oposto do "mais perigoso é deixar
+  // escapar" que rege este arquivo.
+  for (const achado of encontrarIdentificadoresNoTexto(semEmentas)) {
+    if (achado.classificacao !== "molde") continue;
+    const chave = normalizarTextoCitacao(achado.trecho);
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    avisos.push({ origem: "TRECHO", textoOriginal: achado.trecho, identificadorMolde: achado.trecho });
+  }
+
+  return { trechos, avisos };
 }
 
-/** A lista completa — ementas primeiro, trechos soltos depois. */
-export function montarListaDeCitacoes(dados: { jurisprudenciaCitada: PrecedenteParaCitacao[] | null | undefined; minutaTexto: string | null | undefined }): CitacaoExtraida[] {
-  const ementas = extrairEmentas(dados.jurisprudenciaCitada ?? []);
-  const trechos = extrairTrechosSoltos(dados.minutaTexto, ementas);
-  return [...ementas, ...trechos];
+/** A lista completa — ementas primeiro, trechos soltos depois — mais os avisos de molde rejeitados na entrada. */
+export function montarListaDeCitacoes(dados: {
+  jurisprudenciaCitada: PrecedenteParaCitacao[] | null | undefined;
+  minutaTexto: string | null | undefined;
+}): ResultadoDaListaDeCitacoes {
+  const { ementas, avisos: avisosEmenta } = extrairEmentas(dados.jurisprudenciaCitada ?? []);
+  const { trechos, avisos: avisosTrecho } = extrairTrechosSoltosComAvisos(dados.minutaTexto, ementas);
+  return { citacoes: [...ementas, ...trechos], avisosDeMolde: [...avisosEmenta, ...avisosTrecho] };
 }
