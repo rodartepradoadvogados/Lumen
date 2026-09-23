@@ -34,6 +34,7 @@ import { hashDeTexto, normalizarTextoCitacao } from "@/lib/peticionamentoCitacoe
 import { sincronizarCitacoes } from "@/lib/peticionamentoCitacoesSync";
 import { avaliarFonteDeCitacao, avaliarAprovacaoDeMinuta, type AvaliacaoDeFonte } from "@/lib/peticionamentoAprovacao";
 import { garantirFecho } from "@/lib/peticionamentoFecho";
+import { sanitizarMinutaHtml, textoPuroDaMinutaHtml } from "@/lib/peticionamentoMinutaFormatada";
 import { montarNotaObrigatoria } from "@/lib/peticionamentoNotaObrigatoria";
 import { montarNomeArquivoPeticao } from "@/lib/peticionamentoNomeArquivo";
 import { montarPeticaoWord } from "@/lib/peticionamentoDocx";
@@ -1778,15 +1779,31 @@ export async function acompanharGeracaoDaMinuta(sessaoId: string): Promise<Andam
   return andamento;
 }
 
-export async function atualizarCorpoDaMinuta(sessaoId: string, texto: string): Promise<{ ok: true }> {
+/**
+ * A GRAVAÇÃO DO CORPO DA MINUTA — recebe SÓ o HTML da folha, e deriva o texto puro dele.
+ *
+ * A assinatura é de propósito: se esta ação recebesse o HTML E o texto puro, bastaria um bug de
+ * tela para gravar um corpo que não é o que está na folha, e o advogado exportaria um Word que
+ * não corresponde ao que ele revisou. Derivar aqui, por
+ * lib/peticionamentoMinutaFormatada.ts:textoPuroDaMinutaHtml (uma função só, no sistema todo), é
+ * o que impede as duas representações de divergirem — ver o contrato no schema, em
+ * `minutaFormatadaHtml`.
+ *
+ * A sanitização também acontece AQUI, no servidor, antes de qualquer gravação: o HTML chega do
+ * navegador e nunca é confiado (mesma disciplina de lib/richText.ts).
+ */
+export async function atualizarCorpoDaMinuta(sessaoId: string, formatadaHtml: string): Promise<{ ok: true }> {
   const user = await exigirAcessoAba();
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const htmlLimpo = sanitizarMinutaHtml(formatadaHtml);
+  const textoDerivado = textoPuroDaMinutaHtml(htmlLimpo);
   // O fecho é reconferido em toda gravação — mesmo edição manual não sai sem ele; ver export,
   // que reconfere de novo por segurança (defesa em profundidade, nunca confiar numa trava só).
   await prisma.peticionamentoSessao.update({
     where: { id: sessaoId },
     data: {
-      minutaTexto: garantirFecho(texto),
+      minutaTexto: garantirFecho(textoDerivado),
+      minutaFormatadaHtml: htmlLimpo,
       // A aprovação final (decisão do dono, 23/09/2026) é sobre UM estado do corpo — editar depois
       // de aprovar desfaz a aprovação, pelo mesmo motivo que editar já desfaz a confirmação de
       // cada citação cujo texto mudou: ninguém aprovou um texto que ainda não existia.

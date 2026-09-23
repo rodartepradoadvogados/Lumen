@@ -8,6 +8,7 @@ import { obterSessaoPeticionamento, avaliarTrabalhoEmAndamento, contarRascunhos,
 import { montarNotaObrigatoria, type PrecedenteCitado } from "@/lib/peticionamentoNotaObrigatoria";
 import { perfilDePeticionamento } from "@/lib/hermesPonte";
 import { avaliarExportacao } from "@/lib/peticionamentoAcesso";
+import { htmlParaAbrirAFolha } from "@/lib/peticionamentoMinutaFormatada";
 import { faixaDeGeracaoDoEscritorio } from "@/lib/peticionamentoGeracaoAssincrona";
 import { marcarDesfechoDaGeracaoComoVisto } from "@/lib/actions/peticionamento";
 
@@ -120,6 +121,12 @@ export default async function MinutaPage({ params }: { params: { id: string } })
     sessaoId: sessao.id,
   });
 
+  // O HTML da folha é resolvido AQUI, no servidor, por um lugar só: o gravado quando existe, a
+  // semente do texto puro quando a sessão é anterior ao editor (`minutaFormatadaHtml` nulo é estado
+  // legítimo — ver o contrato no schema). A tela nunca recebe as duas representações em paralelo:
+  // o texto puro volta DERIVADO do HTML na gravação, e não digitado ao lado dele.
+  const htmlDaFolha = htmlParaAbrirAFolha(sessao.minutaFormatadaHtml, sessao.minutaTexto);
+
   return (
     <ShellPeticionamento
       sessaoId={params.id}
@@ -136,7 +143,7 @@ export default async function MinutaPage({ params }: { params: { id: string } })
         titulo={`${sessao.tipoPeca ?? "Petição"}${sessao.clienteNome ? ` — ${sessao.clienteNome}` : ""}`}
         notaObrigatoria={notaObrigatoria}
         notaRiscos={((sessao.notaRiscos as string[] | null) ?? []) as string[]}
-        corpoInicial={sessao.minutaTexto}
+        htmlInicial={htmlDaFolha}
         podeExportar={avaliarExportacao(user)}
         exportada={sessao.status === "EXPORTADA"}
       />

@@ -4461,6 +4461,26 @@ model PeticionamentoSessao {
   // (lib/peticionamentoNotaObrigatoria.ts), montada pelo SISTEMA, nunca copiada do texto livre
   // que o modelo escreveu.
   minutaTexto               String?
+  /// CONTRATO DE SCHEMA 23/09/2026 (etapa A do editor de minuta: folha A4, régua e barra de
+  /// formatação). A FORMATAÇÃO da minuta — HTML — mora AQUI, nunca em `minutaTexto` acima.
+  ///
+  /// Por que uma coluna nova em vez de trocar o conteúdo daquela: `minutaTexto` é texto PURO e
+  /// quatro coisas dependem disso — o fecho literal (lib/peticionamentoFecho.ts, reconferido em
+  /// toda gravação), a IDENTIDADE de cada citação e a trava do "li e revisei"
+  /// (normalizarTextoCitacao/hashDeTexto em lib/peticionamentoCitacoes.ts), a divisão em
+  /// parágrafos do Word (lib/peticionamentoDocx.ts, que corta por `\n{2,}` e por `\n`) e a
+  /// pergunta "já existe minuta?" (lib/peticionamentoPasso.ts). HTML naquela coluna quebraria as
+  /// quatro em silêncio.
+  ///
+  /// NULO É ESTADO LEGÍTIMO, e significa exatamente "esta minuta ainda não foi formatada": toda
+  /// sessão gerada antes desta entrega tem null aqui, e a tela SEMEIA a folha a partir do texto
+  /// puro (lib/peticionamentoMinutaFormatada.ts: htmlParaAbrirAFolha) sem reescrever
+  /// `minutaTexto`. Abrir uma minuta antiga e não mexer em nada não muda uma vírgula do corpo.
+  ///
+  /// QUEM GRAVA AQUI grava `minutaTexto` na MESMA transação, e o texto puro é sempre DERIVADO
+  /// deste HTML por textoPuroDaMinutaHtml — nunca recebido em paralelo da tela. É essa derivação
+  /// única que impede as duas representações de divergirem.
+  minutaFormatadaHtml       String?
   notaRiscos                Json    @default("[]")
   jurisprudenciaCitada      Json    @default("[]")
   documentosBaseConsultados Json    @default("[]")
