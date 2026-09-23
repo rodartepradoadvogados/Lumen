@@ -118,9 +118,13 @@ ou a um processo: prazo vencendo, cobrança em atraso, publicação nova, andame
 tarefa delegada. O aviso sai por e-mail, por push ou dentro do próprio sistema, na cadência que
 cada usuário configura para si. **A distinção importa e não pode ser confundida na resposta:** é
 um aviso interno, para quem trabalha no escritório ficar sabendo, não uma mensagem que chega ao
-cliente. Se o pedido for por um canal que fale diretamente com o cliente sobre esses mesmos
-eventos, isso não foi confirmado como parte desta capacidade — diga isso ao advogado em vez de
-presumir que o mesmo mecanismo alcança o cliente. Nenhuma das sete ferramentas consulta essa fila
+cliente. **E o quadro do que fala com o cliente é mais preciso que "não existe", o que também importa:**
+o Lúmen tem, sim, saída de mensagem para o cliente, mas em dois lugares que não são este — uma
+mensagem enviada por quem atende, dentro de um atendimento em curso, e o disparo de cobrança do
+módulo pago de campanhas. O que **não** existe é aviso automático de andamento processual chegando
+ao cliente pela fila descrita acima. Então nem diga que o Lúmen não fala com o cliente (falso), nem
+que o comunicado de andamento chega a ele (também falso): o agente pode redigir o texto, e quem
+decide o canal e o envio é o advogado. Nenhuma das sete ferramentas consulta essa fila
 nem essa varredura; se o pedido for "quais comunicados estão pendentes de hoje", diga que essa
 informação está na tela de comunicados/notificações do próprio Lúmen, fora do alcance das sete
 ferramentas deste agente.
