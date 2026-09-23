@@ -45,6 +45,8 @@ import {
   iniciarGeracaoNoHermes,
   PonteSemCaminhoAssincrono,
 } from "@/lib/hermesPonte";
+import { emitirCredencial } from "@/lib/agenteCredencial";
+import { getAppUrl } from "@/lib/appUrl";
 import {
   colherGeracaoDaMinuta,
   gravarMinutaGerada,
@@ -1408,11 +1410,39 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
   // `geracaoDocumentosLidos` a colheita — que pode acontecer noutra requisição, sem nada em
   // memória — não teria contra o que filtrar a declaração do agente, e um nome alucinado entraria
   // na lista de "documentos consultados" da nota obrigatória.
+  // ── A CREDENCIAL DE FERRAMENTAS DESTA GERAÇÃO ─────────────────────────────────────────────
+  //
+  // ESCOPO "peticionamento", não "conversa": esta credencial precisa sobreviver à minuta inteira
+  // (até TETO_DA_PONTE_S + folga — ver lib/hermesPonte.ts e lib/agenteCredencial.ts), não aos
+  // cinco minutos de uma pergunta de chat. É a MESMA credencial que vai tanto no disparo
+  // assíncrono quanto no caminho síncrono de compatibilidade logo abaixo — emitida uma vez aqui,
+  // porque os dois `try` disputam a MESMA geração, nunca duas.
+  //
+  // `financeiro` e `admin` VÃO FALSOS, SEMPRE — nunca os valores reais do advogado que está
+  // gerando a peça. Duas razões, e as duas importam:
+  //
+  //   1. DINHEIRO NÃO É INSUMO DE PEÇA. Uma minuta não presta contas nem cobra; não há motivo
+  //      jurídico para o agente que redige uma petição consultar o caixa do escritório.
+  //   2. DEFESA EM DUAS CAMADAS. Se um dia alguém, por engano, acrescentar uma ferramenta
+  //      financeira à lista branca do peticionamento (FERRAMENTAS_DO_PETICIONAMENTO, em
+  //      app/api/agente/ferramentas/route.ts), esta credencial AINDA ASSIM não abriria nada —
+  //      porque ela nunca carrega `financeiro`/`admin` verdadeiros para começo de conversa. A
+  //      parede por escopo é a primeira camada; esta é a segunda, e nenhuma substitui a outra.
+  const credencialDeFerramentas = await emitirCredencial({
+    officeId: user.officeId,
+    userId: user.id,
+    financeiro: false,
+    admin: false,
+    escopo: "peticionamento",
+  });
+  const ferramentas = { url: `${getAppUrl()}/api/agente/ferramentas`, credencial: credencialDeFerramentas };
+
   try {
     const { tarefa } = await iniciarGeracaoNoHermes({
       perfil: perfilDePeticionamento(),
       mensagem,
       sessao: sessao.hermesSessionId,
+      ferramentas,
     });
     await prisma.peticionamentoSessao.update({
       where: { id: sessaoId },
@@ -1473,6 +1503,10 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
       // texto dos documentos e pode demorar minutos. Ver a corrente de tempos inteira no
       // comentário de ESPERA_PETICIONAMENTO_MS.
       esperaMs: ESPERA_PETICIONAMENTO_MS,
+      // A MESMA credencial do disparo assíncrono, acima — este é o caminho de COMPATIBILIDADE
+      // (ponte antiga sem /chat-async), não uma segunda geração: a ferramenta que o agente chama
+      // aqui dentro é a mesma, com o mesmo alcance.
+      ferramentas,
     });
     // A MESMA GRAVAÇÃO DOS OUTROS DOIS CAMINHOS, e é de propósito que seja a mesma função: é ali
     // que moram o fecho garantido por código, a nota obrigatória e a sincronização de citações.

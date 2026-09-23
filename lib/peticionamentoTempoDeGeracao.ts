@@ -86,6 +86,25 @@
  */
 export const TETO_DA_GERACAO_MS = 15 * 60_000;
 
+/**
+ * O MESMO TETO, EM SEGUNDOS — a unidade em que a ponte o escreve (`ESPERA_S` /
+ * `HERMES_TIMEOUT_S`, em `servidor-hermes/servidor.py`).
+ *
+ * DERIVADO, e não um segundo literal, e isto é o ponto. Quem precisa do teto em segundos é a
+ * validade da credencial de ferramentas do peticionamento (lib/agenteCredencial.ts), que tem de
+ * valer MAIS do que o trabalho inteiro. Ela nasceu com um `900` escrito à mão noutro módulo — e
+ * um segundo literal do mesmo número é exatamente a forma do defeito que esta entrega veio
+ * consertar: dois lugares dizendo a mesma coisa até o dia em que um muda e o outro não.
+ *
+ * Aqui não há esse risco. `TETO_DA_GERACAO_MS` já é travado contra o `servidor.py` pelas suítes
+ * (ver o comentário acima); esta linha só troca a unidade, então a trava vale para as duas.
+ *
+ * E MORA NESTE MÓDULO pelo mesmo motivo que o de cima: ele é puro — sem `prisma`, sem
+ * `next/headers` —, e é o único lugar de onde a credencial pode importar o teto sem arrastar o
+ * módulo da ponte atrás de si.
+ */
+export const TETO_DA_PONTE_S = TETO_DA_GERACAO_MS / 1000;
+
 
 /**
  * Quantas medições são necessárias antes de a tela dizer um piso.
