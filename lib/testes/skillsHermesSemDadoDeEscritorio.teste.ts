@@ -38,8 +38,23 @@ import { teste, igual, verdade, resumo } from "./executar";
 
 const RAIZ = process.cwd();
 
-/** As três skills desta entrega, pelo nome do diretório — que é também o `name` do cabeçalho. */
-const SKILLS = ["conflict-check", "etica-oab-publicidade", "pesquisa-jurisprudencia"] as const;
+/**
+ * Todas as skills de plataforma do Hermes, pelo nome do diretório — que é também o `name` do
+ * cabeçalho. As três primeiras são do lote 1 (conflict check, ética na publicidade e pesquisa de
+ * jurisprudência); as quatro seguintes são do lote 2 (análise de sentença, análise de risco
+ * processual, preparação de audiências e revisão de contratos). Nova skill de plataforma entra
+ * nesta lista — é o que estende as travas gerais abaixo (sem dado de escritório, quatro regras da
+ * casa, convenção de cabeçalho) a ela também.
+ */
+const SKILLS = [
+  "conflict-check",
+  "etica-oab-publicidade",
+  "pesquisa-jurisprudencia",
+  "analise-sentenca",
+  "analise-risco-processual",
+  "preparacao-audiencias",
+  "revisao-contratos",
+] as const;
 
 function caminhoDa(skill: string): string {
   return join(RAIZ, "servidor-hermes", "skills", skill, "SKILL.md");
@@ -164,7 +179,7 @@ function achaDadoDeEscritorio(texto: string): string | null {
 // A TRAVA PRINCIPAL DESTA ENTREGA
 // ──────────────────────────────────────────────────────────────────────────────────────────
 
-teste("HARD GATE: nenhuma das três skills do Hermes carrega dado de escritório", () => {
+teste("HARD GATE: nenhuma das skills de plataforma do Hermes carrega dado de escritório", () => {
   for (const skill of SKILLS) {
     const texto = textoDa(skill);
     verdade(texto.length > 8_000, `${skill}/SKILL.md saiu com ${texto.length} caracteres — varredura cega`);
@@ -239,7 +254,7 @@ teste("HARD GATE: o dado do escritório é CONSULTADO no Lúmen, nunca escrito n
 });
 
 // ──────────────────────────────────────────────────────────────────────────────────────────
-// AS QUATRO REGRAS DA CASA — em TODAS as três, e de forma pertinente ao assunto de cada uma
+// AS QUATRO REGRAS DA CASA — em TODAS as skills de plataforma, e de forma pertinente ao assunto de cada uma
 // ──────────────────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -272,7 +287,7 @@ const REGRAS_DA_CASA: [string, RegExp[]][] = [
   ],
 ];
 
-teste("HARD GATE: as quatro regras da casa estão nas TRÊS skills, com conteúdo e não só com o título", () => {
+teste("HARD GATE: as quatro regras da casa estão em TODAS as skills, com conteúdo e não só com o título", () => {
   for (const skill of SKILLS) {
     const texto = textoDa(skill);
     for (const [regra, sinais] of REGRAS_DA_CASA) {
@@ -385,7 +400,7 @@ teste("HARD GATE: pesquisa-jurisprudencia é um roteiro executável, não uma bo
 // CABEÇALHO — a convenção do repositório, conferida num exemplo real (.claude/skills/*/SKILL.md)
 // ──────────────────────────────────────────────────────────────────────────────────────────
 
-teste("as três skills seguem a convenção de cabeçalho: --- com name e description, e name igual ao diretório", () => {
+teste("todas as skills seguem a convenção de cabeçalho: --- com name e description, e name igual ao diretório", () => {
   for (const skill of SKILLS) {
     const texto = textoDa(skill);
     verdade(texto.startsWith("---\n"), `${skill}/SKILL.md não abre com a cerca --- do cabeçalho`);
