@@ -70,6 +70,8 @@ const SKILLS = [
   "resumo-pecas",
   "usar-o-lumen",
   "comunicados-clientes",
+  "pecas-juridicas-html",
+  "edicao-cirurgica",
 ] as const;
 
 function caminhoDa(skill: string): string {
