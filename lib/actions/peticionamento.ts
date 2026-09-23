@@ -822,23 +822,117 @@ export async function salvarWizard(sessaoId: string, campos: CamposWizard): Prom
 
 // ── DOCUMENTOS ───────────────────────────────────────────────────────────────────────────────
 
-export async function listarDocumentosDoVinculo(sessaoId: string) {
+export type DocumentoVinculado = {
+  id: string;
+  name: string;
+  docType: string;
+  driveUrl: string;
+  // Rótulo da demanda a que este documento pertence DENTRO da assessoria vinculada (ex.:
+  // "Processo: Fulano x Beltrano", "Licitação: Pregão 12/2026", "Demanda: Parecer societário") —
+  // null para documento de processo/atendimento vinculado direto à sessão (sem outro nível: é
+  // exatamente o que já existia antes desta entrega, "como já consigo fazer em processos", nas
+  // palavras do dono) e também null para o documento "geral" da assessoria, sem demanda nenhuma.
+  demanda: string | null;
+};
+
+/**
+ * Documentos de TODAS as demandas de uma assessoria vinculada — pedido do dono, 23/09/2026:
+ * "quando chego em assessoria, não consigo entrar nas demandas que criei para uma consultoria e
+ * olhar os documentos de cada demanda dentro de cada assessoria, como eu já consigo fazer em
+ * processos". Uma "demanda" de assessoria, no modelo de dados, é uma das quatro coisas que já
+ * penduram em Assessoria: um Processo (Case.assessoriaId), um Atendimento
+ * (Attendance.assessoriaId), uma Licitação (Licitacao.assessoriaId) ou um Parecer
+ * (Parecer.assessoriaId, o agrupador de AssessoriaDocumento — ver o comentário do model Parecer
+ * em prisma/schema.prisma). Documento sem nenhuma dessas quatro amarras é documento GERAL da
+ * assessoria (contrato, regimento interno...) e não tem demanda. NUNCA um nível a mais: a própria
+ * aba Licitações (AssessoriaLicitacoesTab.tsx) já registra que "accordion dentro de accordion"
+ * foi pedido explícito do dono para NÃO fazer — aqui repete a mesma régua, uma lista por demanda,
+ * nunca demanda dentro de demanda.
+ *
+ * `officeId` já chega reconferido por quem chama (listarDocumentosDoVinculo, logo depois de
+ * carregarSessaoOuFalhar) — mesmo assim toda consulta abaixo carrega officeId no PRÓPRIO `where`,
+ * defesa em profundidade e exatamente o que lib/testes/peticionamentoIsolamento.teste.ts cobra de
+ * qualquer consulta nova a tabela do escritório.
+ */
+async function documentosDasAssessorias(officeId: string, assessoriaIds: string[]): Promise<DocumentoVinculado[]> {
+  const [cases, attendances, licitacoes, pareceres, documentosProprios] = await Promise.all([
+    prisma.case.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, title: true } }),
+    prisma.attendance.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, subject: true } }),
+    prisma.licitacao.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, nome: true, objeto: true } }),
+    prisma.parecer.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, name: true } }),
+    prisma.assessoriaDocumento.findMany({
+      where: { assessoriaId: { in: assessoriaIds }, officeId },
+      select: { id: true, name: true, docType: true, driveUrl: true, caseId: true, parecerId: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const rotuloCase = new Map(cases.map((c) => [c.id, `Processo: ${c.title}`]));
+  const rotuloAttendance = new Map(attendances.map((a) => [a.id, `Atendimento: ${a.subject}`]));
+  const rotuloLicitacao = new Map(licitacoes.map((l) => [l.id, `Licitação: ${l.nome ?? l.objeto}`]));
+  const rotuloParecer = new Map(pareceres.map((p) => [p.id, `Demanda: ${p.name}`]));
+
+  const orAttachments: object[] = [];
+  if (cases.length) orAttachments.push({ caseId: { in: cases.map((c) => c.id) } });
+  if (attendances.length) orAttachments.push({ attendanceId: { in: attendances.map((a) => a.id) } });
+  if (licitacoes.length) orAttachments.push({ licitacaoId: { in: licitacoes.map((l) => l.id) } });
+
+  const attachments = orAttachments.length
+    ? await prisma.attachment.findMany({
+        where: { officeId, OR: orAttachments },
+        select: { id: true, name: true, docType: true, driveUrl: true, caseId: true, attendanceId: true, licitacaoId: true },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+
+  const deDemandasVinculadas: DocumentoVinculado[] = attachments.map((a) => ({
+    id: a.id,
+    name: a.name,
+    docType: a.docType,
+    driveUrl: a.driveUrl,
+    demanda:
+      (a.caseId && rotuloCase.get(a.caseId)) ||
+      (a.attendanceId && rotuloAttendance.get(a.attendanceId)) ||
+      (a.licitacaoId && rotuloLicitacao.get(a.licitacaoId)) ||
+      null,
+  }));
+
+  const deDocumentosProprios: DocumentoVinculado[] = documentosProprios.map((d) => ({
+    id: d.id,
+    name: d.name,
+    docType: d.docType,
+    driveUrl: d.driveUrl,
+    demanda: (d.parecerId && rotuloParecer.get(d.parecerId)) || (d.caseId && rotuloCase.get(d.caseId)) || null,
+  }));
+
+  return [...deDemandasVinculadas, ...deDocumentosProprios];
+}
+
+export async function listarDocumentosDoVinculo(sessaoId: string): Promise<DocumentoVinculado[]> {
   const user = await exigirAcessoAba();
   const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
   const vinculo = lerVinculo(sessao);
   if (ehSessaoAvulsa(vinculo)) return [];
-  const attachments = await prisma.attachment.findMany({
-    where: {
-      officeId: user.officeId,
-      OR: [
-        vinculo.caseIds.length ? { caseId: { in: vinculo.caseIds } } : undefined,
-        vinculo.attendanceIds.length ? { attendanceId: { in: vinculo.attendanceIds } } : undefined,
-      ].filter(Boolean) as object[],
-    },
-    select: { id: true, name: true, docType: true, driveUrl: true },
-    orderBy: { createdAt: "desc" },
-  });
-  return attachments;
+
+  const orDireto: object[] = [];
+  if (vinculo.caseIds.length) orDireto.push({ caseId: { in: vinculo.caseIds } });
+  if (vinculo.attendanceIds.length) orDireto.push({ attendanceId: { in: vinculo.attendanceIds } });
+
+  const [diretos, daAssessoria] = await Promise.all([
+    // `OR: []` no Prisma não devolve "sem filtro" — devolve NADA. Era exatamente aqui que o
+    // defeito original morava: com só assessoriaIds preenchido, orDireto ficava vazio e o
+    // resultado era sempre lista vazia, mesmo a assessoria tendo demanda com documento.
+    orDireto.length
+      ? prisma.attachment.findMany({
+          where: { officeId: user.officeId, OR: orDireto },
+          select: { id: true, name: true, docType: true, driveUrl: true },
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([]),
+    vinculo.assessoriaIds.length ? documentosDasAssessorias(user.officeId, vinculo.assessoriaIds) : Promise.resolve([] as DocumentoVinculado[]),
+  ]);
+
+  return [...diretos.map((d) => ({ ...d, demanda: null as string | null })), ...daAssessoria];
 }
 
 export async function listarAnexosDaSessao(sessaoId: string) {
@@ -882,19 +976,14 @@ export async function anexarNovoDocumento(sessaoId: string, formData: FormData):
   }
 }
 
-export async function marcarConversaoMarkdown(anexoId: string, aceitar: boolean): Promise<{ ok: true }> {
-  const user = await exigirAcessoAba();
-  const anexo = await prisma.peticionamentoAnexo.findFirst({ where: { id: anexoId }, include: { sessao: true } });
-  if (!anexo || anexo.sessao.officeId !== user.officeId) throw new Error("Anexo não encontrado.");
-  // Markdown é SEMPRE sugerido, nunca obrigatório (especificação §1) — este módulo não faz a
-  // conversão de verdade (dependeria de markitdown rodando ao lado do Hermes); só registra a
-  // escolha do advogado. Ver relatório da entrega para esta limitação por extenso.
-  await prisma.peticionamentoAnexo.update({
-    where: { id: anexoId },
-    data: aceitar ? { markdownConvertido: true, markdownRecusado: false } : { markdownConvertido: false, markdownRecusado: true },
-  });
-  return { ok: true };
-}
+// A conversão para Markdown foi RETIRADA da tela nesta entrega (decisão do dono, 23/09/2026):
+// `marcarConversaoMarkdown` nunca convertia nada, só gravava um booleano — e a tela, depois do
+// clique, afirmava "✓ Convertido em Markdown" sobre um trabalho que não tinha acontecido. O
+// agente já lê o conteúdo real de cada documento por outro caminho (carregarDocumentosDaSessaoComTexto
+// logo abaixo, que baixa do Drive e extrai o texto de verdade), então a conversão não servia a
+// nada. Os campos markdownConvertido/markdownRecusado continuam em PeticionamentoAnexo (ver
+// comentário no schema) só porque tirar coluna de produção pede migração pensada — nenhum código
+// grava ou lê mais estes dois campos.
 
 // ── LEITURA DE DOCUMENTO — prioridade 1 do dono: "fazer o agente ler toda a documentação, pois é
 // imprescindível". Até esta entrega só o NOME do arquivo era mandado ao Hermes; o conteúdo nunca
