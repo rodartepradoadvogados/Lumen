@@ -14,6 +14,7 @@ import UserRow from "@/components/UserRow";
 import AddUserForm from "@/components/AddUserForm";
 import TimbradoForm from "@/components/TimbradoForm";
 import NomeacaoDriveForm from "@/components/NomeacaoDriveForm";
+import AtuacaoDoEscritorioForm from "@/components/AtuacaoDoEscritorioForm";
 import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
 import ImportManualModal from "@/components/ImportManualModal";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
@@ -28,6 +29,7 @@ import HolidaysManager from "@/components/HolidaysManager";
 import InstallAppButton from "@/components/InstallAppButton";
 import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell, Bot, MessageSquare } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
 import AtendentePainel, { type CampanhaNaLista } from "@/components/atendente/AtendentePainel";
@@ -223,7 +225,7 @@ export default async function ConfiguracoesPage({
         },
       }),
       hasBlogAccess(officeId),
-      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, timbradoUrl: true, timbradoNomeArquivo: true, timbradoFormato: true, drivePastaMae: true, drivePrefixo: true } }),
+      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, timbradoUrl: true, timbradoNomeArquivo: true, timbradoFormato: true, drivePastaMae: true, drivePrefixo: true, descricaoAtuacao: true } }),
       getOwnOfficeBilling(),
       // Bloqueio é por usuário — cada advogado só vê (e só pode reverter) os próprios bloqueios.
       prisma.blockedProcessNumber.findMany({
@@ -249,6 +251,12 @@ export default async function ConfiguracoesPage({
     createdAt: p.createdAt.toISOString(),
   }));
   const isAdmin = viewer?.isAdmin ?? false;
+  // Quem edita a atuação do escritório: a MESMA régua das demais configurações de integração
+  // (lib/supportCapabilities.ts) — admin do escritório ou suporte da Lúmen mascarado, que entra
+  // justamente para configurar integração do cliente. O cartão em si é visível a todo mundo do
+  // escritório (ler o que o agente lê é transparência, igual a "Acessos da Lúmen" acima); só o
+  // campo é que fica somente-leitura para quem não pode editar.
+  const podeConfigurar = canConfigureIntegrations(viewer);
 
   const taskTypePointsRows = TASK_TYPES_ORDER.map((type) => {
     const found = taskTypePoints.find((p) => p.type === type);
@@ -727,6 +735,20 @@ export default async function ConfiguracoesPage({
           <Swatch color="var(--gaveta)" label="Gaveta (rail)" border />
           <Swatch color="var(--papel)" label="Papel" border />
         </div>
+      </Card>
+      )}
+
+      {/* O texto que o AGENTE DE IA consulta para saber como este escritório trabalha (ver
+          Office.descricaoAtuacao e a ferramenta consultar_perfil_do_escritorio). Visível a
+          qualquer pessoa do escritório — quem não pode editar ainda deve poder LER o que o agente
+          lê —, editável só por quem configura integração. */}
+      {secao === "geral" && (
+      <Card>
+        <CardHeader
+          title="Atuação do escritório"
+          subtitle="O que o agente de IA lê para entender em que este escritório atua"
+        />
+        <AtuacaoDoEscritorioForm atuacao={office?.descricaoAtuacao ?? ""} podeEditar={podeConfigurar} />
       </Card>
       )}
 

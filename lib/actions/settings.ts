@@ -13,6 +13,7 @@ import { syncRoboParaSite, type RoboBridgeResult } from "@/lib/roboBridge";
 import { getCurrentUser } from "@/lib/currentUser";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { validarNomeacao } from "@/lib/driveNaming";
+import { validarAtuacao } from "@/lib/atuacaoDoEscritorio";
 import { getAppUrl } from "@/lib/appUrl";
 import { enqueueNotification } from "@/lib/notificationOutbox";
 import { drainSpecificNotifications } from "@/lib/notificationOutboxDrain";
@@ -87,6 +88,38 @@ export async function salvarNomeacaoDrive(data: { pastaMae: string; prefixo: str
   });
   revalidatePath("/configuracoes");
   revalidatePath("/configuracoes/relatorio-pastas");
+  return {};
+}
+
+// Como este escritório atua, escrito por ele mesmo para o AGENTE DE IA consultar (ver
+// Office.descricaoAtuacao no schema e lib/atuacaoDoEscritorio.ts).
+//
+// `canConfigureIntegrations` e não `isAdmin` puro: este texto é configuração da integração com o
+// agente — a mesma família de setStorageProvider/runDjenConnectionTest acima —, e o suporte da
+// Lúmen entra mascarado justamente para configurar integração do escritório-cliente (ver o
+// comentário inteiro em lib/supportCapabilities.ts).
+//
+// O TETO RECUSA, NUNCA TRUNCA: quem digitou 4.100 caracteres recebe de volta a frase dizendo
+// quantos sobram, e o que estava gravado antes continua intacto. Um corte silencioso aqui faria
+// o administrador acreditar ter escrito uma coisa e o agente ler outra, sem nada na tela contando
+// a diferença. Texto em branco APAGA (grava null) — é como o escritório volta ao estado "ainda
+// não escreveu", que a ferramenta sabe dizer ao agente.
+export async function salvarAtuacaoDoEscritorio(texto: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+  if (!canConfigureIntegrations(viewer)) {
+    return { error: "Apenas administradores podem alterar a descrição de atuação do escritório." };
+  }
+
+  const limpo = texto.trim();
+  const erro = validarAtuacao(limpo);
+  if (erro) return { error: erro };
+
+  await prisma.office.update({
+    where: { id: viewer.officeId },
+    data: { descricaoAtuacao: limpo || null },
+  });
+  revalidatePath("/configuracoes");
   return {};
 }
 

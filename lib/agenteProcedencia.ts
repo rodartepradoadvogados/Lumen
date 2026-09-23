@@ -37,6 +37,7 @@ const ROTULOS: Record<string, string> = {
   consultar_tarefas: "tarefas",
   consultar_assessorias: "assessorias",
   consultar_historico_cliente: "histórico do cliente",
+  consultar_perfil_do_escritorio: "perfil do escritório (atuação e pastas)",
 };
 
 // O Hermes se registra como "ferramenta" para a auditoria saber quem respondeu, mas ele é o

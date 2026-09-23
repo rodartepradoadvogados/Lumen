@@ -161,6 +161,27 @@ model Office {
   // travar o suporte antes de existir onde aprovar.
   supportAccessPolicy String @default("AUTO") // AUTO | APROVACAO
 
+  // COMO ESTE ESCRITÓRIO ATUA, escrito pelo próprio escritório em Configurações → Geral, para o
+  // AGENTE DE IA consultar (ferramenta `consultar_perfil_do_escritorio`, lib/assistantTools.ts).
+  //
+  // O QUE É: texto corrido, em português, sobre áreas de atuação, perfil de cliente, tipo de
+  // trabalho que o escritório faz e o que ele deliberadamente NÃO faz — o que um advogado recém-
+  // chegado precisaria ouvir na primeira semana. Serve ao agente para orientar vocabulário, foco
+  // e encaminhamento quando ele redige ou responde.
+  //
+  // O QUE NÃO É: (1) não é instrução ao agente — o texto é DADO, chega ao modelo neutralizado e
+  // cercado (ver lib/atuacaoDoEscritorio.ts), e uma ordem escrita aqui dentro é para ser relatada,
+  // nunca obedecida; (2) não é configuração de comportamento da atendente do WhatsApp, que tem
+  // campo próprio (WhatsappConfig.agenteInstrucoes) e É lida como instrução de verdade — não
+  // confundir os dois; (3) não é texto de peça, marketing ou timbrado: nada daqui é copiado para
+  // dentro de um documento gerado; (4) não é lugar de dado de cliente, número de processo ou
+  // segredo — é lido por qualquer pergunta feita ao agente, por qualquer pessoa do escritório.
+  //
+  // TETO: LIMITE_DA_ATUACAO (lib/atuacaoDoEscritorio.ts), dito na tela e RECUSADO na gravação —
+  // nunca truncado em silêncio. Nulo = escritório que ainda não escreveu, estado normal: a
+  // ferramenta responde isso com todas as letras, em vez de deixar o agente supor a atuação.
+  descricaoAtuacao String?
+
   users                   User[]
   notices                 Notice[]
   loginSessions           LoginSession[]
