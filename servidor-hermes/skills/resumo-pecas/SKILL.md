@@ -189,7 +189,7 @@ afirma com o dispositivo conferido, nunca de memória.
   sobre a base de cálculo que a parte pretende ver aplicada.
 - **Custas processuais**: seguem, em regra, a sucumbência, mas pedir expressamente a condenação
   do vencido nas custas evita ambiguidade em sucumbência recíproca ou parcial.
-- **O que NÃO se presume implícito**: tutela provisória (capítulo próprio, ver passo 8), dano
+- **O que NÃO se presume implícito**: tutela provisória (capítulo próprio, ver passo 9), dano
   moral autônomo, litigância de má-fé, gratuidade de justiça, prioridade de tramitação e qualquer
   obrigação acessória que não decorra da lei processual de forma expressa. Cada um desses precisa
   de pedido próprio, com a causa de pedir que o sustenta — nunca por reflexo do pedido principal.
@@ -240,7 +240,7 @@ compreendido. Redija nesta sequência, usando só o que for pertinente ao caso:
 3. **Pedidos acessórios que decorrem do principal** (juros, correção, honorários, custas),
    redigidos depois do mérito principal e de seus subsidiários, nunca antes.
 4. **Requerimentos processuais** (citação, provas, valor da causa e requerimentos
-   instrumentais), na sequência dos passos 10 a 12 abaixo.
+   instrumentais), na sequência dos passos 11 e 12 abaixo.
 
 Pedido acessório redigido antes do principal, ou subsidiário misturado ao corpo do principal sem
 marcação própria, obriga o julgador a reconstruir a hierarquia que a peça deveria ter deixado
