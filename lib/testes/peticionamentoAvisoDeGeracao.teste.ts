@@ -9,6 +9,7 @@ import {
 } from "@/lib/peticionamentoTempoDeGeracao";
 import { duracaoDaGeracaoMs, PRAZO_MAXIMO_DA_GERACAO_MS, TETO_DA_GERACAO_MS } from "@/lib/peticionamentoGeracaoAssincrona";
 import { AVISO_DE_MINUTA_JANELA_MS, hrefDaMinutaDaSessao, whereMinutaFalhou, whereMinutaPronta } from "@/lib/alerts";
+import { whereMedicoesDoEscritorio } from "@/lib/peticionamentoGeracaoAssincrona";
 import { ALERT_KIND_META, ALERTAS_PESSOAIS, metaDoAlerta } from "@/lib/alertKinds";
 import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 
@@ -480,6 +481,43 @@ teste("TRAVA: a duração é gravada DENTRO da reivindicação atômica, uma vez
   // E o instante é UM só: dois `new Date()` dariam duas verdades para a mesma geração.
   const ocorrencias = [...gravar.matchAll(/new Date\(\)/g)].length;
   igual(ocorrencias, 1, "a gravação da minuta usa mais de um `new Date()` — `geradoEm` e a duração têm de sair do MESMO instante: ");
+});
+
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ACHADO DA REVISÃO — O CORTE DA OUTRA CONSULTA NÃO ESTAVA COBERTO.
+//
+// Esta entrega exercitou o `where` do ALERTA (`whereMinutaPronta`), inclusive o `officeId` dele.
+// A consulta das MEDIÇÕES nasceu com o filtro embutido na chamada, e o `officeId` dela não foi
+// exercitado por ninguém. Tirei o `officeId` de lá e as 29 asserções ficaram VERDES.
+//
+// O estrago não é vazamento de dado de processo — é a tela AFIRMAR uma coisa falsa. Sem o corte,
+// a mediana passa a ser a da PLATAFORMA INTEIRA e aparece embaixo da frase que promete "medido
+// nas gerações deste escritório, não estimado". Numa entrega cujo ponto inteiro é não inventar
+// número, um número errado com selo de MEDIDO é pior do que número nenhum.
+//
+// A correção seguiu o padrão que a própria entrega criou: o filtro virou função exportada, para
+// poder ser EXERCITADA em vez de só varrida.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+teste("TRAVA: a mediana só olha as gerações DESTE escritório", () => {
+  const w = whereMedicoesDoEscritorio("escritorio-1") as Record<string, unknown>;
+  igual(w.officeId, "escritorio-1",
+    "a consulta das medições perdeu o corte por escritório — a mediana viraria a da plataforma inteira, exibida sob a frase que promete que o número é deste escritório");
+});
+
+teste("TRAVA: a mediana só conta geração que de fato terminou e foi medida", () => {
+  const w = whereMedicoesDoEscritorio("escritorio-1") as Record<string, unknown>;
+  // Sem o filtro de duração não-nula, uma sessão sem medição entraria como se fosse dado.
+  igual(w.geracaoDuracaoMs, { not: null },
+    "a consulta parou de exigir duração medida — sessão sem medição entraria na conta");
+  // E o estado: uma geração que FALHOU não tem tempo típico nenhum a contribuir.
+  const status = w.status as { in?: string[] } | undefined;
+  verdade(Array.isArray(status?.in), "o filtro de estado sumiu da consulta das medições");
+  verdade(!status!.in!.includes("FALHA_GERACAO") && !status!.in!.includes("GERANDO"),
+    `a mediana passou a contar geração não concluída: ${JSON.stringify(status)}`);
+  verdade(status!.in!.includes("GERADA"),
+    "a mediana deixou de contar a geração recém-concluída, que é a medição mais representativa que existe");
 });
 
 resumo("Peticionamento — o aviso da geração, a medição do tempo e o alerta da Central");

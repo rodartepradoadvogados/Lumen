@@ -45,6 +45,7 @@
 // segundo lugar para esquecer uma delas.
 // ============================================================================================
 
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 import { consultarGeracaoNoHermes, GeracaoPerdidaNaPonte } from "@/lib/hermesPonte";
@@ -545,9 +546,34 @@ export async function varrerGeracoesDeMinutaPendentes(): Promise<{ colhidas: num
  * A ESTATÍSTICA NÃO ESTÁ AQUI — está em `faixaDeGeracao`, que é pura e exercitada. Aqui só a
  * leitura: é a divisão que permite provar o critério sem banco de mentira.
  */
+/**
+ * O `where` das MEDIÇÕES, em função própria e exportada — pelo mesmo motivo de
+ * `whereMinutaPronta` em lib/alerts.ts: um filtro escrito dentro da chamada não tem como ser
+ * exercitado por teste, só varrido.
+ *
+ * ACHADO DA REVISÃO: este filtro nasceu embutido na consulta, e o `officeId` dele não estava
+ * coberto. Tirei o `officeId` e as 29 asserções da suíte nova ficaram VERDES — o corte da OUTRA
+ * consulta (`whereMinutaPronta`) estava exercitado, o desta não. A assimetria de sempre: prova-se
+ * uma das duas.
+ *
+ * O estrago não é vazamento de dado de processo — é a tela AFIRMAR uma coisa falsa. Sem o
+ * `officeId`, a mediana passa a ser a da PLATAFORMA INTEIRA, e ela aparece embaixo da frase que
+ * promete "medido nas gerações deste escritório, não estimado". Um escritório que gera peças
+ * curtas leria o tempo de outro que gera peças longas, e a frase que dá procedência ao número
+ * seria exatamente a parte mentirosa. Numa entrega cujo ponto INTEIRO é não inventar número, o
+ * número errado com selo de medido é pior do que número nenhum.
+ */
+export function whereMedicoesDoEscritorio(officeId: string) {
+  return {
+    officeId,
+    geracaoDuracaoMs: { not: null },
+    status: { in: ["GERADA", "EXPORTADA"] },
+  } satisfies Prisma.PeticionamentoSessaoWhereInput;
+}
+
 export async function faixaDeGeracaoDoEscritorio(officeId: string): Promise<FaixaDeGeracao> {
   const linhas = await prisma.peticionamentoSessao.findMany({
-    where: { officeId, geracaoDuracaoMs: { not: null }, status: { in: ["GERADA", "EXPORTADA"] } },
+    where: whereMedicoesDoEscritorio(officeId),
     orderBy: { geradoEm: "desc" },
     take: MEDICOES_CONSIDERADAS,
     select: { geracaoDuracaoMs: true },
