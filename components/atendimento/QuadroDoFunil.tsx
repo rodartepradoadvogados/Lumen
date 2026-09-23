@@ -130,7 +130,7 @@ export default function QuadroDoFunil({
 
   return (
     <div>
-      {erro && <p className="mb-3 text-xs font-medium text-urgente">{erro}</p>}
+      {erro && <p className="mb-3 text-etiqueta font-medium text-urgente">{erro}</p>}
 
       <div className="flex items-start gap-4 overflow-x-auto pb-4">
         {stageOptions.map((stage) => {
@@ -172,19 +172,19 @@ export default function QuadroDoFunil({
             >
               <div className="border-b border-regua px-4 py-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stageDot[stage] }} />
-                    <h3 className="text-sm font-semibold text-tx">{stageLabels[stage]}</h3>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: stageDot[stage] }} />
+                    <h3 className="truncate text-corpo font-semibold text-tx">{stageLabels[stage]}</h3>
                   </div>
-                  <span className="rounded-full border border-regua bg-sf px-2 py-0.5 text-xs font-semibold text-tx-2">
+                  <span className="ml-2 shrink-0 whitespace-nowrap rounded-full border border-regua bg-sf px-2 py-0.5 text-etiqueta font-semibold text-tx-2">
                     {doEstagio.length}
                   </span>
                 </div>
                 {!somaEstimada.omitido && somaEstimada.total > 0 && (
-                  <p className="mt-1 text-xs text-tx-3">{formatCurrency(somaEstimada.total)} estimado</p>
+                  <p className="mt-1 text-etiqueta text-tx-3">{formatCurrency(somaEstimada.total)} estimado</p>
                 )}
                 {somaEstimada.omitido && doEstagio.length > 0 && (
-                  <p className="mt-1 text-xs italic text-tx-3" title={somaEstimada.motivo}>
+                  <p className="mt-1 text-etiqueta italic text-tx-3" title={somaEstimada.motivo}>
                     Total estimado: só para administrador
                   </p>
                 )}
@@ -197,7 +197,7 @@ export default function QuadroDoFunil({
 
               <div className="space-y-2 p-2.5">
                 {doEstagio.length === 0 ? (
-                  <p className="py-6 text-center text-xs text-tx-3">
+                  <p className="py-6 text-center text-etiqueta text-tx-3">
                     {colunaAlvo !== stage
                       ? "Sem atendimentos neste estágio"
                       : aceitaSoltar
@@ -213,7 +213,7 @@ export default function QuadroDoFunil({
         })}
       </div>
 
-      <p className="mt-1 text-xs italic text-tx-3">
+      <p className="mt-1 text-etiqueta italic text-tx-3">
         Arraste um card entre as colunas, ou use o seletor dentro dele. Para marcar como perdido use o seletor — ele
         pergunta o motivo, que é obrigatório.
       </p>

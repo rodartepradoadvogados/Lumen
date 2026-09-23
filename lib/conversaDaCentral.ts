@@ -102,3 +102,56 @@ export function recorteDaConversa(quem: QuemAbreAConversa, attendanceId: string)
     ...filtroDoAtendimento(quem, quem.id),
   };
 }
+
+// ============================================================================
+// ETAPA 3 — "VER A RECUSA" DEIXA DE TIRAR A PESSOA DA CENTRAL.
+//
+// O DEFEITO. O ícone "Ver a recusa" da linha de recusados apontava, escrito cru dentro do
+// componente, para /atendimento/:id?aba=ficha&bloco=processo. Na Central isso abria OUTRA tela na
+// MESMA aba do navegador: quem estava organizando a captação perdia a Central inteira para ler a
+// carta de um lead — exatamente o que a etapa 2 corrigiu para o clique da linha e deixou de pé para
+// este ícone.
+//
+// A DECISÃO: A CENTRAL JÁ HOSPEDA O QUE ESTE ÍCONE PRECISA MOSTRAR — não foi preciso trazer a ficha.
+// O que o ícone promete ("Ver a recusa e a carta") é o que RecusarLeadPainel mostra: motivo,
+// situação, observação, o link da carta com o botão de copiar e o "marcar como enviada". E esse
+// painel está na Central desde a etapa 1, no trilho da aba Atendimentos — é o MESMO componente que
+// o bloco `processo` da ficha antiga renderiza (ver app/(app)/atendimento/[id]/page.tsx: o bloco tem
+// RecusarLeadPainel e o formulário de Transformar em Processo, que não é o que este ícone promete).
+// Hospedar a ficha inteira seria trazer sete divisórias para dentro da Central por causa de um
+// ícone; abrir em aba nova esconderia que a Central já tem a resposta na tela em que a pessoa está.
+//
+// SOBRA UMA COISA A DIZER À TELA: QUAL DOS DOIS PAINÉIS a pessoa veio ver. A conversa e o trilho
+// aparecem juntos, e quem clica neste ícone quer o trilho — daí `foco=recusa`, que a página lê para
+// destacar o painel, e a âncora, que pede ao navegador para rolar até ele. O destaque é a garantia
+// (é servidor: sempre acontece); a âncora é a comodidade (depende de o navegador rolar).
+//
+// O DESTINO "classico" NÃO MUDA: a Triagem antiga continua abrindo a ficha antiga, na rota antiga.
+// Ela não foi tocada nesta etapa — de novo.
+// ============================================================================
+
+/** O parâmetro que diz à Central qual painel a pessoa veio ver. */
+export const FOCO_DA_RECUSA = "recusa";
+
+/**
+ * O id do elemento do painel de recusa na Central.
+ *
+ * É constante porque o `href` (aqui) e o `id` (na página) têm de ser a MESMA palavra: dois literais
+ * iguais em dois arquivos divergem no dia em que alguém renomeia um deles, e o sintoma é uma âncora
+ * que não rola para lugar nenhum — sem erro e sem aviso.
+ */
+export const ANCORA_DA_RECUSA = "recusa-do-lead";
+
+/**
+ * Onde "Ver a recusa" abre.
+ *
+ * Em "central", o MESMO endereço da conversa (hrefDaConversa, e não um segundo cálculo do mesmo
+ * endereço) mais o foco e a âncora: a pessoa continua na Central, com o painel da recusa destacado.
+ * Em "classico", a ficha antiga no bloco do processo — de onde o painel da recusa nunca saiu.
+ */
+export function hrefDaRecusa(destino: DestinoDaConversa, attendanceId: string): string {
+  if (destino === "central") {
+    return `${hrefDaConversa("central", attendanceId)}&foco=${FOCO_DA_RECUSA}#${ANCORA_DA_RECUSA}`;
+  }
+  return `/atendimento/${attendanceId}?aba=ficha&bloco=processo`;
+}

@@ -65,6 +65,23 @@
   --atd-border-strong: #a4aec0;
   --atd-shadow-card: 0 8px 20px rgba(20, 23, 27, 0.1), 0 2px 6px rgba(20, 23, 27, 0.08);
 
+  /* A LARGURA MÁXIMA DA SUPERFÍCIE DE LEITURA (etapa 3) — a conversa.
+     Ela se esticava até a largura da tela: em monitor grande, a mensagem que saiu ficava encostada
+     numa borda e a que chegou na outra, com um palmo de vazio no meio, e o olho perdia o fio.
+     (O CRITICA.md do mockup aprovado já listava "superfície de trabalho sem largura máxima" entre
+     os defeitos a não reintroduzir — esta era a reincidência dele.)
+
+     O NÚMERO NÃO É NOVO: são os mesmos 1040px de `.peticionamento .content`
+     (app/peticionamento/peticionamento.css), a superfície de trabalho da outra aba que abre em aba
+     própria. Duas telas irmãs com medidas de leitura diferentes seriam duas casas.
+
+     É TOKEN, e não `max-w-[1040px]` solto no JSX, pela mesma razão dos tokens de cor acima: a
+     medida desta tela mora nesta folha, num lugar só. Não muda com o tema — por isso está aqui, ao
+     lado da moldura, e não redeclarada no bloco `.dark`. E é ALINHADA À ESQUERDA (sem margem
+     automática), como `.peticionamento .content`: o canto onde o olho volta para reler fica no
+     lugar quando a janela muda de tamanho. */
+  --atd-largura-leitura: 1040px;
+
   color-scheme: light;
 }
 

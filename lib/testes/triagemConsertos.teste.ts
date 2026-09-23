@@ -72,16 +72,25 @@ teste("a linha de 'Recusados' inteira abre a conversa, e as ações ficam fora d
 
   // Mesma leitura por EXPRESSÃO da guia 1, e pelo mesmo motivo: o endereço da linha hoje é calculado
   // (hrefDaConversa), e o que tem de continuar verdadeiro é "um link só cobre a linha, e ele é
-  // derivado do attendanceId". "Ver a recusa" também deriva do attendanceId, mas leva a OUTRO lugar
-  // (a ficha, no bloco do processo) — por isso sai da contagem pelo DESTINO, não pela grafia.
+  // derivado do attendanceId". "Ver a recusa" também deriva do attendanceId, mas leva a OUTRO painel
+  // — por isso sai da contagem pelo CALCULADOR que ele chama, não pela grafia do endereço.
+  //
+  // ESTAS DUAS LINHAS ERAM PRESAS À GRAFIA `aba=ficha` (o defeito 3 de executar.ts): separavam os
+  // dois links pela rota antiga escrita à mão no componente, e uma delas exigia o literal
+  // "aba=ficha&bloco=processo" dentro do arquivo. Quando a etapa 3 passou a CALCULAR o endereço da
+  // recusa (hrefDaRecusa, para o ícone não tirar mais a pessoa da Central), as duas reprovariam a
+  // correção e nenhuma reprovaria defeito. O que não pode mudar é isto: dois links, um por painel,
+  // ambos derivados do id do registro, e nenhum dos dois com a rota embutida.
   const derivados = hrefsDeLinks(fonte).filter((h) => /\br\.attendanceId\b/.test(h));
-  const hrefsDaLinha = derivados.filter((h) => !h.includes("aba=ficha"));
+  const hrefsDaLinha = derivados.filter((h) => h.includes("hrefDaConversa"));
+  const hrefsDaRecusa = derivados.filter((h) => h.includes("hrefDaRecusa"));
   igual(derivados.length, 2, "esperava dois links derivados do attendanceId: a linha inteira e 'Ver a recusa'");
   igual(hrefsDaLinha.length, 1, "esperava um único link cobrindo a linha inteira (não mais um link só no nome)");
 
-  // "Ver a recusa" é uma navegação diferente (abre direto na ficha/processo) e continua sendo o
-  // seu próprio link — mas tem de ficar FORA do link da linha, como irmão.
-  verdade(fonte.includes("aba=ficha&bloco=processo"), "o link 'Ver a recusa' sumiu");
+  // "Ver a recusa" é uma navegação diferente (o painel da recusa, e não a conversa) e continua sendo
+  // o seu próprio link — mas tem de ficar FORA do link da linha, como irmão.
+  igual(hrefsDaRecusa.length, 1, "o link 'Ver a recusa' sumiu, ou deixou de ser calculado por hrefDaRecusa");
+  verdade(/aria-label="Ver a recusa"/.test(fonte), "o ícone perdeu o nome acessível 'Ver a recusa' — quem usa leitor de tela fica com um ícone muda na linha");
   verdade(primeiroLinkNaoContemSegundo(fonte), "um link ficou aninhado dentro do link da linha — HTML inválido");
 
   // Os botões de ação continuam existindo e fora do link (reverter/arquivar).

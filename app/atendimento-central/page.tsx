@@ -12,7 +12,13 @@ import { situacaoDaRecusa, type EstadoDaRecusa } from "@/lib/recusaDoLead";
 import { motivosParaRecusar } from "@/lib/actions/recusaDoLead";
 import { identificarNumero } from "@/lib/identificarNumero";
 import { getAppUrl } from "@/lib/appUrl";
-import { hrefDaConversa, recorteDaConversa, CONVERSA_FORA_DO_SEU_ALCANCE } from "@/lib/conversaDaCentral";
+import {
+  hrefDaConversa,
+  recorteDaConversa,
+  CONVERSA_FORA_DO_SEU_ALCANCE,
+  FOCO_DA_RECUSA,
+  ANCORA_DA_RECUSA,
+} from "@/lib/conversaDaCentral";
 import { dataDeBrasilia, dataEHoraDeBrasilia } from "@/lib/horaDeBrasilia";
 import { Badge } from "@/components/ui";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -60,6 +66,29 @@ export const dynamic = "force-dynamic";
 //
 // A aba Atendimentos continua tendo a SUA PRÓPRIA seleção (lista → conversa): é o mesmo `?id=` que
 // o clique da Triagem usa, e não um segundo caminho.
+//
+// ETAPA 3 — O ACABAMENTO. Cinco consertos, todos levantados na revisão das duas primeiras etapas.
+// Três deles vivem neste arquivo:
+//
+//   LARGURA MÁXIMA DA CONVERSA. A leitura tinha a largura do monitor. Agora a superfície de leitura
+//   tem a medida da casa (--atd-largura-leitura, os mesmos 1040px de `.peticionamento .content`).
+//
+//   ESCALA TIPOGRÁFICA. A tela misturava os apelidos anônimos da escala do Tailwind (`text-xs`,
+//   `text-sm`, `text-base`, `text-lg`) com os nomes das paradas da rampa da casa (`text-etiqueta`,
+//   `text-corpo`) — nos MESMOS tamanhos, porque tailwind.config.ts reaponta os apelidos para as
+//   paradas. Ou seja: nenhum pixel mudou, e é justamente por isso que a troca é segura. O que muda
+//   é passar a dizer QUAL parada é cada texto; com o apelido anônimo, "subir um tamanhinho" é uma
+//   letra de distância (`sm`→`base`) e sai da rampa sem ninguém ver. Quatro arquivos entraram nesta
+//   varredura (esta página e os três componentes de lista que a Triagem desta tela renderiza); o
+//   resto de components/atendimento/ fica para quando for tocado, para o diff desta etapa não virar
+//   um renomear de 40 arquivos.
+//
+//   O REALCE DO ITEM CLICADO quando o clicado não está nos 200 mais recentes da lista — ver o
+//   comentário na seleção, abaixo, e o `take` em carregarLista.
+//
+// Os outros dois: o ícone "Ver a recusa" (lib/conversaDaCentral.ts, hrefDaRecusa, e a âncora do
+// painel no trilho, aqui embaixo) e os chips que quebravam linha (a faixa de sub-abas aqui; as
+// colunas das linhas em FilaDeEspera/RecusadosParaAnalise).
 const ABAS = ["triagem", "atendimentos"] as const;
 type AbaCentral = (typeof ABAS)[number];
 const SUBS = ["funil", "espera", "recusados"] as const;
@@ -82,7 +111,7 @@ function daysBetween(from: Date, to: Date) {
 export default async function AtendimentoCentralPage({
   searchParams,
 }: {
-  searchParams: { aba?: string; sub?: string; id?: string; status?: string; q?: string };
+  searchParams: { aba?: string; sub?: string; id?: string; status?: string; q?: string; foco?: string };
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
@@ -104,6 +133,10 @@ export default async function AtendimentoCentralPage({
   // só o que a tela mostra quando alguém tenta a URL direta.
   const aba: AbaCentral = abaPedida === "triagem" && !veTodo ? "atendimentos" : abaPedida;
   const sub: SubTriagem = SUBS.includes(searchParams.sub as SubTriagem) ? (searchParams.sub as SubTriagem) : "funil";
+  // ETAPA 3 — QUAL PAINEL A PESSOA VEIO VER. Só o ícone "Ver a recusa" pede foco hoje; o valor vem
+  // da URL e por isso é conferido contra a lista, nunca usado cru (um `foco` qualquer viraria classe
+  // de CSS inventada, ou pior, texto de quem pediu ecoado na tela).
+  const foco = searchParams.foco === FOCO_DA_RECUSA ? FOCO_DA_RECUSA : null;
 
   const cfg = await prisma.whatsappConfig.findUnique({
     where: { officeId: viewer.officeId },
@@ -194,6 +227,32 @@ export default async function AtendimentoCentralPage({
   if (aba === "atendimentos") {
     listaAtendimentos = await carregarLista(viewer, searchParams.status, searchParams.q);
     idSelecionado = idPedido || listaAtendimentos[0]?.id || null;
+    // ── ETAPA 3 — O REALCE DO ITEM CLICADO, quando o clicado não está nos 200.
+    //
+    // A lista traz os 200 mais recentes por createdAt (ver carregarLista). Um lead clicado na
+    // Triagem pode ser mais antigo que isso — e era o que acontecia: a conversa CERTA abria à
+    // direita e a esquerda ficava com o realce no primeiro da lista, ou em nada. A pessoa via a
+    // conversa que pediu e a lista dizendo que ela estava em outra.
+    //
+    // O CONSERTO É UMA BUSCA A MAIS, POR CHAVE PRIMÁRIA — não alargar o `take` nem tirar o
+    // `orderBy`, que é o que transformaria a lista numa varredura da tabela a cada abertura de tela.
+    // Uma linha, achada pelo id, só quando o id pedido não veio na página.
+    //
+    // E ELA PASSA PELO MESMO RECORTE DO CLIQUE (recorteDaConversa: id + escritório de quem pediu +
+    // recorte por dono), porque este é um caminho de LEITURA como qualquer outro: sem isso, um id de
+    // outro escritório colado na URL não abriria a conversa (essa trava está logo abaixo), mas
+    // ACRESCENTARIA à lista uma linha com o nome e o assunto de um cliente de outro escritório.
+    // Vazamento pela lista, não pela conversa.
+    if (idPedido && !listaAtendimentos.some((a) => a.id === idPedido)) {
+      const foraDaPagina = await prisma.attendance.findFirst({
+        where: recorteDaConversa(viewer, idPedido),
+        select: { id: true, clientName: true, subject: true, status: true },
+      });
+      // No TOPO, e não na posição cronológica dele: a lista está ordenada do mais recente para o
+      // mais antigo, então o lugar "correto" de um lead antigo é o fim de uma lista de 200 linhas —
+      // o realce existiria e ninguém o veria. Quem clicou está lendo esta conversa agora.
+      if (foraDaPagina) listaAtendimentos = [foraDaPagina, ...listaAtendimentos];
+    }
   }
 
   const selecionado = idSelecionado
@@ -263,7 +322,7 @@ export default async function AtendimentoCentralPage({
       {/* ── MOLDURA: título + abas principais ──────────────────────────────────────────────── */}
       <div className="shrink-0 border-b border-[var(--frame-border)] bg-[var(--frame-bg)] px-5 py-3">
         <div className="flex flex-wrap items-center gap-4">
-          <h1 className="text-lg font-bold tracking-wide text-[var(--frame-tx-0)]">Atendimento</h1>
+          <h1 className="text-destaque font-bold tracking-wide text-[var(--frame-tx-0)]">Atendimento</h1>
           {/* Só existe seletor de aba quando há mais de uma aba para escolher — mesma regra de
               components/PageSectionTabs.tsx (items.length < 2 não mostra nada para escolher). Quem
               não tem `atendimentoTotal` só tem "Atendimentos": a aba Triagem não é desabilitada,
@@ -291,7 +350,13 @@ export default async function AtendimentoCentralPage({
         </div>
 
         {aba === "triagem" && veTodo && (
-          <div className="mt-3 flex flex-wrap gap-4 border-b border-[var(--frame-border)]">
+          // A FAIXA DE SUB-ABAS NÃO QUEBRA LINHA (etapa 3). Ela era `flex-wrap`: em largura
+          // intermediária a terceira guia caía para uma segunda linha e a régua de baixo
+          // (border-b) continuava desenhada só embaixo da primeira — o sublinhado da guia ativa
+          // ficava solto no meio da tela, e a faixa deixava de ler como uma faixa. Uma guia é um
+          // chip: ou cabe inteira na linha, ou a faixa desliza (overflow-x). Encolher o rótulo não
+          // é opção — o nome da guia é o que diz onde a pessoa está.
+          <div className="mt-3 flex flex-nowrap gap-4 overflow-x-auto border-b border-[var(--frame-border)]">
             <SubAba href={hrefSub("funil")} ativa={sub === "funil"} numero={1} rotulo="Funil comercial" />
             <SubAba href={hrefSub("espera")} ativa={sub === "espera"} numero={2} rotulo="Esperando resposta" contagem={esperando.length} />
             <SubAba href={hrefSub("recusados")} ativa={sub === "recusados"} numero={3} rotulo="Recusados" contagem={naFilaDeRecusados.length} />
@@ -314,9 +379,9 @@ export default async function AtendimentoCentralPage({
             <>
               <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h2 className="text-etiqueta font-bold uppercase tracking-wider text-tx-3">Funil comercial</h2>
-                <span className="text-xs text-tx-3">arraste entre as colunas — o estágio continua sendo movido por você, nunca pelo sistema</span>
+                <span className="min-w-0 text-etiqueta text-tx-3">arraste entre as colunas — o estágio continua sendo movido por você, nunca pelo sistema</span>
                 {conversionRate !== null && (
-                  <span className="ml-auto text-xs text-tx-3">
+                  <span className="ml-auto shrink-0 whitespace-nowrap text-etiqueta text-tx-3">
                     Taxa de conversão <span className="font-semibold tabular-nums text-concluido">{conversionRate.toFixed(0)}%</span> ({closed} de {closed + lost} decididos)
                   </span>
                 )}
@@ -340,13 +405,13 @@ export default async function AtendimentoCentralPage({
                   name="q"
                   defaultValue={searchParams.q}
                   placeholder="Buscar por nome ou assunto"
-                  className="min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-xs text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none"
+                  className="min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-etiqueta text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none"
                 />
               </form>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {listaAtendimentos.length === 0 ? (
-                <p className="p-4 text-xs text-tx-3">Nenhum atendimento encontrado.</p>
+                <p className="p-4 text-etiqueta text-tx-3">Nenhum atendimento encontrado.</p>
               ) : (
                 listaAtendimentos.map((a) => (
                   <Link
@@ -355,10 +420,10 @@ export default async function AtendimentoCentralPage({
                     className={`block border-b border-[var(--atd-border)] px-4 py-3 transition-colors hover:bg-[var(--list-bg-hover)] ${a.id === idSelecionado ? "bg-[var(--list-bg-hover)]" : ""}`}
                   >
                     <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 truncate text-sm font-medium text-tx">{a.clientName}</p>
+                      <p className="min-w-0 flex-1 truncate text-corpo font-medium text-tx">{a.clientName}</p>
                       <Badge color={statusColors[a.status]}>{attendanceStatusLabels[a.status] ?? a.status}</Badge>
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-tx-3">{a.subject}</p>
+                    <p className="mt-0.5 truncate text-etiqueta text-tx-3">{a.subject}</p>
                   </Link>
                 ))
               )}
@@ -369,26 +434,39 @@ export default async function AtendimentoCentralPage({
           <div className="flex min-w-0 flex-1 flex-col bg-[var(--work-bg)]">
             {selecionado ? (
               <>
-                <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 py-3">
-                  <div className="min-w-0">
-                    <h2 className="flex items-center gap-2 truncate text-base font-bold text-tx">
-                      {esperandoResposta && (
-                        <span className="bolinha-espera" role="img" aria-label="O cliente está esperando resposta" title="O cliente escreveu e ninguém respondeu" />
-                      )}
-                      <span className="truncate">{selecionado.clientName}</span>
-                    </h2>
-                    <p className="truncate text-xs text-tx-3">{selecionado.subject}</p>
+                {/* A MEDIDA DE LEITURA (--atd-largura-leitura, ver atendimento-central.css) LIMITA O
+                    CONTEÚDO, NÃO A COLUNA: o fundo e a régua de baixo do cabeçalho seguem de ponta a
+                    ponta — o que ganha limite é o texto. Limitar a coluna deixaria uma faixa de
+                    fundo diferente à direita, que é um defeito no lugar de outro. E o mesmo limite
+                    vale no cabeçalho e na conversa, senão o nome do cliente e as mensagens dele
+                    ficariam em réguas diferentes. */}
+                <div className="shrink-0 border-b border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 py-3">
+                  <div className="flex w-full max-w-[var(--atd-largura-leitura)] items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="flex items-center gap-2 truncate text-corpo font-bold text-tx">
+                        {esperandoResposta && (
+                          <span className="bolinha-espera" role="img" aria-label="O cliente está esperando resposta" title="O cliente escreveu e ninguém respondeu" />
+                        )}
+                        <span className="truncate">{selecionado.clientName}</span>
+                      </h2>
+                      <p className="truncate text-etiqueta text-tx-3">{selecionado.subject}</p>
+                    </div>
+                    <RelogioDoAtendimento prazoISO={selecionado.prazoDeRespostaAte ? selecionado.prazoDeRespostaAte.toISOString() : null} />
                   </div>
-                  <RelogioDoAtendimento prazoISO={selecionado.prazoDeRespostaAte ? selecionado.prazoDeRespostaAte.toISOString() : null} />
                 </div>
+                {/* A caixa que ROLA continua sendo esta (min-h-0 + overflow-y-auto): a medida de
+                    leitura entra num invólucro DENTRO dela, e não nela — trocar quem rola por causa
+                    de largura seria mexer no chassi da tela para resolver um problema de texto. */}
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-                  <Conversa
-                    mensagens={selecionado.whatsappMessages}
-                    agora={agora}
-                    nomeDoAtendente={nomeDoAtendente}
-                    transferidoPor={selecionado.transferidoPor}
-                    transferidoEm={selecionado.transferidoEm}
-                  />
+                  <div className="w-full max-w-[var(--atd-largura-leitura)]">
+                    <Conversa
+                      mensagens={selecionado.whatsappMessages}
+                      agora={agora}
+                      nomeDoAtendente={nomeDoAtendente}
+                      transferidoPor={selecionado.transferidoPor}
+                      transferidoEm={selecionado.transferidoEm}
+                    />
+                  </div>
                 </div>
                 {/* A caixa de resposta (WhatsappReplyBox) fica fora desta etapa de propósito: não
                     está na lista de componentes a hospedar (ver o comentário no topo do arquivo) —
@@ -397,7 +475,7 @@ export default async function AtendimentoCentralPage({
               </>
             ) : (
               <div className="flex h-full items-center justify-center px-6">
-                <p className="max-w-[46ch] text-center text-sm text-tx-3">
+                <p className="max-w-[46ch] text-center text-corpo text-tx-3">
                   {pedidoNegado ? CONVERSA_FORA_DO_SEU_ALCANCE : "Selecione um atendimento à esquerda."}
                 </p>
               </div>
@@ -421,8 +499,19 @@ export default async function AtendimentoCentralPage({
                 pendencias={selecionado.pendencias}
                 jaConvertido={Boolean(selecionado.convertedCaseId)}
               />
+              {/* ETAPA 3 — ESTE É O DESTINO DO ÍCONE "VER A RECUSA" (ver lib/conversaDaCentral.ts).
+                  O `id` é a âncora que o navegador usa para rolar até aqui, e vem da mesma constante
+                  que monta o endereço — duas palavras iguais em dois arquivos divergiriam calado.
+                  O ANEL É A GARANTIA: quem clicou no ícone está procurando ESTE painel entre dois, e
+                  o anel é desenhado pelo servidor, sem depender de o navegador ter rolado. */}
               {!selecionado.convertedCaseId && (
-                <div className="border-t border-[var(--atd-border)] p-4" style={{ boxShadow: "var(--atd-shadow-card)" }}>
+                <div
+                  id={ANCORA_DA_RECUSA}
+                  className={`scroll-mt-4 border-t border-[var(--atd-border)] p-4 ${
+                    foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
+                  }`}
+                  style={{ boxShadow: "var(--atd-shadow-card)" }}
+                >
                   <RecusarLeadPainel attendanceId={selecionado.id} motivos={motivosDeRecusa} recusa={recusaNaTela} enderecoDoSite={enderecoDoSite} />
                 </div>
               )}
@@ -438,7 +527,7 @@ function SubAba({ href, ativa, numero, rotulo, contagem }: { href: string; ativa
   return (
     <Link
       href={href}
-      className={`border-b-2 pb-2 text-etiqueta font-semibold uppercase tracking-[.06em] transition-colors ${
+      className={`shrink-0 whitespace-nowrap border-b-2 pb-2 text-etiqueta font-semibold uppercase tracking-[.06em] transition-colors ${
         ativa ? "border-[var(--frame-accent)] text-[var(--frame-tx-0)]" : "border-transparent text-[var(--frame-tx-2)] hover:text-[var(--frame-tx-0)]"
       }`}
     >
@@ -451,8 +540,13 @@ function SubAba({ href, ativa, numero, rotulo, contagem }: { href: string; ativa
 
 // Mesma consulta de app/(app)/atendimento/page.tsx — extraída aqui para não crescer ainda mais o
 // corpo do componente de página. `soOsMeus` não entra no retorno porque esta etapa não reescreve
-// o rótulo de cabeçalho por nível (fica para a etapa de acabamento); o RECORTE por dono, que é o
-// que importa para segurança, já está aplicado via `filtroDoAtendimento`.
+// o rótulo de cabeçalho por nível; o RECORTE por dono, que é o que importa para segurança, já está
+// aplicado via `filtroDoAtendimento`.
+//
+// O `take: 200` CONTINUA 200, DE PROPÓSITO (etapa 3). Ele é o teto de uma lista que se lê rolando, e
+// tirá-lo faria cada abertura desta tela varrer a tabela de atendimentos do escritório inteiro. O
+// lead clicado que cai fora da página é resolvido com UMA busca por chave primária na seleção (ver
+// lá), e não alargando esta consulta.
 async function carregarLista(
   viewer: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
   status: string | undefined,

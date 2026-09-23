@@ -92,15 +92,29 @@ const COMPONENTES: { arquivo: string; idDoRegistro: RegExp; linhas: number }[] =
 teste("os três componentes de lista calculam o endereço, nenhum deles escreve a rota na mão", () => {
   for (const { arquivo, idDoRegistro, linhas } of COMPONENTES) {
     const fonte = codigoDe(readFileSync(join(RAIZ, arquivo), "utf8"));
-    // Os hrefs que abrem A CONVERSA daquele registro. "Ver a recusa" deriva do mesmo id mas leva à
-    // ficha: sai pelo destino, não pela grafia.
-    const daConversa = hrefsDeLinks(fonte).filter((h) => idDoRegistro.test(h) && !h.includes("aba=ficha"));
+    // TODOS os endereços derivados do id daquele registro — tanto o da conversa quanto o de "Ver a
+    // recusa", que deriva do mesmo id e vai para outro painel.
+    //
+    // ESTE FILTRO JÁ FOI `!h.includes("aba=ficha")`, E ERA O DEFEITO 3 DESTA CASA (ver executar.ts):
+    // a asserção presa a UMA GRAFIA. Ela separava "conversa" de "recusa" pela grafia da rota antiga
+    // escrita dentro do componente — então, na etapa 3, quando o endereço da recusa passou a ser
+    // CALCULADO (hrefDaRecusa, para o ícone parar de tirar a pessoa da Central), esta linha reprovou
+    // a CORREÇÃO e não defeito nenhum. A separação agora é pelo CALCULADOR que cada link chama, que
+    // é a diferença de verdade entre os dois destinos, e tolera a grafia que o endereço tiver.
+    const derivados = hrefsDeLinks(fonte).filter((h) => idDoRegistro.test(h));
+    const daConversa = derivados.filter((h) => h.includes("hrefDaConversa"));
+    const daRecusa = derivados.filter((h) => h.includes("hrefDaRecusa"));
     igual(daConversa.length, linhas, `${arquivo}: esperava ${linhas} link(s) de conversa derivado(s) do id do registro`);
-    for (const h of daConversa) {
+    igual(
+      daConversa.length + daRecusa.length,
+      derivados.length,
+      `${arquivo}: sobrou endereço derivado do id do registro que não passa por nenhum dos dois calculadores de lib/conversaDaCentral.ts (${derivados.filter((h) => !h.includes("hrefDaConversa") && !h.includes("hrefDaRecusa")).join(" | ")})`,
+    );
+    for (const h of derivados) {
       verdade(!h.includes("/atendimento/"),
         `${arquivo} voltou a escrever a rota na mão (${h}) — com a rota embutida, hospedar o componente na Central manda a pessoa para fora da tela`);
       verdade(h.includes("destino"),
-        `${arquivo}: o endereço da conversa não depende mais do \`destino\` recebido — o componente decidiu sozinho para onde levar quem clicou`);
+        `${arquivo}: o endereço não depende mais do \`destino\` recebido — o componente decidiu sozinho para onde levar quem clicou`);
     }
   }
 });
