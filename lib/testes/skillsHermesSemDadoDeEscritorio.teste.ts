@@ -67,6 +67,7 @@ const SKILLS = [
   "follow-up-inteligente",
   "pos-venda-satisfacao",
   "conteudo-autoridade",
+  "resumo-pecas",
 ] as const;
 
 function caminhoDa(skill: string): string {
