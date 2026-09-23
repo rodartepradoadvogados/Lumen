@@ -3,6 +3,7 @@ import { SignJWT } from "jose";
 import { teste, igual, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
 import { emitirCredencial } from "@/lib/agenteCredencial";
 import { assistantTools } from "@/lib/assistantTools";
+import { urlDasFerramentasDoAgente, CAMINHO_DAS_FERRAMENTAS } from "@/lib/agenteFerramentasEndereco";
 
 // ============================================================================
 // A ROTA MCP (app/api/agente/mcp/route.ts) — o Hermes passou a falar MCP DIRETO com o Lúmen, no
@@ -481,6 +482,63 @@ teste("resultadoDeTexto serializa o dado inteiro (resultado + instrução) dentr
 teste("a rota MCP declara dynamic = force-dynamic e maxDuration = 30, como a rota REST", () => {
   verdade(/export const dynamic\s*=\s*["']force-dynamic["']/.test(FONTE_MCP), "falta `export const dynamic = \"force-dynamic\"`");
   verdade(/export const maxDuration\s*=\s*30\b/.test(FONTE_MCP), "falta `export const maxDuration = 30`");
+});
+
+// ── 9. O ENDEREÇO QUE A PONTE ENTREGA AO HERMES ─────────────────────────────────────────────────
+//
+// A rota MCP podia estar perfeita e o Hermes nunca chegar nela: o endereço posto em
+// LUMEN_FERRAMENTAS_URL apontava para a rota REST (`/api/agente/ferramentas`), que nada na
+// instalação do Hermes sabe ler. Os testes acima provam que a ROTA funciona; estes provam que é
+// ELA que o agente recebe.
+
+teste("o endereço entregue ao Hermes é a rota MCP — e bate com o caminho que a rota realmente serve", () => {
+  igual(CAMINHO_DAS_FERRAMENTAS, "/api/agente/mcp");
+  verdade(urlDasFerramentasDoAgente().endsWith("/api/agente/mcp"), `esperava terminar em /api/agente/mcp, veio ${urlDasFerramentasDoAgente()}`);
+  // O caminho não pode ser um literal inventado no teste nem no módulo: a pasta da rota é a
+  // verdade. `app/api/agente/mcp/route.ts` existir é o que faz esse caminho ser servido.
+  verdade(readFileSync("app/api/agente/mcp/route.ts", "utf8").length > 0, "a rota do caminho declarado não existe no disco");
+});
+
+teste("APP_URL com barra no fim não produz endereço com barra dobrada", () => {
+  const antes = process.env.APP_URL;
+  try {
+    process.env.APP_URL = "https://exemplo.com.br/";
+    igual(urlDasFerramentasDoAgente(), "https://exemplo.com.br/api/agente/mcp");
+    process.env.APP_URL = "https://exemplo.com.br///";
+    igual(urlDasFerramentasDoAgente(), "https://exemplo.com.br/api/agente/mcp", "mais de uma barra também");
+    process.env.APP_URL = "https://exemplo.com.br";
+    igual(urlDasFerramentasDoAgente(), "https://exemplo.com.br/api/agente/mcp", "sem barra continua igual");
+  } finally {
+    if (antes === undefined) delete process.env.APP_URL;
+    else process.env.APP_URL = antes;
+  }
+});
+
+teste("NENHUM chamador monta o endereço das ferramentas à mão — os dois caminhos usam o módulo", () => {
+  const chamadores: Array<[string, string]> = [
+    ["app/api/assistente/route.ts", readFileSync("app/api/assistente/route.ts", "utf8")],
+    ["lib/actions/peticionamento.ts", readFileSync("lib/actions/peticionamento.ts", "utf8")],
+  ];
+  let usos = 0;
+  for (const [nome, fonte] of chamadores) {
+    const codigo = codigoDe(fonte);
+    // A GRAVAÇÃO QUE IMPORTA é a que entrega `ferramentas` à ponte — é ela que precisa vir do
+    // módulo. Montar com template string aqui é o defeito que este teste existe para pegar.
+    const entregas = codigo.match(/ferramentas\s*(?::|=)\s*\{[^}]*url:[^}]*\}/g) ?? [];
+    verdade(entregas.length > 0, `não achei a entrega de \`ferramentas\` em ${nome} — a varredura quebrou`);
+    for (const entrega of entregas) {
+      usos++;
+      verdade(
+        entrega.includes("urlDasFerramentasDoAgente()"),
+        `${nome} monta o endereço das ferramentas à mão (${entrega.trim()}) em vez de usar urlDasFerramentasDoAgente() — as duas cópias vão divergir`,
+      );
+      verdade(
+        !/api\/agente\/ferramentas/.test(entrega),
+        `${nome} entrega ao Hermes a rota REST, que a instalação dele não sabe ler`,
+      );
+    }
+  }
+  verdade(usos >= 2, `esperava ao menos 2 entregas de ferramentas (conversa e peticionamento), achei ${usos}`);
 });
 
 void resumo("agente — servidor MCP (app/api/agente/mcp)");

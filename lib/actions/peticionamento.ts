@@ -47,7 +47,7 @@ import {
   PonteSemCaminhoAssincrono,
 } from "@/lib/hermesPonte";
 import { emitirCredencial } from "@/lib/agenteCredencial";
-import { getAppUrl } from "@/lib/appUrl";
+import { urlDasFerramentasDoAgente } from "@/lib/agenteFerramentasEndereco";
 import {
   colherGeracaoDaMinuta,
   gravarMinutaGerada,
@@ -1661,7 +1661,7 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
     admin: false,
     escopo: "peticionamento",
   });
-  const ferramentas = { url: `${getAppUrl()}/api/agente/ferramentas`, credencial: credencialDeFerramentas };
+  const ferramentas = { url: urlDasFerramentasDoAgente(), credencial: credencialDeFerramentas };
 
   try {
     const { tarefa } = await iniciarGeracaoNoHermes({

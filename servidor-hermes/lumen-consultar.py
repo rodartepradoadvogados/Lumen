@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 """Consulta os dados do escritório no Lúmen. É a ferramenta que o Lúmen Agent usa.
 
+APOSENTADO EM 23/09/2026 — NÃO USE, E NÃO CONSERTE SEM LER ISTO PRIMEIRO
+-----------------------------------------------------------------------
+Este programa nunca chegou a rodar de verdade: ele dependia de uma INSTRUÇÃO DE PROMPT no perfil do
+Hermes mandando chamá-lo como comando de terminal, e essa instrução nunca entrou no perfil. Efeito
+medido: as ferramentas do Lúmen não chegaram ao agente por caminho nenhum durante semanas.
+
+O caminho que substituiu este é MCP, que o Hermes fala nativamente: app/api/agente/mcp/route.ts,
+declarado no `mcp_servers` do `config.yaml` do perfil. E, desde a mesma data, `LUMEN_FERRAMENTAS_URL`
+NÃO APONTA MAIS PARA A ROTA REST que este programa sabe consumir — ela agora carrega o endereço do
+servidor MCP (ver lib/agenteFerramentasEndereco.ts no Lúmen). Ou seja: rodar este programa hoje é
+mandar uma requisição REST para um endereço que fala JSON-RPC, e a resposta não vai fazer sentido.
+O texto abaixo descreve o desenho ANTIGO e está aqui como registro, não como instrução.
+
 PARA QUE SERVE
 --------------
 O agente vive nesta máquina e NÃO tem o banco de dados do Lúmen — nem deve ter. Quando precisa de

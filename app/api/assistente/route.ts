@@ -16,7 +16,7 @@ import { sessaoDoHermes, gravarSessaoDoHermes } from "@/lib/assistenteSessoes";
 import { hermesConfigurado, perguntarAoHermes, FalhaDoHermes } from "@/lib/hermesPonte";
 import { emitirCredencial } from "@/lib/agenteCredencial";
 import { procedenciaGravada, rotulosDeProcedencia } from "@/lib/agenteProcedencia";
-import { getAppUrl } from "@/lib/appUrl";
+import { urlDasFerramentasDoAgente } from "@/lib/agenteFerramentasEndereco";
 import { montarPerguntaInterna, regrasDaAntonella } from "@/lib/antonella";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
           mensagem,
         }),
         sessao: await sessaoDoHermes(sessaoId),
-        ferramentas: { url: `${getAppUrl()}/api/agente/ferramentas`, credencial },
+        ferramentas: { url: urlDasFerramentasDoAgente(), credencial },
       });
 
       await gravarMensagem(sessaoId, "user", mensagem);
