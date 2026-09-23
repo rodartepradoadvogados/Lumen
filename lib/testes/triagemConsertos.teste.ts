@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { teste, igual, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
+import { teste, igual, verdade, resumo, codigoDe, corpoDaFuncao, hrefsDeLinks } from "./executar";
 
 // ============================================================================
 // DOIS CONSERTOS PEQUENOS, RELATADOS PELO DONO COM O PRODUTO NA MÃO.
@@ -40,10 +40,17 @@ function primeiroLinkNaoContemSegundo(fonte: string): boolean {
 teste("a linha de 'Esperando resposta' inteira abre a conversa, e o botão Abrir fica fora do link", () => {
   const fonte = codigoDe(readFileSync("components/atendimento/FilaDeEspera.tsx", "utf8"));
 
-  // Duas ocorrências do mesmo href: uma no link que envolve a linha inteira, outra no botão
-  // "Abrir" que continua existindo. Uma só significaria que a linha voltou a ser um <div> inerte.
-  const hrefs = fonte.match(/href=\{`\/atendimento\/\$\{q\.id\}`\}/g) || [];
-  igual(hrefs.length, 2, "esperava o link da linha inteira MAIS o link do botão Abrir");
+  // DOIS ENDEREÇOS DERIVADOS DO MESMO REGISTRO, e IGUAIS ENTRE SI: um no link que envolve a linha
+  // inteira, outro no botão "Abrir" que continua existindo. Um só significaria que a linha voltou a
+  // ser um <div> inerte; dois diferentes, que o botão e a linha passaram a abrir coisas diferentes.
+  //
+  // A asserção olha a EXPRESSÃO do href, não a grafia dela (ver hrefsDeLinks em executar.ts). Esta
+  // linha já foi `/atendimento/${q.id}` cru e hoje é hrefDaConversa(destino, q.id), porque a Central
+  // de Atendimento abre a conversa na própria tela — uma asserção colada na grafia antiga teria
+  // reprovado exatamente essa mudança, e não teria reprovado defeito nenhum.
+  const hrefs = hrefsDeLinks(fonte).filter((h) => /\bq\.id\b/.test(h));
+  igual(hrefs.length, 2, "esperava o link da linha inteira MAIS o link do botão Abrir, ambos derivados de q.id");
+  igual(hrefs[0], hrefs[1], "o botão Abrir e a linha passaram a abrir endereços diferentes");
 
   verdade(primeiroLinkNaoContemSegundo(fonte), "o botão Abrir está aninhado dentro do link da linha — HTML inválido");
 
@@ -63,7 +70,13 @@ teste("a linha de 'Recusados' inteira abre a conversa, e as ações ficam fora d
   // navegação), e um <button> dentro de um <a> também é inválido, além do link-dentro-de-link.
   const fonte = codigoDe(readFileSync("components/atendimento/RecusadosParaAnalise.tsx", "utf8"));
 
-  const hrefsDaLinha = fonte.match(/href=\{`\/atendimento\/\$\{r\.attendanceId\}`\}/g) || [];
+  // Mesma leitura por EXPRESSÃO da guia 1, e pelo mesmo motivo: o endereço da linha hoje é calculado
+  // (hrefDaConversa), e o que tem de continuar verdadeiro é "um link só cobre a linha, e ele é
+  // derivado do attendanceId". "Ver a recusa" também deriva do attendanceId, mas leva a OUTRO lugar
+  // (a ficha, no bloco do processo) — por isso sai da contagem pelo DESTINO, não pela grafia.
+  const derivados = hrefsDeLinks(fonte).filter((h) => /\br\.attendanceId\b/.test(h));
+  const hrefsDaLinha = derivados.filter((h) => !h.includes("aba=ficha"));
+  igual(derivados.length, 2, "esperava dois links derivados do attendanceId: a linha inteira e 'Ver a recusa'");
   igual(hrefsDaLinha.length, 1, "esperava um único link cobrindo a linha inteira (não mais um link só no nome)");
 
   // "Ver a recusa" é uma navegação diferente (abre direto na ficha/processo) e continua sendo o

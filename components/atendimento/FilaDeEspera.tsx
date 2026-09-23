@@ -1,6 +1,7 @@
 import Link from "next/link";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
 import { rotuloDaEspera, rotuloDaVolta, comQuemEsta, type QuemEspera } from "@/lib/rotulosDaEspera";
+import { hrefDaConversa, type DestinoDaConversa } from "@/lib/conversaDaCentral";
 
 // ============================================================================
 // A FILA DE QUEM ESTÁ ESPERANDO RESPOSTA — no topo da Triagem.
@@ -15,14 +16,22 @@ import { rotuloDaEspera, rotuloDaVolta, comQuemEsta, type QuemEspera } from "@/l
 //
 // SÓ O PRIMEIRO BOTÃO É CHEIO. É a linha que espera há mais tempo — a única sobre a qual há algo a
 // fazer AGORA. Cinco botões cheios numa tela não apontam para nada.
+//
+// PARA ONDE A LINHA ABRE NÃO É DECISÃO DESTE COMPONENTE. Quem hospeda diz, pelo `destino`: a
+// Triagem antiga (app/(app)/atendimento/funil/page.tsx) não diz nada e continua abrindo a rota
+// /atendimento/:id de sempre; a Central de Atendimento pede "central" e a linha abre a conversa na
+// aba Atendimentos da própria tela, sem sair dela. Ver lib/conversaDaCentral.ts — o endereço é
+// calculado lá, num lugar só para os três componentes de lista da Triagem.
 // ============================================================================
 
 export default function FilaDeEspera({
   lista,
   expediente,
+  destino = "classico",
 }: {
   lista: QuemEspera[];
   expediente: { inicio: string; fim: string } | null;
+  destino?: DestinoDaConversa;
 }) {
   return (
     <section className="mb-6 border border-regua bg-sf">
@@ -71,7 +80,7 @@ export default function FilaDeEspera({
                       "Abrir") fica como irmão, nunca aninhado — link dentro de link é HTML
                       inválido e quebra de formas silenciosas. */}
                   <Link
-                    href={`/atendimento/${q.id}`}
+                    href={hrefDaConversa(destino, q.id)}
                     className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 outline-none focus-visible:bg-sf-apoio focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-marca-tx"
                   >
                     <div className="w-full min-w-0 lg:w-[210px] lg:shrink-0">
@@ -116,7 +125,7 @@ export default function FilaDeEspera({
                       que a linha inteira é clicável; a linha é comodidade, o botão é a garantia. */}
                   <div className="flex shrink-0 items-center py-3.5 pr-5">
                     <Link
-                      href={`/atendimento/${q.id}`}
+                      href={hrefDaConversa(destino, q.id)}
                       className={`inline-flex h-11 w-[76px] shrink-0 items-center justify-center text-sm font-semibold transition-colors ${
                         i === 0
                           ? "bg-acao text-acao-tx hover:bg-acao-hover"

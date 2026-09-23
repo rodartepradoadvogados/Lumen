@@ -12,6 +12,7 @@ import { situacaoDaRecusa, type EstadoDaRecusa } from "@/lib/recusaDoLead";
 import { motivosParaRecusar } from "@/lib/actions/recusaDoLead";
 import { identificarNumero } from "@/lib/identificarNumero";
 import { getAppUrl } from "@/lib/appUrl";
+import { hrefDaConversa, recorteDaConversa, CONVERSA_FORA_DO_SEU_ALCANCE } from "@/lib/conversaDaCentral";
 import { dataDeBrasilia, dataEHoraDeBrasilia } from "@/lib/horaDeBrasilia";
 import { Badge } from "@/components/ui";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -35,12 +36,30 @@ export const dynamic = "force-dynamic";
 // TrilhoDoAtendimento, RelogioDoAtendimento, QuemEEsteNumero — dentro de TrilhoDoAtendimento —,
 // RecusarLeadPainel), sem reescrever nenhum deles.
 //
-// A FUSÃO DE CLIQUE (linha da fila / card do funil / linha de recusados abrindo a MESMA conversa
-// na aba Atendimentos) é ETAPA 2, deliberadamente NÃO implementada aqui — os componentes de
-// Triagem continuam levando, como hoje, para a rota antiga /atendimento/:id (nenhum deles foi
-// tocado). A aba Atendimentos tem a SUA PRÓPRIA seleção (lista → conversa), porque sem alguma
-// seleção os componentes de conversa/trilho/recusa nunca apareceriam nesta tela nova — o que
-// contrariaria o pedido de "hospedar" esses componentes.
+// ETAPA 2 — A FUSÃO DE CLIQUE, feita. A linha da fila, o card do funil e a linha de recusados
+// abrem a conversa na aba Atendimentos DESTA tela, e não mais na rota antiga /atendimento/:id.
+//
+// COMO, e por que assim:
+//
+//   O ENDEREÇO É A MESMA ROTA COM OUTROS PARÂMETROS (?aba=atendimentos&id=...), calculado em
+//   lib/conversaDaCentral.ts. Sendo a mesma rota, o <Link> do App Router faz navegação macia: troca
+//   o conteúdo e não recarrega o documento. Foi por isso que o destino não virou uma tela nova nem
+//   um modal — a tela já sabia ler `?id=` da URL desde a etapa 1, e ligar o que existe custa menos
+//   do que inventar estado de cliente para a mesma coisa.
+//
+//   O DESTINO VIAJA COMO TEXTO ("central"), não como função. QuadroDoFunil e RecusadosParaAnalise
+//   são componentes de cliente; passar `(id) => ...` como prop quebraria na serialização em tempo
+//   de execução, sem um pio do TypeScript. Por padrão os três componentes continuam em "classico",
+//   então a Triagem antiga (app/(app)/atendimento/funil/page.tsx) não mudou de comportamento — e
+//   não precisou ser editada.
+//
+//   O `id` QUE CHEGA É PALPITE, e é reconferido: recorteDaConversa põe o officeId de QUEM PEDIU e o
+//   recorte por dono no mesmo `where` do `id`. Sem isso, o caminho novo seria o furo da fusão —
+//   clicar abriria conversa que a pessoa não poderia nem listar. Quando o recorte recusa, a tela
+//   diz uma frase só para os três motivos possíveis (CONVERSA_FORA_DO_SEU_ALCANCE).
+//
+// A aba Atendimentos continua tendo a SUA PRÓPRIA seleção (lista → conversa): é o mesmo `?id=` que
+// o clique da Triagem usa, e não um segundo caminho.
 const ABAS = ["triagem", "atendimentos"] as const;
 type AbaCentral = (typeof ABAS)[number];
 const SUBS = ["funil", "espera", "recusados"] as const;
@@ -167,14 +186,21 @@ export default async function AtendimentoCentralPage({
   // vendo os próprios aqui dentro. ──────────────────────────────────────────────────────────────
   let listaAtendimentos: Awaited<ReturnType<typeof carregarLista>> = [];
   let idSelecionado: string | null = null;
+  // O ID PEDIDO NA URL fica separado do que a tela escolheu sozinha (o primeiro da lista). É a
+  // diferença entre "ninguém pediu nada ainda" e "pediram isto e a reconferência recusou" — e sem
+  // guardar as duas coisas a segunda viraria a mensagem da primeira ("selecione à esquerda"), que
+  // manda a pessoa fazer de novo o que ela acabou de fazer.
+  const idPedido = (searchParams.id || "").trim() || null;
   if (aba === "atendimentos") {
     listaAtendimentos = await carregarLista(viewer, searchParams.status, searchParams.q);
-    idSelecionado = searchParams.id || listaAtendimentos[0]?.id || null;
+    idSelecionado = idPedido || listaAtendimentos[0]?.id || null;
   }
 
   const selecionado = idSelecionado
     ? await prisma.attendance.findFirst({
-        where: { id: idSelecionado, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
+        // A RECONFERÊNCIA DO CAMINHO NOVO, num lugar só (lib/conversaDaCentral.ts): id + escritório
+        // de quem pediu + recorte por dono. O `id` da URL nunca decide sozinho.
+        where: recorteDaConversa(viewer, idSelecionado),
         include: {
           responsible: { select: { name: true } },
           campanha: { select: { nome: true } },
@@ -212,9 +238,12 @@ export default async function AtendimentoCentralPage({
   const ultimaMensagem = selecionado?.whatsappMessages[selecionado.whatsappMessages.length - 1];
   const esperandoResposta = ultimaMensagem?.direction === "IN";
 
+  // Pediram uma conversa por id e ela não voltou: a reconferência recusou (outro escritório, de
+  // outra pessoa, ou não existe). Ver CONVERSA_FORA_DO_SEU_ALCANCE — uma frase para os três.
+  const pedidoNegado = Boolean(idPedido) && !selecionado;
+
   const hrefAba = (destino: AbaCentral) => `/atendimento-central?aba=${destino}`;
   const hrefSub = (destino: SubTriagem) => `/atendimento-central?aba=triagem&sub=${destino}`;
-  const hrefAtendimento = (id: string) => `/atendimento-central?aba=atendimentos&id=${id}`;
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--work-bg)]">
@@ -273,8 +302,14 @@ export default async function AtendimentoCentralPage({
       {/* ── CONTEÚDO ────────────────────────────────────────────────────────────────────────── */}
       {aba === "triagem" && veTodo && (
         <div className="flex-1 overflow-y-auto bg-[var(--work-bg)] p-5">
-          {sub === "espera" && <FilaDeEspera lista={esperando} expediente={cfg ? { inicio: cfg.expedienteInicio, fim: cfg.expedienteFim } : null} />}
-          {sub === "recusados" && <RecusadosParaAnalise lista={naFilaDeRecusados} />}
+          {sub === "espera" && (
+            <FilaDeEspera
+              lista={esperando}
+              expediente={cfg ? { inicio: cfg.expedienteInicio, fim: cfg.expedienteFim } : null}
+              destino="central"
+            />
+          )}
+          {sub === "recusados" && <RecusadosParaAnalise lista={naFilaDeRecusados} destino="central" />}
           {sub === "funil" && (
             <>
               <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -286,7 +321,7 @@ export default async function AtendimentoCentralPage({
                   </span>
                 )}
               </div>
-              <QuadroDoFunil cards={cardsDoFunil} isAdmin={Boolean(viewer.isAdmin)} />
+              <QuadroDoFunil cards={cardsDoFunil} isAdmin={Boolean(viewer.isAdmin)} destino="central" />
             </>
           )}
         </div>
@@ -316,7 +351,7 @@ export default async function AtendimentoCentralPage({
                 listaAtendimentos.map((a) => (
                   <Link
                     key={a.id}
-                    href={hrefAtendimento(a.id)}
+                    href={hrefDaConversa("central", a.id)}
                     className={`block border-b border-[var(--atd-border)] px-4 py-3 transition-colors hover:bg-[var(--list-bg-hover)] ${a.id === idSelecionado ? "bg-[var(--list-bg-hover)]" : ""}`}
                   >
                     <div className="flex items-center gap-2">
@@ -361,8 +396,10 @@ export default async function AtendimentoCentralPage({
                     etapa 3. Nesta etapa a conversa é hospedada em modo de leitura. */}
               </>
             ) : (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-sm text-tx-3">Selecione um atendimento à esquerda.</p>
+              <div className="flex h-full items-center justify-center px-6">
+                <p className="max-w-[46ch] text-center text-sm text-tx-3">
+                  {pedidoNegado ? CONVERSA_FORA_DO_SEU_ALCANCE : "Selecione um atendimento à esquerda."}
+                </p>
               </div>
             )}
           </div>

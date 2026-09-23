@@ -112,3 +112,56 @@ export function corpoDaFuncao(fonte: string, nome: string): string {
   const seguinte = fonte.slice(i + 10).search(/\n(export )?(async )?function /);
   return codigoDe(seguinte < 0 ? fonte.slice(i) : fonte.slice(i, i + 10 + seguinte));
 }
+
+/**
+ * Os `href` de TODOS os `<Link>` do arquivo, na ordem, como EXPRESSÃO CRUA.
+ *
+ * Existe por causa do defeito 3 desta casa, o que mais já custou tempo: a asserção presa a UMA
+ * GRAFIA. Uma varredura escrita como
+ *
+ *     fonte.match(/href=\{`\/atendimento\/\$\{q\.id\}`\}/g)
+ *
+ * prova o que importa (a linha inteira abre a conversa) enquanto ninguém mexe no arquivo — e no dia
+ * em que o endereço passa a ser calculado por uma função, ela reprova a CORREÇÃO, não o defeito.
+ * Quem lê o relatório conclui que a mudança quebrou a regra, quando a regra continua de pé.
+ *
+ * Devolvendo a expressão, a asserção passa a ser sobre o que não pode mudar — "o endereço desta
+ * linha é derivado do id deste registro" — e tolera template, chamada de função, concatenação ou o
+ * que vier depois.
+ *
+ * A LEITURA É BALANCEADA, e não uma janela de N caracteres: conta as chaves de `{...}` até fechar,
+ * então um `${...}` dentro de template não encerra o atributo cedo e o valor não transborda para o
+ * atributo seguinte. A busca do `href=` é limitada ao próximo `<Link`, para um Link sem href não
+ * roubar o href do vizinho de baixo.
+ */
+export function hrefsDeLinks(fonte: string): string[] {
+  const aberturas = [...fonte.matchAll(/<Link\b/g)].map((m) => m.index!);
+  const achados: string[] = [];
+
+  for (let n = 0; n < aberturas.length; n++) {
+    const inicio = aberturas[n];
+    const limite = n + 1 < aberturas.length ? aberturas[n + 1] : fonte.length;
+    const iHref = fonte.indexOf("href=", inicio);
+    if (iHref < 0 || iHref >= limite) continue;
+
+    let j = iHref + "href=".length;
+    const aspa = fonte[j];
+    if (aspa === '"' || aspa === "'") {
+      const fim = fonte.indexOf(aspa, j + 1);
+      achados.push(fonte.slice(j + 1, fim < 0 ? limite : fim));
+      continue;
+    }
+    if (aspa !== "{") continue;
+
+    let nivel = 0;
+    for (; j < limite; j++) {
+      if (fonte[j] === "{") nivel++;
+      else if (fonte[j] === "}") {
+        nivel--;
+        if (nivel === 0) break;
+      }
+    }
+    achados.push(fonte.slice(iHref + "href=".length + 1, j));
+  }
+  return achados;
+}
