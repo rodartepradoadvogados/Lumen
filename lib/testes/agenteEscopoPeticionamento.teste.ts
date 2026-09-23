@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { SignJWT, jwtVerify } from "jose";
 import { teste, igual, verdade, resumo, codigoDe, corpoDaFuncao } from "./executar";
 import { emitirCredencial, lerCredencial } from "@/lib/agenteCredencial";
-import { TETO_DA_PONTE_S } from "@/lib/hermesPonte";
+import { TETO_DA_PONTE_S, TETO_DA_GERACAO_MS } from "@/lib/peticionamentoTempoDeGeracao";
 import { assistantTools } from "@/lib/assistantTools";
 
 // ============================================================================
@@ -247,6 +247,57 @@ teste("os DOIS caminhos (assíncrono e síncrono) usam a MESMA credencial — n�
   const corpo = codigoDe(corpoDaFuncao(FONTE_PETICIONAMENTO, "confirmarTriagemEGerar"));
   const ocorrencias = corpo.split("emitirCredencial(").length - 1;
   igual(ocorrencias, 1, "emitirCredencial deveria ser chamada uma única vez dentro de confirmarTriagemEGerar: ");
+});
+
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// UM TETO SÓ, EM DUAS UNIDADES — a fragilidade que a própria correção quase reintroduziu
+// ──────────────────────────────────────────────────────────────────────────────────────────
+//
+// A desigualdade do item 6 só vale se `TETO_DA_PONTE_S` for de fato o teto da ponte. Este bloco
+// guarda essa premissa, e ela quase se perdeu: o teto em segundos nasceu como um `900` escrito à
+// mão em `lib/hermesPonte.ts`, ao lado de `TETO_DA_GERACAO_MS` (lib/peticionamentoTempoDeGeracao.ts),
+// que é o MESMO teto em milissegundos e já é travado contra o `servidor.py` pelas suítes.
+//
+// Dois literais do mesmo número, um travado e o outro não, é a forma exata do defeito que esta
+// entrega veio consertar — dois lugares dizendo a mesma coisa até o dia em que um muda e o outro
+// não. Agora há um só teto, num só módulo, e o de segundos é DERIVADO do de milissegundos: a trava
+// contra o `servidor.py` passa a valer para as duas unidades de graça.
+
+teste("um teto só: TETO_DA_PONTE_S é o mesmo número de TETO_DA_GERACAO_MS, em outra unidade", () => {
+  igual(
+    TETO_DA_PONTE_S * 1000,
+    TETO_DA_GERACAO_MS,
+    "o teto em segundos divergiu do teto em milissegundos — há dois números onde deveria haver um",
+  );
+});
+
+teste("lib/hermesPonte.ts REEXPORTA o teto, e não escreve um literal próprio", () => {
+  const fonte = readFileSync("lib/hermesPonte.ts", "utf8");
+  verdade(
+    /export\s*\{[^}]*\bTETO_DA_PONTE_S\b[^}]*\}\s*from\s*["']@\/lib\/peticionamentoTempoDeGeracao["']/.test(fonte),
+    "lib/hermesPonte.ts deixou de reexportar TETO_DA_PONTE_S do módulo leve",
+  );
+  verdade(
+    !/\bTETO_DA_PONTE_S\s*(:[^=]*)?=\s*[0-9]/.test(fonte),
+    "lib/hermesPonte.ts voltou a escrever o teto como número à mão — é o segundo espelho sem trava",
+  );
+});
+
+teste("lib/agenteCredencial.ts busca o teto no módulo leve, não no módulo da ponte", () => {
+  const fonte = readFileSync("lib/agenteCredencial.ts", "utf8");
+  verdade(
+    /import\s*\{[^}]*\bTETO_DA_PONTE_S\b[^}]*\}\s*from\s*["']@\/lib\/peticionamentoTempoDeGeracao["']/.test(fonte),
+    "a credencial não importa mais o teto de lib/peticionamentoTempoDeGeracao",
+  );
+  // POR QUE ISTO É REGRA, e não preferência de arrumação: lib/peticionamentoTempoDeGeracao é puro
+  // de propósito — sem `prisma`, sem `next/headers` — e a tela de geração, que é componente de
+  // CLIENTE, depende dessa pureza. O build contra o staging já cobrou isso uma vez (ver o
+  // comentário de TETO_DA_GERACAO_MS). Fazer a credencial importar o módulo da ponte para buscar
+  // um número que o módulo puro já tem é arrastar peso sem motivo, na direção do mesmo defeito.
+  verdade(
+    !/from\s*["']@\/lib\/hermesPonte["']/.test(fonte),
+    "a credencial voltou a depender de lib/hermesPonte — o número dela mora no módulo puro",
+  );
 });
 
 void resumo("agente — parede por escopo (peticionamento)");

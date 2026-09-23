@@ -91,11 +91,15 @@ export const ESPERA_PETICIONAMENTO_MS = Number(process.env.HERMES_TIMEOUT_PETICI
  *
  * SEM VARIÁVEL DE AMBIENTE DE PROPÓSITO: `HERMES_TIMEOUT_S` é lida pelo `servidor.py`, na VPS —
  * um `process.env` aqui, no Lúmen (Vercel), leria o ambiente ERRADO e mentiria sobre o teto do
- * ambiente CERTO. Por isso é um literal, igual ao espelho que já existe em
- * `TETO_DA_GERACAO_MS` (lib/peticionamentoTempoDeGeracao.ts) — os DOIS têm de mudar juntos com
- * `ESPERA_S`, à mão, no dia em que alguém decidir que quinze minutos não bastam mais.
+ * ambiente CERTO.
+ *
+ * E NÃO É UM LITERAL DAQUI: apenas o REEXPORTA de `lib/peticionamentoTempoDeGeracao`, onde o mesmo
+ * teto já existe em milissegundos (`TETO_DA_GERACAO_MS`) e já é travado contra o `servidor.py`
+ * pelas suítes. Um `900` escrito aqui seria um SEGUNDO espelho do mesmo número, sem trava — a
+ * forma exata do defeito que esta linha existe para impedir. Há um só teto, num só lugar, em duas
+ * unidades.
  */
-export const TETO_DA_PONTE_S = 900;
+export { TETO_DA_PONTE_S } from "@/lib/peticionamentoTempoDeGeracao";
 
 /**
  * O nome do perfil do Hermes para um escritório.

@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
-import { TETO_DA_PONTE_S } from "@/lib/hermesPonte";
+import { TETO_DA_PONTE_S } from "@/lib/peticionamentoTempoDeGeracao";
 
 // A CREDENCIAL DE UMA PERGUNTA.
 //
