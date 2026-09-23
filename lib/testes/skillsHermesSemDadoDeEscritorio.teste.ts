@@ -42,11 +42,14 @@ const RAIZ = process.cwd();
  * Todas as skills de plataforma do Hermes, pelo nome do diretório — que é também o `name` do
  * cabeçalho. As três primeiras são do lote 1 (conflict check, ética na publicidade e pesquisa de
  * jurisprudência); as quatro seguintes são do lote 2 (análise de sentença, análise de risco
- * processual, preparação de audiências e revisão de contratos); as quatro últimas são do lote 3
+ * processual, preparação de audiências e revisão de contratos); as quatro seguintes são do lote 3
  * (análise de legislação, diagnóstico de LGPD do próprio escritório, onboarding de cliente e
- * precificação de honorários). Nova skill de plataforma entra nesta lista — é o que estende as
- * travas gerais abaixo (sem dado de escritório, quatro regras da casa, convenção de cabeçalho) a
- * ela também.
+ * precificação de honorários); as quatro últimas são do lote 4 (qualificação de perfil financeiro,
+ * follow-up inteligente, pós-venda e satisfação, e conteúdo de autoridade) — o lote que tangencia
+ * captação de clientela em todas as quatro peças, e por isso é o que mais depende da
+ * `etica-oab-publicidade` como eixo, não como nota de rodapé. Nova skill de plataforma entra nesta
+ * lista — é o que estende as travas gerais abaixo (sem dado de escritório, quatro regras da casa,
+ * convenção de cabeçalho) a ela também.
  */
 const SKILLS = [
   "conflict-check",
@@ -60,6 +63,10 @@ const SKILLS = [
   "lgpd-escritorio",
   "onboarding-cliente",
   "precificacao-honorarios",
+  "qualificacao-perfil-financeiro",
+  "follow-up-inteligente",
+  "pos-venda-satisfacao",
+  "conteudo-autoridade",
 ] as const;
 
 function caminhoDa(skill: string): string {
@@ -545,6 +552,62 @@ teste("HARD GATE: o formato da saída de lgpd-escritorio cobra a triagem, não s
   verdade(
     /triagem/i.test(formato),
     "o bloco de lacunas não cobra a triagem dos pedidos de titular — a ressalva ficaria só na prosa, que é como o defeito do prazo em analise-sentenca chegou à tela",
+  );
+});
+
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// QUALIFICAÇÃO FINANCEIRA — a recusa muda, e as duas contas que ninguém separa
+// ──────────────────────────────────────────────────────────────────────────────────────────
+//
+// A primeira versão de `qualificacao-perfil-financeiro` acabava em "recuse". Quem sinalizasse que
+// nenhum modelo de cobrança cabia no bolso dele era registrado para o advogado decidir, com a
+// recusa entre as opções — e mais nada. Duas faltas, e as duas têm consequência:
+//
+//   1. A RECUSA MUDA. Encerrar a conversa sem dizer nada a quem procurou ajuda e não tem como
+//      pagar. Orientar onde buscar atendimento não é captação, não cria vínculo, custa uma frase —
+//      e é o que separa uma recusa profissional de uma porta fechada na cara de alguém que pode ter
+//      prazo correndo.
+//
+//   2. AS DUAS CONTAS SOMADAS. Custas do processo e honorário do advogado particular são dinheiros
+//      diferentes, e a gratuidade de justiça alcança o primeiro, não o segundo. A skill falava de
+//      "capacidade de pagamento" sem nunca separá-los — e essa confusão erra nos DOIS sentidos:
+//      alguém ouve que "vai ser de graça" e depois recebe cobrança de honorário; ou desiste de
+//      procurar advogado porque o que o assustava eram as custas, e o honorário caberia.
+//
+// É a mesma forma do defeito da LGPD, logo acima: uma regra que só nega, sem dizer o que se faz.
+
+teste("HARD GATE: em qualificacao-perfil-financeiro a recusa vem com orientação, e custas não se confundem com honorário", () => {
+  const texto = textoDa("qualificacao-perfil-financeiro");
+  const passo = secaoDe(texto, "Passo 2");
+  verdade(passo.length > 1_000, `a seção de alinhamento saiu com ${passo.length} caracteres — varredura cega`);
+
+  // AS DUAS CONTAS, separadas.
+  verdade(/custas/i.test(passo), "a skill voltou a falar de pagamento sem nomear as custas do processo");
+  verdade(
+    /gratuidade/i.test(passo),
+    "a skill não trata a gratuidade de justiça — é a primeira coisa que quem não pode pagar traz para a conversa",
+  );
+  verdade(
+    /(honor[áa]rio\s+contratado|honor[áa]rio\s+contratual|advogado\s+particular)/i.test(passo),
+    "a skill não distingue o honorário do advogado particular do que a gratuidade alcança",
+  );
+
+  // A RECUSA NÃO É MUDA.
+  verdade(
+    /(defensoria|assist[êe]ncia\s+judici[áa]ria)/i.test(passo),
+    "a skill não orienta onde buscar atendimento quem não comporta nenhum modelo — a recusa volta a ser muda",
+  );
+  verdade(
+    /(n[ãa]o\s+[ée]\s+capta[çc][ãa]o|n[ãa]o\s+.{0,40}capta[çc][ãa]o)/i.test(passo),
+    "a skill perdeu a ressalva de que orientar não é captação — sem ela, o medo de captar produz a recusa muda de novo",
+  );
+
+  // E O BLOCO DA SAÍDA COBRA ISSO, senão a ressalva fica só na prosa — foi assim que o defeito do
+  // prazo em analise-sentenca chegava à tela.
+  const formato = secaoDe(texto, "Formato da saída");
+  verdade(
+    /(orienta[çc][ãa]o|custas)/i.test(formato),
+    "o formato da saída não cobra a orientação nem a separação das contas — a ressalva ficaria só na prosa",
   );
 });
 
