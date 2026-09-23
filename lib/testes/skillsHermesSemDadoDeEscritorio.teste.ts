@@ -125,6 +125,17 @@ const PADROES_DE_DADO_DE_ESCRITORIO: [string, RegExp][] = [
   ["comarca, vara, juízo ou foro com nome próprio", /\b(Comarca|Vara|Ju[íi]zo|Foro|Se[çc][ãa]o\s+Judici[áa]ria)\s+(de|da|do)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/],
   ["endereço com nome próprio", /\b(Rua|Avenida|Av\.|Alameda|Pra[çc]a|Edif[íi]cio|Sala|Bairro|Conjunto|Quadra|Lote)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/],
   ["site, domínio ou link", /https?:\/\/|\bwww\.|\.com\.br\b|\.adv\.br\b/i],
+  // ACHADO DA REVISÃO — não havia padrão NENHUM para caminho de máquina, e é justamente o defeito
+  // que a skill de plataforma irmã (lumen-padrao-de-arquivos) nasceu para consertar: a original
+  // dela trazia `H:\Meu Drive\Lúmen`, o disco do dono. Uma skill de plataforma que ensine um
+  // caminho de máquina manda TODO escritório contratante salvar num lugar que só existe num
+  // computador — e o agente, que roda no servidor, nem esse tem.
+  //
+  // Os três formatos entram juntos de propósito: proibir só o do Windows deixaria o de Unix
+  // passar, que foi exatamente o que aconteceu quando sondei esta suíte.
+  ["caminho de máquina Windows", /\b[A-Za-z]:\\/],
+  ["caminho de máquina Unix", /(^|\s|`)\/(home|Users|root|mnt|media)\//],
+  ["caminho de rede UNC", /\\\\[A-Za-z0-9._-]+\\/],
   // ACRÉSCIMO DESTA ENTREGA — as skills servem o Brasil inteiro. Um estado nomeado dentro de uma
   // skill de plataforma presume competência, rito e seccional que valem para uma fração dos
   // contratantes; o agente do escritório de outro estado obedeceria a presunção errada em silêncio.
@@ -183,6 +194,10 @@ teste("a varredura de fato falha na presença de cada padrão — prova negativa
     "Comarca de Goiânia",
     "Rua Exemplo, 100",
     "https://exemplo.com.br",
+    // Os três da revisão: não havia padrão nenhum para caminho de máquina.
+    "salve em H:\\Meu Drive\\Lumen",
+    "salve em /home/usuario/Documentos",
+    "salve em \\\\servidor\\compartilhada",
     "o rito aplicável em Santa Catarina",
     "Escritório Exemplo advocacia",
     "assinado pelo Dr. Fulano",
