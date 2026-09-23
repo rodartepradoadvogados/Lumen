@@ -1,0 +1,13 @@
+# Perfil-modelo do Hermes (lumen-master) — de onde cada perfil de escritório novo é copiado por
+# servidor-hermes/provision_tenant.py.
+#
+# ESTAS QUATRO CHAVES SÃO AS ÚNICAS CONFIRMADAS. O dono colou o que existe hoje na VPS: cada
+# perfil em /root/.hermes/profiles/<nome>/ tem um profile.yaml com "description", "description_auto",
+# "ui_meta" e "_ui_meta_revisions". NENHUMA outra chave foi inventada aqui, e o FORMATO interno
+# exato de "ui_meta" e "_ui_meta_revisions" (se carregam algo além de vazio num perfil novo) NÃO
+# foi confirmado a partir deste repositório — ver o LEIA-ME.md desta pasta antes do primeiro uso.
+
+description: ""
+description_auto: true
+ui_meta: {}
+_ui_meta_revisions: []
