@@ -20,6 +20,7 @@ import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedPro
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { PORTAL_THEME_INIT_SCRIPT } from "@/lib/portalTheme";
 import { podeVerAtendimentos, veTodoOAtendimento, recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
+import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
@@ -61,7 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // vencidas, publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone
     // do PWA (AppBadgeSync) e o badge do item "Alertas" na Sidebar, diferente de
     // `unreadPublications` acima, que é específico da aba/menu Publicações.
-    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id)),
+    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id), podeAcessarAba(user)),
     // Compromissos de hoje MAIS os atrasados — ver getAgendaBadgeCount. (Antes: só hoje.)
     // Critério do reforço "Hoje" do Painel, ver
     // getTodayItems) — alimenta a bolinha do item "Agenda" na Sidebar. Escritório inteiro, não

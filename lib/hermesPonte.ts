@@ -57,13 +57,24 @@ export const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 105_000);
  * WhatsApp) não pode herdar isto: lá, esperar quatro minutos por uma resposta de chat é um
  * defeito, não uma paciência. Ali o orçamento continua sendo o de lib/orcamentoDoPedido.ts.
  *
- * A CORRENTE, do mais curto para o mais longo — cada elo precisa ser menor que o próximo, para
- * quem desiste primeiro ser sempre quem sabe explicar:
- *   este número                                        230s
- *     < ponte (ESPERA_S, servidor-hermes/servidor.py)  240s
- *       < nginx (proxy_read_timeout, LEIA-ME.md)       280s
- *         < Vercel (maxDuration em
- *           app/peticionamento/[id]/confirmar/page.tsx) 300s
+ * ESTE NÚMERO NÃO É MAIS O TETO DA GERAÇÃO, e é importante não confundir os dois. Desde que a
+ * espera saiu de dentro da requisição web, a geração normal do peticionamento vai pelo caminho
+ * ASSÍNCRONO, cujo teto é o do processo na ponte (`ESPERA_S`, hoje 900s = quinze minutos,
+ * espelhado em `TETO_DA_GERACAO_MS`, lib/peticionamentoGeracaoAssincrona.ts). Aqui é só o teto do
+ * caminho SÍNCRONO DE COMPATIBILIDADE — o que roda quando a ponte da VPS ainda não tem
+ * `/chat-async` —, e esse continua preso ao relógio de uma requisição HTTP.
+ *
+ * A CORRENTE DE UMA REQUISIÇÃO WEB, do mais curto para o mais longo — cada elo precisa ser menor
+ * que o próximo, para quem desiste primeiro ser sempre quem sabe explicar:
+ *   este número                                          230s
+ *     < nginx (proxy_read_timeout, LEIA-ME.md)            280s
+ *       < Vercel (maxDuration em
+ *         app/peticionamento/[id]/confirmar/page.tsx)     300s
+ *
+ * A ponte SAIU desta corrente, e a mudança é de significado, não de número: com `ESPERA_S` em
+ * 900s ela deixou de ser o elo seguinte a este e passou a ser o teto de OUTRA corrente (a do
+ * trabalho, que não tem requisição web esperando). Num caminho síncrono contra uma ponte NOVA,
+ * quem corta primeiro continua sendo este número — 230s, muito antes de qualquer outro elo.
  */
 export const ESPERA_PETICIONAMENTO_MS = Number(process.env.HERMES_TIMEOUT_PETICIONAMENTO_MS || 230_000);
 

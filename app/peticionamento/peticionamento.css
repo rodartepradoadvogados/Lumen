@@ -1756,3 +1756,53 @@
 .peticionamento .gerando-promessa strong {
   color: var(--tx-0);
 }
+
+/* ── O AVISO DE ABERTURA DA GERAÇÃO (pedido do dono, 23/09/2026) ──────────────────────────────
+   FAIXA FIXA, e não modal: a mensagem diz que o advogado pode sair da tela, e um diálogo que
+   precisa ser dispensado para ele sair contradiria o próprio texto (ver o cabeçalho de
+   components/peticionamento/GerandoClient.tsx). Fica visível o tempo inteiro da geração, para
+   ainda estar legível para quem voltar à aba no minuto dez.
+
+   O filete de acento na borda esquerda é o mesmo vocabulário que a Central de Alertas usa para
+   severidade: dá peso sem inventar cor nova. Só tokens que já existem. */
+.peticionamento .gerando-aviso {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--accent);
+  background: var(--bg-3);
+}
+.peticionamento .gerando-aviso h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 400;
+  color: var(--tx-0);
+}
+.peticionamento .gerando-aviso p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--tx-1);
+}
+.peticionamento .gerando-aviso p:last-child {
+  margin-bottom: 0;
+}
+.peticionamento .gerando-aviso strong {
+  color: var(--tx-0);
+}
+/* O TEMPO MEDIDO em mono: é número, e número desta casa se lê em mono (o mesmo tratamento do
+   relógio de "em andamento há"). */
+.peticionamento .gerando-aviso-tempo {
+  font-family: var(--font-mono);
+  font-size: 12.5px !important;
+  letter-spacing: 0.01em;
+  color: var(--tx-0) !important;
+}
+/* DE ONDE VEM O NÚMERO. Menor e mais apagado que o resto, porque é procedência, não instrução —
+   mas presente, porque uma faixa medida e uma faixa chutada só se distinguem se estiver escrito. */
+.peticionamento .gerando-aviso-fonte {
+  font-size: 11.5px !important;
+  color: var(--tx-2) !important;
+}

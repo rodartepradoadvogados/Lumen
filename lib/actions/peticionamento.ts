@@ -312,6 +312,48 @@ export async function excluirRascunho(sessaoId: string, confirmado: boolean): Pr
  * de hoje não conhece em vez de gravar lixo no banco — a mesma trava que faz `passoParaRetomar`
  * cair na dedução quando o valor já gravado está torto.
  */
+/**
+ * "ALGUÉM JÁ VIU O DESFECHO DESTA GERAÇÃO" — o que faz o alerta da Central sumir sozinho.
+ *
+ * Chamada pela página da minuta (app/peticionamento/[id]/minuta/page.tsx) nos dois ramos FINAIS:
+ * a minuta pronta e a falha falada. NUNCA no ramo de GERANDO — marcar como visto enquanto o agente
+ * ainda redige apagaria o alerta antes de ele nascer, e o advogado de aba fechada nunca saberia que
+ * a peça ficou pronta. É a diferença entre "abri a tela" e "vi o resultado".
+ *
+ * `updateMany` COM `minutaVistaEm: null` NO `where`, e por dois motivos:
+ *
+ *   · idempotência sem custo: a partir da segunda abertura, zero linhas casam e nada é escrito. O
+ *     alerta já foi embora na primeira, e regravar a data só mudaria quando ele "sumiu";
+ *   · `updatedAt` é `@updatedAt`, e a LISTA DE RASCUNHOS ordena por ele e mostra "atualizado em"
+ *     (ver `gravarPassoDaSessao`, logo abaixo, e o achado de revisão que está escrito lá). Uma
+ *     escrita incondicional no carregamento da página faria ABRIR uma minuta pular o rascunho para
+ *     o topo da lista, como se alguém a tivesse editado — a tela afirmando algo falso sobre quem
+ *     mexeu em quê e quando.
+ *
+ * O `status` no `where` é a mesma trava do parágrafo de cima, agora no banco: mesmo se um dia
+ * alguém chamar isto da tela errada, uma sessão em GERANDO não pode ser marcada como vista.
+ */
+export async function marcarDesfechoDaGeracaoComoVisto(sessaoId: string): Promise<{ ok: true }> {
+  const user = await exigirAcessoAba();
+  // A GUARDA, como toda ação que recebe um `sessaoId` vindo do cliente — e a régua é cobrada por
+  // varredura derivada em lib/testes/peticionamentoIsolamento.teste.ts, que apanhou esta função
+  // exatamente por não chamá-la. O `where` da escrita abaixo também carrega `officeId` (defesa em
+  // profundidade), mas a guarda não é substituível por isso: é ela que dá a MESMA recusa falada de
+  // todas as outras ações quando o id não é deste escritório, em vez de uma escrita que não
+  // acontece em silêncio.
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  await prisma.peticionamentoSessao.updateMany({
+    where: {
+      id: sessaoId,
+      officeId: user.officeId,
+      minutaVistaEm: null,
+      status: { in: ["GERADA", "EXPORTADA", "FALHA_GERACAO"] },
+    },
+    data: { minutaVistaEm: new Date() },
+  });
+  return { ok: true };
+}
+
 export async function gravarPassoDaSessao(sessaoId: string, passo: string): Promise<{ ok: true } | { error: string }> {
   const user = await exigirAcessoAba();
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
@@ -1407,12 +1449,16 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
   // `geracaoIniciadaEm` é gravado aqui também, sem tarefa nenhuma: é o relógio que impede uma
   // sessão de ficar "gerando" para sempre se esta função morrer no meio (a Vercel cortando a
   // função é exatamente o caso). Sem ele, o cron não teria como saber desde quando.
+  // O MESMO instante vai para o banco e para a medição, guardado numa variável: dois `new Date()`
+  // dariam dois números diferentes para a mesma geração, e o que a tela mostraria depois como
+  // "tempo medido" seria a diferença entre eles somada ao trabalho.
+  const iniciadaEm = new Date();
   await prisma.peticionamentoSessao.update({
     where: { id: sessaoId },
     data: {
       status: "GERANDO",
       hermesTarefaId: null,
-      geracaoIniciadaEm: new Date(),
+      geracaoIniciadaEm: iniciadaEm,
       geracaoDocumentosLidos: nomesLidos,
       documentosNaoLidos,
       contextoBloqueadoMotivo: null,
@@ -1439,6 +1485,10 @@ export async function confirmarTriagemEGerar(sessaoId: string): Promise<{ ok: tr
       contextoResumido: avaliacao.acao === "resumido",
       tipoPecaJaEscolhido: sessao.tipoPeca,
       hermesSessionIdAnterior: sessao.hermesSessionId,
+      // O caminho síncrono MEDE do mesmo jeito: é a mesma geração, com o mesmo relógio, só
+      // esperada dentro da requisição. Deixá-lo de fora faria a faixa do escritório descrever
+      // apenas metade das gerações — e ninguém saberia qual metade.
+      geracaoIniciadaEm: iniciadaEm,
     });
     revalidatePath(`/peticionamento/minuta`);
     return { ok: true };

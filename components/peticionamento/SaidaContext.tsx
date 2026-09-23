@@ -17,6 +17,22 @@ type SaidaContextValor = {
   temTrabalho: boolean;
   marcarTrabalho: () => void;
   pedirSaida: (aoConfirmar: () => void) => void;
+  /**
+   * "Nesta tela, fechar a aba é seguro" — desliga SÓ o gatilho do navegador (beforeunload).
+   *
+   * Existe por causa de UMA tela: a de geração da minuta
+   * (components/peticionamento/GerandoClient.tsx), que diz ao advogado, com todas as letras, que
+   * ele PODE fechar a aba porque a geração continua no servidor e o aviso chega na Central de
+   * Alertas. Sem isto, o navegador perguntava "as alterações podem não ser salvas" um segundo
+   * depois da promessa — uma frase falsa (está tudo gravado) saindo do nosso próprio código,
+   * contradizendo a tela. A casa não escreve promessa que o código não cumpre, e também não impõe
+   * restrição que a tela nega.
+   *
+   * SÓ O GATILHO 1. Os outros três (item de menu, botão voltar, navegar para fora) continuam
+   * mostrando o pop-up de verdade: ali a pessoa CONTINUA no Lúmen e a pergunta segue fazendo
+   * sentido — o que ela nega é a saída da aba, não a existência do trabalho.
+   */
+  declararFechamentoSeguro: (seguro: boolean) => void;
 };
 
 const SaidaContext = createContext<SaidaContextValor | null>(null);
@@ -46,12 +62,16 @@ const TEXTO_SERA_GUARDADO = "Tipo da peça, contexto vinculado, respostas do que
 
 export function ProvedorDeSaida({ children }: { children: React.ReactNode }) {
   const [temTrabalho, setTemTrabalho] = useState(false);
+  // Diferente de `temTrabalho`, este VOLTA a false: ele descreve a TELA em que a pessoa está
+  // agora, não o histórico da sessão. Quem o liga desliga ao sair da tela (ver GerandoClient).
+  const [fechamentoSeguro, setFechamentoSeguro] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const acaoPendente = useRef<(() => void) | null>(null);
   const saindoConfirmado = useRef(false);
   const sentinelaEmpilhada = useRef(false);
 
   const marcarTrabalho = useCallback(() => setTemTrabalho(true), []);
+  const declararFechamentoSeguro = useCallback((seguro: boolean) => setFechamentoSeguro(seguro), []);
 
   const pedirSaida = useCallback(
     (aoConfirmar: () => void) => {
@@ -73,15 +93,19 @@ export function ProvedorDeSaida({ children }: { children: React.ReactNode }) {
   // exige isso desde 2016) — quem aparece aqui é o diálogo NATIVO do navegador ("Sair do site? As
   // alterações podem não ser salvas"), nunca o texto do §4. É o teto do que a plataforma web
   // permite; os outros três gatilhos abaixo mostram o pop-up de verdade.
+  // E ELE NÃO DISPARA quando a tela atual declarou que fechar a aba é seguro (a tela de geração —
+  // ver `declararFechamentoSeguro` acima). Dois estados diferentes, e a diferença é justamente o
+  // que o `beforeunload` não sabia ver: "há trabalho nesta sessão" não é o mesmo que "há algo que
+  // se perde se esta aba fechar agora".
   useEffect(() => {
-    if (!temTrabalho) return;
+    if (!temTrabalho || fechamentoSeguro) return;
     function aoTentarFechar(e: BeforeUnloadEvent) {
       e.preventDefault();
       e.returnValue = "";
     }
     window.addEventListener("beforeunload", aoTentarFechar);
     return () => window.removeEventListener("beforeunload", aoTentarFechar);
-  }, [temTrabalho]);
+  }, [temTrabalho, fechamentoSeguro]);
 
   // GATILHO 2 — botão "voltar" do navegador: empilha uma entrada extra no histórico assim que há
   // trabalho em andamento, para que o "voltar" físico gere um `popstate` interceptável aqui, em
@@ -118,7 +142,7 @@ export function ProvedorDeSaida({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SaidaContext.Provider value={{ temTrabalho, marcarTrabalho, pedirSaida }}>
+    <SaidaContext.Provider value={{ temTrabalho, marcarTrabalho, pedirSaida, declararFechamentoSeguro }}>
       {children}
       {modalAberto && (
         <div className="modal-scrim" role="dialog" aria-modal="true" aria-labelledby="saida-titulo">

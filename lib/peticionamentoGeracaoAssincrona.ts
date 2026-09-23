@@ -45,6 +45,7 @@
 // segundo lugar para esquecer uma delas.
 // ============================================================================================
 
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 import { consultarGeracaoNoHermes, GeracaoPerdidaNaPonte } from "@/lib/hermesPonte";
@@ -52,6 +53,14 @@ import { interpretarRespostaHermes } from "@/lib/peticionamentoRespostaHermes";
 import { garantirFecho } from "@/lib/peticionamentoFecho";
 import { filtrarNotaDeRiscos, comAvisoDeContextoResumido } from "@/lib/peticionamentoRiscos";
 import { sincronizarCitacoes } from "@/lib/peticionamentoCitacoesSync";
+import { faixaDeGeracao, MEDICOES_CONSIDERADAS, TETO_DA_GERACAO_MS, type FaixaDeGeracao } from "@/lib/peticionamentoTempoDeGeracao";
+
+// O TETO DO TRABALHO (quinze minutos, espelho de HERMES_TIMEOUT_S) mora em
+// lib/peticionamentoTempoDeGeracao.ts, que é PURO — a tela de geração é componente de cliente e
+// precisa dele para a frase que promete o teto ao advogado; este módulo importa `prisma`, e
+// arrastá-lo para o pacote do navegador quebra o build. Reexportado aqui porque é aqui que a ORDEM
+// da corrente está escrita e cobrada (teto do trabalho < prazo máximo < validade da tarefa).
+export { TETO_DA_GERACAO_MS };
 
 /**
  * Quanto o cron espera antes de olhar para uma sessão em GERANDO.
@@ -61,10 +70,18 @@ import { sincronizarCitacoes } from "@/lib/peticionamentoCitacoesSync";
  * de forma inofensiva, graças à reivindicação atômica, mas desperdiçando trabalho em praticamente
  * toda geração.
  *
- * Dois minutos, e não os três de lib/transcricaoAssincrona.ts, porque aqui a espera máxima do
- * trabalho em si é conhecida e curta (o teto do processo na ponte é `HERMES_TIMEOUT_S`, 240s):
- * esperar mais que isso seria deixar o advogado de aba fechada sem resposta por mais tempo do que
- * a geração inteira leva.
+ * DOIS MINUTOS, e eles continuam dois depois de o teto do trabalho subir para quinze minutos —
+ * agora por outro motivo, e o motivo antigo não vale mais. Antes a justificativa era "o trabalho
+ * todo cabe em 240s, esperar mais seria esperar mais que a geração inteira". Com o teto em 900s a
+ * folga passou a ser MUITO menor que o trabalho, e a conta virou outra:
+ *
+ *   · o que se ganha mantendo curta: a sessão de aba fechada é colhida na PRIMEIRA varredura
+ *     depois de a peça ficar pronta, e não uma rodada de cinco minutos depois;
+ *   · o que se paga: enquanto a geração corre, o cron a encontra e pergunta à ponte umas duas ou
+ *     três vezes, recebendo "ainda trabalhando". É uma pergunta curta à ponte, não uma chamada de
+ *     modelo — e a reivindicação atômica já garante que colher duas vezes é impossível.
+ *
+ * Aumentar a folga para "não incomodar" trocaria custo nenhum por espera real do advogado.
  */
 export const GRACA_ANTES_DO_CRON_MS = 2 * 60_000;
 
@@ -84,13 +101,48 @@ export const JANELA_DE_BUSCA_DO_CRON_MS = 24 * 60 * 60_000;
  * Depois de quanto tempo uma geração é dada por perdida, mesmo que a ponte ainda diga
  * "trabalhando".
  *
- * É a trava contra a espera infinita, e ela é generosa de propósito: o teto do processo do lado
- * da ponte é `HERMES_TIMEOUT_S` (240s por padrão), então quinze minutos são várias vezes o pior
- * caso real — só chega aqui quem está de fato preso. E fica ABAIXO da validade das tarefas na
- * ponte (`HERMES_TAREFA_VALIDADE_S`, 1800s por padrão), para nunca declarar perdida uma tarefa
- * que a ponte ainda tem na mão e ainda vai entregar.
+ * É a trava contra a espera infinita, e ela fica ACIMA do teto do trabalho (`TETO_DA_GERACAO_MS`,
+ * 15 min) de propósito: uma geração que está no seu último minuto legítimo não pode ser declarada
+ * perdida por este relógio. Vinte minutos deixam cinco de margem — o bastante para a ponte
+ * terminar, para o `--run-budget` fechar o texto e para a varredura do cron (que corre a cada
+ * cinco minutos) chegar ao menos uma vez depois de a peça estar pronta.
+ *
+ * E fica ABAIXO da validade das tarefas na ponte (`HERMES_TAREFA_VALIDADE_S`, 2400s por padrão),
+ * para nunca declarar perdida uma tarefa que a ponte ainda tem na mão e ainda vai entregar.
+ *
+ * A ORDEM É A REGRA, e é ela que a suíte cobra (nunca os números):
+ *   folga do cron < TETO_DA_GERACAO_MS < PRAZO_MAXIMO_DA_GERACAO_MS < validade da tarefa na ponte,
+ * com a janela de busca do cron cobrindo tudo.
  */
-export const PRAZO_MAXIMO_DA_GERACAO_MS = 15 * 60_000;
+export const PRAZO_MAXIMO_DA_GERACAO_MS = 20 * 60_000;
+
+/**
+ * QUANTO ESTA GERAÇÃO LEVOU — ou `null` quando não há como medir.
+ *
+ * É o número que a tela de geração passa a mostrar em vez de um chute (ver
+ * lib/peticionamentoTempoDeGeracao.ts, que faz a estatística, e o contrato de
+ * `PeticionamentoSessao.geracaoDuracaoMs` no schema). Mora AQUI porque é o relógio da própria
+ * geração: o mesmo `geracaoIniciadaEm` que a rede de segurança por cron usa, lido com a mesma
+ * régua de sanidade (`PRAZO_MAXIMO_DA_GERACAO_MS`).
+ *
+ * DEVOLVER `null` É METADE DO TRABALHO DESTA FUNÇÃO, e os três casos são o motivo de ela existir
+ * em vez de uma subtração escrita no meio da gravação:
+ *
+ *   · SEM `iniciadaEm` (sessão de antes desta entrega, ou relógio perdido): não se chuta a partir
+ *     de `updatedAt`. Um número chutado gravado num campo chamado "duração" volta depois como
+ *     "medição do escritório" — exatamente a mentira que a medição existe para não contar;
+ *   · duração zero ou negativa: relógio do servidor corrigido para trás. Não é medida de nada;
+ *   · duração acima do prazo máximo: nenhuma geração legítima passa dali (o Lúmen a teria
+ *     declarado perdida). É sessão que ficou plantada e foi colhida muito depois — e ela
+ *     envenenaria a mediana do escritório para cima, na direção de assustar o advogado.
+ */
+export function duracaoDaGeracaoMs(iniciadaEm: Date | null | undefined, terminadaEm: Date): number | null {
+  if (!iniciadaEm) return null;
+  const ms = terminadaEm.getTime() - iniciadaEm.getTime();
+  if (!Number.isFinite(ms) || ms <= 0) return null;
+  if (ms > PRAZO_MAXIMO_DA_GERACAO_MS) return null;
+  return Math.round(ms);
+}
 
 /** Quantas sessões o cron colhe por rodada — o resto espera a próxima, sem problema nenhum. */
 const MAXIMO_POR_RODADA = 20;
@@ -244,7 +296,14 @@ export async function gravarMinutaGerada(dados: {
   contextoResumido: boolean;
   tipoPecaJaEscolhido: string | null;
   hermesSessionIdAnterior: string | null;
+  /**
+   * Quando esta geração COMEÇOU — o relógio da medição. `null` só nos casos em que não há relógio
+   * (sessão de antes da entrega do acompanhamento), e aí a geração fica SEM duração gravada em vez
+   * de com uma duração inventada.
+   */
+  geracaoIniciadaEm: Date | null;
 }): Promise<boolean> {
+  const agora = new Date();
   const estruturada = interpretarRespostaHermes(dados.respostaBruta);
   const corpoComFecho = garantirFecho(estruturada.corpo);
   const riscosFiltrados = filtrarNotaDeRiscos(estruturada.riscos);
@@ -270,7 +329,15 @@ export async function gravarMinutaGerada(dados: {
       tipoPecaInferido: !dados.tipoPecaJaEscolhido && !!estruturada.tipoPecaInferido,
       tipoPeca: !dados.tipoPecaJaEscolhido && estruturada.tipoPecaInferido ? estruturada.tipoPecaInferido : dados.tipoPecaJaEscolhido,
       hermesSessionId: dados.sessaoDoHermes || dados.hermesSessionIdAnterior,
-      geradoEm: new Date(),
+      geradoEm: agora,
+      // A MEDIÇÃO, gravada DENTRO da reivindicação atômica e em nenhum outro lugar.
+      //
+      // Aqui, e não num segundo `update` depois: quem perde a corrida do `where` não grava minuta,
+      // e também não pode gravar duração — duas gravações somariam a mesma geração duas vezes na
+      // estatística do escritório (e a segunda mediria até o instante da SEGUNDA colheita, que é
+      // mais tarde). Um número medido que conta a mesma coisa duas vezes é um número inventado com
+      // etapas extras.
+      geracaoDuracaoMs: duracaoDaGeracaoMs(dados.geracaoIniciadaEm, agora),
       // A geração terminou: a tarefa não existe mais do lado da ponte, e não pode ficar aqui
       // convidando uma segunda colheita.
       hermesTarefaId: null,
@@ -401,6 +468,12 @@ export async function colherGeracaoDaMinuta(sessaoId: string): Promise<Andamento
       contextoResumido: Boolean(sessao.contextoResumoAviso),
       tipoPecaJaEscolhido: sessao.tipoPeca,
       hermesSessionIdAnterior: sessao.hermesSessionId,
+      // O RELÓGIO DA MEDIÇÃO é `geracaoIniciadaEm`, e SÓ ele — sem o socorro de `updatedAt` que
+      // esta mesma função usa para decidir o prazo. Para decidir "já passou do prazo?", uma
+      // aproximação serve (o erro é para o lado de esperar mais); para MEDIR, não serve: o
+      // `updatedAt` é tocado por qualquer escrita na sessão, e a "duração" medida a partir dele
+      // seria o tempo até a última escrita, apresentado ao advogado como tempo de produção.
+      geracaoIniciadaEm: sessao.geracaoIniciadaEm,
     });
   } catch (erro) {
     // A PEÇA JÁ SAIU DA PONTE (ler um resultado final apaga a tarefa de lá) e a gravação falhou.
@@ -458,4 +531,52 @@ export async function varrerGeracoesDeMinutaPendentes(): Promise<{ colhidas: num
     }
   }
   return { colhidas, falharam, aindaTrabalhando };
+}
+
+/**
+ * A FAIXA MEDIDA DESTE ESCRITÓRIO — o que a tela mostra em vez de um tempo chutado.
+ *
+ * `officeId` no `where`, como toda leitura desta casa. Só gerações que TERMINARAM bem entram: uma
+ * falha não é medida de tempo de produção, e uma sessão ainda em GERANDO não tem duração nenhuma (o
+ * campo só é escrito na gravação da minuta).
+ *
+ * As mais RECENTES, e não todas: a máquina, o tamanho típico dos processos e o próprio orçamento do
+ * agente mudam com o tempo, e uma média histórica descreveria um servidor que já não existe.
+ *
+ * A ESTATÍSTICA NÃO ESTÁ AQUI — está em `faixaDeGeracao`, que é pura e exercitada. Aqui só a
+ * leitura: é a divisão que permite provar o critério sem banco de mentira.
+ */
+/**
+ * O `where` das MEDIÇÕES, em função própria e exportada — pelo mesmo motivo de
+ * `whereMinutaPronta` em lib/alerts.ts: um filtro escrito dentro da chamada não tem como ser
+ * exercitado por teste, só varrido.
+ *
+ * ACHADO DA REVISÃO: este filtro nasceu embutido na consulta, e o `officeId` dele não estava
+ * coberto. Tirei o `officeId` e as 29 asserções da suíte nova ficaram VERDES — o corte da OUTRA
+ * consulta (`whereMinutaPronta`) estava exercitado, o desta não. A assimetria de sempre: prova-se
+ * uma das duas.
+ *
+ * O estrago não é vazamento de dado de processo — é a tela AFIRMAR uma coisa falsa. Sem o
+ * `officeId`, a mediana passa a ser a da PLATAFORMA INTEIRA, e ela aparece embaixo da frase que
+ * promete "medido nas gerações deste escritório, não estimado". Um escritório que gera peças
+ * curtas leria o tempo de outro que gera peças longas, e a frase que dá procedência ao número
+ * seria exatamente a parte mentirosa. Numa entrega cujo ponto INTEIRO é não inventar número, o
+ * número errado com selo de medido é pior do que número nenhum.
+ */
+export function whereMedicoesDoEscritorio(officeId: string) {
+  return {
+    officeId,
+    geracaoDuracaoMs: { not: null },
+    status: { in: ["GERADA", "EXPORTADA"] },
+  } satisfies Prisma.PeticionamentoSessaoWhereInput;
+}
+
+export async function faixaDeGeracaoDoEscritorio(officeId: string): Promise<FaixaDeGeracao> {
+  const linhas = await prisma.peticionamentoSessao.findMany({
+    where: whereMedicoesDoEscritorio(officeId),
+    orderBy: { geradoEm: "desc" },
+    take: MEDICOES_CONSIDERADAS,
+    select: { geracaoDuracaoMs: true },
+  });
+  return faixaDeGeracao(linhas.map((l) => l.geracaoDuracaoMs));
 }

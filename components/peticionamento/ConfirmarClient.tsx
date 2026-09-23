@@ -50,7 +50,7 @@ export function ConfirmarClient({ sessaoId, resumo }: { sessaoId: string; resumo
       // mostrar o andamento e dizer que a aba pode ser fechada.
       //
       // O DESTINO É O MESMO DE ANTES, de propósito: um caminho só para o advogado, dê a geração
-      // dois segundos ou quatro minutos.
+      // dois segundos ou os quinze minutos que o teto de hoje permite (TETO_DA_GERACAO_MS).
       router.push(`/peticionamento/${sessaoId}/minuta`);
     });
   }
