@@ -68,6 +68,7 @@ const SKILLS = [
   "pos-venda-satisfacao",
   "conteudo-autoridade",
   "resumo-pecas",
+  "usar-o-lumen",
 ] as const;
 
 function caminhoDa(skill: string): string {
@@ -674,6 +675,50 @@ teste("HARD GATE: em resumo-pecas, a remissão da tutela provisória aponta para
     numeroApontado,
     numeroDaTutela,
     "a remissão da tutela provisória aponta para o passo errado — o agente seguiria a instrução de outra seção",
+  );
+});
+
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// usar-o-lumen — as duas confusões que produzem resposta confiante e errada
+// ──────────────────────────────────────────────────────────────────────────────────────────
+//
+// Esta skill nasceu para o agente USAR o que o Lúmen já faz em vez de reimplementar. Duas
+// afirmações dentro dela foram conferidas no código, e as duas contrariaram a classificação que a
+// supervisão havia feito de cabeça — é por isso que viraram trava:
+//
+//   1. O MÓDULO DE COMUNICADOS AVISA A EQUIPE, NÃO O CLIENTE. Toda chamada da fila de notificação
+//      recebe um usuário interno; não há caminho de andamento processual chegando ao cliente por
+//      ali. Uma skill que dissesse o contrário faria o agente garantir ao advogado que o cliente
+//      "já foi avisado" quando ninguém foi.
+//
+//   2. O PAINEL DA PLATAFORMA NÃO É O PAINEL DO ESCRITÓRIO. O console administrativo da própria
+//      Lúmen é restrito a quem opera a plataforma; os indicadores do escritório contratante vivem
+//      em outra área. Esta é uma skill de PLATAFORMA, usada por qualquer escritório — nomear a tela
+//      errada manda o advogado a um lugar onde ele nem entra.
+
+teste("HARD GATE: usar-o-lumen não confunde aviso à equipe com mensagem ao cliente", () => {
+  const texto = textoDa("usar-o-lumen");
+  verdade(
+    /equipe\s+do\s+escrit[óo]rio/i.test(texto),
+    "usar-o-lumen deixou de dizer que o aviso automático é para a equipe do escritório",
+  );
+  verdade(
+    /(n[ãa]o\s+o\s+cliente|n[ãa]o\s+[ée]\s+uma\s+mensagem\s+que\s+chega\s+ao\s+cliente)/i.test(texto),
+    "usar-o-lumen perdeu a negativa explícita de que o aviso chega ao cliente — é a confusão que faria o agente garantir que o cliente foi avisado quando ninguém foi",
+  );
+});
+
+teste("HARD GATE: usar-o-lumen não nomeia o console da plataforma como painel do escritório", () => {
+  const texto = textoDa("usar-o-lumen");
+  // A skill é de PLATAFORMA: nomear a tela restrita a quem opera a Lúmen manda o advogado de um
+  // escritório contratante a um lugar onde ele nem entra.
+  verdade(
+    !/painel\s+mestre/i.test(texto),
+    "usar-o-lumen voltou a nomear o console da plataforma — ele não é a tela de indicadores do escritório contratante",
+  );
+  verdade(
+    /(n[ãa]o\s+presuma|confirme\s+com\s+o\s+L[úu]men|pergunte\s+ao\s+administrador)/i.test(texto),
+    "usar-o-lumen perdeu a instrução de confirmar qual é a tela de indicadores em vez de nomeá-la",
   );
 });
 
