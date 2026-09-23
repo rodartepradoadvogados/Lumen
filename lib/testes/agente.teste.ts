@@ -28,13 +28,13 @@ const PUBLICO = "lumen-agente-ferramentas";
 // ── A credencial carrega a permissão, e só ela ───────────────────────────────────────────────
 
 teste("quem tem acesso ao financeiro atravessa com ele", async () => {
-  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: true, admin: true, sessionId: "s1" });
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: true, admin: true, escopo: "conversa", sessionId: "s1" });
   const p = await lerCredencial(t);
-  igual(p, { officeId: "esc1", userId: "u1", financeiro: true, admin: true, sessionId: "s1" });
+  igual(p, { officeId: "esc1", userId: "u1", financeiro: true, admin: true, escopo: "conversa", sessionId: "s1" });
 });
 
 teste("quem NÃO tem acesso ao financeiro não o adquire no caminho", async () => {
-  const t = await emitirCredencial({ officeId: "esc1", userId: "u2", financeiro: false, admin: false });
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u2", financeiro: false, admin: false, escopo: "conversa" });
   const p = await lerCredencial(t);
   verdade(p, "a credencial deveria ser válida");
   igual(p!.financeiro, false, "financeiro: ");
@@ -46,7 +46,7 @@ teste("acesso ao financeiro NÃO arrasta a condição de sócio junto", async ()
   // O caso que a regra dos dois níveis existe para cobrir: quem paga as contas do escritório tem
   // financeiro, e não pode ter indicador. Se os dois campos viajassem colados, bastaria o acesso
   // ao financeiro para saber a margem de lucro da sociedade.
-  const t = await emitirCredencial({ officeId: "esc1", userId: "u9", financeiro: true, admin: false });
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u9", financeiro: true, admin: false, escopo: "conversa" });
   const p = await lerCredencial(t);
   igual(p!.financeiro, true, "financeiro: ");
   igual(p!.admin, false, "admin: ");
@@ -123,7 +123,7 @@ teste("credencial vencida não abre nada", async () => {
 });
 
 teste("credencial adulterada não abre nada", async () => {
-  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: false, admin: false });
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: false, admin: false, escopo: "conversa" });
   const [cabeca, carga, assinatura] = t.split(".");
   // Troca a carga por uma que concede o financeiro, mantendo a assinatura antiga.
   const outraCarga = Buffer.from(
@@ -154,7 +154,7 @@ teste("um cookie de sessão NÃO serve como credencial de ferramenta", async () 
 });
 
 teste("uma credencial de ferramenta NÃO serve como cookie de sessão", async () => {
-  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: true, admin: true });
+  const t = await emitirCredencial({ officeId: "esc1", userId: "u1", financeiro: true, admin: true, escopo: "conversa" });
   igual(await verifySession(t), null);
 });
 

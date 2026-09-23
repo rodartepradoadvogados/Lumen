@@ -79,6 +79,25 @@ export const ESPERA_MS = Number(process.env.HERMES_TIMEOUT_MS || 105_000);
 export const ESPERA_PETICIONAMENTO_MS = Number(process.env.HERMES_TIMEOUT_PETICIONAMENTO_MS || 230_000);
 
 /**
+ * O TETO DO PROCESSO NA PONTE — do TRABALHO em si, não de uma requisição HTTP.
+ *
+ * ESPELHO de `ESPERA_S` em `servidor-hermes/servidor.py` (variável de ambiente
+ * `HERMES_TIMEOUT_S`, padrão 900s = quinze minutos): é lá, do lado da VPS, que o `subprocess` do
+ * Hermes é morto se a geração não terminar a tempo. O Lúmen não aplica esse corte — só precisa
+ * SABER dele, porque tudo o que mora deste lado e precisa sobreviver ao trabalho inteiro (a
+ * credencial de ferramentas do peticionamento, logo abaixo) tem de valer MAIS do que isto, nunca
+ * menos. Foi exatamente o contrário — uma credencial de 5 minutos escoltando um trabalho de até
+ * 15 — que manteve as ferramentas do peticionamento desligadas sem ninguém perceber.
+ *
+ * SEM VARIÁVEL DE AMBIENTE DE PROPÓSITO: `HERMES_TIMEOUT_S` é lida pelo `servidor.py`, na VPS —
+ * um `process.env` aqui, no Lúmen (Vercel), leria o ambiente ERRADO e mentiria sobre o teto do
+ * ambiente CERTO. Por isso é um literal, igual ao espelho que já existe em
+ * `TETO_DA_GERACAO_MS` (lib/peticionamentoTempoDeGeracao.ts) — os DOIS têm de mudar juntos com
+ * `ESPERA_S`, à mão, no dia em que alguém decidir que quinze minutos não bastam mais.
+ */
+export const TETO_DA_PONTE_S = 900;
+
+/**
  * O nome do perfil do Hermes para um escritório.
  *
  * O desenho é um perfil por inquilino, `lumen-tenant-<slug>`, e é para lá que isto caminha. Mas a

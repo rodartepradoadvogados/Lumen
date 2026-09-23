@@ -150,6 +150,11 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         financeiro: Boolean(user.isAdmin || user.financeAccess),
         admin: Boolean(user.isAdmin),
+        // ESTA É UMA PERGUNTA DE CHAT, não uma geração de peça: escopo "conversa" — cinco
+        // minutos, o catálogo inteiro que a permissão financeira já filtra. Ver
+        // lib/agenteCredencial.ts (EscopoDaCredencial) e a parede por escopo em
+        // app/api/agente/ferramentas/route.ts.
+        escopo: "conversa",
         sessionId: sessaoId,
       });
 
