@@ -1945,6 +1945,13 @@
 .peticionamento .minuta-corpo {
   outline: none;
   min-height: 120mm;
+  /* JUSTIFICADO POR PADRÃO — e isto não é gosto, é fidelidade. O .docx da petição sempre justificou
+     o corpo (lib/peticionamentoDocx.ts), e desde que a formatação passou a viajar para o Word
+     (lib/peticionamentoDocxFormatado.ts) o parágrafo sem `text-align` próprio sai justificado lá.
+     Se a folha mostrasse alinhado à esquerda, a tela e o arquivo discordariam no caso mais comum de
+     todos: o parágrafo em que ninguém clicou em nada. Quem quiser outro alinhamento tem os quatro
+     botões da barra, e o que eles escrevem no HTML manda aqui e no Word. */
+  text-align: justify;
 }
 .peticionamento .minuta-corpo:focus-visible {
   outline: none;

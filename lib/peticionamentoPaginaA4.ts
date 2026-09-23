@@ -42,6 +42,16 @@ export const PAGINA_A4 = {
 } as const;
 
 /**
+ * UM PASSO DE RECUO — 1,25 cm, o mesmo salto de tabulação que o Word usa por padrão.
+ *
+ * Mora aqui, e não no editor, porque passou a ser medida COMPARTILHADA: a barra da minuta usa este
+ * passo ao aumentar/diminuir recuo, e lib/peticionamentoDocxFormatado.ts usa o MESMO passo no recuo
+ * de cada nível de lista do `numbering.xml`. Duas cópias divergiriam no dia em que alguém ajustasse
+ * uma só, e o sub-tópico apareceria numa distância na tela e noutra no Word.
+ */
+export const PASSO_DE_RECUO_MM = 12.5;
+
+/**
  * Limites para a régua da tela: nenhuma margem pode encostar na outra nem sair da folha, senão a
  * área de texto vira zero (ou negativa) e a folha aparece vazia sem ninguém entender por quê.
  */

@@ -140,14 +140,14 @@ export function textoPuroDaMinutaHtml(html: string): string {
   while (i < html.length) {
     const abre = html.indexOf("<", i);
     if (abre < 0) {
-      pedacos.push(textoDeNo(html.slice(i)));
+      pedacos.push(textoLiteralDeNoHtml(html.slice(i)));
       break;
     }
-    if (abre > i) pedacos.push(textoDeNo(html.slice(i, abre)));
+    if (abre > i) pedacos.push(textoLiteralDeNoHtml(html.slice(i, abre)));
     const fecha = html.indexOf(">", abre);
     if (fecha < 0) {
       // "<" solto no fim: é texto, não tag — nunca engole o resto do documento em silêncio.
-      pedacos.push(textoDeNo(html.slice(abre)));
+      pedacos.push(textoLiteralDeNoHtml(html.slice(abre)));
       break;
     }
     const rotulo = html.slice(abre + 1, fecha).trim();
@@ -171,8 +171,13 @@ export function textoPuroDaMinutaHtml(html: string): string {
  * virando espaço — em HTML ela é só espaço, e deixá-la passar inventaria parágrafo onde o
  * advogado não pediu nenhum. Espaço duplo DIGITADO é preservado (não é colapsado): ele existe em
  * texto de petição e sumir com ele mudaria o corpo sem ninguém ter pedido.
+ *
+ * EXPORTADA porque lib/peticionamentoDocxFormatado.ts, que traduz o mesmo HTML para OOXML, precisa
+ * exatamente desta regra para o texto de cada nó. Duas cópias dela decodificariam entidade de forma
+ * diferente no dia em que uma das duas ganhasse um `&hellip;` a mais — e o corpo do Word deixaria
+ * de casar com o texto puro que sustenta o hash das citações.
  */
-function textoDeNo(bruto: string): string {
+export function textoLiteralDeNoHtml(bruto: string): string {
   // A quebra de linha do fonte e o recuo em volta dela são UM espaço só — é assim que o HTML se
   // comporta. Espaço duplo SEM quebra no meio fica intacto: é conteúdo do parágrafo.
   return decodificarEntidades(bruto).replace(/[^\S\r\n]*[\r\n]+[^\S\r\n]*/g, " ");
