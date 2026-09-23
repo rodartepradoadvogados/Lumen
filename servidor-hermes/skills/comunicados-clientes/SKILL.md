@@ -127,13 +127,36 @@ Por isso, **não entram** num comunicado ao cliente:
   `analise-risco-processual`, comunicada ao cliente de forma qualitativa e cautelosa quando for o
   caso, nunca como um número solto num comunicado de andamento, que o cliente vai guardar como
   promessa;
-- **valor de acordo em negociação**, enquanto a negociação ainda estiver em curso — divulgar a
-  cifra que está sobre a mesa, mesmo ao próprio cliente, por um canal que pode circular, enfraquece
-  a posição do escritório na mesa;
 - **nome da contraparte, quando desnecessário** ao entendimento do andamento — o cliente já sabe
   quem é a outra parte no seu próprio caso na maioria das vezes, mas comunicados que citam nome de
   terceiro sem necessidade (testemunha, perito, outra parte de um litisconsórcio) espalham dado que
   não era preciso espalhar.
+
+### O valor de acordo é exceção, e no sentido contrário: ele TEM de chegar ao cliente
+
+Este item está fora da lista acima de propósito, porque ele é a armadilha simétrica — e a errada
+aqui custa mais que um vazamento.
+
+**Aceitar ou recusar acordo é decisão do cliente, não do escritório.** A proposta que está sobre a
+mesa, o valor, as condições e o prazo para responder são exatamente a informação sem a qual ele não
+pode decidir nada. Omitir a cifra do cliente não é cautela: é decidir por ele, e inverte quem é
+dono do caso. **Nunca deixe o valor de fora de um comunicado para "preservar a posição do
+escritório na negociação"** — a posição do escritório na mesa é a que o cliente autorizar, e ele
+não pode autorizar o que não sabe.
+
+O que esta skill controla aqui não é **se** informa, é **como**:
+
+- **Canal.** Cifra e condições não vão numa mensagem curta que circula com facilidade. Vão por
+  canal que o cliente abra com reserva, ou em conversa registrada depois — e o comunicado curto, se
+  houver, diz que existe proposta e pede o contato, sem o número.
+- **Registro.** O comunicado precisa deixar rastro de que o cliente foi informado do valor e das
+  condições, e do que ele instruiu. É isso que protege o escritório, não o silêncio.
+- **Sem recomendação disfarçada de informação.** Informar a proposta e opinar sobre aceitá-la são
+  duas coisas; a segunda é do advogado responsável, com fundamento, e não se mistura ao relato do
+  andamento.
+- **Prazo da proposta.** Se a proposta tem prazo para resposta, ele vai junto, com a mesma etiqueta
+  de conferência da seção seguinte — prazo de acordo perdido por comunicado vago é dano que não se
+  desfaz.
 
 ## Nada de prometer resultado nem prazo fechado
 
@@ -233,8 +256,10 @@ Não narra andamento de memória: todo fato sai de uma das sete ferramentas de c
 sai delas não entra no texto. Não adia nem suaviza notícia ruim até que "fique mais fácil" — trata
 decisão desfavorável, prazo perdido e pedido negado com a mesma objetividade da boa notícia, e
 trata a ausência de novidade como conteúdo do comunicado quando o cliente espera uma atualização.
-Não inclui estratégia, tese ainda não apresentada, avaliação de chance, valor de acordo em
-negociação ou nome de contraparte desnecessário. Não promete resultado nem data fechada, e nunca
+Não inclui estratégia, tese ainda não apresentada, avaliação de chance ou nome de contraparte
+desnecessário — e **não confunde essa lista com o valor de acordo, que é o contrário disso**: a
+proposta sobre a mesa chega ao cliente sempre, porque aceitar ou recusar é decisão dele; o que a
+skill escolhe é o canal e o registro, nunca se informa. Não promete resultado nem data fechada, e nunca
 entrega prazo ou data de decisão sem a etiqueta de conferência viajando dentro do próprio bloco do
 comunicado. Não decide se o caso pode ser aceito — isso é sempre de `conflict-check` — e não
 transforma comunicado ou resultado favorável em material de divulgação sem passar por
