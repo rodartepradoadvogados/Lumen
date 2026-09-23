@@ -30,8 +30,9 @@ import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
 import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, type DeducaoDeNatureza } from "@/lib/peticionamentoNatureza";
 import { passoParaRetomar, ehPassoValido, hrefDoPasso, ROTULO_DO_PASSO, sessaoTemTrabalhoEmAndamento } from "@/lib/peticionamentoPasso";
 import { montarMensagemParaHermes, custoFixoDaMensagem, type DadosParaPrompt } from "@/lib/peticionamentoPrompt";
-import { hashDeTexto } from "@/lib/peticionamentoCitacoes";
+import { hashDeTexto, normalizarTextoCitacao } from "@/lib/peticionamentoCitacoes";
 import { sincronizarCitacoes } from "@/lib/peticionamentoCitacoesSync";
+import { avaliarFonteDeCitacao, avaliarAprovacaoDeMinuta, type AvaliacaoDeFonte } from "@/lib/peticionamentoAprovacao";
 import { garantirFecho } from "@/lib/peticionamentoFecho";
 import { montarNotaObrigatoria } from "@/lib/peticionamentoNotaObrigatoria";
 import { montarNomeArquivoPeticao } from "@/lib/peticionamentoNomeArquivo";
@@ -1192,6 +1193,13 @@ async function descricaoDoContexto(sessaoId: string, officeId: string): Promise<
 }
 
 // ── CITAÇÕES — validação uma a uma antes de exportar (decisão do dono, 22/09/2026) ─────────────
+//
+// ENDURECIMENTO 23/09/2026: o quadro "Citações desta minuta" chegou a mostrar três citações-molde
+// (número mascarado ou de exemplo clássico) com "fonte secundária: não informada pelo agente" — e
+// ainda assim ofereceu "Li e revisei esta citação" para as três. `montarListaDeCitacoes` passou a
+// RECUSAR citação-molde na entrada (ela nunca chega a ser gravada aqui — vira `avisosDeMolde`), e
+// a graduação de fonte (lib/peticionamentoAprovacao.ts) passou a BLOQUEAR a aprovação final,
+// nunca só exibir a ausência.
 
 export type CitacaoParaValidacao = {
   id: string;
@@ -1202,22 +1210,60 @@ export type CitacaoParaValidacao = {
   confirmada: boolean;
   confirmadaPorNome: string | null;
   confirmadaEm: Date | null;
+  /** Graduação da fonte pelo Passo 4 da skill pesquisa-jurisprudencia — nunca uma checagem própria do Lúmen. */
+  fonte: AvaliacaoDeFonte;
+};
+
+export type CitacaoExcluidaParaTela = {
+  id: string;
+  tipo: "EMENTA" | "TRECHO";
+  texto: string;
+  excluidaPorNome: string | null;
+  excluidaEm: Date | null;
+  /** O texto ainda aparece no corpo ATUAL da minuta — excluir o registro nunca apaga o texto. */
+  aindaNoCorpo: boolean;
+};
+
+export type AvisoDeMoldeParaTela = {
+  origem: "EMENTA" | "TRECHO";
+  textoOriginal: string;
+  identificadorMolde: string;
+};
+
+export type ListaDeCitacoesParaTela = {
+  citacoes: CitacaoParaValidacao[];
+  excluidas: CitacaoExcluidaParaTela[];
+  avisosDeMolde: AvisoDeMoldeParaTela[];
+  aprovacao: {
+    podeAprovar: boolean;
+    motivos: string[];
+    aprovadaEm: Date | null;
+    aprovadaPorNome: string | null;
+  };
 };
 
 /**
  * A lista de validação (decisão do dono, 22/09/2026): ementas citadas + trechos soltos, sempre
- * recalculada a partir do estado ATUAL da minuta antes de responder — nunca uma foto velha.
+ * recalculada a partir do estado ATUAL da minuta antes de responder — nunca uma foto velha. Desde
+ * 23/09/2026 devolve também as citações EXCLUÍDAS (transparência: o registro some, o texto pode
+ * continuar na minuta), os avisos de MOLDE rejeitados na entrada, e a avaliação do gate de
+ * aprovação final.
  */
-export async function listarCitacoesParaValidacao(sessaoId: string): Promise<CitacaoParaValidacao[]> {
+export async function listarCitacoesParaValidacao(sessaoId: string): Promise<ListaDeCitacoesParaTela> {
   const user = await exigirAcessoAba();
-  await carregarSessaoOuFalhar(sessaoId, user.officeId);
-  await sincronizarCitacoes(sessaoId, user.officeId);
+  const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const { avisosDeMolde } = await sincronizarCitacoes(sessaoId, user.officeId);
   const linhas = await prisma.peticionamentoCitacao.findMany({
     where: { sessaoId },
-    include: { confirmadaPor: { select: { name: true } } },
+    include: { confirmadaPor: { select: { name: true } }, excluidaPor: { select: { name: true } } },
     orderBy: [{ tipo: "asc" }, { createdAt: "asc" }],
   });
-  return linhas.map((c) => ({
+
+  const ativas = linhas.filter((c) => !c.excluidaEm);
+  const excluidas = linhas.filter((c) => c.excluidaEm);
+  const minutaNormalizada = sessao.minutaTexto ? normalizarTextoCitacao(sessao.minutaTexto) : "";
+
+  const citacoes: CitacaoParaValidacao[] = ativas.map((c) => ({
     id: c.id,
     tipo: c.tipo as "EMENTA" | "TRECHO",
     texto: c.texto,
@@ -1226,7 +1272,40 @@ export async function listarCitacoesParaValidacao(sessaoId: string): Promise<Cit
     confirmada: !!c.confirmadaPorId,
     confirmadaPorNome: c.confirmadaPor?.name ?? null,
     confirmadaEm: c.confirmadaEm,
+    fonte: avaliarFonteDeCitacao(c.fonteUrl, c.fonteSecundariaUrl),
   }));
+
+  const excluidasParaTela: CitacaoExcluidaParaTela[] = excluidas.map((c) => ({
+    id: c.id,
+    tipo: c.tipo as "EMENTA" | "TRECHO",
+    texto: c.texto,
+    excluidaPorNome: c.excluidaPor?.name ?? null,
+    excluidaEm: c.excluidaEm,
+    aindaNoCorpo: minutaNormalizada.length > 0 && minutaNormalizada.includes(normalizarTextoCitacao(c.texto)),
+  }));
+
+  const avaliacaoAprovacao = avaliarAprovacaoDeMinuta({
+    citacoes: citacoes.map((c) => ({ confirmada: c.confirmada, fonteUrl: c.fonteUrl, fonteSecundariaUrl: c.fonteSecundariaUrl })),
+    haAvisoDeMolde: avisosDeMolde.length > 0,
+  });
+
+  let aprovadaPorNome: string | null = null;
+  if (sessao.minutaAprovadaPorId) {
+    const aprovador = await prisma.user.findFirst({ where: { id: sessao.minutaAprovadaPorId }, select: { name: true } });
+    aprovadaPorNome = aprovador?.name ?? null;
+  }
+
+  return {
+    citacoes,
+    excluidas: excluidasParaTela,
+    avisosDeMolde: avisosDeMolde.map((a) => ({ origem: a.origem, textoOriginal: a.textoOriginal, identificadorMolde: a.identificadorMolde })),
+    aprovacao: {
+      podeAprovar: avaliacaoAprovacao.podeAprovar,
+      motivos: avaliacaoAprovacao.motivos,
+      aprovadaEm: sessao.minutaAprovadaEm,
+      aprovadaPorNome,
+    },
+  };
 }
 
 /**
@@ -1241,6 +1320,7 @@ export async function confirmarCitacaoIndividual(sessaoId: string, citacaoId: st
   // sessaoId basta, porque sessaoId já foi validado contra o officeId de quem pediu.
   const citacao = await prisma.peticionamentoCitacao.findFirst({ where: { id: citacaoId, sessaoId } });
   if (!citacao) return { error: "Citação não encontrada nesta sessão." };
+  if (citacao.excluidaEm) return { error: "Esta citação foi excluída — não é possível confirmar uma citação excluída." };
   await prisma.peticionamentoCitacao.update({
     where: { id: citacaoId },
     data: { confirmadaPorId: user.id, confirmadaEm: new Date(), hashDoTexto: hashDeTexto(citacao.texto) },
@@ -1249,12 +1329,69 @@ export async function confirmarCitacaoIndividual(sessaoId: string, citacaoId: st
   return { ok: true };
 }
 
-/** Quantas citações ainda faltam confirmar — o botão de exportar usa isto para dizer "faltam N". */
+/**
+ * O botão "Excluir" do quadro "Citações desta minuta" (pedido do dono, 23/09/2026). Excluir o
+ * REGISTRO de citação nunca apaga o texto da minuta — são coisas diferentes de propósito (o
+ * registro é a trava de "li e revisei", o texto é a peça em si). SOFT-DELETE (ver o comentário do
+ * campo `excluidaEm` no schema): sincronizarCitacoes NÃO ressuscita uma linha excluída enquanto o
+ * texto/links dela não mudarem.
+ */
+export async function excluirCitacao(sessaoId: string, citacaoId: string): Promise<{ ok: true; aindaNoCorpo: boolean } | { error: string }> {
+  const user = await exigirAcessoAba();
+  const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const citacao = await prisma.peticionamentoCitacao.findFirst({ where: { id: citacaoId, sessaoId } });
+  if (!citacao) return { error: "Citação não encontrada nesta sessão." };
+  if (citacao.excluidaEm) return { error: "Esta citação já foi excluída." };
+  await prisma.peticionamentoCitacao.update({
+    where: { id: citacaoId },
+    data: { excluidaPorId: user.id, excluidaEm: new Date() },
+  });
+  // A aprovação final (se houver) valia para o conjunto de citações de ANTES desta exclusão —
+  // excluir uma citação muda esse conjunto, então a aprovação precisa ser refeita, pelo mesmo
+  // motivo que editar o corpo já desfaz a confirmação de cada citação cujo texto mudou.
+  await prisma.peticionamentoSessao.updateMany({
+    where: { id: sessaoId, officeId: user.officeId },
+    data: { minutaAprovadaEm: null, minutaAprovadaPorId: null },
+  });
+  const aindaNoCorpo = Boolean(sessao.minutaTexto) && normalizarTextoCitacao(sessao.minutaTexto ?? "").includes(normalizarTextoCitacao(citacao.texto));
+  revalidatePath(`/peticionamento/${sessaoId}/minuta`);
+  return { ok: true, aindaNoCorpo };
+}
+
+/**
+ * O passo final, separado do "li e revisei" de cada citação (pedido do dono, 23/09/2026):
+ * "Aprovar minuta / gerar peça". Só libera quando TODAS as citações ativas estão confirmadas e
+ * NENHUMA é bloqueante (molde, ou sem fonte oficial — lib/peticionamentoAprovacao.ts). Esta ação
+ * NÃO exporta nem imprime nada — grava só o estado da aprovação; quem consome esse estado (a
+ * exportação de verdade) vem em outra etapa.
+ */
+export async function aprovarMinutaGerarPeca(sessaoId: string): Promise<{ ok: true } | { error: string }> {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const { avisosDeMolde } = await sincronizarCitacoes(sessaoId, user.officeId);
+  const linhas = await prisma.peticionamentoCitacao.findMany({ where: { sessaoId, excluidaEm: null } });
+  const avaliacao = avaliarAprovacaoDeMinuta({
+    citacoes: linhas.map((c) => ({ confirmada: !!c.confirmadaPorId, fonteUrl: c.fonteUrl, fonteSecundariaUrl: c.fonteSecundariaUrl })),
+    haAvisoDeMolde: avisosDeMolde.length > 0,
+  });
+  if (!avaliacao.podeAprovar) {
+    return { error: `Ainda não é possível aprovar: ${avaliacao.motivos.join(" ")}` };
+  }
+  await prisma.peticionamentoSessao.update({
+    where: { id: sessaoId },
+    data: { minutaAprovadaEm: new Date(), minutaAprovadaPorId: user.id },
+  });
+  revalidatePath(`/peticionamento/${sessaoId}/minuta`);
+  return { ok: true };
+}
+
+/** Quantas citações ativas ainda faltam confirmar — o botão de exportar usa isto para dizer "faltam N". */
 export async function contarCitacoesPendentes(sessaoId: string): Promise<number> {
   const user = await exigirAcessoAba();
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
   await sincronizarCitacoes(sessaoId, user.officeId);
-  return prisma.peticionamentoCitacao.count({ where: { sessaoId, confirmadaPorId: null } });
+  // excluidaEm: null — uma citação excluída não pede mais confirmação nenhuma (ver excluirCitacao).
+  return prisma.peticionamentoCitacao.count({ where: { sessaoId, confirmadaPorId: null, excluidaEm: null } });
 }
 
 /**
@@ -1646,7 +1783,17 @@ export async function atualizarCorpoDaMinuta(sessaoId: string, texto: string): P
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
   // O fecho é reconferido em toda gravação — mesmo edição manual não sai sem ele; ver export,
   // que reconfere de novo por segurança (defesa em profundidade, nunca confiar numa trava só).
-  await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { minutaTexto: garantirFecho(texto) } });
+  await prisma.peticionamentoSessao.update({
+    where: { id: sessaoId },
+    data: {
+      minutaTexto: garantirFecho(texto),
+      // A aprovação final (decisão do dono, 23/09/2026) é sobre UM estado do corpo — editar depois
+      // de aprovar desfaz a aprovação, pelo mesmo motivo que editar já desfaz a confirmação de
+      // cada citação cujo texto mudou: ninguém aprovou um texto que ainda não existia.
+      minutaAprovadaEm: null,
+      minutaAprovadaPorId: null,
+    },
+  });
   // Decisão do dono (22/09/2026): editar a minuta invalida a confirmação das citações que
   // mudaram — recalculado AQUI, no momento da edição, para a lista nunca ficar atrasada em
   // relação ao texto que o advogado acabou de salvar.
@@ -1678,7 +1825,8 @@ export async function confirmarExportacao(
   // primeiro (defesa em profundidade: mesmo que a tela de validação não tenha sido revisitada
   // depois da última edição, a exportação nunca deixa passar uma citação cujo texto mudou).
   await sincronizarCitacoes(sessaoId, user.officeId);
-  const citacoesPendentes = await prisma.peticionamentoCitacao.count({ where: { sessaoId, confirmadaPorId: null } });
+  // excluidaEm: null — uma citação excluída pelo advogado não pede mais confirmação (ver excluirCitacao).
+  const citacoesPendentes = await prisma.peticionamentoCitacao.count({ where: { sessaoId, confirmadaPorId: null, excluidaEm: null } });
   if (citacoesPendentes > 0) {
     return {
       error: `Ainda falta${citacoesPendentes === 1 ? "" : "m"} confirmar ${citacoesPendentes} cita${citacoesPendentes === 1 ? "ção" : "ções"} antes de exportar — cada uma precisa da marca "li e revisei" individual, na tela da minuta.`,

@@ -489,8 +489,10 @@ model User {
   // payablesResponsible/payablesAsPayee acima: nunca a mesma pessoa por acaso.
   peticionamentoMateriasCriadas        PeticionamentoMateria[]    @relation("PeticionamentoMateriaCriadoPor")
   peticionamentoSessoesCriadas         PeticionamentoSessao[]     @relation("PeticionamentoSessaoCriadoPor")
+  peticionamentoSessoesAprovadas       PeticionamentoSessao[]     @relation("PeticionamentoSessaoAprovadaPor")
   peticionamentoExportacoesConfirmadas PeticionamentoExportacao[] @relation("PeticionamentoExportacaoConfirmadoPor")
-  PeticionamentoCitacao                PeticionamentoCitacao[]
+  peticionamentoCitacoesConfirmadas    PeticionamentoCitacao[]    @relation("PeticionamentoCitacaoConfirmadaPor")
+  peticionamentoCitacoesExcluidas      PeticionamentoCitacao[]    @relation("PeticionamentoCitacaoExcluidaPor")
 
   @@unique([officeId, username])
 }
@@ -4534,6 +4536,23 @@ model PeticionamentoSessao {
   /// nascer — o advogado de aba fechada nunca saberia que a peça ficou pronta.
   minutaVistaEm DateTime?
 
+  /// CONTRATO DE SCHEMA 23/09/2026 — A APROVAÇÃO FINAL, SEPARADA DO "LI E REVISEI" DE CADA CITAÇÃO.
+  ///
+  /// Passo distinto (pedido do dono), "Aprovar minuta / gerar peça": grava QUEM aprovou e QUANDO,
+  /// só depois de a régua de lib/peticionamentoAprovacao.ts (avaliarAprovacaoDeMinuta) confirmar
+  /// que TODAS as citações ativas estão confirmadas e NENHUMA é bloqueante (molde, ou sem fonte
+  /// oficial — ver lib/peticionamentoIdentificadorDeJulgado.ts e a graduação de fonte do Passo 4
+  /// da skill pesquisa-jurisprudencia). A ação que grava isto NÃO exporta nem imprime nada — isso
+  /// é de outra etapa; este par de campos só registra a decisão já tomada.
+  ///
+  /// NULO É ESTADO LEGÍTIMO (minuta ainda não aprovada), e uma edição no corpo da minuta DEPOIS de
+  /// aprovada zera os dois de volta (lib/actions/peticionamento.ts:atualizarCorpoDaMinuta) — pelo
+  /// mesmo motivo que editar já desfaz a confirmação de cada citação cujo texto mudou: ninguém
+  /// aprovou um texto que ainda não existia.
+  minutaAprovadaEm    DateTime?
+  minutaAprovadaPorId String?
+  minutaAprovadaPor   User?     @relation("PeticionamentoSessaoAprovadaPor", fields: [minutaAprovadaPorId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -4646,8 +4665,25 @@ model PeticionamentoCitacao {
   hashDoTexto String?
 
   confirmadaPorId String?
-  confirmadaPor   User?     @relation(fields: [confirmadaPorId], references: [id])
+  confirmadaPor   User?     @relation("PeticionamentoCitacaoConfirmadaPor", fields: [confirmadaPorId], references: [id])
   confirmadaEm    DateTime?
+
+  /// EXCLUSÃO (pedido do dono, 23/09/2026 — botão "excluir" no quadro "Citações desta minuta").
+  ///
+  /// SOFT-DELETE, nunca DELETE físico: `sincronizarCitacoes` recalcula a lista inteira a cada
+  /// carregamento a partir de `jurisprudenciaCitada` + `minutaTexto` (lib/peticionamentoCitacoes.ts).
+  /// Se a linha fosse apagada de verdade, e o texto de origem (ementa estruturada, ou trecho ainda
+  /// presente no corpo) continuasse existindo, a MESMA identidade (tipo + texto normalizado)
+  /// ressuscitaria sozinha na sincronização seguinte — o botão "excluir" pareceria funcionar por um
+  /// instante e a citação voltaria ao abrir a tela de novo.
+  ///
+  /// Com o soft-delete, a identidade continua "vista" pela sincronização (que não mexe numa linha
+  /// cujo texto/links não mudaram, excluída ou não), então a citação some da lista de confirmação
+  /// sem reaparecer sozinha. Excluir o REGISTRO nunca apaga o texto da minuta — se o trecho
+  /// continuar no corpo, a tela precisa dizer isso (ver listarCitacoesParaValidacao).
+  excluidaPorId String?
+  excluidaPor   User?     @relation("PeticionamentoCitacaoExcluidaPor", fields: [excluidaPorId], references: [id])
+  excluidaEm    DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

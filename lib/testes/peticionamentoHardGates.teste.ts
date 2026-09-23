@@ -20,6 +20,7 @@ const FONTE_DOCX = readFileSync(join(RAIZ, "lib", "peticionamentoDocx.ts"), "utf
 // advogado, e aquele arquivo é `"use server"` — exportar de lá teria transformado uma função que
 // recebe `officeId` por parâmetro numa Server Action chamável do navegador.
 const FONTE_CITACOES = readFileSync(join(RAIZ, "lib", "peticionamentoCitacoesSync.ts"), "utf8");
+const FONTE_GERACAO = readFileSync(join(RAIZ, "lib", "peticionamentoGeracaoAssincrona.ts"), "utf8");
 
 // ── Nunca protocolar (especificação §3) ─────────────────────────────────────────────────────
 
@@ -239,13 +240,57 @@ teste("HARD GATE: confirmarExportacao recusa exportar com citação pendente, AN
   const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "confirmarExportacao"));
   verdade(corpo.length > 300, "corpoDaFuncao não encontrou confirmarExportacao");
   verdade(corpo.includes("sincronizarCitacoes("), "deveria resincronizar a lista de citações antes de contar as pendentes");
-  verdade(/peticionamentoCitacao\.count\(\{\s*where:\s*\{\s*sessaoId,\s*confirmadaPorId:\s*null\s*\}/.test(corpo), "deveria contar citações com confirmadaPorId nulo desta sessão");
+  // ADAPTADA 23/09/2026: a contagem passou a excluir `excluidaEm: null` também (citação excluída
+  // pelo advogado não pede mais confirmação — ver excluirCitacao) — o regex tolera esse campo a
+  // mais sem deixar de exigir os dois campos originais (sessaoId e confirmadaPorId nulo).
+  verdade(/peticionamentoCitacao\.count\(\{\s*where:\s*\{\s*sessaoId,\s*confirmadaPorId:\s*null,\s*excluidaEm:\s*null\s*\}/.test(corpo), "deveria contar citações ATIVAS (não excluídas) com confirmadaPorId nulo desta sessão");
   // CHAMAR NÃO É OBEDECER (mesma armadilha já documentada acima para avaliarExportacao): o veredito
   // precisa DESVIAR a execução, não só ser calculado e ignorado.
   verdade(/if \(citacoesPendentes > 0\) \{/.test(corpo), "o veredito de citações pendentes precisa interromper a exportação, não só ser calculado");
   const idxContagem = corpo.indexOf("peticionamentoCitacao.count(");
   const idxDocx = corpo.indexOf("montarPeticaoWord(");
   verdade(idxContagem !== -1 && idxDocx !== -1 && idxContagem < idxDocx, "a checagem de citações pendentes precisa vir ANTES de montar o arquivo");
+});
+
+// ── Molde/exemplo nunca entra como citação, e a graduação de fonte bloqueia a aprovação ─────────
+// (endurecimento 23/09/2026 — ver lib/peticionamentoIdentificadorDeJulgado.ts e
+// lib/peticionamentoAprovacao.ts para as réguas puras; aqui só a prova de que a ação as USA).
+
+teste("HARD GATE: aprovarMinutaGerarPeca recusa aprovar quando avaliarAprovacaoDeMinuta reprova, ANTES de gravar", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "aprovarMinutaGerarPeca"));
+  verdade(corpo.length > 200, "corpoDaFuncao não encontrou aprovarMinutaGerarPeca — a varredura não está lendo certo");
+  verdade(corpo.includes("avaliarAprovacaoDeMinuta("), "deveria calcular a avaliação com a régua pura, não reimplementar a regra aqui");
+  verdade(/if \(!avaliacao\.podeAprovar\) \{/.test(corpo), "o veredito de avaliarAprovacaoDeMinuta precisa DESVIAR a execução, não só ser calculado");
+  const idxIf = corpo.indexOf("if (!avaliacao.podeAprovar)");
+  const idxUpdate = corpo.indexOf("peticionamentoSessao.update(");
+  verdade(idxIf !== -1 && idxUpdate !== -1 && idxIf < idxUpdate, "a recusa precisa vir ANTES de gravar minutaAprovadaEm");
+  verdade(corpo.includes("haAvisoDeMolde: avisosDeMolde.length > 0"), "a aprovação precisa considerar os avisos de molde, não só a confirmação de cada citação");
+});
+
+teste("HARD GATE: excluirCitacao apaga o REGISTRO, nunca o texto da minuta", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "excluirCitacao"));
+  verdade(corpo.length > 200, "corpoDaFuncao não encontrou excluirCitacao — a varredura não está lendo certo");
+  verdade(corpo.includes("excluidaPorId: user.id") && corpo.includes("excluidaEm: new Date()"), "deveria gravar quem excluiu e quando");
+  // A TROCA MAIS PERIGOSA POSSÍVEL AQUI seria excluirCitacao também apagar/editar `minutaTexto` —
+  // isso apagaria o texto da PEÇA por engano ao excluir só o REGISTRO de citação.
+  verdade(!/minutaTexto\s*:/.test(corpo), "excluirCitacao NUNCA pode escrever em minutaTexto — excluir o registro não apaga o texto da minuta");
+  verdade(corpo.includes("aindaNoCorpo"), "a resposta precisa dizer se o texto ainda está no corpo, já que excluir o registro não o remove de lá");
+});
+
+teste("HARD GATE: listarCitacoesParaValidacao separa ativas de excluídas, e não pede confirmação de uma citação excluída", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "listarCitacoesParaValidacao"));
+  verdade(corpo.length > 300, "corpoDaFuncao não encontrou listarCitacoesParaValidacao");
+  verdade(corpo.includes("!c.excluidaEm"), "deveria filtrar as citações ATIVAS (não excluídas) para a lista de confirmação");
+  verdade(corpo.includes("avaliarFonteDeCitacao("), "cada citação da tela precisa da graduação de fonte, não só de fonteUrl/fonteSecundariaUrl crus");
+  verdade(corpo.includes("avaliarAprovacaoDeMinuta("), "a tela precisa saber se pode aprovar, calculado pela régua pura");
+});
+
+teste("HARD GATE: atualizarCorpoDaMinuta desfaz a aprovação final junto com a confirmação de citação — editar depois de aprovar não pode deixar a aprovação de pé", () => {
+  const corpo = codigoDe(corpoDaFuncao(FONTE_ACOES, "atualizarCorpoDaMinuta"));
+  verdade(corpo.length > 150, "corpoDaFuncao não encontrou atualizarCorpoDaMinuta");
+  verdade(corpo.includes("sincronizarCitacoes("), "a regra antiga continua valendo: editar o corpo resincroniza as citações");
+  verdade(corpo.includes("minutaAprovadaEm: null") && corpo.includes("minutaAprovadaPorId: null"),
+    "editar o corpo precisa zerar a aprovação final — senão uma minuta aprovada continuaria 'aprovada' depois de mudar de conteúdo");
 });
 
 teste("HARD GATE: NÃO existe ação de 'confirmar todas as citações' — é uma por vez, sempre", () => {
@@ -338,6 +383,64 @@ teste("HARD GATE: alternarVinculo valida o cliente ANTES de gravar qualquer vín
   const idxValidacao = corpo.indexOf("validarNovoVinculo(");
   const idxUpdate = corpo.lastIndexOf("prisma.peticionamentoSessao.update(");
   verdade(idxValidacao !== -1 && idxUpdate !== -1 && idxValidacao < idxUpdate, "a validação precisa vir ANTES da gravação do vínculo");
+});
+
+// ── A APROVAÇÃO FINAL NÃO PODE SOBREVIVER A UMA TROCA DE TEXTO ──────────────────────────────────
+//
+// REGRESSÃO REAL: `atualizarCorpoDaMinuta` zerava a aprovação (gate acima), mas `minutaTexto` tem
+// DOIS escritores — o outro é a reivindicação atômica da geração, em
+// lib/peticionamentoGeracaoAssincrona.ts. Uma minuta aprovada e depois GERADA DE NOVO seguia
+// marcada como "aprovada por <nome> em <data>" sobre um corpo inteiro que esse nome nunca leu.
+// Este gate não guarda um dos dois escritores: guarda a INVARIANTE, varrendo TODA gravação de
+// sessão dos dois arquivos. Um terceiro escritor de `minutaTexto`, amanhã, cai aqui sozinho.
+//
+// A varredura usa DELIMITAÇÃO BALANCEADA (conta parêntese até fechar), nunca uma janela de N
+// caracteres: janela de tamanho fixo escorrega para a chamada vizinha e o gate passa a afirmar
+// coisa sobre código que não é o que ele pensa estar lendo.
+function gravacoesDeSessao(fonte: string): string[] {
+  const codigo = codigoDe(fonte);
+  const blocos: string[] = [];
+  const marca = /prisma\.peticionamentoSessao\.(?:update|updateMany|upsert)\s*\(/g;
+  let m: RegExpExecArray | null;
+  while ((m = marca.exec(codigo))) {
+    let i = m.index + m[0].length - 1; // no "(" da chamada
+    let profundidade = 0;
+    const inicio = i;
+    for (; i < codigo.length; i++) {
+      if (codigo[i] === "(") profundidade++;
+      else if (codigo[i] === ")") {
+        profundidade--;
+        if (profundidade === 0) break;
+      }
+    }
+    blocos.push(codigo.slice(inicio, i + 1));
+  }
+  return blocos;
+}
+
+teste("HARD GATE: TODA gravação que troca minutaTexto zera a aprovação final — nos dois escritores, e em qualquer terceiro que apareça", () => {
+  const fontes: Array<[string, string]> = [
+    ["lib/actions/peticionamento.ts", FONTE_ACOES],
+    ["lib/peticionamentoGeracaoAssincrona.ts", FONTE_GERACAO],
+  ];
+  let escritoresVistos = 0;
+  for (const [nome, fonte] of fontes) {
+    const blocos = gravacoesDeSessao(fonte);
+    verdade(blocos.length > 0, `a varredura não achou nenhuma gravação de sessão em ${nome} — o extrator quebrou`);
+    for (const bloco of blocos) {
+      // Só as gravações que ESCREVEM minutaTexto: `minutaTexto: sessao.minutaTexto` e
+      // `minutaTexto: true` são leitura/seleção e não mudam o corpo de nada.
+      if (!/minutaTexto:\s*(?!true\b|sessao\.)/.test(bloco)) continue;
+      escritoresVistos++;
+      verdade(
+        bloco.includes("minutaAprovadaEm: null") && bloco.includes("minutaAprovadaPorId: null"),
+        `em ${nome} há gravação que troca minutaTexto SEM zerar a aprovação final — uma peça aprovada continuaria "aprovada" com outro conteúdo`,
+      );
+    }
+  }
+  // Se um dia a busca deixar de achar escritor nenhum, o laço acima passaria vazio e o gate estaria
+  // verde sem ter verificado nada — os dois escritores conhecidos são o piso.
+  verdade(escritoresVistos >= 2, `esperava ao menos 2 gravações que trocam minutaTexto, achei ${escritoresVistos} — a varredura parou de encontrar o que guarda`);
 });
 
 resumo("Peticionamento — varredura dos hard gates");
