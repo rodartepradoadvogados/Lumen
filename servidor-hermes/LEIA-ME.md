@@ -600,6 +600,23 @@ curl -s -X POST -H "authorization: Bearer $HERMES_TOKEN" -H "content-type: appli
 
 ## As ferramentas: como o agente consulta os dados do escritório
 
+> **ATUALIZAÇÃO — esta seção descreve o desenho ANTIGO, e ele nunca chegou a funcionar de
+> verdade.** Foi medido: `grep -rl "LUMEN_FERRAMENTAS"` sobre a instalação inteira do Hermes só
+> encontra dois arquivos de *cache de terminal* (gravações de ambiente, não código) — nada na
+> máquina do Hermes lê `LUMEN_FERRAMENTAS_URL`/`LUMEN_FERRAMENTAS_CREDENCIAL` de verdade. O passo
+> "Depois disso, o perfil do Hermes precisa saber que essa ferramenta existe — é instrução no
+> prompt dele" (abaixo) nunca foi de fato aplicado a um perfil em produção. Consequência: as
+> ferramentas do escritório NUNCA chegaram ao agente do Hermes — nem no peticionamento, nem no
+> atendimento. Só funcionavam pelo caminho da RESERVA (`app/api/assistente/route.ts`), onde é o
+> próprio Lúmen que chama o modelo e já entrega as ferramentas prontas.
+>
+> **O desenho novo está na seção "MCP: o Hermes fala direto com o Lúmen", logo abaixo desta.** Ele
+> substitui `lumen-consultar.py` e a instrução de prompt — o Hermes já fala MCP nativamente (há
+> servidores MCP no `config.yaml` de pelo menos um perfil da VPS), então a ferramenta certa é dar a
+> ele um SERVIDOR MCP, não um comando de terminal que precisa ser lembrado num prompt. O texto
+> abaixo fica como registro do que existia e do porquê não funcionava — não repita este passo a
+> passo numa instalação nova.
+
 O agente **não tem o banco do Lúmen**, e não deve ter. Quando precisa de um número, ele roda o
 programa `lumen-consultar.py`, que pergunta ao Lúmen e devolve a resposta.
 
@@ -640,6 +657,94 @@ prompt dele, não configuração da ponte. Algo como:
 ```bash
 lumen-consultar          # fora de uma pergunta do Lúmen, deve dizer que não há credencial
 ```
+
+---
+
+## MCP: o Hermes fala direto com o Lúmen
+
+Esta é a substituição do desenho da seção anterior. O Hermes já fala MCP nativamente — há
+servidores MCP configurados no `config.yaml` de pelo menos um perfil da VPS, entre eles um
+`mcp-remote@latest` e um servidor com `url:` — então, em vez de um comando de terminal que depende
+de uma instrução escrita à mão no prompt (e que, medido, nunca chegou a entrar de fato num perfil
+de produção), o Lúmen agora expõe um **servidor MCP de verdade**: `app/api/agente/mcp/route.ts`,
+"streamable HTTP" (JSON-RPC 2.0 sobre POST — sem WebSocket, sem SSE).
+
+**A credencial e as duas variáveis de ambiente CONTINUAM AS MESMAS.** É isto que faz o desenho
+fechar sem exigir nada novo da ponte (`servidor-hermes/servidor.py`): ela já põe
+`LUMEN_FERRAMENTAS_URL` e `LUMEN_FERRAMENTAS_CREDENCIAL` no ambiente do processo do Hermes, a cada
+pergunta, antes de lançá-lo (ver o bloco `ambiente[...]` em `servidor.py`). Um servidor MCP que o
+Hermes lance como subprocesso — ou aponte via `url:` — herda esse ambiente. A credencial continua
+sendo **da pergunta**, não do escritório: ela carrega quem perguntou e o que essa pessoa pode ver,
+e é isso que impede alguém sem acesso ao financeiro de contornar a regra pedindo ao agente "quanto
+entrou este mês" (ver o cabeçalho de `lib/agenteCredencial.ts`, no repositório do Lúmen).
+
+A rota fala os quatro métodos MCP que um cliente precisa para descobrir e usar as ferramentas:
+
+```
+initialize              → protocolVersion, capabilities: { tools: {} }, serverInfo
+notifications/initialized → notificação, sem resposta
+tools/list               → o catálogo que AQUELA credencial alcança (mesma regra da rota REST)
+tools/call                → executa uma ferramenta e devolve o resultado + a instrução de como mostrar
+```
+
+A autorização é a MESMA da rota REST (`app/api/agente/ferramentas/route.ts`): cabeçalho
+`Authorization: Bearer <token>`, lido por `lerCredencial`. Sem ele, ou com um token que não valide,
+a resposta é um erro de autorização — sem dizer se o motivo foi "expirou" ou "é inválido", de
+propósito (ver o comentário da própria rota). As duas rotas leem a regra de acesso do MESMO módulo
+(`lib/agenteFerramentasLiberadas.ts`) — não são duas cópias que podem divergir.
+
+### O que precisa ser configurado na VPS
+
+Isto é o que falta, e só pode ser feito na máquina onde o Hermes roda:
+
+1. **Uma entrada de servidor MCP no `config.yaml` do perfil**, apontando para a rota do Lúmen —
+   o mesmo endereço que hoje vai para `LUMEN_FERRAMENTAS_URL`, mas com `/agente/mcp` no lugar de
+   `/agente/ferramentas` (ex.: `https://SEUDOMINIO.com.br/api/agente/mcp` em vez de
+   `https://SEUDOMINIO.com.br/api/agente/ferramentas`).
+2. **Um cabeçalho `Authorization: Bearer <credencial>`** nessa entrada, onde `<credencial>` precisa
+   vir de `LUMEN_FERRAMENTAS_CREDENCIAL` — a variável que a ponte já põe no ambiente do processo a
+   cada pergunta. Ou seja: a entrada do `config.yaml` precisa referenciar uma VARIÁVEL DE AMBIENTE,
+   não um valor fixo — um token fixo devolveria à instalação exatamente o defeito que a credencial
+   por pergunta existe para evitar (ver o cabeçalho de `lib/agenteCredencial.ts`).
+3. **A URL também precisa vir de `LUMEN_FERRAMENTAS_URL`**, pelo mesmo motivo: não é um endereço
+   fixo escrito no `config.yaml`, é o que a ponte manda a cada pergunta.
+
+**O FORMATO EXATO desses três pontos — a sintaxe de uma entrada de servidor MCP no `config.yaml`
+do Hermes, como ela referencia uma variável de ambiente para a URL e para o cabeçalho, se é preciso
+`headers:`, `env:`, ou outra chave — este repositório NÃO TEM COMO CONFIRMAR sem acesso à VPS.** O
+que se sabe, medido, é que o Hermes já tem PELO MENOS UM servidor MCP configurado lá (um
+`mcp-remote@latest` e um com `url:`, vistos num `config.yaml` de perfil) — use essa entrada
+existente como referência de sintaxe real da instalação, e não invente a chave a partir de memória
+de outras ferramentas MCP. **Confirme o formato contra o `config.yaml` da máquina antes de
+aplicar.**
+
+### Como confirmar que funcionou
+
+Sem esperar por uma pergunta de verdade, dá para testar a rota isoladamente — trocando
+`SEUDOMINIO.com.br` e a credencial por valores reais (uma credencial de teste pode ser emitida
+manualmente, ou capturada do log da ponte na próxima pergunta que passar por ela):
+
+```bash
+curl -s -X POST https://SEUDOMINIO.com.br/api/agente/mcp \
+  -H "authorization: Bearer <credencial>" -H "content-type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}
+```
+
+Sem credencial (ou com uma inválida), o mesmo pedido devolve um erro de autorização — nunca um
+catálogo, e nunca um 500:
+
+```bash
+curl -s -X POST https://SEUDOMINIO.com.br/api/agente/mcp \
+  -H "content-type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# {"jsonrpc":"2.0","id":1,"error":{"code":-32001,"message":"Credencial ausente."}}
+```
+
+Depois de configurado o `config.yaml`, uma pergunta de verdade ao Hermes que dependa de dado do
+escritório (por exemplo, "quantos processos estão em andamento?") é a prova final: se o agente
+responde com um número real (e um link clicável, por causa da instrução que viaja junto de cada
+resultado), o MCP está funcionando; se ele disser que não tem como consultar, o `config.yaml` ainda
+não está apontando para a ferramenta certa.
 
 ---
 
