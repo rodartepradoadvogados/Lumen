@@ -204,7 +204,45 @@ MAX_TURNS = int(os.environ.get("HERMES_MAX_TURNS", "60"))
 # USA-SE A FORMA LONGA `--toolsets`, e não `-t`, de propósito: a conferência de binário antigo
 # logo abaixo varre as opções que começam com `--`. Com a forma longa, um Hermes que não conheça
 # a opção já nasce coberto pelo 501 falado ("atualize o binário") em vez de cair no 500 genérico.
-TOOLSETS = os.environ.get("HERMES_TOOLSETS", "web").strip()
+# ── OS NOMES VÁLIDOS, E ELES AGORA SÃO CONHECIDOS ────────────────────────────────────────────
+#
+# O registro de conjuntos foi lido do próprio binário instalado, e não chutado:
+#
+#     python -c "from toolsets import TOOLSETS; print(sorted(TOOLSETS))"
+#
+# Os 59 nomes, em 23/09/2026: bot_room, browser, clarify, code_execution, coding, computer_use,
+# connections, context_engine, cronjob, debugging, delegation, desktop_ui, discord, discord_admin,
+# feishu_doc, feishu_drive, file, hermes-acp, hermes-api-server, hermes-bluebubbles, hermes-cli,
+# hermes-cron, hermes-dingtalk, hermes-discord, hermes-email, hermes-feishu, hermes-gateway,
+# hermes-homeassistant, hermes-matrix, hermes-mattermost, hermes-qqbot, hermes-signal,
+# hermes-slack, hermes-sms, hermes-telegram, hermes-webhook, hermes-wecom, hermes-wecom-callback,
+# hermes-weixin, hermes-whatsapp, hermes-yuanbao, homeassistant, image_gen, kanban, memory,
+# project, safe, search, session_search, skills, spotify, terminal, todo, tts, video, video_gen,
+# vision, web, x_search, yuanbao.
+#
+# O PADRÃO ERA `web` SOZINHO, E ISSO ERA UM DEFEITO CALADO. `skills` é um conjunto PRÓPRIO nessa
+# lista — e no Hermes as skills moram DENTRO do perfil (o perfil de produção tem `skills/` com 17
+# pastas, entre elas a integração que liga o agente às ferramentas do Lúmen; não existe nenhum
+# conjunto chamado `lumen` no registro). Quer dizer que, com `web` sozinho, o risco não era perder
+# uma comodidade: era o agente ficar sem as skills jurídicas da plataforma E sem as ferramentas do
+# Lúmen que o peticionamento acabou de ganhar — sem erro nenhum, só respondendo pior.
+#
+# O PADRÃO PASSA A SER `web,search,skills`, e cada nome tem motivo:
+#
+#   web     — a regra da casa nº 1 (validação dupla de jurisprudência) depende de alcançar a web;
+#   search  — validar precedente exige ACHAR antes de abrir, e a busca é conjunto separado da web;
+#   skills  — as skills da plataforma e a integração com as ferramentas do Lúmen vivem aqui.
+#
+# E O QUE CONTINUA DE FORA é o que o escritório decidiu tirar, agora por nome: `file` e `terminal`
+# (ler e escrever arquivo, rodar comando na máquina — o motivo original desta parede),
+# `code_execution`, `coding`, `computer_use`, `browser`, `desktop_ui`, `delegation`, `cronjob`,
+# `memory`, `connections` e os conjuntos de mensageria (`hermes-whatsapp`, `hermes-telegram`,
+# `hermes-slack` e os demais). Nenhum deles é insumo de redigir peça: a resposta volta para o
+# Lúmen, que é quem fala com o mundo.
+#
+# CONTINUA VINDO DO AMBIENTE, e continua sendo por isso que a lista acima é uma recomendação e não
+# uma prisão: `HERMES_TOOLSETS` em `/etc/lumen-hermes.env` manda, e vazio desliga a parede.
+TOOLSETS = os.environ.get("HERMES_TOOLSETS", "web,search,skills").strip()
 
 CORPO_MAXIMO = 512 * 1024  # 512 KiB, e este numero e em BYTES.
 #

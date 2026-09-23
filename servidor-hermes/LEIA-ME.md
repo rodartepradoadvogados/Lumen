@@ -222,7 +222,7 @@ Todas têm padrão seguro; nenhuma precisa ser definida para a ponte funcionar.
 | `HERMES_TIMEOUT_S` | `900` | teto do processo do Hermes — **quinze minutos, o teto do trabalho** |
 | `HERMES_RUN_BUDGET_FOLGA_S` | `60` | folga entre o orçamento do agente e a morte do processo |
 | `HERMES_MAX_TURNS` | `60` | teto de iterações de ferramenta por turno (o padrão do binário é 500) |
-| `HERMES_TOOLSETS` | `web` | quais famílias de ferramenta o agente pode usar — **vazio desliga a parede** |
+| `HERMES_TOOLSETS` | `web,search,skills` | quais famílias de ferramenta o agente pode usar — **vazio desliga a parede** |
 | `HERMES_TAREFAS_MAXIMAS` | `32` | quantas gerações assíncronas cabem na memória ao mesmo tempo |
 | `HERMES_TAREFA_VALIDADE_S` | `2400` | quanto tempo uma tarefa não buscada continua de pé |
 
@@ -233,8 +233,28 @@ rodar comando na máquina**. Numa ponte que recebe texto de documento vindo de f
 superfície que ninguém pediu: o texto da peça já viaja dentro da pergunta, e a geração não precisa
 abrir arquivo nem executar nada.
 
-O padrão é `web`: mantém a busca na web (de que a validação dupla de jurisprudência depende) e tira
-arquivo e comando.
+O padrão é `web,search,skills`, e os três nomes têm motivo:
+
+- **`web`** — a validação dupla de jurisprudência (regra da casa nº 1) depende de alcançar a web;
+- **`search`** — validar precedente exige **achar** antes de abrir, e a busca é conjunto separado;
+- **`skills`** — no Hermes **as skills moram dentro do perfil**, e é por ali que passa também a
+  integração que liga o agente às ferramentas do Lúmen. Não existe conjunto chamado `lumen` no
+  registro do binário.
+
+**O padrão era `web` sozinho, e isso era um defeito calado.** Com ele, o risco não era perder uma
+comodidade: era o agente ficar sem as skills jurídicas da plataforma **e** sem as ferramentas do
+Lúmen que o peticionamento ganhou — sem erro nenhum, apenas respondendo pior. O conserto só foi
+possível depois de ler o registro de nomes do próprio binário instalado:
+
+```
+python -c "from toolsets import TOOLSETS; print(sorted(TOOLSETS))"
+```
+
+Ficam **de fora**, por decisão e agora por nome: `file` e `terminal` (ler e escrever arquivo, rodar
+comando — o motivo original desta parede), `code_execution`, `coding`, `computer_use`, `browser`,
+`desktop_ui`, `delegation`, `cronjob`, `memory`, `connections`, e os conjuntos de mensageria
+(`hermes-whatsapp`, `hermes-telegram`, `hermes-slack` e os demais). Nenhum é insumo de redigir peça:
+a resposta volta para o Lúmen, que é quem fala com o mundo.
 
 **Leia isto antes de trocar o valor.** O binário **não recusa** nome de conjunto que não conhece:
 
