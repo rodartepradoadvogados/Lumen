@@ -120,17 +120,30 @@ principal.
 
 ## Passo 4 — Prazo
 
-Com a data de publicação/intimação em mãos, calcule ou peça para calcular a contagem do prazo
-para o próximo ato, considerando: início da contagem a partir da intimação (não da data da
-decisão), contagem em dias úteis quando aplicável, suspensão de prazo em período de recesso ou
-suspensão processual em curso, e a interrupção do prazo pela oposição de embargos de declaração.
-Diga explicitamente até quando o prazo corre e a partir de qual marco você contou — sem essa
-transparência, um erro de contagem não aparece até ser tarde.
+Com a data de publicação/intimação em mãos, monte a contagem do prazo para o próximo ato,
+considerando: início da contagem a partir da intimação (não da data da decisão), contagem em dias
+úteis quando aplicável, suspensão de prazo em período de recesso ou suspensão processual em
+curso, e a interrupção do prazo pela oposição de embargos de declaração.
 
-Se a data de publicação ou intimação não constar do que foi fornecido, **não estime**. Diga que
-o prazo não pôde ser calculado por falta desse dado e peça a certidão ou a tela de intimação do
-processo. Prazo estimado que se apresenta como prazo contado é o erro mais caro que esta skill
-pode cometer.
+**A data final nunca sai sozinha, e nunca sai como prazo já contado e fechado.** Ela vem sempre
+acompanhada de duas coisas: o **prazo em dias** usado para chegar a ela, e a **origem** desse
+número — se foi conferido nesta análise contra o dispositivo aplicável ao tipo de decisão e ao
+rito do processo, ou se é o prazo geral do tipo de recurso, ainda sem essa conferência específica.
+Não afirme o número de dias de memória como se fosse fato assentado: o prazo recursal varia por
+tipo de decisão, por rito e por eventual norma especial que reduza ou amplie a regra geral, e um
+número errado aqui produz perda de prazo — o único erro desta lista que não tem conserto depois, e
+que responde na esfera disciplinar e civil.
+
+Por isso, apresente a data sempre nesta forma condicional, nunca como certeza isolada: "a partir
+da intimação em [data], usando o prazo de [N] dias [conferido nesta análise / ainda não conferido
+no processo concreto], o prazo se encerraria em [data] — confirme o número de dias e a contagem no
+processo antes de tomar essa data como definitiva". Essa condicional viaja junto com a data em
+todo lugar em que a data aparecer, inclusive no bloco de saída — nunca fica só na prosa deste
+passo.
+
+Se a data de publicação ou intimação não constar do que foi fornecido, **não estime nem a data
+nem o prazo em dias**. Diga que o prazo não pôde ser calculado por falta desse dado e peça a
+certidão ou a tela de intimação do processo.
 
 ## Passo 5 — Mapa de pontos atacáveis e meio recursal cabível
 
@@ -161,7 +174,9 @@ excessiva.** Seis blocos curtos, nesta ordem, sem repetir o texto da decisão:
    extra/ultra petita.
 3. Fundamento de cada capítulo desfavorável e a robustez da motivação.
 4. Sucumbência — quem paga o quê, e qualquer inconsistência encontrada.
-5. Prazo — o marco usado, a contagem, e se algum dado necessário faltou.
+5. Prazo — o marco (data e meio da intimação), o prazo em dias e a origem dele (conferido nesta
+   análise ou ainda não conferido), a data resultante apresentada como condicionada a essa
+   conferência, e se algum dado necessário faltou.
 6. Mapa de pontos atacáveis com o meio recursal cabível para cada um, e o aviso de que a chance
    de êxito é matéria da skill de análise de risco processual.
 
