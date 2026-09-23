@@ -129,6 +129,56 @@ exatidão dele depende de conferência dupla antes de ser prometido a alguém. S
 isso e não prometa prazo. Verifique também se o escritório sabe distinguir um pedido de titular de
 uma intimação processual disfarçada de pedido — o segundo segue o rito processual, não este.
 
+### E o caminho NÃO pode ser um só, porque nem todo pedido de titular tem a mesma resposta
+
+Este é o ponto em que um diagnóstico de LGPD feito para escritório de advocacia erra com mais
+consequência, e ele erra para os **dois** lados.
+
+O primeiro erro está no começo desta skill e já foi derrubado ali: usar o sigilo profissional como
+isenção geral, como se a lei de dados não alcançasse o escritório. Não é assim, e não é o que se
+diz aqui.
+
+O segundo erro é o espelho do primeiro, e é o que um caminho único produz: montar um processo que
+responde a todo pedido de titular do mesmo jeito. Seguido à risca, esse processo entrega **à parte
+contrária** o que o escritório guarda sobre ela — que é o material do caso do cliente, com a
+estratégia e a confidência dentro — e acolhe pedido de eliminação sobre prova que o escritório tem
+o dever de guardar. O primeiro erro custa uma sanção administrativa; o segundo custa o cliente, o
+processo e a inscrição de quem assinou.
+
+Então o que se verifica aqui **não é se existe um caminho, é se existe uma triagem** — e ela
+separa, antes de qualquer resposta, duas perguntas:
+
+**Quem é o titular em relação ao escritório.** Cliente, colaborador, fornecedor e candidato a vaga
+estão do lado de dentro: o pedido deles segue o caminho ordinário. Parte contrária, testemunha e
+terceiro do processo estão do lado de fora, e o dado que o escritório tem sobre eles quase sempre
+existe **porque** há um caso — não apesar dele.
+
+**Sobre que material recai o pedido.** Dado administrativo do próprio escritório (cadastro,
+cobrança, lista de contato, currículo recebido) é uma coisa. Material de caso — peça, prova,
+anotação de estratégia, comunicação com o cliente — é outra, e sobre ele pesam o sigilo
+profissional e o dever de guarda, que não são escolha do escritório nem cortesia ao cliente.
+
+Da cruz dessas duas perguntas saem três respostas, e a skill diz qual é qual:
+
+1. **Titular de dentro, sobre dado administrativo** — caminho ordinário, sem drama.
+2. **Titular de fora, sobre material de caso** — o pedido **existe** e não se ignora, mas a
+   resposta não é entrega automática nem silêncio. É resposta fundamentada, que reconhece o pedido
+   e invoca o limite, e ela é decidida pelo **advogado responsável**, nunca por rotina
+   administrativa e nunca por este documento.
+3. **Pedido de eliminação sobre material que o escritório tem dever de guardar** — prova, peça,
+   documento sujeito a prazo de guarda ou a dever perante o cliente e perante a ordem profissional
+   — **não se atende só porque foi pedido**. Apagar aqui não é conformidade: é destruição de
+   material de caso, com consequência processual e disciplinar.
+
+E o limite tem de ser **invocado item a item, nunca em bloco**: cada recusa nomeia qual material e
+por quê. "É tudo sigiloso" é a desculpa geral de novo, agora vestida de resposta — e volta a ser o
+primeiro erro.
+
+**Não afirme, de memória, qual dispositivo sustenta cada uma dessas três respostas.** A base de
+cada limite tem número, e número aqui segue a mesma etiqueta do resto desta skill: conferido nesta
+consulta, ou não conferido — e, se não conferido, dito com todas as letras, não apresentado como
+assentado.
+
 ## Passo 7 — Retenção, descarte e resposta a incidente
 
 Verifique se há política de retenção que diga por quanto tempo cada categoria de dado fica
@@ -181,7 +231,10 @@ excessiva.** Quatro blocos, nesta ordem:
 
 1. As lacunas encontradas, por domínio (governança, base legal, dados sensíveis, segurança,
    fornecedores, direitos dos titulares, retenção e incidente), cada uma com a etiqueta de
-   conferência ao lado de qualquer prazo, multa ou dispositivo citado.
+   conferência ao lado de qualquer prazo, multa ou dispositivo citado. No domínio dos direitos dos
+   titulares, diga **se existe a triagem** do passo 6 — quem é o titular, sobre que material recai
+   o pedido — e não apenas se existe um caminho de resposta: um caminho único é, ele mesmo, a
+   lacuna.
 2. A lista de documentos, marcados como existente, desatualizado ou inexistente.
 3. O plano de ação distribuído em 30, 90 e 180 dias.
 4. O que ficou fora do alcance deste diagnóstico — domínio técnico que exige avaliação de
