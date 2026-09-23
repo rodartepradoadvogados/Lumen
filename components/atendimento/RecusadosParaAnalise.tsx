@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Undo2, Archive, ExternalLink } from "lucide-react";
 import { reverterRecusa, arquivarRecusa } from "@/lib/actions/recusaDoLead";
+import { hrefDaConversa, type DestinoDaConversa } from "@/lib/conversaDaCentral";
 
 // ============================================================================
 // OS LEADS RECUSADOS, ESPERANDO UMA SEGUNDA OPINIÃO.
@@ -19,6 +20,13 @@ import { reverterRecusa, arquivarRecusa } from "@/lib/actions/recusaDoLead";
 //
 // A DATA DE VOLTAR A OLHAR APARECE NA LINHA, e vencida ela ganha destaque — é o único jeito de a
 // promessa "vamos olhar isso em março" não morrer num campo que ninguém lê.
+//
+// PARA ONDE A LINHA ABRE quem diz é quem hospeda, pelo `destino` (ver lib/conversaDaCentral.ts):
+// a Triagem antiga não diz nada e segue na rota /atendimento/:id; a Central pede "central" e a
+// conversa abre na aba Atendimentos da própria tela. O ícone "Ver a recusa" É OUTRA NAVEGAÇÃO e
+// continua na rota antiga de propósito: ele abre a FICHA no bloco do processo, que é uma tela que a
+// Central ainda não hospeda — mandá-lo para a Central levaria a pessoa para uma conversa, e não
+// para a carta que ela pediu para ver.
 // ============================================================================
 
 export type RecusadoNaLista = {
@@ -37,7 +45,13 @@ export type RecusadoNaLista = {
   revisitaLegivel: string | null;
 };
 
-export default function RecusadosParaAnalise({ lista }: { lista: RecusadoNaLista[] }) {
+export default function RecusadosParaAnalise({
+  lista,
+  destino = "classico",
+}: {
+  lista: RecusadoNaLista[];
+  destino?: DestinoDaConversa;
+}) {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState<string | null>(null);
@@ -91,7 +105,7 @@ export default function RecusadosParaAnalise({ lista }: { lista: RecusadoNaLista
                   HTML inválido. O nome perde o sublinhado de link avulso porque agora é a linha
                   toda que é clicável, não só a palavra. */}
               <Link
-                href={`/atendimento/${r.attendanceId}`}
+                href={hrefDaConversa(destino, r.attendanceId)}
                 className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 outline-none focus-visible:bg-sf-apoio focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-marca-tx"
               >
                 <div className="w-full min-w-0 lg:w-[220px] lg:shrink-0">

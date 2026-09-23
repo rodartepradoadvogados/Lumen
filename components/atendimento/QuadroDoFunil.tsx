@@ -9,6 +9,7 @@ import FunnelStageSelect from "@/components/FunnelStageSelect";
 import { setAttendanceStage } from "@/lib/actions/attendance";
 import { stageOptions, stageLabels, stageDot, ESTAGIOS_DECIDIDOS } from "@/lib/funil";
 import { somaEstimadaOuOmissao } from "@/lib/valorEstimado";
+import { hrefDaConversa, type DestinoDaConversa } from "@/lib/conversaDaCentral";
 
 // ============================================================================
 // O QUADRO DO FUNIL — agora se arrasta.
@@ -34,6 +35,12 @@ import { somaEstimadaOuOmissao } from "@/lib/valorEstimado";
 // A BOLINHA QUE PISCA É OUTRA COISA QUE A COLUNA. Ver a nota em lib/funil.ts: a coluna é estágio
 // (alguém pôs ali), a bolinha é fato (o cliente escreveu e ninguém respondeu). Um card pode piscar
 // em qualquer coluna.
+//
+// PARA ONDE O CARD ABRE quem diz é quem hospeda, pelo `destino` (ver lib/conversaDaCentral.ts): a
+// Triagem antiga não diz nada e segue na rota /atendimento/:id; a Central de Atendimento pede
+// "central" e o card abre a conversa na aba Atendimentos da própria tela, sem sair dela. O `destino`
+// é um texto, e não uma função: este é um componente de cliente, e função não atravessa a fronteira
+// servidor→cliente.
 //
 // O VALOR ESTIMADO DE UM CARD É REGISTRO; A SOMA DA COLUNA É INDICADOR (ver lib/valorEstimado.ts).
 // Quem enxerga o quadro continua vendo o valor de cada card — é a negociação que está conduzindo.
@@ -68,7 +75,15 @@ const leadSourceLabels: Record<string, string> = {
   OUTRO: "Outro",
 };
 
-export default function QuadroDoFunil({ cards, isAdmin }: { cards: CardDoFunil[]; isAdmin: boolean }) {
+export default function QuadroDoFunil({
+  cards,
+  isAdmin,
+  destino = "classico",
+}: {
+  cards: CardDoFunil[];
+  isAdmin: boolean;
+  destino?: DestinoDaConversa;
+}) {
   const router = useRouter();
   const [, comecar] = useTransition();
   const [colunaAlvo, setColunaAlvo] = useState<string | null>(null);
@@ -190,7 +205,7 @@ export default function QuadroDoFunil({ cards, isAdmin }: { cards: CardDoFunil[]
                         : "Aqui não — use o seletor do card"}
                   </p>
                 ) : (
-                  doEstagio.map((c) => <Card key={c.id} card={c} aoComecar={() => setErro(null)} />)
+                  doEstagio.map((c) => <Card key={c.id} card={c} destino={destino} aoComecar={() => setErro(null)} />)
                 )}
               </div>
             </div>
@@ -206,7 +221,7 @@ export default function QuadroDoFunil({ cards, isAdmin }: { cards: CardDoFunil[]
   );
 }
 
-function Card({ card, aoComecar }: { card: CardDoFunil; aoComecar: () => void }) {
+function Card({ card, destino, aoComecar }: { card: CardDoFunil; destino: DestinoDaConversa; aoComecar: () => void }) {
   const [arrastando, setArrastando] = useState(false);
 
   return (
@@ -228,7 +243,10 @@ function Card({ card, aoComecar }: { card: CardDoFunil; aoComecar: () => void })
         arrastando ? "scale-[1.02] shadow-arrasto duration-150" : "scale-100 shadow-none"
       )}
     >
-      <Link href={`/atendimento/${card.id}`} className="block p-3 transition-colors hover:bg-sf-apoio">
+      <Link
+        href={hrefDaConversa(destino, card.id)}
+        className="block p-3 outline-none transition-colors hover:bg-sf-apoio focus-visible:bg-sf-apoio focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-marca-tx"
+      >
         <div className="flex items-start gap-2">
           {/* A bolinha vem ANTES do nome: é a primeira coisa que o olho encontra na varredura da
               coluna, e é o que faz o card parar de ser mais um. */}
