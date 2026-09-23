@@ -40,6 +40,21 @@ teste("RECONHECEDOR DE FORMA: números reais passam como 'valido'", () => {
   igual(classificarIdentificador("AREsp 738.415/RJ"), "valido");
 });
 
+// REGRESSÃO — o reconhecedor nasceu recusando número REAL. A régua de "sequência trivial" era
+// aplicada aos SEIS segmentos do CNJ, e a unidade de origem "0000" (sexto segmento) é "todo o
+// mesmo dígito"; só que "0000" é o código OFICIAL de processo ORIGINÁRIO do tribunal, ou seja,
+// justamente o que aparece no acórdão de competência originária — a jurisprudência que o advogado
+// cita. O efeito era o pior possível: um julgado real virava "molde" e travava a aprovação da
+// minuta, ensinando o advogado a desconfiar do aviso que existe para protegê-lo.
+teste("REGRESSÃO: unidade de origem '0000' é processo originário do tribunal — número real, nunca molde", () => {
+  igual(classificarIdentificador("1001234-56.2021.8.26.0000"), "valido", "ação originária no TJSP");
+  igual(classificarIdentificador("0010567-89.2019.5.18.0000"), "valido", "dissídio/ação originária no TRT-18");
+  igual(classificarIdentificador("RO 0010567-89.2019.5.18.0000"), "valido", "o mesmo número com a sigla do recurso na frente");
+  // A máscara continua valendo sobre TODOS os segmentos — a correção acima não abriu essa porta.
+  igual(classificarIdentificador("00XX234-56.2021.8.26.0000"), "molde", "máscara no primeiro segmento, unidade 0000 de verdade");
+  igual(classificarIdentificador("1001234-56.20XX.8.26.0000"), "molde", "máscara no ano, unidade 0000 de verdade");
+});
+
 teste("RECONHECEDOR DE FORMA: os três exemplos exatos do print do dono são molde", () => {
   igual(classificarIdentificador("TRT-18-RO-000XX-XX.20XX.5.18.XXXX"), "molde");
   igual(classificarIdentificador("TST-RR-XXXXX-XX.20XX.5.XX.XXXX"), "molde");

@@ -96,7 +96,21 @@ function classificarDigitos(digitos: string): "valido" | "molde" {
 function classificarSegmentosCnj(segmentos: string[]): "valido" | "molde" {
   const concatenado = apenasDigitosOuMascara(...segmentos);
   if (classificarDigitos(concatenado) === "molde") return "molde";
-  if (segmentos.some((s) => ehSequenciaTrivial(s.replace(/[^0-9XN_]/g, "")))) return "molde";
+  // SÓ O PRIMEIRO SEGMENTO (o número sequencial) entra na régua de sequência trivial — e isto é
+  // uma correção, não um relaxamento. Aplicar a régua aos SEIS segmentos recusava número REAL: a
+  // unidade de origem "0000" (sexto segmento) é o código oficial de processo ORIGINÁRIO do
+  // tribunal — exatamente o que aparece em acórdão de competência originária, ou seja, na
+  // jurisprudência que o advogado cita. "1001234-56.2021.8.26.0000" é um número plausível de
+  // verdade e era classificado como molde porque "0000" é "todo o mesmo dígito"; recusar um
+  // julgado real como inexistente ensina o advogado a desconfiar do aviso, que é o oposto do que
+  // esta trava existe para fazer. Os dois dígitos verificadores, o grau e o tribunal têm 1–2
+  // caracteres e nunca chegariam aqui (ehSequenciaTrivial exige 3); o ano de 4 dígitos passaria,
+  // mas nenhuma progressão perfeita de 4 dígitos ("1234", "2345", "0000") é ano plausível — o
+  // risco real era só o sexto segmento, e é ele que sai da régua.
+  //
+  // A checagem de MÁSCARA (X/N/_) continua valendo sobre o texto concatenado, isto é, sobre TODOS
+  // os segmentos: é ela que pega "20XX" e ".XXXX" dos exemplos do dono, e ela não muda aqui.
+  if (ehSequenciaTrivial(segmentos[0].replace(/[^0-9XN_]/g, ""))) return "molde";
   return "valido";
 }
 

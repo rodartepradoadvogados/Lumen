@@ -346,6 +346,15 @@ export async function gravarMinutaGerada(dados: {
       // O motivo falado de uma tentativa ANTERIOR não pode sobreviver a uma geração que deu
       // certo: a tela leria a falha de ontem embaixo da minuta de hoje.
       contextoBloqueadoMotivo: null,
+      // A APROVAÇÃO FINAL MORRE COM O TEXTO ANTIGO. `atualizarCorpoDaMinuta` já zera estes dois
+      // quando o advogado edita à mão; esta gravação é o OUTRO caminho pelo qual `minutaTexto`
+      // muda (gerar de novo), e sem zerar aqui uma minuta aprovada e depois regerada continuaria
+      // mostrando "aprovada por <nome> em <data>" sobre um corpo inteiro que esse nome nunca leu —
+      // e, na etapa de exportação que vai consumir este estado, liberaria uma peça que ninguém
+      // aprovou. Mesmo motivo da invalidação de citação cujo texto mudou: ninguém aprovou um texto
+      // que ainda não existia.
+      minutaAprovadaEm: null,
+      minutaAprovadaPorId: null,
     },
   });
   if (gravou.count === 0) return false;

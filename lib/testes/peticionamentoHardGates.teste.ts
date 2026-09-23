@@ -20,6 +20,7 @@ const FONTE_DOCX = readFileSync(join(RAIZ, "lib", "peticionamentoDocx.ts"), "utf
 // advogado, e aquele arquivo é `"use server"` — exportar de lá teria transformado uma função que
 // recebe `officeId` por parâmetro numa Server Action chamável do navegador.
 const FONTE_CITACOES = readFileSync(join(RAIZ, "lib", "peticionamentoCitacoesSync.ts"), "utf8");
+const FONTE_GERACAO = readFileSync(join(RAIZ, "lib", "peticionamentoGeracaoAssincrona.ts"), "utf8");
 
 // ── Nunca protocolar (especificação §3) ─────────────────────────────────────────────────────
 
@@ -382,6 +383,64 @@ teste("HARD GATE: alternarVinculo valida o cliente ANTES de gravar qualquer vín
   const idxValidacao = corpo.indexOf("validarNovoVinculo(");
   const idxUpdate = corpo.lastIndexOf("prisma.peticionamentoSessao.update(");
   verdade(idxValidacao !== -1 && idxUpdate !== -1 && idxValidacao < idxUpdate, "a validação precisa vir ANTES da gravação do vínculo");
+});
+
+// ── A APROVAÇÃO FINAL NÃO PODE SOBREVIVER A UMA TROCA DE TEXTO ──────────────────────────────────
+//
+// REGRESSÃO REAL: `atualizarCorpoDaMinuta` zerava a aprovação (gate acima), mas `minutaTexto` tem
+// DOIS escritores — o outro é a reivindicação atômica da geração, em
+// lib/peticionamentoGeracaoAssincrona.ts. Uma minuta aprovada e depois GERADA DE NOVO seguia
+// marcada como "aprovada por <nome> em <data>" sobre um corpo inteiro que esse nome nunca leu.
+// Este gate não guarda um dos dois escritores: guarda a INVARIANTE, varrendo TODA gravação de
+// sessão dos dois arquivos. Um terceiro escritor de `minutaTexto`, amanhã, cai aqui sozinho.
+//
+// A varredura usa DELIMITAÇÃO BALANCEADA (conta parêntese até fechar), nunca uma janela de N
+// caracteres: janela de tamanho fixo escorrega para a chamada vizinha e o gate passa a afirmar
+// coisa sobre código que não é o que ele pensa estar lendo.
+function gravacoesDeSessao(fonte: string): string[] {
+  const codigo = codigoDe(fonte);
+  const blocos: string[] = [];
+  const marca = /prisma\.peticionamentoSessao\.(?:update|updateMany|upsert)\s*\(/g;
+  let m: RegExpExecArray | null;
+  while ((m = marca.exec(codigo))) {
+    let i = m.index + m[0].length - 1; // no "(" da chamada
+    let profundidade = 0;
+    const inicio = i;
+    for (; i < codigo.length; i++) {
+      if (codigo[i] === "(") profundidade++;
+      else if (codigo[i] === ")") {
+        profundidade--;
+        if (profundidade === 0) break;
+      }
+    }
+    blocos.push(codigo.slice(inicio, i + 1));
+  }
+  return blocos;
+}
+
+teste("HARD GATE: TODA gravação que troca minutaTexto zera a aprovação final — nos dois escritores, e em qualquer terceiro que apareça", () => {
+  const fontes: Array<[string, string]> = [
+    ["lib/actions/peticionamento.ts", FONTE_ACOES],
+    ["lib/peticionamentoGeracaoAssincrona.ts", FONTE_GERACAO],
+  ];
+  let escritoresVistos = 0;
+  for (const [nome, fonte] of fontes) {
+    const blocos = gravacoesDeSessao(fonte);
+    verdade(blocos.length > 0, `a varredura não achou nenhuma gravação de sessão em ${nome} — o extrator quebrou`);
+    for (const bloco of blocos) {
+      // Só as gravações que ESCREVEM minutaTexto: `minutaTexto: sessao.minutaTexto` e
+      // `minutaTexto: true` são leitura/seleção e não mudam o corpo de nada.
+      if (!/minutaTexto:\s*(?!true\b|sessao\.)/.test(bloco)) continue;
+      escritoresVistos++;
+      verdade(
+        bloco.includes("minutaAprovadaEm: null") && bloco.includes("minutaAprovadaPorId: null"),
+        `em ${nome} há gravação que troca minutaTexto SEM zerar a aprovação final — uma peça aprovada continuaria "aprovada" com outro conteúdo`,
+      );
+    }
+  }
+  // Se um dia a busca deixar de achar escritor nenhum, o laço acima passaria vazio e o gate estaria
+  // verde sem ter verificado nada — os dois escritores conhecidos são o piso.
+  verdade(escritoresVistos >= 2, `esperava ao menos 2 gravações que trocam minutaTexto, achei ${escritoresVistos} — a varredura parou de encontrar o que guarda`);
 });
 
 resumo("Peticionamento — varredura dos hard gates");
