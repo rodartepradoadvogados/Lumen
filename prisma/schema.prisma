@@ -4566,8 +4566,14 @@ model PeticionamentoAnexo {
   storageFileId String?
   tamanhoBytes  Int?
 
-  // Markdown é sempre SUGERIDO, nunca obrigatório (seção 1) — os dois campos abaixo são
-  // mutuamente exclusivos na prática (a tela só marca um deles), nunca os dois juntos.
+  // ÓRFÃOS desde 23/09/2026 — NENHUM código lê ou grava mais estes dois campos. A ação que os
+  // gravava (`marcarConversaoMarkdown`, lib/actions/peticionamento.ts) nunca convertia nada de
+  // verdade: só registrava a escolha do advogado atrás de um selo "✓ Convertido em Markdown" que
+  // afirmava um trabalho que não tinha acontecido — o dono decidiu tirar o botão da tela, e a
+  // ação junto (o agente já lê o conteúdo real de cada documento por outro caminho, ver
+  // carregarDocumentosDaSessaoComTexto em lib/actions/peticionamento.ts). Os campos continuam
+  // aqui porque o build de produção roda `prisma db push`, e tirar coluna apagaria dado real da
+  // base de produção sem ganho nenhum — remover exige migração pensada, não esta entrega.
   markdownConvertido Boolean @default(false)
   markdownRecusado   Boolean @default(false)
 

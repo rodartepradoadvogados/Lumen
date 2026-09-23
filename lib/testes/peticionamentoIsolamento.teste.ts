@@ -83,27 +83,23 @@ teste("TRAVA: toda ação que recebe sessaoId exige acesso à aba antes da guard
   }
 });
 
-teste("TRAVA: a ação que entra por anexoId (não por sessaoId) confere o escritório da sessão do anexo", () => {
-  const corpo = corpoDaFuncao(FONTE, "marcarConversaoMarkdown");
-  verdade(corpo.length > 120, `corpoDaFuncao("marcarConversaoMarkdown") devolveu ${corpo.length} caracteres`);
-  const c = codigoDe(corpo);
-  verdade(c.includes("sessao: true") || c.includes("include: { sessao"),
-    "sem trazer a sessão do anexo não há como saber de que escritório ele é");
-  verdade(/sessao\.officeId\s*!==\s*user\.officeId/.test(c),
-    "a comparação de officeId do anexo caiu — anexo de outro escritório passa a ser editável por id");
-  verdade(c.indexOf("officeId") < c.indexOf("prisma.peticionamentoAnexo.update"),
-    "a conferência precisa vir antes da escrita");
-});
+// REMOVIDA 23/09/2026: a ação `marcarConversaoMarkdown` (que entrava por anexoId, não por
+// sessaoId, e por isso tinha teste próprio aqui) saiu de código por decisão do dono — o botão de
+// converter para Markdown nunca convertia nada de verdade. Ver
+// lib/testes/peticionamentoDocumentos.teste.ts, "guarda contra reintrodução", para a prova de que
+// ela não voltou ao código nem à tela.
 
 // ── AS TABELAS COMPARTILHADAS ────────────────────────────────────────────────────────────────
 // peticionamentoAnexo e peticionamentoExportacao pendem de uma sessão já conferida, então ali o
-// corte por sessaoId basta. Estas outras cinco são tabelas do escritório inteiro: uma consulta
-// sem officeId nelas vaza processo, atendimento, assessoria, documento e timbrado alheios.
+// corte por sessaoId basta. Estas outras tabelas são do escritório inteiro: uma consulta sem
+// officeId nelas vaza processo, atendimento, assessoria, documento e timbrado alheios.
 // "licitacao" e "parecer" entraram em 22/09/2026 com a busca por tipo (item 3 do pedido do dono):
 // procurar uma licitação ou uma demanda passa por essas duas tabelas, que são do ESCRITÓRIO
 // inteiro — uma consulta sem officeId nelas mostraria a licitação e o parecer de outro escritório
-// na caixa de busca, com o nome da empresa junto.
-const MODELOS_DE_ESCRITORIO = ["case", "attendance", "assessoria", "attachment", "peticionamentoMateria", "office", "licitacao", "parecer"];
+// na caixa de busca, com o nome da empresa junto. "assessoriaDocumento" entrou em 23/09/2026 com
+// o conserto do item 1 (documentos de assessoria por demanda): listarDocumentosDoVinculo passou a
+// consultar essa tabela também, e ela é do escritório inteiro do mesmo jeito que as outras.
+const MODELOS_DE_ESCRITORIO = ["case", "attendance", "assessoria", "attachment", "peticionamentoMateria", "office", "licitacao", "parecer", "assessoriaDocumento"];
 
 /**
  * O TRECHO DA PRÓPRIA CHAMADA: do `(` que abre até o `)` que o fecha, contando parênteses e

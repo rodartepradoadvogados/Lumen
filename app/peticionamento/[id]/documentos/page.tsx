@@ -38,7 +38,7 @@ export default async function DocumentosPage({ params }: { params: { id: string 
         sessaoId={params.id}
         documentosExistentes={documentosExistentes}
         jaSelecionados={jaSelecionados}
-        anexosIniciais={anexos.map((a) => ({ id: a.id, nome: a.nome, markdownConvertido: a.markdownConvertido, markdownRecusado: a.markdownRecusado }))}
+        anexosIniciais={anexos.map((a) => ({ id: a.id, nome: a.nome }))}
         pronto={prontidao.pronto}
         faltando={prontidao.faltando}
       />

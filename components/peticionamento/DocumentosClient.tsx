@@ -2,11 +2,16 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { definirDocumentosSelecionados, anexarNovoDocumento, marcarConversaoMarkdown } from "@/lib/actions/peticionamento";
+import { definirDocumentosSelecionados, anexarNovoDocumento } from "@/lib/actions/peticionamento";
+import { agruparDocumentosPorDemanda } from "@/lib/peticionamentoDocumentosDemanda";
 import { useSaidaDoPeticionamento } from "./SaidaContext";
 
-type DocExistente = { id: string; name: string; docType: string; driveUrl: string };
-type Anexo = { id: string; nome: string; markdownConvertido: boolean; markdownRecusado: boolean };
+// `demanda` agrupa o documento dentro da assessoria vinculada (ex.: "Processo: Fulano x
+// Beltrano", "Licitação: Pregão 12/2026") — null para documento de processo/atendimento
+// vinculado direto (sem outro nível, exatamente como já era) e para documento geral da
+// assessoria, sem demanda nenhuma.
+type DocExistente = { id: string; name: string; docType: string; driveUrl: string; demanda: string | null };
+type Anexo = { id: string; nome: string };
 
 export function DocumentosClient({
   sessaoId,
@@ -30,6 +35,7 @@ export function DocumentosClient({
   const [anexos, setAnexos] = useState<Anexo[]>(anexosIniciais);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [arrastando, setArrastando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function alternar(id: string) {
@@ -41,6 +47,9 @@ export function DocumentosClient({
     });
   }
 
+  // O ÚNICO PORTÃO de envio — quem clica (input de arquivo) e quem arrasta (onDrop, abaixo) chamam
+  // esta MESMA função, então a validação de tamanho e tipo (hoje em anexarNovoDocumento,
+  // lib/actions/peticionamento.ts) vale igual para os dois caminhos. Nunca duplicar esta chamada.
   async function enviarArquivo(file: File) {
     setErro(null);
     setEnviando(true);
@@ -54,14 +63,39 @@ export function DocumentosClient({
       return;
     }
     router.refresh();
-    setAnexos((a) => [...a, { id: crypto.randomUUID(), nome: resultado.nome, markdownConvertido: false, markdownRecusado: false }]);
+    setAnexos((a) => [...a, { id: crypto.randomUUID(), nome: resultado.nome }]);
   }
 
-  function converterMarkdown(id: string, aceitar: boolean) {
-    setAnexos((prev) => prev.map((a) => (a.id === id ? { ...a, markdownConvertido: aceitar, markdownRecusado: !aceitar } : a)));
-    iniciar(async () => {
-      await marcarConversaoMarkdown(id, aceitar);
-    });
+  // Vários arquivos soltos de uma vez — aceita todos, um de cada vez, pelo mesmo caminho de cima.
+  // Erro num arquivo não interrompe os demais (cada enviarArquivo trata o próprio erro).
+  async function enviarArquivos(files: FileList | File[]) {
+    for (const file of Array.from(files)) {
+      await enviarArquivo(file);
+    }
+  }
+
+  function aoSoltarArquivo(e: React.DragEvent<HTMLDivElement>) {
+    // SEM preventDefault aqui o navegador abre o arquivo solto como se fosse uma aba nova e SAI
+    // desta página — o erro clássico de dropzone que só tem onClick.
+    e.preventDefault();
+    setArrastando(false);
+    if (e.dataTransfer.files?.length) enviarArquivos(e.dataTransfer.files);
+  }
+
+  // Agrupamento por demanda — regra em lib/peticionamentoDocumentosDemanda.ts (módulo puro,
+  // exercitado em lib/testes/peticionamentoDocumentos.teste.ts).
+  const { soltos, grupos } = agruparDocumentosPorDemanda(documentosExistentes);
+
+  function linhaDoDocumento(d: DocExistente) {
+    return (
+      <label key={d.id} className="doc-row">
+        <input type="checkbox" checked={selecionados.includes(d.id)} onChange={() => alternar(d.id)} disabled={pendente} />
+        <div>
+          <div className="name">{d.name}</div>
+          <div className="meta">{d.docType}</div>
+        </div>
+      </label>
+    );
   }
 
   return (
@@ -69,7 +103,7 @@ export function DocumentosClient({
       <div className="page-head">
         <div>
           <h1>Documentos</h1>
-          <p>Escolha o que já existe no processo vinculado e, se precisar, anexe algo novo só para esta minuta. Converter para Markdown ajuda o agente a ler o conteúdo — mas nunca é obrigatório.</p>
+          <p>Escolha o que já existe no processo vinculado e, se precisar, anexe algo novo só para esta minuta. O agente lê o conteúdo de cada documento diretamente — não há conversão nenhuma a fazer aqui.</p>
         </div>
       </div>
 
@@ -83,17 +117,15 @@ export function DocumentosClient({
             {documentosExistentes.length === 0 ? (
               <div className="empty-note">Nenhum documento no contexto vinculado (ou sessão avulsa).</div>
             ) : (
-              <div className="doc-list">
-                {documentosExistentes.map((d) => (
-                  <label key={d.id} className="doc-row">
-                    <input type="checkbox" checked={selecionados.includes(d.id)} onChange={() => alternar(d.id)} disabled={pendente} />
-                    <div>
-                      <div className="name">{d.name}</div>
-                      <div className="meta">{d.docType}</div>
-                    </div>
-                  </label>
+              <>
+                {soltos.length > 0 && <div className="doc-list">{soltos.map(linhaDoDocumento)}</div>}
+                {grupos.map(([demanda, docs]) => (
+                  <div key={demanda} className="doc-group">
+                    <h3 className="doc-group-title">{demanda}</h3>
+                    <div className="doc-list">{docs.map(linhaDoDocumento)}</div>
+                  </div>
                 ))}
-              </div>
+              </>
             )}
             <p className="quiet" style={{ fontSize: 12, marginTop: 10 }}>
               Documentos anexados aqui só-para-esta-sessão podem, ao final, ser promovidos a anexo oficial do processo — ou continuar em{" "}
@@ -103,16 +135,34 @@ export function DocumentosClient({
 
           <div className="col">
             <h2>Anexar novo documento</h2>
-            <p className="col-hint">PDF, DOCX, imagem digitalizada ou áudio transcrito. Até 25 MB.</p>
-            <div className="dropzone" onClick={() => inputRef.current?.click()} style={{ cursor: "pointer" }}>
-              <strong>Clique para escolher um arquivo</strong>
+            <p className="col-hint">PDF, DOCX, imagem digitalizada ou áudio transcrito. Até 25 MB. Arraste um ou mais arquivos para a área abaixo, ou clique para escolher.</p>
+            <div
+              className={`dropzone${arrastando ? " dropzone-ativa" : ""}`}
+              onClick={() => inputRef.current?.click()}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                setArrastando(true);
+              }}
+              onDragOver={(e) => {
+                // preventDefault É OBRIGATÓRIO aqui também — sem ele o navegador nunca dispara
+                // onDrop, e trata o arraste como navegação para o arquivo.
+                e.preventDefault();
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setArrastando(false);
+              }}
+              onDrop={aoSoltarArquivo}
+              style={{ cursor: "pointer" }}
+            >
+              <strong>{arrastando ? "Solte para anexar" : "Clique ou arraste um arquivo para anexar"}</strong>
               <input
                 ref={inputRef}
                 type="file"
+                multiple
                 style={{ display: "none" }}
                 onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) enviarArquivo(f);
+                  if (e.target.files?.length) enviarArquivos(e.target.files);
                   e.target.value = "";
                 }}
               />
@@ -122,21 +172,6 @@ export function DocumentosClient({
               {anexos.map((a) => (
                 <div key={a.id} className="upload-item">
                   <div className="name">{a.nome}</div>
-                  {a.markdownConvertido && <div className="md-badge">✓ Convertido em Markdown</div>}
-                  {a.markdownRecusado && <div className="md-declined">Anexado como está — sem conversão para Markdown.</div>}
-                  {!a.markdownConvertido && !a.markdownRecusado && (
-                    <div className="md-suggest">
-                      Sugerimos converter para Markdown — ajuda o agente a ler com mais precisão. <strong>Não é obrigatório.</strong>
-                      <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                        <button className="btn btn-sm" onClick={() => converterMarkdown(a.id, true)}>
-                          Converter
-                        </button>
-                        <button className="btn btn-ghost btn-sm" onClick={() => converterMarkdown(a.id, false)}>
-                          Manter como está
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

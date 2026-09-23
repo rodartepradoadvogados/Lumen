@@ -1219,6 +1219,13 @@
   color: var(--tx-1);
   font-size: 13px;
   margin-bottom: 14px;
+  transition: background-color 0.1s, border-color 0.1s;
+}
+/* Estado visual enquanto um arquivo arrastado está sobre a área — ver onDragEnter/onDragLeave
+   em DocumentosClient.tsx. */
+.peticionamento .dropzone-ativa {
+  border-color: var(--accent);
+  background: var(--accent-bg);
 }
 .peticionamento .upload-item {
   border: 1px solid var(--border);
@@ -1227,25 +1234,19 @@
   margin-bottom: 8px;
   font-size: 12.5px;
 }
-.peticionamento .md-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ok);
-  font-size: 11.5px;
-  margin-top: 6px;
+/* Um grupo de documentos "por demanda" dentro de uma assessoria vinculada (ver
+   DocExistente.demanda) — mesma lista .doc-list de sempre, só com um título acima dizendo a
+   qual demanda ela pertence. Nunca um nível a mais que este. */
+.peticionamento .doc-group {
+  margin-top: 14px;
 }
-.peticionamento .md-suggest {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--border);
+.peticionamento .doc-group-title {
   font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--tx-2);
-}
-.peticionamento .md-declined {
-  font-size: 11.5px;
-  color: var(--tx-2);
-  margin-top: 6px;
+  margin: 0 0 6px;
 }
 
 /* ---- modal (confirmar triagem / exportar) ---- */
