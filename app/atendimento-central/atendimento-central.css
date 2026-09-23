@@ -1,0 +1,89 @@
+/* ============================================================================
+   CENTRAL DE ATENDIMENTO — tokens dos três planos.
+
+   Hex extraídos LITERALMENTE do mockup aprovado pelo dono
+   (.../atendimento-mockup/index.html, "Tela B") — ver PROPOSTA.md §2/§3 desse mockup para a
+   conta de cada valor, e CRITICA.md para os defeitos que a versão final já corrigiu (não
+   reintroduzir: chanfro no cabeçalho da lista, superfície de trabalho sem largura máxima, sub-aba
+   padrão que não é a primeira, rótulos em --tx-ghost contra fundo claro demais).
+
+   Mesmo lugar que a paleta do Peticionamento ocupa em app/peticionamento/peticionamento.css:
+   TODO hex desta tela mora AQUI, nunca solto num componente ou numa classe utilitária.
+
+   TRÊS PLANOS, da mais funda para a mais alta:
+   - MOLDURA   (--frame-*)  navegação: barra superior, cabeçalho de abas/sub-abas, cabeçalho de
+     cada lista. FIXA nos dois temas — nunca redeclarada no bloco `.dark` abaixo. É a peça central
+     do desenho aprovado: por ser sempre a mesma cor, ela ancora a tela como "onde estou",
+     independente do tema do conteúdo (mesma composição do Telegram Web / Digisac que o dono deu
+     como referência).
+   - LISTA     (--list-*)   coluna de escaneamento: linhas da fila, de recusados, da lista de
+     Atendimentos. Muda de tom com o tema.
+   - TRABALHO  (--work-*)   onde se age: conversa, quadro do funil, trilho de detalhe. Muda de
+     tom com o tema.
+
+   O ALTERNADOR DE TEMA DESTA TELA é o MESMO da casca do Lúmen (lib/theme.ts, classe `.dark` no
+   <html>) — de propósito, e diferente do Peticionamento (que tem `data-theme` próprio,
+   independente do resto do site). Motivo: esta tela HOSPEDA componentes de produção que já
+   existem (Conversa.tsx, TrilhoDoAtendimento.tsx, FilaDeEspera.tsx, QuadroDoFunil.tsx,
+   RecusadosParaAnalise.tsx, RecusarLeadPainel.tsx, RelogioDoAtendimento.tsx, QuemEEsteNumero.tsx)
+   e nenhum deles foi reescrito para esta tela — todos usam as classes Tailwind globais
+   (bg-sf/text-tx/border-regua/...) que já respondem SÓ à classe `.dark`. Um alternador próprio
+   aqui deixaria a moldura/lista/trabalho num tema e os componentes hospedados no outro, fora de
+   sincronia. Por isso esta tela reaproveita o próprio components/ThemeToggle.tsx (variante
+   "cromo", a mesma do rail e do blog — chrome que nunca retematiza), em vez de um alternador
+   próprio: ele troca a MESMA classe `.dark` do <html>, com a MESMA chave THEME_KEY — a tela lê e
+   escreve a preferência de tema do site inteiro, não uma preferência própria.
+   ============================================================================ */
+
+.atd-central {
+  /* MOLDURA — fixa. Não existe (e não deve passar a existir) uma segunda declaração destes oito
+     tokens em nenhum lugar deste arquivo: é isso que prova, em código, que a moldura não muda de
+     tom com o tema. */
+  --frame-bg: #090d14;
+  --frame-bg-raised: #0e131c;
+  --frame-border: #202838;
+  --frame-border-strong: #2a3446;
+  --frame-tx-0: #e7eaed;
+  --frame-tx-1: #aab1ba;
+  --frame-tx-2: #838d97;
+  --frame-tx-ghost: #3d434b;
+  --frame-accent: #7fa8c9;
+  --frame-accent-strong: #355f7f;
+  --frame-accent-bg: rgba(127, 168, 201, 0.1);
+  --frame-accent-tx: #eef4f8;
+  --frame-danger: #c07268;
+  --frame-danger-bg: rgba(192, 114, 104, 0.13);
+
+  /* LISTA e TRABALHO — valores do TEMA CLARO aqui, porque este seletor sem `.dark` na frente é o
+     que vale por padrão (mesma convenção de app/globals.css: claro em `:root`, escuro em
+     `.dark`). O bloco `.dark .atd-central` logo abaixo troca só estes tokens — nunca os de cima. */
+  --list-bg: #d7dce4;
+  --list-bg-hover: #e3e6ed;
+  --work-bg: #ffffff;
+  --work-bg-raised: #eceff4;
+  --atd-border: #c5ccd8;
+  --atd-border-strong: #a4aec0;
+  --atd-shadow-card: 0 8px 20px rgba(20, 23, 27, 0.1), 0 2px 6px rgba(20, 23, 27, 0.08);
+
+  color-scheme: light;
+}
+
+.dark .atd-central {
+  /* Os três primeiros valores são DERIVADOS, não literais do CSS-fonte do Peticionamento — a
+     "Ardósia fria" original (--bg-0..--bg-3) não tem degrau suficiente para separar lista e
+     trabalho visivelmente (medido no mockup: ~1,1:1 entre planos, abaixo do que o olho registra
+     como "degrau"). Os três escalam a MESMA razão de matiz de --bg-3 (28:35:48) por um fator
+     maior, preservando o azul-frio e abrindo a distância — a conta completa (por que cada fator,
+     e os dois métodos testados e descartados antes) está em PROPOSTA.md §0.4/§2.2 do mockup
+     aprovado. `--work-bg-raised` em particular NÃO é um valor solto: é este token, aqui, ao lado
+     dos outros — é o que a etapa 1 pedia explicitamente para não deixar "número mágico" nenhum. */
+  --list-bg: #1a212d;
+  --list-bg-hover: #283245;
+  --work-bg: #283245;
+  --work-bg-raised: #323e55;
+  --atd-border: #202838;
+  --atd-border-strong: #2a3446;
+  --atd-shadow-card: 0 8px 20px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.35);
+
+  color-scheme: dark;
+}

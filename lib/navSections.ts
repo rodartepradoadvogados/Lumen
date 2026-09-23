@@ -79,14 +79,41 @@ export const RAIL_SECTIONS: SectionDef[] = [
     // "Editorial fino" aprovada em 2026-08: símbolo específico do que a seção faz (captação de
     // publicações + atendimentos entrando), não um ícone de chat de qualquer SaaS.
     icon: Inbox,
+    // ATÉ 23/09/2026 esta seção tinha QUATRO itens: Publicações, Atendimentos (/atendimento,
+    // atendimentoOnly), Triagem (/atendimento/funil, atendimentoTotal) e Contatos. A tela nova de
+    // Atendimento (app/atendimento-central/, mockup aprovado em
+    // .../atendimento-mockup/index.html + PROPOSTA.md) funde as duas em uma só, com abas internas
+    // — Triagem e Atendimentos — em vez de dois destinos de menu. Ordem nova, pedida pelo dono:
+    // Publicações, Contatos, Atendimento (Contatos passou a vir ANTES do item fundido).
+    //
+    // A REGRA DE ACESSO DO ITEM FUNDIDO — decisão do COORDENADOR desta etapa, não do dono, e por
+    // isso registrada aqui com a razão: fundir duas telas num item de menu só NÃO PODE alargar,
+    // nem por acidente, quem enxerga o quê.
+    //
+    //   - O ITEM continua exigindo só `atendimentoOnly` — o portão mais baixo, o MESMO que o
+    //     antigo "Atendimentos" já exigia. Ninguém que hoje NÃO vê "Triagem" passa a vê-la só
+    //     porque ela virou uma aba dentro de uma tela que ele já tinha o direito de abrir.
+    //   - DENTRO da tela (app/atendimento-central/page.tsx), a aba "Triagem" só é OFERECIDA a quem
+    //     tem `atendimentoTotal` — quem não tem não a vê desabilitada nem cinza: ela não existe no
+    //     DOM, e a tela abre direto em "Atendimentos" para essa pessoa. Esconder a aba é só
+    //     conveniência de navegação.
+    //   - A TRAVA DE VERDADE continua sendo a do SERVIDOR, em app/(app)/atendimento/funil/page.tsx
+    //     (`if (!veTodoOAtendimento(viewer)) notFound()`), exatamente como era — essa rota antiga
+    //     não muda nesta etapa, e é ela (não a aba escondida) que impede o acesso direto por URL.
+    //
+    // Abre em ABA NOVA do navegador (abrirEmNovaAba, ver o comentário no tipo acima) — mesmo
+    // mecanismo do Peticionamento, e pela mesma razão de rota própria fora de app/(app)/ (ver
+    // app/atendimento-central/layout.tsx).
     items: [
       { href: "/publicacoes", label: "Publicações" },
-      { href: "/atendimento", label: "Atendimentos", moduleKey: "atendimento", atendimentoOnly: true },
-      // A rota continua /funil (marcar página de novo por causa de um rótulo seria trocar seis por
-      // meia dúzia), mas a tela passou a ser a Triagem: a fila de quem espera resposta em cima, e
-      // o funil como seção dentro dela.
-      { href: "/atendimento/funil", label: "Triagem", moduleKey: "atendimento", atendimentoTotal: true },
       { href: "/contatos", label: "Contatos" },
+      {
+        href: "/atendimento-central",
+        label: "Atendimento",
+        moduleKey: "atendimento",
+        atendimentoOnly: true,
+        abrirEmNovaAba: true,
+      },
     ],
   },
   {
