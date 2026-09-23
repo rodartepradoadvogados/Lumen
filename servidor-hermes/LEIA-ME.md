@@ -222,8 +222,48 @@ Todas têm padrão seguro; nenhuma precisa ser definida para a ponte funcionar.
 | `HERMES_TIMEOUT_S` | `900` | teto do processo do Hermes — **quinze minutos, o teto do trabalho** |
 | `HERMES_RUN_BUDGET_FOLGA_S` | `60` | folga entre o orçamento do agente e a morte do processo |
 | `HERMES_MAX_TURNS` | `60` | teto de iterações de ferramenta por turno (o padrão do binário é 500) |
+| `HERMES_TOOLSETS` | `web` | quais famílias de ferramenta o agente pode usar — **vazio desliga a parede** |
 | `HERMES_TAREFAS_MAXIMAS` | `32` | quantas gerações assíncronas cabem na memória ao mesmo tempo |
 | `HERMES_TAREFA_VALIDADE_S` | `2400` | quanto tempo uma tarefa não buscada continua de pé |
+
+### A parede de ferramentas (`HERMES_TOOLSETS`)
+
+Sem essa opção, o Hermes habilita o conjunto padrão dele — que inclui **ler e escrever arquivo e
+rodar comando na máquina**. Numa ponte que recebe texto de documento vindo de fora, isso é
+superfície que ninguém pediu: o texto da peça já viaja dentro da pergunta, e a geração não precisa
+abrir arquivo nem executar nada.
+
+O padrão é `web`: mantém a busca na web (de que a validação dupla de jurisprudência depende) e tira
+arquivo e comando.
+
+**Leia isto antes de trocar o valor.** O binário **não recusa** nome de conjunto que não conhece:
+
+```
+$ hermes chat --toolsets __invalido__ --oneshot -Q -q oi
+Warning: Unknown toolsets: __invalido__
+
+session_id: 20260923_054842_abaa0e
+Oi
+```
+
+Ele avisa e **segue, sem ferramenta nenhuma**. Quer dizer que um nome errado aqui não derruba a
+ponte — ele apaga a busca na web em silêncio. Por isso duas defesas:
+
+1. O valor mora **no ambiente da máquina**, não no código: corrige-se no arquivo de ambiente, sem
+   upload de arquivo e sem esperar deploy.
+2. A ponte **lê o aviso na volta** e o registra como `ERRO` no log, com o valor configurado e o
+   conserto por extenso. Um nome errado passa a gritar no `journalctl` em vez de sumir.
+
+A mesma leitura conserta um defeito que a parede criaria: o aviso sai na **mesma saída da
+resposta**, antes do `session_id:`. Sem tratamento, `Warning: Unknown toolsets: web` apareceria
+**no começo da minuta**, dentro do documento exportado. A extração agora descarta da resposta toda
+linha iniciada por `Warning:` — e registra cada uma no log.
+
+Para desligar a parede por completo (o agente volta ao conjunto padrão do binário):
+
+```
+HERMES_TOOLSETS=
+```
 
 **A corrente de tempos de hoje, e ela tem DUAS pernas.** A do trabalho (o caminho assíncrono, que é
 o normal do peticionamento) e a de uma requisição web (o síncrono e o atendimento):
