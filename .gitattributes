@@ -1,0 +1,42 @@
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+# FIM DE LINHA — e este arquivo existe por causa de um defeito real, não por arrumação.
+#
+# Duas vezes nesta obra o mesmo problema custou uma rodada inteira de instalação na VPS: o md5 de
+# `servidor-hermes/servidor.py` conferido no Windows não batia com o do repositório, e a conclusão
+# natural ("o download corrompeu") estava errada. O que acontecia era o git do Windows convertendo
+# LF em CRLF ao baixar — o arquivo ficava diferente BYTE A BYTE, e o md5 mudava com ele.
+#
+# POR QUE AQUI ISSO IMPORTA MAIS QUE O NORMAL. Este repositório tem arquivos que não são apenas
+# lidos: são COPIADOS BYTE A BYTE para uma máquina Linux, com o md5 conferido nas duas pontas como
+# prova de que a cópia chegou inteira. `servidor-hermes/servidor.py` e
+# `servidor-hermes/provision_tenant.py` são os dois casos. Com a conversão no meio, a conferência
+# que existe para detectar cópia corrompida passa a acusar cópia correta — e a única saída viável
+# era mandar quem instala desligar a conversão à mão, em cada máquina, e lembrar disso para sempre.
+#
+# Agora a regra viaja COM O REPOSITÓRIO: qualquer máquina que o baixe recebe LF, sem depender de
+# configuração local nenhuma e sem ninguém precisar saber que este problema existe.
+* text=auto eol=lf
+
+# AS EXCEÇÕES, e elas são exceções de verdade: script que o Windows executa espera CRLF, e um
+# arquivo de lote com LF pode falhar de formas obscuras no interpretador de comandos.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# BINÁRIO NÃO SE CONVERTE, e marcar explicitamente evita que a detecção automática erre num arquivo
+# que por acaso pareça texto nos primeiros bytes.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.db binary
+*.docx binary
+*.xlsx binary
+*.zip binary
