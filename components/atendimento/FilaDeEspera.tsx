@@ -37,31 +37,31 @@ export default function FilaDeEspera({
     <section className="mb-6 border border-regua bg-sf">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-regua px-5 py-3">
         <span className="h-2 w-2 shrink-0 rounded-full bg-acao" aria-hidden="true" />
-        <h2 className="text-base font-bold text-tx">Esperando resposta</h2>
-        <span className="text-sm text-tx-3">
+        <h2 className="text-corpo font-bold text-tx">Esperando resposta</h2>
+        <span className="text-corpo text-tx-3">
           {lista.length === 0
             ? "ninguém no momento"
             : `${lista.length} lead${lista.length === 1 ? "" : "s"}, do que espera há mais tempo para o mais recente`}
         </span>
         <span className="flex-1" />
         {expediente && (
-          <span className="text-xs text-tx-3">
+          <span className="text-etiqueta text-tx-3">
             Expediente {expediente.inicio}–{expediente.fim} — o relógio só corre dentro dele
           </span>
         )}
       </div>
 
       {lista.length === 0 ? (
-        <p className="px-5 py-6 text-sm text-tx-3">
+        <p className="px-5 py-6 text-corpo text-tx-3">
           Nenhum lead com mensagem sem resposta. Quando alguém escrever e ninguém responder, a conversa aparece aqui.
         </p>
       ) : (
         <>
           <div className="hidden items-center gap-4 border-b border-regua bg-sf-apoio px-5 py-2 lg:flex">
-            <Cabecalho className="w-[210px]">Quem</Cabecalho>
-            <Cabecalho className="w-[180px]">Há quanto tempo</Cabecalho>
-            <Cabecalho className="w-[170px]">Com quem está</Cabecalho>
-            <Cabecalho className="flex-1">Última mensagem</Cabecalho>
+            <Cabecalho className="min-w-0 basis-[210px]">Quem</Cabecalho>
+            <Cabecalho className="min-w-0 basis-[180px]">Há quanto tempo</Cabecalho>
+            <Cabecalho className="min-w-0 basis-[170px]">Com quem está</Cabecalho>
+            <Cabecalho className="min-w-0 flex-1">Última mensagem</Cabecalho>
             <span className="w-[76px] shrink-0" />
           </div>
 
@@ -83,8 +83,8 @@ export default function FilaDeEspera({
                     href={hrefDaConversa(destino, q.id)}
                     className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 outline-none focus-visible:bg-sf-apoio focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-marca-tx"
                   >
-                    <div className="w-full min-w-0 lg:w-[210px] lg:shrink-0">
-                      <p className="flex items-center gap-2 truncate text-sm font-semibold text-tx">
+                    <div className="w-full min-w-0 lg:w-auto lg:basis-[210px]">
+                      <p className="flex items-center gap-2 truncate text-corpo font-semibold text-tx">
                         {/* A bolinha pisca porque TODA linha desta fila é alguém esperando resposta.
                             Ver lib/funil.ts: isto é FATO (a última mensagem é do cliente), diferente
                             da coluna "Aguardando" do quadro, que é estágio escolhido. */}
@@ -96,26 +96,26 @@ export default function FilaDeEspera({
                         />
                         <span className="min-w-0 truncate">{q.nome}</span>
                       </p>
-                      <p className="mt-0.5 truncate text-xs text-tx-3">{q.campanha || "sem campanha · veio direto"}</p>
+                      <p className="mt-0.5 truncate text-etiqueta text-tx-3">{q.campanha || "sem campanha · veio direto"}</p>
                     </div>
 
-                    <div className="w-[180px] shrink-0">
-                      <p className={`text-sm font-bold ${i === 0 ? "text-marca-tx" : grave ? "text-aviso" : "text-tx-2"}`}>
+                    <div className="min-w-0 basis-[180px]">
+                      <p className={`truncate text-corpo font-bold ${i === 0 ? "text-marca-tx" : grave ? "text-aviso" : "text-tx-2"}`}>
                         {rotuloDaEspera(q.esperandoHa)} sem resposta
                       </p>
                       {/* O relógio de quinze minutos conta no navegador — o que falta muda a cada
                           minuto, e um número parado aqui seria acreditado. Ver RelogioDoAtendimento. */}
-                      <p className="mt-0.5 text-xs text-tx-3">
+                      <p className="mt-0.5 text-etiqueta text-tx-3">
                         <RelogioDoAtendimento prazoISO={q.prazoISO} apenasDetalhe />
                       </p>
                     </div>
 
-                    <div className="w-[170px] shrink-0">
-                      <p className="truncate text-sm text-tx">{comQuemEsta(q)}</p>
-                      <p className="mt-0.5 text-xs text-tx-3">{rotuloDaVolta(q.voltaDaFila)}</p>
+                    <div className="min-w-0 basis-[170px]">
+                      <p className="truncate text-corpo text-tx">{comQuemEsta(q)}</p>
+                      <p className="mt-0.5 truncate text-etiqueta text-tx-3">{rotuloDaVolta(q.voltaDaFila)}</p>
                     </div>
 
-                    <p className="min-w-0 flex-1 truncate text-sm text-tx-2">
+                    <p className="min-w-0 flex-1 truncate text-corpo text-tx-2">
                       {q.ultimaMensagem ? `“${q.ultimaMensagem}”` : "—"}
                     </p>
                   </Link>
@@ -126,7 +126,7 @@ export default function FilaDeEspera({
                   <div className="flex shrink-0 items-center py-3.5 pr-5">
                     <Link
                       href={hrefDaConversa(destino, q.id)}
-                      className={`inline-flex h-11 w-[76px] shrink-0 items-center justify-center text-sm font-semibold transition-colors ${
+                      className={`inline-flex h-11 w-[76px] shrink-0 items-center justify-center whitespace-nowrap text-corpo font-semibold transition-colors ${
                         i === 0
                           ? "bg-acao text-acao-tx hover:bg-acao-hover"
                           : "border border-regua-forte bg-sf text-tx-2 hover:bg-sf-apoio hover:text-tx"
@@ -147,6 +147,6 @@ export default function FilaDeEspera({
 
 function Cabecalho({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className={`shrink-0 text-etiqueta font-bold uppercase tracking-wider text-tx-3 ${className}`}>{children}</span>
+    <span className={`truncate text-etiqueta font-bold uppercase tracking-wider text-tx-3 ${className}`}>{children}</span>
   );
 }
