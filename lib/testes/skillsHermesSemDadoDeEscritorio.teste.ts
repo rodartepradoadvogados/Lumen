@@ -42,11 +42,14 @@ const RAIZ = process.cwd();
  * Todas as skills de plataforma do Hermes, pelo nome do diretório — que é também o `name` do
  * cabeçalho. As três primeiras são do lote 1 (conflict check, ética na publicidade e pesquisa de
  * jurisprudência); as quatro seguintes são do lote 2 (análise de sentença, análise de risco
- * processual, preparação de audiências e revisão de contratos); as quatro últimas são do lote 3
+ * processual, preparação de audiências e revisão de contratos); as quatro seguintes são do lote 3
  * (análise de legislação, diagnóstico de LGPD do próprio escritório, onboarding de cliente e
- * precificação de honorários). Nova skill de plataforma entra nesta lista — é o que estende as
- * travas gerais abaixo (sem dado de escritório, quatro regras da casa, convenção de cabeçalho) a
- * ela também.
+ * precificação de honorários); as quatro últimas são do lote 4 (qualificação de perfil financeiro,
+ * follow-up inteligente, pós-venda e satisfação, e conteúdo de autoridade) — o lote que tangencia
+ * captação de clientela em todas as quatro peças, e por isso é o que mais depende da
+ * `etica-oab-publicidade` como eixo, não como nota de rodapé. Nova skill de plataforma entra nesta
+ * lista — é o que estende as travas gerais abaixo (sem dado de escritório, quatro regras da casa,
+ * convenção de cabeçalho) a ela também.
  */
 const SKILLS = [
   "conflict-check",
@@ -60,6 +63,10 @@ const SKILLS = [
   "lgpd-escritorio",
   "onboarding-cliente",
   "precificacao-honorarios",
+  "qualificacao-perfil-financeiro",
+  "follow-up-inteligente",
+  "pos-venda-satisfacao",
+  "conteudo-autoridade",
 ] as const;
 
 function caminhoDa(skill: string): string {
