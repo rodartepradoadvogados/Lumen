@@ -29,6 +29,9 @@ import Conversa from "@/components/atendimento/Conversa";
 import TrilhoDoAtendimento from "@/components/atendimento/TrilhoDoAtendimento";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
 import RecusarLeadPainel from "@/components/atendimento/RecusarLeadPainel";
+import WhatsappReplyBox from "@/components/WhatsappReplyBox";
+import AtendenteIaControle from "@/components/AtendenteIaControle";
+import { isWhatsappConfigured } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -296,6 +299,8 @@ export default async function AtendimentoCentralPage({
   const agora = new Date();
   const ultimaMensagem = selecionado?.whatsappMessages[selecionado.whatsappMessages.length - 1];
   const esperandoResposta = ultimaMensagem?.direction === "IN";
+  // Mesma regra da tela do atendimento: há número do cliente E o canal do escritório está ligado.
+  const podeResponder = Boolean(selecionado?.waPhone) && (selecionado ? await isWhatsappConfigured(viewer.officeId) : false);
 
   // Pediram uma conversa por id e ela não voltou: a reconferência recusou (outro escritório, de
   // outra pessoa, ou não existe). Ver CONVERSA_FORA_DO_SEU_ALCANCE — uma frase para os três.
@@ -304,8 +309,12 @@ export default async function AtendimentoCentralPage({
   const hrefAba = (destino: AbaCentral) => `/atendimento-central?aba=${destino}`;
   const hrefSub = (destino: SubTriagem) => `/atendimento-central?aba=triagem&sub=${destino}`;
 
+  // ALTURA TRAVADA NA JANELA (h-screen), e não só piso (min-h-screen): com piso, a coluna cresce do
+  // tamanho da conversa, quem rola é a PÁGINA, e a caixa de resposta desce junto para o fim de uma
+  // conversa comprida. Com a altura travada, quem rola é a caixa da conversa (min-h-0 +
+  // overflow-y-auto) e o pé com a resposta fica à vista.
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--work-bg)]">
+    <div className="flex h-screen flex-col bg-[var(--work-bg)]">
       {/* ── MOLDURA: barra superior ─────────────────────────────────────────────────────────── */}
       <div className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-[var(--frame-border)] bg-[var(--frame-bg)] px-5">
         <a href="/painel" className="text-etiqueta font-semibold text-[var(--frame-tx-2)] transition-colors hover:text-[var(--frame-tx-0)]">
@@ -468,10 +477,38 @@ export default async function AtendimentoCentralPage({
                     />
                   </div>
                 </div>
-                {/* A caixa de resposta (WhatsappReplyBox) fica fora desta etapa de propósito: não
-                    está na lista de componentes a hospedar (ver o comentário no topo do arquivo) —
-                    ela depende de AtendenteIaControle/AvisoDaAna, e o aviso da Ana é explicitamente
-                    etapa 3. Nesta etapa a conversa é hospedada em modo de leitura. */}
+                {/* A CAIXA DE RESPOSTA — a Central virou a tela oficial de atendimento e a conversa
+                    estava em modo de leitura: a atendente abria o cliente e não tinha onde digitar.
+                    É o MESMO pé de conversa de app/(app)/atendimento/[id]/page.tsx (a chave do
+                    atendente em cima, WhatsappReplyBox embaixo, e a frase quando não há por onde
+                    responder), sem componente novo.
+                    FICA FORA DA CAIXA QUE ROLA, irmã dela e `shrink-0`: dentro, ela rolaria junto
+                    com a conversa e sumiria no alto de uma conversa comprida. E usa a MESMA medida
+                    de leitura do cabeçalho e da conversa, senão desalinha delas.
+                    QUEM PODE RESPONDER não se decide aqui: `selecionado` já passou por
+                    recorteDaConversa, e replyWhatsapp reconfere com o mesmo recorte no servidor. */}
+                <div className="shrink-0 border-t border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 pb-4 pt-3">
+                  <div className="w-full max-w-[var(--atd-largura-leitura)]">
+                    {podeResponder ? (
+                      <>
+                        <AtendenteIaControle
+                          attendanceId={selecionado.id}
+                          responde={selecionado.agenteResponde}
+                          silenciado={Boolean(selecionado.agenteSilenciadoEm)}
+                          ultimaEhDoCliente={esperandoResposta}
+                          nomeDoAtendente={nomeDoAtendente}
+                        />
+                        <WhatsappReplyBox attendanceId={selecionado.id} nomeDoCliente={selecionado.clientName} />
+                      </>
+                    ) : (
+                      <p className="py-2 text-etiqueta text-tx-3">
+                        {selecionado.waPhone
+                          ? "O canal de WhatsApp do escritório não está configurado, então não há como responder por aqui."
+                          : "Este atendimento não tem WhatsApp vinculado. Responda pelo e-mail, na ficha completa do atendimento."}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </>
             ) : (
               <div className="flex h-full items-center justify-center px-6">
