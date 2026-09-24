@@ -9,7 +9,7 @@ import {
   type QuemAbreAConversa,
 } from "@/lib/conversaDaCentral";
 import { nivelDeAcessoAoAtendimento } from "@/lib/acessoAtendimento";
-import { RAIL_SECTIONS } from "@/lib/navSections";
+import { RAIL_SECTIONS, RAIL_STANDALONE } from "@/lib/navSections";
 
 // ============================================================================
 // A CENTRAL DE ATENDIMENTO — ETAPA 2: O CLIQUE QUE ABRE A CONVERSA NA PRÓPRIA TELA.
@@ -53,7 +53,10 @@ teste("os figurantes cobrem os três níveis de acesso: total, próprios, nenhum
 // ── 1. PARA ONDE O CLIQUE VAI ───────────────────────────────────────────────────────────────────
 
 teste("o clique da Central não sai da Central: mesma rota do item de menu, outros parâmetros", () => {
-  const item = RAIL_SECTIONS.flatMap((s) => s.items).find((i) => i.label === "Atendimento");
+  // Atendimento saiu de RAIL_SECTIONS em 24/09/2026 (virou ícone-portal do rail, ver
+  // lib/navSections.ts:RAIL_STANDALONE) — a busca cobre os dois lugares onde um item de menu
+  // pode viver hoje, para não ficar presa à organização de ONTEM.
+  const item = [...RAIL_SECTIONS.flatMap((s) => s.items), ...RAIL_STANDALONE].find((i) => i.label === "Atendimento");
   verdade(!!item, "o item de menu 'Atendimento' sumiu — a rota do clique não tem mais com o que ser comparada");
   igual(ROTA_DA_CENTRAL, item!.href, "o endereço do clique divergiu do item de menu: o clique levaria para uma tela que o menu não abre");
 

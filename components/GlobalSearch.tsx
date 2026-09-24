@@ -6,7 +6,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { Search } from "lucide-react";
 import { globalSearch, type SearchResult } from "@/lib/actions/search";
-import { RAIL_SECTIONS, isSectionVisible, visibleSectionItems } from "@/lib/navSections";
+import { RAIL_SECTIONS, isSectionVisible, visibleSectionItems, visibleStandaloneItems } from "@/lib/navSections";
 import { looseIncludes } from "@/lib/textNormalize";
 import { useTabs } from "@/components/TabsProvider";
 import type { OfficeModules } from "@/lib/officeModules";
@@ -169,6 +169,13 @@ export default function GlobalSearch({
       for (const item of visibleSectionItems(section, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento })) {
         all.push({ type: "Navegação", id: item.href, titulo: item.label, href: item.href, abrirEmNovaAba: item.abrirEmNovaAba });
       }
+    }
+    // Atendimento e Peticionamento saíram de RAIL_SECTIONS em 24/09/2026 (viraram os dois
+    // ícones-portal do rail, fora de qualquer seção — ver lib/navSections.ts). Sem esta lista à
+    // parte, os dois teriam sumido da paleta ⌘K: link interno que parava de funcionar por uma
+    // reorganização de menu, o defeito silencioso que esta entrega não pode introduzir.
+    for (const item of visibleStandaloneItems({ hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento })) {
+      all.push({ type: "Navegação", id: item.href, titulo: item.label, href: item.href, abrirEmNovaAba: item.abrirEmNovaAba });
     }
     return q ? all.filter((n) => looseIncludes(n.titulo, q)) : all;
   })();

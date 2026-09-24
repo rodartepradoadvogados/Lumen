@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { teste, igual, verdade, resumo, codigoDe } from "./executar";
-import { RAIL_SECTIONS, visibleSectionItems, type ContextoDeVisibilidade } from "@/lib/navSections";
+import { RAIL_STANDALONE, itemVisivel, type ContextoDeVisibilidade } from "@/lib/navSections";
 import { veTodoOAtendimento, podeVerAtendimentos } from "@/lib/acessoAtendimento";
 import type { OfficeModules } from "@/lib/officeModules";
 
@@ -15,6 +15,12 @@ import type { OfficeModules } from "@/lib/officeModules";
 // ou cinza: ausente do DOM. A rota de servidor da Triagem antiga
 // (app/(app)/atendimento/funil/page.tsx) não é tocada nesta etapa, e continua sendo ELA a trava
 // de verdade — esconder a aba na tela nova é só conveniência.
+//
+// ATUALIZADO em 24/09/2026: o item "Atendimento" SAIU da seção "Comunicação" (que deixou de
+// existir) e virou um dos dois ícones-portal do rail, em RAIL_STANDALONE (ver o comentário longo
+// no topo de lib/navSections.ts). A régua de acesso do item — a única coisa que esta suíte
+// realmente protege — não mudou: continua sendo só `atendimentoOnly`, testada abaixo contra
+// RAIL_STANDALONE em vez de contra a antiga seção.
 // ============================================================================
 
 const RAIZ = process.cwd();
@@ -26,27 +32,25 @@ const CTX = (over: Partial<ContextoDeVisibilidade> = {}): ContextoDeVisibilidade
   ...over,
 });
 
-const comunicacao = RAIL_SECTIONS.find((s) => s.key === "comunicacao");
+// ── 1. O item continua existindo, aponta para a rota certa e abre em aba nova ───────────────────
 
-// ── 1. A seção tem exatamente três itens, na ordem pedida ──────────────────────────────────────
-
-teste("Comunicação tem exatamente três itens: Publicações, Contatos, Atendimento — nesta ordem", () => {
-  verdade(!!comunicacao, "a seção 'comunicacao' sumiu de RAIL_SECTIONS — varredura cega");
-  igual(comunicacao!.items.map((i) => i.label), ["Publicações", "Contatos", "Atendimento"]);
+teste("RAIL_STANDALONE tem Atendimento e Peticionamento, nesta ordem — os dois ícones-portal do rail", () => {
+  igual(RAIL_STANDALONE.map((i) => i.label), ["Atendimento", "Peticionamento"]);
 });
 
 teste("o item fundido aponta para a rota nova, e ela abre em aba nova do navegador", () => {
-  const item = comunicacao!.items.find((i) => i.label === "Atendimento");
-  verdade(!!item, "o item 'Atendimento' não existe mais em Comunicação");
+  const item = RAIL_STANDALONE.find((i) => i.label === "Atendimento");
+  verdade(!!item, "o item 'Atendimento' sumiu de RAIL_STANDALONE — varredura cega");
   igual(item!.href, "/atendimento-central");
   igual(item!.abrirEmNovaAba, true, "sem abrirEmNovaAba, o item cairia no clique único/duplo comum — mesma aba do Lúmen");
 });
 
 teste("as rotas antigas não foram removidas do menu por acidente — elas simplesmente não têm mais item próprio", () => {
-  // Nenhum item de Comunicação aponta mais para /atendimento ou /atendimento/funil — o item novo
-  // é o único caminho de menu para o módulo. As ROTAS em si continuam existindo (ver a suíte de
+  // Nenhum item de RAIL_STANDALONE (nem de RAIL_SECTIONS, que esta suíte não repete por não ser
+  // dela a responsabilidade) aponta mais para /atendimento ou /atendimento/funil — o item novo é
+  // o único caminho de menu para o módulo. As ROTAS em si continuam existindo (ver a suíte de
   // "toda página de atendimento tem a trava de nível" em acesso.teste.ts, que ainda as encontra).
-  const hrefs = comunicacao!.items.map((i) => i.href);
+  const hrefs = RAIL_STANDALONE.map((i) => i.href);
   igual(hrefs.includes("/atendimento"), false);
   igual(hrefs.includes("/atendimento/funil"), false);
 });
@@ -54,20 +58,41 @@ teste("as rotas antigas não foram removidas do menu por acidente — elas simpl
 // ── 2. O item exige atendimentoOnly, NÃO MAIS QUE ISSO ──────────────────────────────────────────
 
 teste("o item 'Atendimento' aparece para quem só tem atendimentoOnly — o portão mais baixo, igual ao antigo 'Atendimentos'", () => {
-  const visiveis = visibleSectionItems(comunicacao!, CTX({ podeAtendimento: true, veTodoAtendimento: false }));
-  verdade(visiveis.some((i) => i.label === "Atendimento"), "quem tem atendimentoOnly deveria ver o item 'Atendimento'");
+  const item = RAIL_STANDALONE.find((i) => i.label === "Atendimento")!;
+  verdade(itemVisivel(item, CTX({ podeAtendimento: true, veTodoAtendimento: false })), "quem tem atendimentoOnly deveria ver o item 'Atendimento'");
 });
 
 teste("HARD GATE: quem não tem NENHUM acesso ao Atendimento não vê o item, mesmo com o resto liberado", () => {
-  const visiveis = visibleSectionItems(comunicacao!, CTX({ podeAtendimento: false, veTodoAtendimento: false, hasFinanceAccess: true }));
-  igual(visiveis.some((i) => i.label === "Atendimento"), false);
+  const item = RAIL_STANDALONE.find((i) => i.label === "Atendimento")!;
+  igual(itemVisivel(item, CTX({ podeAtendimento: false, veTodoAtendimento: false, hasFinanceAccess: true })), false);
 });
 
 teste("o item não exige NADA além de atendimentoOnly — não é adminOnly, não é financeOnly, não depende de veTodoAtendimento", () => {
-  const item = comunicacao!.items.find((i) => i.label === "Atendimento")!;
+  const item = RAIL_STANDALONE.find((i) => i.label === "Atendimento")!;
   igual(item.atendimentoOnly, true);
   igual(Boolean(item.atendimentoTotal), false, "o item não pode exigir atendimentoTotal — isso alargaria a régua para BAIXO do que a Triagem antiga exigia, ou faria o item sumir para quem só tem atendimentoOnly");
   igual(Boolean(item.adminOnly), false);
+});
+
+// ── 2b. MUTAÇÃO-ESPELHO: promover o item a ícone do rail não pode ter alargado o acesso ──────────
+//
+// Esta é a trava que a entrega de 24/09/2026 (mover Atendimento para RAIL_STANDALONE) existe para
+// provar: o COMPONENTE que renderiza o rail (components/NavRail.tsx) precisa filtrar
+// RAIL_STANDALONE pela MESMA régua acima — sem o filtro, o ícone apareceria para todo mundo,
+// mesmo quem não tem `atendimentoOnly`, só porque "sempre visível" é o padrão dos outros itens
+// promovidos a ícone (Configurações, Conexões). Lida como VARREDURA DE FONTE (e não só a asserção
+// de mesa acima) porque é o `.filter` dentro do componente, e não o dado em si, que pode ser
+// esquecido numa reorganização futura do rail.
+
+const NAV_RAIL_FONTE = readFileSync(join(RAIZ, "components", "NavRail.tsx"), "utf8");
+const NAV_RAIL = codigoDe(NAV_RAIL_FONTE);
+
+teste("TRAVA: NavRail filtra RAIL_STANDALONE por visibleStandaloneItems antes de renderizar os ícones-portal", () => {
+  verdade(NAV_RAIL.includes("visibleStandaloneItems("),
+    "components/NavRail.tsx deixou de chamar visibleStandaloneItems — sem esse filtro, Atendimento apareceria no rail para quem não tem atendimentoOnly, alargando quem enxerga o quê só por causa da reorganização de menu");
+  // E o resultado do filtro (não o array bruto RAIL_STANDALONE) é o que vira ícone renderizado.
+  verdade(!/RAIL_STANDALONE\.map/.test(NAV_RAIL),
+    "components/NavRail.tsx mapeia RAIL_STANDALONE diretamente para ícones, pulando o filtro de visibilidade — o array bruto inclui o item de Atendimento, restrito");
 });
 
 // ── 3. A aba Triagem, dentro da tela, continua exigindo atendimentoTotal — e a rota de servidor
