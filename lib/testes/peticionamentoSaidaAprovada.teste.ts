@@ -22,6 +22,42 @@ const RAIZ = process.cwd();
 const ler = (...p: string[]) => readFileSync(join(RAIZ, ...p), "utf8");
 const ACOES = ler("lib", "actions", "peticionamento.ts");
 
+const CITACOES_CLIENTE = ler("components", "peticionamento", "CitacoesClient.tsx");
+
+// ── 0. QUEM PODE APROVAR ────────────────────────────────────────────────────────────────────
+//
+// Achado da revisão de 24/09/2026, depois que a etapa C entrou. `aprovarMinutaGerarPeca` conferia
+// só `exigirAcessoAba()`, e `podeAcessarAba` admite ESTAGIÁRIO. A especificação §4, escrita no topo
+// de lib/peticionamentoAcesso.ts, diz o contrário: "Aprovar/exportar (TRAVA REAL): só advogado com
+// OAB". Consequências, em cadeia: o estagiário aprovava; `minutaAprovadaPorId` gravava o nome dele
+// como quem assumiu uma peça que vai ao juízo; e a aprovação DESTRAVAVA a saída — que desde
+// 24/09 não exige mais OAB para imprimir. Aprovar era a última porta, e estava destrancada.
+
+teste("HARD GATE: aprovar a minuta exige advogado com OAB, e a recusa DESVIA antes de gravar", () => {
+  const corpo = codigoDe(corpoDaFuncao(ACOES, "aprovarMinutaGerarPeca"));
+  verdade(corpo.length > 200, "aprovarMinutaGerarPeca não existe");
+  const iRegua = corpo.search(/avaliarExportacao\(\s*user\s*\)/);
+  verdade(iRegua >= 0, "aprovar não consulta avaliarExportacao — estagiário volta a aprovar peça");
+  const iRecusa = corpo.search(/if\s*\(\s*!\w+\.pode\s*\)\s*return\s*\{\s*error/);
+  verdade(iRecusa > iRegua, "o veredito de papel não DESVIA a execução — calcular não é obedecer");
+  const iGrava = corpo.indexOf("minutaAprovadaEm:");
+  verdade(iGrava > iRecusa, "a aprovação é gravada antes da trava de papel");
+});
+
+teste("a tela diz o motivo ANTES do clique, em vez de ensinar o limite por rejeição", () => {
+  verdade(/papelPodeAprovar/.test(CITACOES_CLIENTE), "o quadro de citações não recebe a avaliação de papel");
+  // ÂNCORA DENTRO DO BOTÃO, e não o rótulo: "Aprovar minuta / gerar peça" aparece ANTES, num
+  // comentário no topo do arquivo, e recortar por ali mede o comentário em vez do botão — a
+  // armadilha de sempre. `aprovando ? "Aprovando…"` só existe dentro do próprio <button>.
+  const iRotulo = CITACOES_CLIENTE.indexOf('aprovando ? "Aprovando…"');
+  verdade(iRotulo > 0, "não achei o rótulo dentro do botão de aprovar");
+  const iAbre = CITACOES_CLIENTE.lastIndexOf("<button", iRotulo);
+  verdade(iAbre > 0 && iRotulo - iAbre < 400, "o <button> de aprovar não foi delimitado");
+  const btn = CITACOES_CLIENTE.slice(iAbre, iRotulo);
+  verdade(/disabled=\{[^}]*papelPodeAprovar/.test(btn), "o botão de aprovar não desabilita para quem não tem OAB");
+  verdade(/papelPodeAprovar\.motivo/.test(CITACOES_CLIENTE), "o motivo da recusa por papel não aparece na tela");
+});
+
 // ── 1. A RÉGUA ──────────────────────────────────────────────────────────────────────────────
 
 teste("MUTAÇÃO PRINCIPAL: sem aprovação a peça NÃO sai, mesmo com todas as citações confirmadas", () => {
