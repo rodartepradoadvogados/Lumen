@@ -134,10 +134,13 @@ function AvisoDeMolde({ aviso }: { aviso: AvisoDeMoldeParaTela }) {
 export function CitacoesClient({
   sessaoId,
   onContagemMudou,
+  onAprovacaoMudou,
   atualizarQuando,
 }: {
   sessaoId: string;
   onContagemMudou?: (pendentes: number) => void;
+  /** ETAPA C: a aprovação é a trava da saída da peça — a tela que hospeda precisa saber quando ela muda. */
+  onAprovacaoMudou?: (aprovada: boolean) => void;
   /** Muda de valor (ex.: um contador) toda vez que o corpo da minuta é salvo — força recarregar a lista, já que editar pode ter invalidado confirmações. */
   atualizarQuando?: unknown;
 }) {
@@ -154,6 +157,7 @@ export function CitacoesClient({
       const r = await listarCitacoesParaValidacao(sessaoId);
       setDados(r);
       onContagemMudou?.(r.citacoes.filter((c) => !c.confirmada).length);
+      onAprovacaoMudou?.(Boolean(r.aprovacao.aprovadaEm));
     } catch {
       setErro("Não foi possível carregar a lista de citações desta minuta.");
     }
@@ -212,6 +216,38 @@ export function CitacoesClient({
 
   const { citacoes, excluidas, avisosDeMolde, aprovacao } = dados;
 
+  // ETAPA C — O BOTÃO DE APROVAR EXISTE MESMO SEM CITAÇÃO NENHUMA. Antes, a minuta sem citação
+  // mostrava só "nada para revisar aqui" e nenhum botão: com a aprovação virando a trava de
+  // Word/PDF/impressão, essa peça ficaria impossível de exportar.
+  const blocoDeAprovacao = (
+    <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--card-border, #e2e2e2)" }}>
+      {aprovacao.aprovadaEm ? (
+        <p className="quiet" style={{ margin: 0, fontSize: 12.5 }}>
+          <strong>Minuta aprovada</strong> por {aprovacao.aprovadaPorNome ?? "—"} em {formatarData(aprovacao.aprovadaEm)}. Editar o corpo da minuta desfaz
+          esta aprovação.
+        </p>
+      ) : (
+        <>
+          {!aprovacao.podeAprovar && aprovacao.motivos.length > 0 && (
+            <ul className="quiet" style={{ margin: "0 0 10px", paddingLeft: 18, fontSize: 12 }}>
+              {aprovacao.motivos.map((m, i) => (
+                <li key={i}>{m}</li>
+              ))}
+            </ul>
+          )}
+          <button className="btn btn-primary" disabled={!aprovacao.podeAprovar || aprovando} onClick={aprovar}>
+            {aprovando ? "Aprovando…" : "Aprovar minuta / gerar peça"}
+          </button>
+          {aprovacaoOk && (
+            <span className="quiet" style={{ marginLeft: 10 }}>
+              aprovada.
+            </span>
+          )}
+        </>
+      )}
+    </div>
+  );
+
   if (citacoes.length === 0 && excluidas.length === 0 && avisosDeMolde.length === 0) {
     return (
       <div className="note-box" style={{ marginBottom: 20 }}>
@@ -221,6 +257,7 @@ export function CitacoesClient({
         <p className="quiet" style={{ margin: 0 }}>
           Nenhuma referência a jurisprudência, súmula ou tema foi encontrada nesta minuta — nada para revisar aqui.
         </p>
+        {blocoDeAprovacao}
       </div>
     );
   }
@@ -315,32 +352,7 @@ export function CitacoesClient({
         </>
       )}
 
-      <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--card-border, #e2e2e2)" }}>
-        {aprovacao.aprovadaEm ? (
-          <p className="quiet" style={{ margin: 0, fontSize: 12.5 }}>
-            <strong>Minuta aprovada</strong> por {aprovacao.aprovadaPorNome ?? "—"} em {formatarData(aprovacao.aprovadaEm)}. Editar o corpo da minuta desfaz
-            esta aprovação.
-          </p>
-        ) : (
-          <>
-            {!aprovacao.podeAprovar && aprovacao.motivos.length > 0 && (
-              <ul className="quiet" style={{ margin: "0 0 10px", paddingLeft: 18, fontSize: 12 }}>
-                {aprovacao.motivos.map((m, i) => (
-                  <li key={i}>{m}</li>
-                ))}
-              </ul>
-            )}
-            <button className="btn btn-primary" disabled={!aprovacao.podeAprovar || aprovando} onClick={aprovar}>
-              {aprovando ? "Aprovando…" : "Aprovar minuta / gerar peça"}
-            </button>
-            {aprovacaoOk && (
-              <span className="quiet" style={{ marginLeft: 10 }}>
-                aprovada.
-              </span>
-            )}
-          </>
-        )}
-      </div>
+      {blocoDeAprovacao}
     </div>
   );
 }

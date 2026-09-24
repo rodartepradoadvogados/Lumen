@@ -26,6 +26,8 @@ export function ExportarModal({
   podeExportar,
   jaExportada,
   citacoesPendentes,
+  formato = "docx",
+  onPdfConfirmado,
   onFechar,
 }: {
   sessaoId: string;
@@ -34,6 +36,13 @@ export function ExportarModal({
   jaExportada: boolean;
   /** Decisão do dono (22/09/2026): quantas citações ainda faltam confirmar — bloqueia o botão e diz quantas faltam. */
   citacoesPendentes: number;
+  /**
+   * ETAPA C: "pdf" passa pelas mesmas travas e pelo mesmo registro do Word no servidor
+   * (confirmarExportacao), e não baixa arquivo: confirmado, a tela abre a impressão da prévia no
+   * papel timbrado, onde o navegador salva em PDF.
+   */
+  formato?: "docx" | "pdf";
+  onPdfConfirmado?: () => void;
   onFechar: () => void;
 }) {
   const [ciente, setCiente] = useState(false);
@@ -47,9 +56,14 @@ export function ExportarModal({
       // HARD GATE (defesa em profundidade): mesmo que o botão tenha sido habilitado no cliente
       // por engano, o servidor reconfere `ciente` e a régua de OAB antes de gerar qualquer coisa
       // — ver lib/actions/peticionamento.ts:confirmarExportacao.
-      const r = await confirmarExportacao(sessaoId, ciente);
+      const r = await confirmarExportacao(sessaoId, ciente, formato);
       if ("error" in r) {
         setErro(r.error);
+        return;
+      }
+      if (r.formato === "pdf") {
+        onPdfConfirmado?.();
+        onFechar();
         return;
       }
       baixarArquivo(r.arquivoNome, r.arquivoBase64);
@@ -60,7 +74,7 @@ export function ExportarModal({
   return (
     <div className="modal-scrim" role="dialog" aria-modal="true">
       <div className="modal">
-        <h2>Exportar para Word</h2>
+        <h2>{formato === "pdf" ? "Exportar para PDF" : "Exportar para Word"}</h2>
 
         {!podeExportar.pode ? (
           <div className="callout callout-danger">{podeExportar.motivo}</div>
@@ -109,7 +123,11 @@ export function ExportarModal({
             <div className="export-meta">
               <div className="row">
                 <span className="k">Formato</span>
-                <span className="v">Word (.docx) — único formato desta exportação</span>
+                <span className="v">
+                  {formato === "pdf"
+                    ? 'PDF — a peça no papel timbrado, pela impressão do navegador: no diálogo que abre, escolha "Salvar como PDF".'
+                    : "Word (.docx)"}
+                </span>
               </div>
             </div>
 

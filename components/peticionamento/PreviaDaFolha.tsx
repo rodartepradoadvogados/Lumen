@@ -60,6 +60,7 @@ export function PreviaDaFolha({
   larguraDisponivelPx,
   imprimir,
   aoImprimir,
+  imprimivel,
 }: {
   html: string;
   titulo: string;
@@ -73,6 +74,11 @@ export function PreviaDaFolha({
   imprimir: boolean;
   /** Avisa que o diálogo de impressão foi aberto — o pedido foi atendido. */
   aoImprimir: () => void;
+  /**
+   * ETAPA C: a peça está liberada para sair (aprovada, sem citação pendente). Sem isto as folhas de
+   * impressão nem existem — e o Ctrl+P do navegador imprime a tela, não a peça limpa no timbrado.
+   */
+  imprimivel: boolean;
 }) {
   const htmlAdiado = useDeferredValue(html);
   const fluxo = useMemo(
@@ -101,10 +107,10 @@ export function PreviaDaFolha({
 
   // O diálogo de impressão abre DEPOIS de as folhas existirem — pedir antes imprimiria folha vazia.
   useEffect(() => {
-    if (!imprimir || paginas.length === 0) return;
+    if (!imprimir || !imprimivel || paginas.length === 0) return;
     aoImprimir();
     window.print();
-  }, [imprimir, paginas, aoImprimir]);
+  }, [imprimir, imprimivel, paginas, aoImprimir]);
 
   const escala = Math.min(1, Math.max(0.2, (larguraDisponivelPx - 8) / (PAGINA_A4.larguraMm * PX_POR_MM_CSS)));
   const folhas = paginas.map((conteudo, i) => (
@@ -130,6 +136,7 @@ export function PreviaDaFolha({
           travada e cortaria a impressão na primeira folha). Invisível na tela; é a única coisa que
           aparece no papel quando o diálogo de impressão abre daqui. */}
       {montado &&
+        imprimivel &&
         createPortal(
           <div className="peticionamento previa-impressao" data-theme="light" aria-hidden="true">
             {folhas}

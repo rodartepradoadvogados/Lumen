@@ -159,6 +159,7 @@ export default async function MinutaPage({ params }: { params: { id: string } })
         origemDaMargem={origemDaMargem}
         timbrado={timbrado}
         formatoDoTimbrado={formatoDoTimbrado}
+        aprovadaInicial={Boolean(sessao.minutaAprovadaEm)}
       />
     </ShellPeticionamento>
   );

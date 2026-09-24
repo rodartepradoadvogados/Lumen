@@ -2247,3 +2247,19 @@
     break-after: page;
   }
 }
+
+/* ETAPA C — o aviso de saída travada: diz O QUE falta para Word, PDF e impressão liberarem. */
+.peticionamento .minuta-saida-travada {
+  margin: 0 32px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--warn-tx);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius);
+}
+.peticionamento .minuta-saida-travada ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}

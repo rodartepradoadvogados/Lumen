@@ -32,7 +32,7 @@ import { passoParaRetomar, ehPassoValido, hrefDoPasso, ROTULO_DO_PASSO, sessaoTe
 import { montarMensagemParaHermes, custoFixoDaMensagem, type DadosParaPrompt } from "@/lib/peticionamentoPrompt";
 import { hashDeTexto, normalizarTextoCitacao } from "@/lib/peticionamentoCitacoes";
 import { sincronizarCitacoes } from "@/lib/peticionamentoCitacoesSync";
-import { avaliarFonteDeCitacao, avaliarAprovacaoDeMinuta, type AvaliacaoDeFonte } from "@/lib/peticionamentoAprovacao";
+import { avaliarFonteDeCitacao, avaliarAprovacaoDeMinuta, avaliarSaidaDaPeca, type AvaliacaoDeFonte } from "@/lib/peticionamentoAprovacao";
 import { garantirFecho } from "@/lib/peticionamentoFecho";
 import { sanitizarMinutaHtml, textoPuroDaMinutaHtml } from "@/lib/peticionamentoMinutaFormatada";
 import { montarNotaObrigatoria } from "@/lib/peticionamentoNotaObrigatoria";
@@ -1844,10 +1844,21 @@ export async function salvarMargensDaMinuta(sessaoId: string, margens: unknown):
 
 // ── EXPORTAÇÃO — a TRAVA REAL (especificação §5) ───────────────────────────────────────────────
 
+/**
+ * ETAPA C: `formato` "pdf" passa pelas MESMAS travas do Word (OAB, ciência, citações, aprovação) e
+ * pelo mesmo registro de auditoria — e não monta arquivo nenhum no servidor: o PDF é a impressão
+ * da prévia no papel timbrado, pelo navegador ("Salvar como PDF"). Ver a justificativa em
+ * components/peticionamento/MinutaClient.tsx, na saída em PDF.
+ */
 export async function confirmarExportacao(
   sessaoId: string,
   confirmouCheckbox: boolean,
-): Promise<{ ok: true; arquivoNome: string; arquivoBase64: string; driveUrl: string | null; avisoTimbrado: string | null } | { error: string }> {
+  formato: "docx" | "pdf" = "docx",
+): Promise<
+  | { ok: true; formato: "docx"; arquivoNome: string; arquivoBase64: string; driveUrl: string | null; avisoTimbrado: string | null }
+  | { ok: true; formato: "pdf"; arquivoNome: string }
+  | { error: string }
+> {
   const user = await exigirAcessoAba();
   const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
 
@@ -1874,7 +1885,33 @@ export async function confirmarExportacao(
     };
   }
 
+  // HARD GATE 4 (etapa C, decisão do dono): a peça só sai DEPOIS de aprovada. É a mesma régua dos
+  // três botões da tela (avaliarSaidaDaPeca), e é aqui, no servidor, que ela vale de verdade — o
+  // botão desabilitado é comodidade. A citação pendente acima continua sendo exigida à parte.
+  const saida = avaliarSaidaDaPeca({ aprovada: Boolean(sessao.minutaAprovadaEm), citacoesPendentes });
+  if (!saida.liberada) {
+    return { error: `A peça ainda não pode sair: ${saida.motivos.join(" ")}` };
+  }
+
   if (!sessao.minutaTexto) return { error: "Esta sessão ainda não tem minuta gerada." };
+
+  if (formato === "pdf") {
+    const agoraPdf = new Date();
+    const arquivoNomePdf = montarNomeArquivoPeticao({ dataGeracao: sessao.geradoEm ?? agoraPdf, tipoPeca: sessao.tipoPeca, tipoPecaOutro: sessao.tipoPecaOutro }).replace(/\.docx$/i, ".pdf");
+    await prisma.peticionamentoExportacao.create({
+      data: {
+        sessaoId,
+        confirmadoPorId: user.id,
+        confirmadoEm: agoraPdf,
+        arquivoNome: arquivoNomePdf,
+        driveUrl: null,
+        // A prévia impressa desenha o timbrado .docx do escritório quando há um.
+        timbradoAplicado: (await timbradoDoEscritorio(user.officeId)).docx !== null,
+      },
+    });
+    await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "EXPORTADA" } });
+    return { ok: true, formato: "pdf", arquivoNome: arquivoNomePdf };
+  }
 
   // O MESMO download que a prévia da minuta usa (lib/peticionamentoTimbradoDoEscritorio.ts): a
   // prévia não pode mostrar um timbrado que o Word não aplica.
@@ -1958,5 +1995,22 @@ export async function confirmarExportacao(
   await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { status: "EXPORTADA" } });
   revalidatePath("/peticionamento/minuta");
 
-  return { ok: true, arquivoNome, arquivoBase64: buffer.toString("base64"), driveUrl, avisoTimbrado };
+  return { ok: true, formato: "docx", arquivoNome, arquivoBase64: buffer.toString("base64"), driveUrl, avisoTimbrado };
+}
+
+/**
+ * ETAPA C — a conferência do botão IMPRIMIR (e de "Visualizar impressão"): as mesmas travas de
+ * saída da exportação — advogado com OAB, nenhuma citação pendente, minuta aprovada —, conferidas
+ * no servidor antes de o diálogo de impressão abrir. Não grava nada: imprimir não é exportar.
+ */
+export async function conferirSaidaDaPeca(sessaoId: string): Promise<{ ok: true } | { error: string }> {
+  const user = await exigirAcessoAba();
+  const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const avaliacao = avaliarExportacao(user);
+  if (!avaliacao.pode) return { error: avaliacao.motivo! };
+  await sincronizarCitacoes(sessaoId, user.officeId);
+  const citacoesPendentes = await prisma.peticionamentoCitacao.count({ where: { sessaoId, confirmadaPorId: null, excluidaEm: null } });
+  const saida = avaliarSaidaDaPeca({ aprovada: Boolean(sessao.minutaAprovadaEm), citacoesPendentes });
+  if (!saida.liberada) return { error: `A peça ainda não pode ser impressa: ${saida.motivos.join(" ")}` };
+  return { ok: true };
 }
