@@ -47,13 +47,22 @@ export default function WhatsappReplyBox({ attendanceId, nomeDoCliente }: { atte
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            // ENTER ENVIA, SHIFT+ENTER QUEBRA LINHA — o padrão do WhatsApp, e o que o dono pediu
+            // explicitamente ("permitir enviar com Enter, e não apenas com o botão"). Antes só
+            // Ctrl/Cmd+Enter enviava, um atalho que ninguém no WhatsApp usa e que a pessoa do
+            // escritório não tinha como adivinhar sozinha — o hábito de dez conversas por dia é
+            // Enter puro, e cada mensagem exigia pegar o mouse. Composição de IME (acento, chinês,
+            // coreano) confirma com Enter sem disparar o envio: `isComposing` está true durante a
+            // composição, e é isso que faz `e.key === "Enter"` não significar "terminei de digitar"
+            // para esses teclados.
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               handleSend();
             }
           }}
           rows={2}
           placeholder={primeiroNome ? `Escreva para ${primeiroNome}…` : "Escreva uma resposta pelo WhatsApp…"}
+          title="Enter envia · Shift+Enter quebra linha"
           disabled={isPending}
           className="flex-1 resize-none border border-regua-forte bg-sf px-3.5 py-3 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx disabled:opacity-60"
         />
