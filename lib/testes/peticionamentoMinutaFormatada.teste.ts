@@ -166,8 +166,15 @@ teste("o saneamento nunca perde o TEXTO, mesmo removendo a tag que o embrulhava"
 
 teste("htmlParaAbrirAFolha: o gravado tem prioridade; sem ele, semeia do texto puro; sem nada, vazio", () => {
   igual(htmlParaAbrirAFolha("<p>gravado</p>", "texto"), "<p>gravado</p>");
-  igual(htmlParaAbrirAFolha(null, "Um\n\nDois"), "<p>Um</p><p>Dois</p>");
-  igual(htmlParaAbrirAFolha("   ", "Um"), "<p>Um</p>", "HTML só com espaço deveria contar como ausente: ");
+  // A SEMENTE não é mais um `<p>` pelado: ela nasce com a heurística de título e de alinhamento
+  // (lib/peticionamentoMinutaHeuristica.ts, provada em peticionamentoMinutaHeuristica.teste.ts). O
+  // que este caso cobra é o MECANISMO — semeou do texto puro, em parágrafos, e o texto puro derivado
+  // de volta é o mesmo. Uma asserção presa à grafia das tags reprovaria a semente nova em vez de um
+  // defeito.
+  const semeado = htmlParaAbrirAFolha(null, "Um\n\nDois");
+  verdade(/^<p\b/.test(semeado), `a semente deveria abrir em parágrafo: ${semeado}`);
+  igual(textoPuroDaMinutaHtml(semeado), "Um\n\nDois", "a semente deixou de reproduzir o texto puro: ");
+  igual(textoPuroDaMinutaHtml(htmlParaAbrirAFolha("   ", "Um")), "Um", "HTML só com espaço deveria contar como ausente: ");
   igual(htmlParaAbrirAFolha(null, null), "");
 });
 

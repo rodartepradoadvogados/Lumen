@@ -48,6 +48,7 @@
 // do sanitize-html; aqui é tradução.
 
 import sanitizeHtml from "sanitize-html";
+import { papelDoParagrafoDaMinuta, paragrafosDoTextoPuroDaMinuta } from "@/lib/peticionamentoMinutaHeuristica";
 
 /** As tags que o editor da minuta produz — qualquer outra é removida, o texto de dentro fica. */
 export const TAGS_DA_MINUTA = [
@@ -239,16 +240,49 @@ function escaparHtml(s: string): string {
  * nulo — estado legítimo, ver o contrato no schema): o texto puro vira parágrafos, preservando
  * `\n\n` como fim de parágrafo e `\n` como quebra simples.
  *
- * Inversa de `textoPuroDaMinutaHtml` para todo texto já normalizado — provado em
- * lib/testes/peticionamentoMinutaFormatada.teste.ts, que é o que sustenta a promessa de que
- * abrir e salvar uma minuta antiga sem mexer em nada não muda uma vírgula do corpo.
+ * ── POR QUE ELA NASCE COM NEGRITO E COM A DATA À DIREITA ────────────────────────────────────
+ *
+ * Porque a heurística de lib/peticionamentoMinutaHeuristica.ts já fazia isso — só que INVISÍVEL,
+ * na hora de gerar o Word do texto puro. Com o editor, quem manda é a folha
+ * (lib/peticionamentoDocxFormatado.ts não adivinha nada, de propósito). Sem esta semente, uma
+ * minuta ANTIGA bastava ser ABERTA E SALVA para passar a exportar um Word sem o negrito do título
+ * e sem a data à direita: rebaixamento silencioso do produto do trabalho do advogado, causado por
+ * só editar. O dono decidiu "com o negrito" — a semente nasce com o que a heurística adivinhava, e
+ * agora está VISÍVEL na tela e EDITÁVEL na barra ("B", "alinhar à direita").
+ *
+ * O `<b>` e o `text-align: right` sobrevivem a `sanitizarMinutaHtml` (`b` está em `TAGS_DA_MINUTA`,
+ * `text-align` em `ESTILOS_DA_MINUTA`) — o saneamento só tira o espaço depois dos dois-pontos.
+ *
+ * ── O QUE ELA NÃO MUDA, E ISSO É A METADE DIFÍCIL ───────────────────────────────────────────
+ *
+ * NADA do texto puro. `<b>` e `style` não são texto: a derivação
+ * (`textoPuroDaMinutaHtml`) ignora `<b>` porque ele não é bloco nem quebra, e nunca lê atributo.
+ * Então esta função continua sendo a INVERSA de `textoPuroDaMinutaHtml` para todo texto já
+ * normalizado, e o hash das citações ("li e revisei") continua o mesmo — provado caso a caso em
+ * lib/testes/peticionamentoMinutaFormatada.teste.ts, que é o que sustenta a promessa de que abrir
+ * e salvar uma minuta antiga sem mexer em nada não muda uma vírgula do corpo.
+ *
+ * O ALINHAMENTO "corpo" (justificado) NÃO é escrito: `.minuta-corpo p` já justifica na tela e
+ * `PROPS_INICIAIS` de lib/peticionamentoDocxFormatado.ts já sai como `both` no Word. Escrevê-lo
+ * seria uma terceira cópia da mesma régua, sem nada a ganhar.
  */
 export function htmlDaMinutaDoTextoPuro(texto: string): string {
   const normalizado = normalizarTextoPuroDaMinuta(texto ?? "");
   if (normalizado.length === 0) return "";
+  // A CLASSIFICAÇÃO recebe os parágrafos APARADOS, do jeito que
+  // `paragrafosDoTextoPuroDaMinuta` os entrega ao gerador do Word — os dois lados precisam eleger o
+  // MESMO "último parágrafo". Já o HTML é escrito a partir do parágrafo cru, para a semente não
+  // mexer no corpo por conta própria.
+  const paraClassificar = paragrafosDoTextoPuroDaMinuta(normalizado);
   return normalizado
     .split(/\n{2,}/)
-    .map((paragrafo) => `<p>${paragrafo.split("\n").map(escaparHtml).join("<br>")}</p>`)
+    .map((paragrafo) => {
+      const conteudo = paragrafo.split("\n").map(escaparHtml).join("<br>");
+      const papel = papelDoParagrafoDaMinuta(paragrafo.trim(), paraClassificar);
+      if (papel === "titulo") return `<p><b>${conteudo}</b></p>`;
+      if (papel === "direita") return `<p style="text-align: right">${conteudo}</p>`;
+      return `<p>${conteudo}</p>`;
+    })
     .join("");
 }
 
