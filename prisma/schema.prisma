@@ -423,6 +423,7 @@ model User {
   recusasQueFez               RecusaDeAtendimento[]   @relation("RecusaAutor")
   recusasQueReverteu          RecusaDeAtendimento[]   @relation("RecusaRevisor")
   recusasQueArquivou          RecusaDeAtendimento[]   @relation("RecusaArquivista")
+  atendimentosQueDevolveu     Attendance[]            @relation("AtendenteDevolvidoPor")
   attachments                 Attachment[]
   documentTemplates           DocumentTemplate[]
   deletionRequested           DeletionRequest[]       @relation("DeletionRequestedBy")
@@ -1184,10 +1185,26 @@ model Attendance {
   // sendo respondida por máquina sem alguém ter decidido isso.
   agenteResponde Boolean @default(false)
 
-  // QUANDO UM HUMANO ASSUMIU. A partir daqui o atendente não fala mais NESTA conversa, nem que
-  // alguém torne a marcar a chave. O cliente que recebe resposta de gente e depois de máquina
-  // percebe na hora com o que estava falando — e a confiança não volta.
+  // QUANDO UM HUMANO ASSUMIU. A partir daqui o atendente não fala mais NESTA conversa. Era
+  // definitivo — nem religar a chave trazia a Ana de volta — porque o cliente que recebe resposta
+  // de gente e depois de máquina percebe na hora com o que estava falando, e a confiança não
+  // volta. O DONO DECIDIU O CONTRÁRIO: agora existe `devolverAtendenteResponde`
+  // (lib/actions/attendance.ts), um ato deliberado — botão próprio, com confirmação — que zera
+  // este campo e é o que faz `deveResponder` (lib/agenteAtendimento.ts) voltar a permitir
+  // resposta, da PRÓXIMA mensagem do cliente em diante. Continua não sendo a CHAVE que se religa
+  // sozinha: é preciso decidir de novo, e o rastro de quem decidiu fica em `agenteDevolvidoEm` /
+  // `agenteDevolvidoPorId`, logo abaixo — de propósito SEM apagar este campo, para não perder a
+  // memória de quando o humano assumiu da primeira vez.
   agenteSilenciadoEm DateTime?
+
+  // A CONVERSA VOLTOU PARA A ANA depois de silenciada. Só existe porque `devolverAtendenteResponde`
+  // zera `agenteSilenciadoEm` acima — sem este par de colunas, aquela decisão não deixaria rastro
+  // nenhum, e "por que a Ana está respondendo de novo aqui?" é pergunta que o dono vai fazer.
+  // Colunas NOVAS e anuláveis, de propósito: a esmagadora maioria das conversas nunca chega a ser
+  // devolvida, e nulo aqui é o estado normal, não uma pendência.
+  agenteDevolvidoEm    DateTime?
+  agenteDevolvidoPorId String?
+  agenteDevolvidoPor   User?     @relation("AtendenteDevolvidoPor", fields: [agenteDevolvidoPorId], references: [id])
 
   // DE QUAL CAMPANHA VEIO. Gravado quando o atendimento nasce, porque só a primeira mensagem
   // carrega a origem — depois dela não há mais de onde tirar.
