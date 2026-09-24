@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import QuemEEsteNumero from "@/components/atendimento/QuemEEsteNumero";
 import { pendenciaKindLabel } from "@/lib/pendencias";
 import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
@@ -24,6 +25,17 @@ import type { ContatoConhecido } from "@/lib/quemEEsteNumero";
 // responder ao cliente é de segundos, e o peso visual tem que dizer isso.
 // ============================================================================
 
+// F.6 — DOCUMENTO CLICÁVEL, SEM SAIR DA CONVERSA.
+//
+// O DEFEITO: a lista de anexos aqui era texto puro — nome do arquivo, sem link nenhum. Para abrir
+// qualquer documento, foto ou áudio da conversa (pedido do dono), era preciso sair do Lúmen, entrar
+// no Drive à mão e procurar a pasta certa. `driveUrl` já existia no Attachment desde sempre (é o
+// mesmo campo que AttachmentList.tsx usa para o link "Abrir") — só não vinha até aqui, porque este
+// trilho nasceu (Fase de fusão da Central) só com `id`/`name`, sem pensar em abrir o documento
+// direto dali. `target="_blank"` porque o Drive não roda dentro do Lúmen: abrir na mesma aba
+// trocaria a conversa pela página do Google, e quem está atendendo perderia o lugar onde estava.
+export type AnexoDoTrilho = { id: string; name: string; driveUrl: string };
+
 export type ItemDePendencia = {
   id: string;
   direction: string;
@@ -37,6 +49,7 @@ export default function TrilhoDoAtendimento({
   attendanceId,
   telefone,
   contato,
+  nomeAtual,
   area,
   canal,
   campanha,
@@ -50,13 +63,16 @@ export default function TrilhoDoAtendimento({
   attendanceId: string;
   telefone: string | null;
   contato: ContatoConhecido | null;
+  /** O `clientName` de agora — repassado a QuemEEsteNumero para decidir se o pop-up de definir o
+   * nome do lead faz sentido (ver DefinirNomeDoLead.tsx). */
+  nomeAtual: string;
   area: string | null;
   canal: string;
   campanha: string | null;
   responsavel: string | null;
   abertoEm: Date;
   descricao: string | null;
-  anexos: { id: string; name: string }[];
+  anexos: AnexoDoTrilho[];
   pendencias: ItemDePendencia[];
   jaConvertido: boolean;
 }) {
@@ -72,7 +88,7 @@ export default function TrilhoDoAtendimento({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
       <section className="border border-regua bg-sf p-4">
         <Rotulo>Quem é este número</Rotulo>
-        <QuemEEsteNumero attendanceId={attendanceId} telefone={telefone} contato={contato} />
+        <QuemEEsteNumero attendanceId={attendanceId} telefone={telefone} contato={contato} nomeAtual={nomeAtual} />
       </section>
 
       <section className="flex flex-col gap-5 border border-regua bg-sf p-4">
@@ -101,7 +117,16 @@ export default function TrilhoDoAtendimento({
             <div className="flex flex-col gap-2.5">
               {anexos.map((doc) => (
                 <div key={doc.id} className="flex items-baseline gap-2.5">
-                  <span className="min-w-0 flex-1 break-words text-sm text-tx">{doc.name}</span>
+                  <a
+                    href={doc.driveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Abrir no Drive"
+                    className="group flex min-w-0 flex-1 items-baseline gap-1.5 text-sm text-tx hover:text-marca-tx hover:underline"
+                  >
+                    <span className="min-w-0 flex-1 break-words">{doc.name}</span>
+                    <ExternalLink size={11} className="shrink-0 text-tx-3 group-hover:text-marca-tx" />
+                  </a>
                   <span className="shrink-0 text-xs font-semibold text-concluido">recebido</span>
                 </div>
               ))}

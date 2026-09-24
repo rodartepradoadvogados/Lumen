@@ -20,6 +20,7 @@
 
 import { podeResponder } from "@/lib/whatsappEvolution";
 import { regrasDoPadrao, conhecimentoGeral } from "@/lib/atendimentoPadrao";
+import { nomeEhTemporario } from "@/lib/nomeTemporarioDoLead";
 
 export type RegraDoEscritorio = {
   moduloWhatsapp: boolean;
@@ -178,6 +179,14 @@ const MARCA_RECUSA = /\[\[\s*RECUSAR\s*:\s*([A-Z_]+)\s*\]\]/i;
 const MARCA_PROPOSTA = /\[\[\s*PROPOR_RECUSA\s*\]\]/i;
 const MARCA_DOCUMENTO = /\[\[\s*AGUARDAR_DOCUMENTO\s*\]\]/i;
 
+// F5.5 — A MARCA DO NOME. Mesmo mecanismo das demais (combinado entre nós e o agente, nunca
+// adivinhado no texto): quando o lead ainda tem nome temporário (ver lib/nomeTemporarioDoLead.ts),
+// `montarPergunta` instrui a Ana a perguntar o nome e, assim que a pessoa responder com um nome de
+// verdade, terminar a mensagem com `[[NOME:Nome Completo]]`. O TETO DE TAMANHO (120) é para
+// descartar, sem gravar, uma marca que veio com uma frase inteira colada por engano — um nome de
+// pessoa não precisa disso, e gravar lixo em `clientName` seria pior do que não gravar nada.
+const MARCA_NOME = /\[\[\s*NOME\s*:\s*([^\]]{1,120}?)\s*\]\]/i;
+
 export type DecisaoDaAna = {
   /** O que vai para o WhatsApp do cliente, já sem marca nenhuma. */
   texto: string;
@@ -187,6 +196,8 @@ export type DecisaoDaAna = {
   /** A frase interna que ela escreveu para o escritório. Nunca sai para o cliente. */
   proposta: string | null;
   aguardarDocumento: boolean;
+  /** O nome que a pessoa informou, lido da marca — null quando a Ana não a escreveu nesta resposta. */
+  nomeInformado: string | null;
 };
 
 export function lerDecisaoDaAna(resposta: string): DecisaoDaAna {
@@ -201,6 +212,7 @@ export function lerDecisaoDaAna(resposta: string): DecisaoDaAna {
         // Outra marca dentro do recado interno não é decisão, é texto — tira para não virar ruído.
         .replace(new RegExp(MARCA_RECUSA, "gi"), "")
         .replace(new RegExp(MARCA_DOCUMENTO, "gi"), "")
+        .replace(new RegExp(MARCA_NOME, "gi"), "")
         .replace(new RegExp(MARCA, "gi"), "")
         .replace(/\s+/g, " ")
         .trim() || "(a atendente não explicou o motivo)"
@@ -214,11 +226,17 @@ export function lerDecisaoDaAna(resposta: string): DecisaoDaAna {
 
   const aguardarDocumento = MARCA_DOCUMENTO.test(visivel);
 
+  const achouNome = visivel.match(MARCA_NOME);
+  const nomeInformado = achouNome?.[1]?.trim() || null;
+
   const { texto, gatilho } = extrairTransferencia(
-    visivel.replace(new RegExp(MARCA_RECUSA, "gi"), "").replace(new RegExp(MARCA_DOCUMENTO, "gi"), ""),
+    visivel
+      .replace(new RegExp(MARCA_RECUSA, "gi"), "")
+      .replace(new RegExp(MARCA_DOCUMENTO, "gi"), "")
+      .replace(new RegExp(MARCA_NOME, "gi"), ""),
   );
 
-  return { texto, gatilho, recusa, proposta, aguardarDocumento };
+  return { texto, gatilho, recusa, proposta, aguardarDocumento, nomeInformado };
 }
 
 // ============================================================================
@@ -298,6 +316,27 @@ function montarUmaVez(
   const partes: string[] = [];
 
   partes.push(...regrasDoPadrao(entrada.nomeDoAtendente, entrada.nomeDoEscritorio));
+
+  // F5.5 — PERGUNTAR O NOME, ANTES DE QUALQUER OUTRA COISA. `entrada.nomeDoCliente` chega como o
+  // nome temporário que lib/nomeTemporarioDoLead.ts cria quando o WhatsApp não entregou nome de
+  // perfil nenhum (ver ingestIncomingWhatsapp, lib/whatsapp.ts) — "Novo contato (telefone)", nunca
+  // um nome de verdade. Pedido do dono: quando isso acontece, a prioridade da Ana passa a ser
+  // descobrir o nome, de forma simpática, antes de seguir a triagem. A MARCA [[NOME:...]] é como
+  // ela devolve a resposta ao sistema (mesmo mecanismo de [[TRANSFERIR:...]]) — sem ela, o nome
+  // dito na conversa fica só no texto solto do WhatsApp, e ninguém corrige o cadastro nem a pasta
+  // do Drive. Ver lib/atendenteResponde.ts, que lê a marca e faz a troca de verdade.
+  if (nomeEhTemporario(entrada.nomeDoCliente)) {
+    partes.push(
+      "\nVOCÊ AINDA NÃO SABE O NOME DE QUEM ESTÁ ESCREVENDO. Antes de qualquer outra pergunta da " +
+        "triagem, cumprimente e pergunte o nome da pessoa de um jeito simpático e natural — nunca " +
+        'como um formulário ("Qual seu nome completo?" soa a formulário; "Com quem eu falo?" ou ' +
+        '"Antes de mais nada, seu nome, por favor?" soam a conversa).',
+      "Assim que a pessoa disser um nome (mesmo só o primeiro nome), continue a conversa normalmente " +
+        "e termine essa mensagem com uma linha contendo apenas [[NOME:Nome Dito Pela Pessoa]] — o " +
+        "sistema usa essa linha para corrigir o cadastro e a retira antes de enviar; o cliente nunca a " +
+        "vê. Não invente nome nenhum: só escreva a marca quando a própria pessoa tiver dito um.",
+    );
+  }
 
   partes.push("\nO QUE VOCÊ FAZ:", ...TAREFAS.map((t) => `- ${t}`));
 

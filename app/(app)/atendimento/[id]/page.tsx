@@ -261,14 +261,10 @@ export default async function AttendanceDetailPage({
 
             <RelogioDoAtendimento prazoISO={a.prazoDeRespostaAte ? a.prazoDeRespostaAte.toISOString() : null} />
 
+            {/* SEM LIXEIRA AQUI, DE PROPÓSITO (pedido do dono): "perder o cliente" e "arquivar"
+                já cobrem todo desfecho possível de um atendimento sem apagar a conversa — ver a
+                mesma nota em app/(app)/atendimento/page.tsx e lib/actions/deletion.ts. */}
             <div className="flex shrink-0 items-center gap-1">
-              <DeleteEntityButton
-                entityType="ATTENDANCE"
-                entityId={a.id}
-                entityLabel={`${a.clientName} — ${a.subject}`}
-                confirmMessage={`Excluir o atendimento de "${a.clientName}"?`}
-                redirectTo="/atendimento"
-              />
               <Link href="/atendimento" className="p-1 text-tx-3 transition-colors hover:text-tx" aria-label="Fechar" title="Fechar">
                 <X size={20} />
               </Link>
@@ -366,13 +362,14 @@ export default async function AttendanceDetailPage({
                 attendanceId={a.id}
                 telefone={telefoneDoContato}
                 contato={contatoConhecido}
+                nomeAtual={a.clientName}
                 area={a.area}
                 canal={channelLabels[a.channel] || a.channel}
                 campanha={a.campanha?.nome ?? null}
                 responsavel={a.responsible?.name ?? null}
                 abertoEm={a.createdAt}
                 descricao={a.description}
-                anexos={a.attachments.map((att) => ({ id: att.id, name: att.name }))}
+                anexos={a.attachments.map((att) => ({ id: att.id, name: att.name, driveUrl: att.driveUrl }))}
                 pendencias={a.pendencias}
                 jaConvertido={Boolean(a.convertedCaseId)}
               />

@@ -7,6 +7,8 @@ import { composePhoneWithDdi } from "@/lib/documentoEnvios";
 import { deveExplicarAoColega, FRASE_AO_COLEGA } from "@/lib/avisoDeLead";
 import { type TipoMidiaWhatsapp, montarNomeArquivoWhatsapp, rotuloDaMidiaWhatsapp } from "@/lib/driveNaming";
 import { getOrCreateAttendanceFolder, uploadFileToDriveFolder, type StorageProvider } from "@/lib/storageProvider";
+import { nomeTemporarioDoLead, assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoLead";
+import { prazoAutomaticoDeFollowUp } from "@/lib/followUpAutomatico";
 
 // ============================================================================
 // Integração WhatsApp — DOIS provedores, uma porta só para o resto do sistema.
@@ -498,17 +500,37 @@ export async function ingestIncomingWhatsapp({
     });
     const casamento = casarCampanha(campanhas, { sourceUrl: anuncio?.sourceUrl, texto: text }, new Date());
 
+    // O NOME, NA ORDEM EM QUE SE PODE CONFIAR NELE (F5.5 — pasta do Drive com nome genérico).
+    // `profileName` é o nome de perfil que O PRÓPRIO WHATSAPP entrega (ver extrairMidiaEvolution/
+    // parseEntradaEvolution e o webhook da Meta) — "o nome que apresenta no cadastro do WhatsApp
+    // do cliente", exatamente como o dono pediu. Sem ele, `nomeTemporarioDoLead` dá um nome
+    // temporário LEGÍVEL (telefone formatado, não o número cru) até alguém — a Ana, perguntando
+    // (ver lib/atendimentoPadrao.ts e a marca [[NOME:...]] em lib/agenteAtendimento.ts), ou um
+    // humano corrigindo o assunto — decidir o nome de verdade.
+    const nomeDoCliente = profileName || nomeTemporarioDoLead(fromNumber);
+
     attendance = await prisma.attendance.create({
       data: {
         officeId,
-        clientName: profileName || fromNumber,
+        clientName: nomeDoCliente,
         contact: fromNumber,
-        subject: "Atendimento via WhatsApp",
+        // O ASSUNTO CARREGA O NOME, e não mais um texto fixo igual para qualquer lead — é dele que
+        // nasce o nome da pasta no Drive (getOrCreateAttendanceFolder recebe `subject`). Corrigir
+        // o assunto depois (à mão, ou pela Ana ao aprender o nome de verdade) já renomeia a pasta
+        // — mecânica existente, reaproveitada aqui, não duplicada.
+        subject: assuntoPadraoWhatsapp(nomeDoCliente),
         channel: "WHATSAPP",
         status: "NOVO",
         leadSource: "WHATSAPP",
         waPhone: fromNumber,
         stageChangedAt: new Date(),
+        // FOLLOW-UP AUTOMÁTICO (F5.5) — É AQUI QUE A MAIORIA DOS ATENDIMENTOS NASCE. Sem isto, um
+        // lead de WhatsApp só ganhava `nextContactAt` se alguém entrasse na ficha e preenchesse à
+        // mão — e a imensa maioria não é aberta manualmente, chega direto pela conversa. O estágio
+        // inicial é sempre "NOVO" (default do schema, ver Attendance.stage) e a referência é agora,
+        // porque o atendimento está nascendo neste instante. Ver a regra central em
+        // lib/followUpAutomatico.ts.
+        nextContactAt: prazoAutomaticoDeFollowUp("NOVO", new Date()),
         campanhaId: casamento?.campanhaId ?? null,
         // A origem crua fica guardada mesmo sem casar com campanha nenhuma: é o que permite
         // descobrir, depois, POR QUE uma conversa vinda de anúncio não casou.

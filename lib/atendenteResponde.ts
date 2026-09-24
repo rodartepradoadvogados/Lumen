@@ -15,6 +15,8 @@ import { sendWhatsappText, ROTULO_FIGURINHA, TEXTO_FIGURINHA_PARA_AGENTE } from 
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 import { textoParaAgente, mensagensReaisEUltima } from "@/lib/transcricaoDeAudio";
 import { esperaParaHermes } from "@/lib/orcamentoDoPedido";
+import { nomeEhTemporario, assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoLead";
+import { renomearPastaSeExistir } from "@/lib/renomeacaoDoAtendimento";
 
 // ============================================================================
 // O ATENDENTE RESPONDE (ou explica por que não).
@@ -100,6 +102,9 @@ export async function atendenteResponde(
         id: true,
         officeId: true,
         clientName: true,
+        // F5.5 — só para a troca do nome temporário: ver o bloco logo depois do envio, abaixo.
+        subject: true,
+        driveFolderId: true,
         waPhone: true,
         status: true,
         agenteResponde: true,
@@ -293,6 +298,24 @@ export async function atendenteResponde(
       data: { waLastMessageAt: new Date() },
     });
 
+    // F5.5 — A ANA APRENDEU O NOME. Vem depois do envio (a mensagem de verdade já saiu; se a
+    // gravação falhar aqui, o pior que acontece é o cadastro ficar temporário por mais um giro) e
+    // só mexe em nada se o nome AINDA for o temporário — `clientName: atendimento.clientName` no
+    // `where` é a mesma guarda otimista de `silenciarAtendente`: se alguém já corrigiu o nome à
+    // mão entre a leitura e agora, esta gravação não encontra a linha e não pisa por cima.
+    let sobreONome = "";
+    if (decisao.nomeInformado && nomeEhTemporario(atendimento.clientName)) {
+      const novoAssunto = assuntoPadraoWhatsapp(decisao.nomeInformado);
+      const trocou = await prisma.attendance.updateMany({
+        where: { id: attendanceId, officeId: atendimento.officeId, clientName: atendimento.clientName },
+        data: { clientName: decisao.nomeInformado, subject: novoAssunto },
+      });
+      if (trocou.count > 0) {
+        await renomearPastaSeExistir(atendimento.driveFolderId, novoAssunto, atendimento.subject, atendimento.officeId);
+        sobreONome = ` · nome do lead atualizado para "${decisao.nomeInformado}"`;
+      }
+    }
+
     // A TRANSFERÊNCIA VEM DEPOIS DO ENVIO, e é de propósito. A mensagem de despedida já saiu; se
     // a fila falhar agora, o cliente ao menos foi despedido com educação e a conversa fica sem
     // dono para alguém ver na tela. O contrário — transferir e a mensagem não sair — deixaria o
@@ -328,7 +351,7 @@ export async function atendenteResponde(
 
     revalidatePath(`/atendimento/${attendanceId}`);
     revalidatePath("/atendimento");
-    return { respondeu: true, motivo: `respondido pelo atendente${sobreADecisao}${sobreATransferencia}` };
+    return { respondeu: true, motivo: `respondido pelo atendente${sobreONome}${sobreADecisao}${sobreATransferencia}` };
   } catch (erro) {
     // Nunca lança: ver a nota no topo.
     console.error("[atendente] falha inesperada:", mensagemDeErro(erro));

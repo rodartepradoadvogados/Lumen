@@ -20,6 +20,7 @@
     { "path": "/api/cron/leads-sem-resposta", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/transcricoes-pendentes", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/avisos-de-figurinha", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/minutas-pendentes", "schedule": "*/5 * * * *" }
+    { "path": "/api/cron/minutas-pendentes", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/pipeline-followup", "schedule": "0 11 * * *" }
   ]
 }
