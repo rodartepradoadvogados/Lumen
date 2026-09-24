@@ -104,6 +104,7 @@ abrir a Vercel toda vez).
 | Variável | Para que serve | Onde obter/rotacionar |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Assistente do produto (`/api/assistente`) | console.anthropic.com |
+| `TYPESAFE_API_KEY` | API da TypeSafe (julgamentos tipados: classificação, pontuação, extração) — ainda sem uso no código; só no servidor | Painel da TypeSafe (typesafe.ai) |
 
 ## Legado / migração pontual
 
