@@ -96,3 +96,40 @@ export function avaliarAprovacaoDeMinuta(dados: { citacoes: CitacaoParaAprovacao
 
   return { podeAprovar: motivos.length === 0, motivos };
 }
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// ETAPA C — A APROVAÇÃO VIRA A TRAVA DA SAÍDA DA PEÇA.
+//
+// Exportar para Word, exportar para PDF e imprimir só ficam disponíveis DEPOIS que o advogado
+// aprova a minuta. São DUAS travas, e as duas são exigidas — nenhuma substitui a outra:
+//
+//   - a APROVAÇÃO (PeticionamentoSessao.minutaAprovadaEm): o advogado disse "esta é a peça". Editar
+//     o corpo depois desfaz a aprovação (lib/actions/peticionamento.ts:atualizarCorpoDaMinuta, e o
+//     hard gate que varre toda gravação de minutaTexto);
+//   - a CITAÇÃO PENDENTE: cada citação ativa com o "li e revisei" individual. Ela já era trava da
+//     exportação antes desta etapa e continua sendo, independente da aprovação — hoje aprovar já
+//     exige citações confirmadas, mas se amanhã alguém afrouxar a aprovação, a saída não afrouxa
+//     junto.
+//
+// Uma função só decide para os três botões na tela e para a ação no servidor.
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+
+export type AvaliacaoDeSaida = {
+  liberada: boolean;
+  /** Nunca vazio quando `liberada` é false — a tela diz O QUE falta, não só que está bloqueado. */
+  motivos: string[];
+};
+
+export function avaliarSaidaDaPeca(dados: { aprovada: boolean; citacoesPendentes: number | null }): AvaliacaoDeSaida {
+  const motivos: string[] = [];
+  if (!dados.aprovada) {
+    motivos.push('a minuta ainda não foi aprovada — use "Aprovar minuta / gerar peça", no quadro de citações (editar o texto depois de aprovar desfaz a aprovação).');
+  }
+  if (dados.citacoesPendentes === null) {
+    motivos.push("as citações ainda estão sendo conferidas.");
+  } else if (dados.citacoesPendentes > 0) {
+    const n = dados.citacoesPendentes;
+    motivos.push(`ainda falta${n === 1 ? "" : "m"} confirmar ${n} cita${n === 1 ? "ção" : "ções"} — "li e revisei" é individual, uma por uma.`);
+  }
+  return { liberada: motivos.length === 0, motivos };
+}

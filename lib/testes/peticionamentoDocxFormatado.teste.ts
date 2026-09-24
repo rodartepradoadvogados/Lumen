@@ -581,13 +581,12 @@ teste("HARD GATE: a exportação passa a formatação da folha ao gerador, e o t
   verdade(/corpoMinutaFormatadaHtml:\s*sessao\.minutaFormatadaHtml/.test(corpo), "a exportação não entrega a formatação da folha ao gerador — o Word sairia cru de novo");
   verdade(/corpoMinuta:\s*garantirFecho\(sessao\.minutaTexto\)/.test(corpo), "a exportação parou de reconferir o fecho sobre o TEXTO PURO");
 
-  // A TRAVA DE CITAÇÃO PENDENTE continua ANTES de montar o arquivo, e a APROVAÇÃO continua fora
-  // daqui: liberar Word/PDF/impressão pela aprovação é outra entrega, e consumir `minutaAprovadaEm`
-  // aqui adiantaria uma decisão que não é desta.
+  // A TRAVA DE CITAÇÃO PENDENTE continua ANTES de montar o arquivo. A APROVAÇÃO, que esta asserção
+  // mantinha FORA daqui ("é outra entrega"), passou a ser consumida na etapa C — que é essa outra
+  // entrega. A prova de que ela vem antes do arquivo mora em peticionamentoSaidaAprovada.teste.ts.
   const idxContagem = corpo.indexOf("peticionamentoCitacao.count(");
   const idxDocx = corpo.indexOf("montarPeticaoWord(");
   verdade(idxContagem !== -1 && idxDocx !== -1 && idxContagem < idxDocx, "a checagem de citações pendentes precisa vir ANTES de montar o arquivo");
-  verdade(!corpo.includes("minutaAprovadaEm"), "confirmarExportacao passou a consumir minutaAprovadaEm — isso é da etapa da aprovação, não desta");
 });
 
 teste("HARD GATE: o gerador NÃO tem uma segunda conversão de milímetro para twip", () => {

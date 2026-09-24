@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { atualizarCorpoDaMinuta, salvarMargensDaMinuta } from "@/lib/actions/peticionamento";
+import { atualizarCorpoDaMinuta, conferirSaidaDaPeca, salvarMargensDaMinuta } from "@/lib/actions/peticionamento";
+import { avaliarSaidaDaPeca } from "@/lib/peticionamentoAprovacao";
 import { MinutaEditor } from "@/components/peticionamento/MinutaEditor";
 import { PreviaDaFolha } from "@/components/peticionamento/PreviaDaFolha";
 import type { MargensDaPagina, OrigemDaMargem } from "@/lib/peticionamentoPaginaA4";
@@ -22,6 +23,7 @@ export function MinutaClient({
   origemDaMargem,
   timbrado,
   formatoDoTimbrado,
+  aprovadaInicial,
 }: {
   sessaoId: string;
   titulo: string;
@@ -44,6 +46,8 @@ export function MinutaClient({
   timbrado: TimbradoDaPrevia | null;
   /** "DOCX", "PDF" ou null (sem timbrado) — para a prévia dizer o que está mostrando, e o que não. */
   formatoDoTimbrado: string | null;
+  /** ETAPA C: a minuta já estava aprovada quando a tela abriu (PeticionamentoSessao.minutaAprovadaEm). */
+  aprovadaInicial: boolean;
 }) {
   const [corpo, setCorpo] = useState(htmlInicial);
   const [modalAberto, setModalAberto] = useState(false);
@@ -51,7 +55,9 @@ export function MinutaClient({
   // Incrementa a cada salvamento do corpo — CitacoesClient observa isto para recarregar a lista,
   // já que editar a minuta pode ter invalidado a confirmação de alguma citação (decisão do dono).
   const [versaoSalva, setVersaoSalva] = useState(0);
-  const [citacoesPendentes, setCitacoesPendentes] = useState(0);
+  // null = o quadro de citações ainda não carregou; até lá a saída fica travada ("conferindo").
+  const [citacoesPendentes, setCitacoesPendentes] = useState<number | null>(null);
+  const [aprovada, setAprovada] = useState(aprovadaInicial);
 
   // Só grava quando o HTML de fato mudou em relação ao que abriu. É isto que garante a promessa do
   // contrato de schema: abrir uma minuta ANTIGA (sem HTML gravado) e não mexer em nada não
@@ -59,6 +65,10 @@ export function MinutaClient({
   useEffect(() => {
     if (corpo === htmlInicial) return;
     setSalvo(false);
+    // Editar desfaz a aprovação no servidor ao gravar (atualizarCorpoDaMinuta). Aqui ela cai JÁ, na
+    // tecla: sem isto, nos 700 ms antes da gravação a tela ainda deixaria imprimir um texto que
+    // ninguém aprovou.
+    setAprovada(false);
     const t = setTimeout(async () => {
       await atualizarCorpoDaMinuta(sessaoId, corpo);
       setSalvo(true);
@@ -104,6 +114,38 @@ export function MinutaClient({
   const origemLegivel =
     origemDaMargem === "salva" ? "a que você ajustou na régua" : origemDaMargem === "timbrado" ? "a do timbrado do escritório" : "a padrão";
 
+  // ── ETAPA C: a aprovação é a trava da saída ───────────────────────────────────────────────────
+  // Word, PDF e impressão obedecem a MESMA régua que o servidor confere (avaliarSaidaDaPeca). O
+  // botão desabilitado é comodidade; a trava de verdade é a do servidor, em confirmarExportacao e
+  // conferirSaidaDaPeca.
+  const saida = avaliarSaidaDaPeca({ aprovada, citacoesPendentes });
+  const [formatoDoModal, setFormatoDoModal] = useState<"docx" | "pdf">("docx");
+  const [erroDeSaida, setErroDeSaida] = useState<string | null>(null);
+
+  function abrirExportacao(formato: "docx" | "pdf") {
+    setFormatoDoModal(formato);
+    setModalAberto(true);
+  }
+
+  // A SAÍDA EM PDF É A IMPRESSÃO DO NAVEGADOR, e nenhuma dependência nova foi instalada. O PDF que
+  // o dono quer é a peça no papel timbrado — e isso já existe desenhado na prévia (etapa B). Gerar
+  // PDF no servidor exigiria converter o .docx (LibreOffice/Word, que não rodam numa função da
+  // Vercel) ou redesenhar a peça numa biblioteca de PDF — uma segunda cópia da diagramação, que
+  // divergiria da prévia no primeiro ajuste. O navegador imprime exatamente as folhas da prévia, e
+  // "Salvar como PDF" existe no diálogo de impressão do Chrome, do Edge, do Firefox e do Safari.
+  // O que isto NÃO dá: o PDF não vai para o Drive sozinho e depende de a pessoa escolher "Salvar
+  // como PDF" no diálogo — por isso o modal diz isso em letras claras.
+  async function imprimirSeLiberada() {
+    setErroDeSaida(null);
+    const r = await conferirSaidaDaPeca(sessaoId);
+    if ("error" in r) {
+      setErroDeSaida(r.error);
+      return;
+    }
+    setPreviaAberta(true);
+    setImprimir(true);
+  }
+
   const linhasNota = notaObrigatoria.split("\n");
 
   return (
@@ -116,15 +158,36 @@ export function MinutaClient({
           </div>
         </div>
         <div className="toolbar-mid" style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button className="btn btn-primary btn-sm" onClick={() => setModalAberto(true)}>
+          <button className="btn btn-primary btn-sm" disabled={!saida.liberada} onClick={() => abrirExportacao("docx")}>
             Exportar para Word
+          </button>
+          <button className="btn btn-ghost btn-sm" disabled={!saida.liberada} onClick={() => abrirExportacao("pdf")}>
+            Exportar para PDF
+          </button>
+          <button className="btn btn-ghost btn-sm" disabled={!saida.liberada} onClick={() => void imprimirSeLiberada()}>
+            Imprimir
           </button>
         </div>
       </div>
       <div className="export-format-strip">
-        Esta peça só é exportada em <strong>Word (.docx)</strong> — não há outro formato. Sai com o <strong>timbrado cadastrado do escritório</strong> quando
-        houver um configurado; sem timbrado, avisamos no momento da exportação.
+        A peça sai em <strong>Word (.docx)</strong> ou <strong>PDF</strong>, ou vai direto para a impressora — com o <strong>timbrado cadastrado do escritório</strong>{" "}
+        quando houver um. Os três ficam disponíveis <strong>depois que você aprovar a minuta</strong>.
       </div>
+      {!saida.liberada && (
+        <div className="minuta-saida-travada" role="status">
+          <strong>Exportar e imprimir estão bloqueados.</strong> Falta:
+          <ul>
+            {saida.motivos.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {erroDeSaida && (
+        <div className="callout callout-danger" style={{ margin: "0 32px" }}>
+          {erroDeSaida}
+        </div>
+      )}
 
       {/* ETAPA B — A MINUTA E, AO LADO, A PRÉVIA. O espaço em branco à direita da folha (a coluna de
           conteúdo tem teto de 1040px) é onde a prévia mora — fechada, ela é só o botão. */}
@@ -181,7 +244,12 @@ export function MinutaClient({
         {/* Decisão do dono (22/09/2026): a lista de validação de citações vive AQUI, na mesma tela
             de onde se exporta — quem vai clicar "Exportar" vê, logo acima, o que ainda falta revisar. */}
         <div className="paper-wrap">
-          <CitacoesClient sessaoId={sessaoId} atualizarQuando={versaoSalva} onContagemMudou={setCitacoesPendentes} />
+          <CitacoesClient
+            sessaoId={sessaoId}
+            atualizarQuando={versaoSalva}
+            onContagemMudou={setCitacoesPendentes}
+            onAprovacaoMudou={setAprovada}
+          />
         </div>
       </div>
 
@@ -193,11 +261,11 @@ export function MinutaClient({
           <button
             type="button"
             className="btn btn-ghost btn-sm"
-            onClick={() => {
-              // A impressão sai das folhas da prévia — sem ela aberta não há folha para imprimir.
-              setPreviaAberta(true);
-              setImprimir(true);
-            }}
+            disabled={!saida.liberada}
+            title={saida.liberada ? undefined : `Bloqueado: ${saida.motivos.join(" ")}`}
+            // A impressão sai das folhas da prévia — imprimirSeLiberada abre a prévia e, conferida a
+            // trava no servidor, o diálogo de impressão.
+            onClick={() => void imprimirSeLiberada()}
           >
             Visualizar impressão
           </button>
@@ -224,6 +292,7 @@ export function MinutaClient({
               larguraDisponivelPx={larguraDaColuna}
               imprimir={imprimir}
               aoImprimir={impressaoAtendida}
+              imprimivel={saida.liberada}
             />
           </>
         ) : (
@@ -238,7 +307,12 @@ export function MinutaClient({
           arquivoNomeSugerido={titulo}
           podeExportar={podeExportar}
           jaExportada={exportada}
-          citacoesPendentes={citacoesPendentes}
+          citacoesPendentes={citacoesPendentes ?? 0}
+          formato={formatoDoModal}
+          onPdfConfirmado={() => {
+            setPreviaAberta(true);
+            setImprimir(true);
+          }}
           onFechar={() => setModalAberto(false)}
         />
       )}
