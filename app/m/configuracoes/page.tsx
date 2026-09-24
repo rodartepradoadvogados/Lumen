@@ -101,8 +101,9 @@ export default async function MobileConfiguracoes({
         prisma.taskTypePoints.findMany({ where: { officeId } }),
         // Registros completos (não só contagem) — igual ao computador (app/(app)/configuracoes/
         // page.tsx): permite revisar/publicar/editar direto daqui, não só ver o número.
-        prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
-        prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
+        // excluidaEm: null nas duas — mesmo filtro do computador, matéria excluída some daqui.
+        prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO", excluidaEm: null }, orderBy: { createdAt: "asc" } }),
+        prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO", excluidaEm: null }, orderBy: { publishedAt: "desc" } }),
         prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
         // Tabelas globais espelhadas do robô Python (sem officeId) — só pra mostrar o status
         // real das últimas execuções, igual ao card equivalente no computador.

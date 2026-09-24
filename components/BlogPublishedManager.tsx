@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { RotateCcw, ImagePlus, X } from "lucide-react";
-import { unpublishBlogPost, updatePublishedPostImage } from "@/lib/actions/blog";
+import { RotateCcw, ImagePlus, X, Trash2 } from "lucide-react";
+import { unpublishBlogPost, updatePublishedPostImage, deleteBlogPost } from "@/lib/actions/blog";
 import { Badge, EmptyState } from "@/components/ui";
 import PhotoPickerGrid, { type LibraryPhoto } from "@/components/PhotoPickerGrid";
 
@@ -35,6 +35,19 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
     setError(null);
     startTransition(async () => {
       const result = await unpublishBlogPost(id);
+      if (result?.error) setError(result.error);
+      else router.refresh();
+    });
+  }
+
+  // Diferente de despublicar: despublicar mantém a matéria (volta pra revisão pendente);
+  // excluir é soft-delete — some das duas listas do admin e da página pública, sem apagar a
+  // linha (auditoria, e o dedup do robô de conteúdo continua vendo o assunto como já tratado).
+  function handleDelete(id: string, title: string) {
+    if (!window.confirm(`Excluir "${title}"? Ela sai do ar e desta lista. Esta ação não pode ser desfeita por aqui.`)) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteBlogPost(id);
       if (result?.error) setError(result.error);
       else router.refresh();
     });
@@ -104,6 +117,15 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
               className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 shrink-0 rounded-md"
             >
               <RotateCcw size={14} />
+            </button>
+            {/* Mesmo par de tokens de components/DeleteButton.tsx para ação destrutiva. */}
+            <button
+              onClick={() => handleDelete(post.id, post.title)}
+              disabled={pending}
+              data-tip="Excluir matéria"
+              className="p-1.5 text-tx-3 hover:text-atencao hover:bg-grave-bg transition-colors disabled:opacity-40 shrink-0 rounded-md"
+            >
+              <Trash2 size={14} />
             </button>
           </div>
         ))}

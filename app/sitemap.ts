@@ -12,9 +12,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // TODO(multi-tenant): mesmo stopgap de escritório único usado em app/blog/page.tsx —
   // revisitar quando cada escritório tiver sua própria URL pública.
   const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
+  // excluidaEm: null — matéria excluída (botão "excluir" em /configuracoes) sai do sitemap.
   const posts = office
     ? await prisma.blogPost.findMany({
-        where: { officeId: office.id, status: "PUBLICADO" },
+        where: { officeId: office.id, status: "PUBLICADO", excluidaEm: null },
         select: { slug: true, publishedAt: true, updatedAt: true },
         orderBy: { publishedAt: "desc" },
       })

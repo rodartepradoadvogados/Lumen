@@ -38,7 +38,9 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
   // precisar de um count() à parte (achado P2-3 do plano de adequação: antes buscava tudo).
   const rows = office
     ? await prisma.blogPost.findMany({
-        where: { officeId: office.id, status: "PUBLICADO" },
+        // excluidaEm: null — matéria excluída (botão "excluir" em /configuracoes) não aparece
+        // mais na listagem pública, mesmo continuando PUBLICADO no banco (soft-delete).
+        where: { officeId: office.id, status: "PUBLICADO", excluidaEm: null },
         orderBy: { publishedAt: "desc" },
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE + 1,
