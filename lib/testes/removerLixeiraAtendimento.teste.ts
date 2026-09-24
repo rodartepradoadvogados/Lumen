@@ -34,4 +34,35 @@ teste("a ficha do atendimento não oferece mais o botão de excluir O ATENDIMENT
   verdade(fonte.includes('entityType="TASK"'), "a exclusão de tarefa sumiu junto — não deveria (regra é só sobre ATTENDANCE)");
 });
 
+// ── O PEDIDO ÓRFÃO ──────────────────────────────────────────────────────────────────────────
+//
+// Tirar ATTENDANCE da lista deixou um buraco atrás: `performDelete` é uma escada de
+// `if (entityType === ...)`, e um tipo que nenhum degrau reconhece atravessava a escada e caía no
+// `return { warning }` do fim — devolvendo SUCESSO sem apagar nada. Um DeletionRequest PENDENTE
+// de ATTENDANCE, gravado antes desta entrega, ainda existe no banco: aprová-lo marcaria "aprovada"
+// e não apagaria coisa nenhuma, e quem aprovou acreditaria que apagou.
+
+teste("tipo que performDelete não apaga devolve ERRO, nunca sucesso silencioso", () => {
+  const fonte = codigoDe(readFileSync("lib/actions/deletion.ts", "utf8"));
+  const i = fonte.indexOf("async function performDelete(");
+  verdade(i >= 0, "performDelete não existe mais — o teste está lendo o arquivo errado");
+  const cabeca = fonte.slice(i, i + 1600);
+  verdade(
+    /TIPOS_QUE_ESTA_FUNCAO_APAGA/.test(cabeca) && /!TIPOS_QUE_ESTA_FUNCAO_APAGA\.includes\(entityType\)/.test(cabeca),
+    "performDelete perdeu a guarda de tipo desconhecido — tipo órfão volta a devolver sucesso sem apagar",
+  );
+  const iGuarda = cabeca.search(/if\s*\(\s*!TIPOS_QUE_ESTA_FUNCAO_APAGA/);
+  const iPrimeiroIf = cabeca.indexOf('if (entityType === "TASK")');
+  verdade(iGuarda >= 0 && iPrimeiroIf > iGuarda, "a guarda não vem ANTES da escada de tipos — calcular não é obedecer");
+  verdade(/return\s*\{\s*\n?\s*error/.test(cabeca.slice(iGuarda)), "a guarda não devolve erro");
+});
+
+teste("ATTENDANCE NÃO está entre os tipos que performDelete apaga", () => {
+  const fonte = codigoDe(readFileSync("lib/actions/deletion.ts", "utf8"));
+  const m = fonte.match(/const TIPOS_QUE_ESTA_FUNCAO_APAGA = \[([^\]]*)\]/);
+  verdade(Boolean(m), "não achei a lista de tipos");
+  verdade(!/ATTENDANCE/.test(m![1]), "ATTENDANCE voltou para a lista — a lixeira do atendimento ressuscitou pelo backend");
+});
+
+
 resumo("sem lixeira no atendimento (F5.5)");

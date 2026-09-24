@@ -37,6 +37,25 @@ async function performDelete(
   actorId?: string,
   confirmadoComPagamentos?: boolean
 ): Promise<DeletionResult> {
+  // TIPO DESCONHECIDO É ERRO, NUNCA SILÊNCIO.
+  //
+  // Esta função é uma escada de `if (entityType === ...)`. Sem esta guarda, um tipo que nenhum
+  // degrau reconhece atravessa a escada inteira e cai no `return { warning }` do fim — ou seja,
+  // devolve SUCESSO sem ter apagado nada. Quem aprovasse o pedido veria "aprovada" e acreditaria
+  // que apagou.
+  //
+  // Isso deixou de ser hipótese em 24/09/2026, quando ATTENDANCE saiu da lista de tipos que
+  // aceitam pedido de exclusão (o dono tirou a lixeira do atendimento: "perder o cliente e
+  // arquivar já cobrem tudo, e é um risco perder a conversa"). Um pedido PENDENTE gravado antes
+  // dessa mudança ainda existe no banco, e aprová-lo cairia exatamente neste buraco.
+  const TIPOS_QUE_ESTA_FUNCAO_APAGA = ["TASK", "CASE", "PAYABLE", "RECEIVABLE", "HONORARIO_LANCAMENTO"];
+  if (!TIPOS_QUE_ESTA_FUNCAO_APAGA.includes(entityType)) {
+    return {
+      error:
+        `Este pedido é de um tipo que o sistema não apaga mais ("${entityType}"). ` +
+        "Nada foi excluído. Recuse o pedido — ele ficou de uma versão anterior do Lúmen.",
+    };
+  }
   let warning: string | undefined;
   if (entityType === "TASK") {
     await prisma.$transaction([
