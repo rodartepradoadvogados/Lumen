@@ -79,4 +79,63 @@ teste("--frame-accent (moldura, fixa nos dois temas) continua acima do piso AA c
   verdade(c >= PISO_AA_TEXTO_NORMAL, `--frame-accent sobre --frame-bg mede ${c.toFixed(2)}:1, abaixo do piso`);
 });
 
+// ── O EIXO QUE FALTAVA: SATURAÇÃO ─────────────────────────────────────────────────────────────
+//
+// Este arquivo nasceu guardando CONTRASTE, e o contraste nunca reprovou — nem quando a tela ficou
+// "pálida", nem quando ficou "azul claro pouco profissional". São eixos diferentes: contraste mede
+// luminosidade entre texto e fundo; não mede se uma superfície de um terço da tela virou cor de
+// marca. Em 24/09/2026 um ajuste subiu --list-bg de 19% para 58% de saturação, passou neste
+// arquivo inteiro, e o dono rejeitou olhando a tela.
+//
+// A régua da casa é o resto do produto: --papel, --ficha-alt, --linha e --linha-forte
+// (app/globals.css) ficam todos entre 16 e 17% de saturação. SUPERFÍCIE DE REPOUSO É NEUTRA; cor
+// com intenção mora no acento, e só nele — é o que o Telegram faz (lista e conversa são o mesmo
+// branco no tema claro) e é o que "manter o azul só na barra superior" quer dizer.
+
+function saturacao(hex: string): number {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return 0;
+  return ((max - min) / (l > 0.5 ? 2 - max - min : max + min)) * 100;
+}
+
+teste("as superfícies de repouso do tema claro ficam NEUTRAS, na régua do resto do produto", () => {
+  const css = readFileSync("app/atendimento-central/atendimento-central.css", "utf8");
+  // ÂNCORA NA REGRA, E NÃO NA PRIMEIRA MENÇÃO: ".dark .atd-central" aparece ANTES, dentro de um
+  // comentário explicativo — recortar por indexOf() media o comentário e perdia os tokens do tema
+  // claro inteiros. A regra de verdade começa em coluna zero.
+  const iRegra = css.search(/^\.dark \.atd-central\s*\{/m);
+  verdade(iRegra > 0, "não achei a regra do tema escuro — o recorte do tema claro seria o arquivo todo");
+  const claro = css.slice(0, iRegra);
+  // TETO: 22%. O resto do Lúmen vive em 16-17%; 22 dá folga para ajuste fino sem abrir espaço para
+  // um pastel. O que reprovou antes (--list-bg a 58%) fica MUITO acima disto.
+  const TETO = 22;
+  for (const token of ["--list-bg", "--list-bg-hover", "--work-bg-raised", "--atd-border", "--atd-border-strong"]) {
+    const m = claro.match(new RegExp(token + ":\\s*(#[0-9a-fA-F]{6});"));
+    verdade(Boolean(m), `não achei ${token} no tema claro`);
+    const s = saturacao(m![1]);
+    verdade(
+      s <= TETO,
+      `${token} está em ${s.toFixed(1)}% de saturação (${m![1]}), acima do teto de ${TETO}% — superfície de repouso voltou a ser cor de marca`,
+    );
+  }
+});
+
+teste("o acento da moldura é a ÚNICA cor com intenção, e continua legível", () => {
+  const css = readFileSync("app/atendimento-central/atendimento-central.css", "utf8");
+  const m = css.match(/--frame-accent:\s*(#[0-9a-fA-F]{6});/);
+  verdade(Boolean(m), "não achei --frame-accent");
+  const s = saturacao(m![1]);
+  // O acento é o oposto das superfícies: ele PRECISA ser saturado, senão não marca estado nenhum.
+  verdade(s >= 40, `--frame-accent caiu para ${s.toFixed(1)}% — sem saturação ele deixa de marcar o que está ativo`);
+  const bg = css.match(/--frame-bg:\s*(#[0-9a-fA-F]{6});/);
+  verdade(contraste(m![1], bg![1]) >= 4.5, "o acento deixou de ser legível sobre a moldura");
+});
+
+
 resumo("polish do fundo azul da Central (F5.5)");
