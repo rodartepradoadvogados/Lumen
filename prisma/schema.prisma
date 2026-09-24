@@ -1193,8 +1193,13 @@ model Attendance {
   // este campo e é o que faz `deveResponder` (lib/agenteAtendimento.ts) voltar a permitir
   // resposta, da PRÓXIMA mensagem do cliente em diante. Continua não sendo a CHAVE que se religa
   // sozinha: é preciso decidir de novo, e o rastro de quem decidiu fica em `agenteDevolvidoEm` /
-  // `agenteDevolvidoPorId`, logo abaixo — de propósito SEM apagar este campo, para não perder a
-  // memória de quando o humano assumiu da primeira vez.
+  // `agenteDevolvidoPorId`, logo abaixo.
+  //
+  // O QUE SE PERDE, e é bom estar escrito: devolver ZERA este campo, porque é o valor nulo aqui
+  // que `deveResponder` exige para a Ana voltar a falar. Com isso some a data em que o humano
+  // assumiu da primeira vez — as colunas de baixo guardam a DEVOLUÇÃO, não a assunção. Se um dia
+  // essa memória fizer falta (ex.: medir quanto tempo a conversa ficou com gente), o caminho é
+  // uma tabela de auditoria à parte, e não empilhar mais colunas escalares aqui.
   agenteSilenciadoEm DateTime?
 
   // A CONVERSA VOLTOU PARA A ANA depois de silenciada. Só existe porque `devolverAtendenteResponde`
