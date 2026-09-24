@@ -92,16 +92,33 @@ function arredondar(mm: number): number {
 export function MinutaEditor({
   htmlInicial,
   onMudou,
+  margensIniciais,
+  onMargensMudaram,
   cabecalhoNaoEditavel,
 }: {
   htmlInicial: string;
   onMudou: (html: string) => void;
+  /**
+   * ETAPA B: as margens com que a régua abre — já conciliadas no servidor (salva ▸ timbrado ▸
+   * padrão, lib/peticionamentoPaginaA4.ts:margensDaFolha). Antes a régua sempre abria no padrão e
+   * esquecia o que o advogado tinha arrastado.
+   */
+  margensIniciais?: MargensDaPagina;
+  /** Chamado quando o advogado arrasta uma margem — é o que alimenta a prévia e a gravação. */
+  onMargensMudaram?: (margens: MargensDaPagina) => void;
   /** As notas obrigatória e de riscos — dentro da folha, FORA da área editável (especificação §3). */
   cabecalhoNaoEditavel?: React.ReactNode;
 }) {
   const corpoRef = useRef<HTMLDivElement>(null);
   const trilhaRef = useRef<HTMLDivElement>(null);
-  const [margens, setMargens] = useState<MargensDaPagina>(PAGINA_A4.margens);
+  const [margens, setMargens] = useState<MargensDaPagina>(margensIniciais ?? PAGINA_A4.margens);
+  // Avisa quem hospeda a cada margem nova — mas não na abertura: abrir a folha não é mexer na régua,
+  // e gravar ali regravaria a margem do timbrado como se fosse escolha do advogado.
+  const margensAbertas = useRef(margens);
+  useEffect(() => {
+    if (margens === margensAbertas.current) return;
+    onMargensMudaram?.(margens);
+  }, [margens, onMargensMudaram]);
   const [recuos, setRecuos] = useState<Recuos>(RECUOS_ZERADOS);
   const [formatosAbertos, setFormatosAbertos] = useState(false);
   const [tabelaAberta, setTabelaAberta] = useState(false);

@@ -1,5 +1,5 @@
 import PizZip from "pizzip";
-import { PAGINA_A4, mmParaTwips } from "@/lib/peticionamentoPaginaA4";
+import { PAGINA_A4, mmParaTwips, type MargensDaPagina } from "@/lib/peticionamentoPaginaA4";
 import { FECHO_PETICAO, terminaComFechoCorreto } from "@/lib/peticionamentoFecho";
 import { corpoDocxDoHtmlDaMinuta, type CorpoFormatadoDocx, type NumeracaoDocx } from "@/lib/peticionamentoDocxFormatado";
 
@@ -182,11 +182,54 @@ function corpoDaPeticao(dados: DadosPeticaoDocx, formatado: CorpoFormatadoDocx |
 // A4 e a mesma margem na régua, e duas cópias da mesma medida divergem no dia em que alguém
 // ajusta uma só. 708 twips de cabeçalho/rodapé continuam literais — são posição de header/footer
 // do OOXML, que a tela não desenha e não tem como discordar.
-const SECT_PR_A4 =
-  `<w:sectPr><w:pgSz w:w="${mmParaTwips(PAGINA_A4.larguraMm)}" w:h="${mmParaTwips(PAGINA_A4.alturaMm)}"/>` +
-  `<w:pgMar w:top="${mmParaTwips(PAGINA_A4.margens.topoMm)}" w:right="${mmParaTwips(PAGINA_A4.margens.direitaMm)}" ` +
-  `w:bottom="${mmParaTwips(PAGINA_A4.margens.baseMm)}" w:left="${mmParaTwips(PAGINA_A4.margens.esquerdaMm)}" ` +
-  `w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`;
+//
+// ETAPA B: a margem deixou de ser constante. Ela chega de margensDaFolha
+// (lib/peticionamentoPaginaA4.ts) — a salva pelo advogado, ou a padrão —, a mesma que a régua e a
+// prévia desenham.
+function sectPrA4(margens: MargensDaPagina): string {
+  return (
+    `<w:sectPr><w:pgSz w:w="${mmParaTwips(PAGINA_A4.larguraMm)}" w:h="${mmParaTwips(PAGINA_A4.alturaMm)}"/>` +
+    `<w:pgMar w:top="${mmParaTwips(margens.topoMm)}" w:right="${mmParaTwips(margens.direitaMm)}" ` +
+    `w:bottom="${mmParaTwips(margens.baseMm)}" w:left="${mmParaTwips(margens.esquerdaMm)}" ` +
+    `w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`
+  );
+}
+
+/**
+ * Troca SÓ as quatro margens do <w:pgMar> da última seção do timbrado, quando o advogado salvou
+ * margem própria. Cabeçalho, rodapé, tamanho da folha e a distância do cabeçalho (w:header/w:footer)
+ * continuam os do timbrado — é o timbrado que sabe onde o logotipo mora; a margem do TEXTO é que o
+ * advogado escolheu na régua, e a tela, a prévia e o Word precisam dizer a mesma.
+ */
+export function trocarMargensDaUltimaSecao(documentoXml: string, margens: MargensDaPagina): string {
+  const fimCorpo = documentoXml.lastIndexOf("</w:body>");
+  const inicioSect = documentoXml.lastIndexOf("<w:sectPr", fimCorpo === -1 ? undefined : fimCorpo);
+  if (inicioSect === -1) return documentoXml;
+  const fimSect = documentoXml.indexOf("</w:sectPr>", inicioSect);
+  const secao = documentoXml.slice(inicioSect, fimSect === -1 ? undefined : fimSect);
+  const valores: Record<string, number> = {
+    "w:top": mmParaTwips(margens.topoMm),
+    "w:right": mmParaTwips(margens.direitaMm),
+    "w:bottom": mmParaTwips(margens.baseMm),
+    "w:left": mmParaTwips(margens.esquerdaMm),
+  };
+  let novaSecao: string;
+  if (/<w:pgMar\b/.test(secao)) {
+    novaSecao = secao.replace(/<w:pgMar\b[^>]*>/, (tag) => {
+      let t = tag;
+      for (const [nome, v] of Object.entries(valores)) {
+        // Precedido de espaço: `w:top` não pode casar por dentro de outro atributo.
+        const atual = new RegExp("\\s" + nome + '="[^"]*"');
+        t = atual.test(t) ? t.replace(atual, ` ${nome}="${v}"`) : t.replace("<w:pgMar", `<w:pgMar ${nome}="${v}"`);
+      }
+      return t;
+    });
+  } else {
+    const pgMar = `<w:pgMar w:top="${valores["w:top"]}" w:right="${valores["w:right"]}" w:bottom="${valores["w:bottom"]}" w:left="${valores["w:left"]}" w:header="708" w:footer="708" w:gutter="0"/>`;
+    novaSecao = secao.replace(/(<w:sectPr\b[^>]*>)/, `$1${pgMar}`);
+  }
+  return documentoXml.slice(0, inicioSect) + novaSecao + documentoXml.slice(inicioSect + secao.length);
+}
 
 // ---------------------------------------------------------------------------
 // METADADOS — docProps/custom.xml. Hard gate: nunca omite que é rascunho de IA (especificação
@@ -335,7 +378,7 @@ function acrescentarNumeracao(zip: PizZip, numeracao: NumeracaoDocx): void {
   }
 }
 
-function docxDoZero(conteudo: string): PizZip {
+function docxDoZero(conteudo: string, margens: MargensDaPagina): PizZip {
   const zip = new PizZip();
   zip.file(
     "[Content_Types].xml",
@@ -356,7 +399,7 @@ function docxDoZero(conteudo: string): PizZip {
   zip.file("word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`);
   zip.file(
     "word/document.xml",
-    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="${NS_W}"><w:body>${conteudo}${SECT_PR_A4}</w:body></w:document>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="${NS_W}"><w:body>${conteudo}${sectPrA4(margens)}</w:body></w:document>`,
   );
   return zip;
 }
@@ -379,7 +422,17 @@ function injetarNoTimbrado(zip: PizZip, conteudo: string): PizZip {
   return zip;
 }
 
-export function montarPeticaoWord(dados: DadosPeticaoDocx, meta: MetadadosPeticaoDocx, timbradoDocx?: Buffer | null): Buffer {
+/**
+ * `margensSalvas`: as margens que o advogado GRAVOU nesta sessão (já validadas), ou null quando
+ * ninguém mexeu na régua. Null mantém o comportamento de antes desta entrega: sem timbrado, a
+ * margem padrão; com timbrado, a margem do próprio timbrado, intocada.
+ */
+export function montarPeticaoWord(
+  dados: DadosPeticaoDocx,
+  meta: MetadadosPeticaoDocx,
+  timbradoDocx?: Buffer | null,
+  margensSalvas?: MargensDaPagina | null,
+): Buffer {
   // O pacote do timbrado é aberto ANTES de o corpo ser montado: o id de numeração das listas da
   // peça depende do que o timbrado já usa, e ele é escrito dentro do próprio XML do corpo.
   const doTimbrado = timbradoDocx ? new PizZip(timbradoDocx) : null;
@@ -387,7 +440,10 @@ export function montarPeticaoWord(dados: DadosPeticaoDocx, meta: MetadadosPetica
   const formatado = htmlDaFolha.length > 0 ? corpoDocxDoHtmlDaMinuta(htmlDaFolha, doTimbrado ? primeiroIdDeNumeracaoLivre(doTimbrado) : 1) : null;
 
   const conteudo = `${paragrafo(run(dados.tituloPeca, { negrito: true, tamanho: 13 }), { alinhamento: "center", espacoDepois: 200 })}${corpoDaPeticao(dados, formatado)}`;
-  const zip = doTimbrado ? injetarNoTimbrado(doTimbrado, conteudo) : docxDoZero(conteudo);
+  const zip = doTimbrado ? injetarNoTimbrado(doTimbrado, conteudo) : docxDoZero(conteudo, margensSalvas ?? PAGINA_A4.margens);
+  if (doTimbrado && margensSalvas) {
+    zip.file("word/document.xml", trocarMargensDaUltimaSecao(zip.file("word/document.xml")!.asText(), margensSalvas));
+  }
   if (formatado?.numeracao) acrescentarNumeracao(zip, formatado.numeracao);
   acrescentarMetadados(zip, meta);
   return zip.generate({ type: "nodebuffer", compression: "DEFLATE" });
