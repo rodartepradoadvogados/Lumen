@@ -161,10 +161,21 @@ teste("o pé da conversa não encolhe, e a conversa e ele são irmãos da mesma 
   verdade(!!coluna, "a conversa e a caixa de resposta não estão na mesma coluna flex");
 });
 
+// A classe de ALTURA, e não de piso nem de teto: `\bh-screen` casaria por dentro de `min-h-screen`
+// (o hífen é fronteira de palavra) e aprovaria exatamente o defeito que esta asserção guarda.
+const ALTURA_TRAVADA = /(?<![\w-])h-(screen|dvh|svh)\b/;
+
+teste("o filtro de altura travada não casa piso nem teto (teste do próprio filtro)", () => {
+  verdade(ALTURA_TRAVADA.test(`className="flex h-screen flex-col"`), "o filtro não reconhece h-screen");
+  verdade(ALTURA_TRAVADA.test(`className="h-dvh"`), "o filtro não reconhece h-dvh");
+  verdade(!ALTURA_TRAVADA.test(`className="flex min-h-screen flex-col"`), "o filtro casa min-h-screen — aprovaria só um piso");
+  verdade(!ALTURA_TRAVADA.test(`className="max-h-screen"`), "o filtro casa max-h-screen");
+});
+
 teste("a tela tem ALTURA travada na janela — com só um piso, quem rola é a página e a caixa desce junto", () => {
   const raiz = divs(CORPO_PAGE).sort((a, b) => a.inicio - b.inicio)[0];
   verdade(!!raiz, "não achei a div raiz da página");
-  verdade(/\bh-(screen|dvh|svh|full)\b/.test(raiz.abertura),
+  verdade(ALTURA_TRAVADA.test(raiz.abertura),
     `a raiz da Central não tem altura travada (${raiz.abertura.slice(0, 90)}) — a coluna cresce do tamanho da conversa e a caixa de resposta sai da tela`);
 });
 
