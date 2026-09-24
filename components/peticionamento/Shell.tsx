@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { MenuPeticionamento } from "./MenuPeticionamento";
+import { AlternadorDeTema } from "./AlternadorDeTema";
 import { SincronizarTrabalhoEmAndamento } from "./SaidaContext";
+import { hrefEtapaAnterior, type EtapaPeticionamento } from "@/lib/peticionamentoNavegacao";
 
 // O "chassi" de três regiões do Hermes Agent Desktop (rail · tela · rodapé) — decisions.md §4,
 // item 3: tradução da barra lateral para esta aba (a especificação não define navegação nenhuma
 // aqui). ADEQUAÇÃO 21/09/2026: "Sessões" (aqui renomeado "Rascunhos", espec. §3) deixou de estar
 // travado — agora tem tela própria (app/peticionamento/rascunhos/page.tsx); e o botão "Lúmen —
 // Processos, Financeiro, Agenda…" da barra superior (espec. §2) virou o botão Menu.
-export type EtapaPeticionamento = "tipo" | "contexto" | "wizard" | "documentos" | "confirmar" | "minuta";
+//
+// EtapaPeticionamento e a ordem das etapas (hrefEtapaAnterior, para o botão "Voltar" abaixo)
+// moraram aqui até 24/09/2026 — mudaram para lib/peticionamentoNavegacao.ts só para
+// hrefEtapaAnterior poder ser testada direto (lib/testes/peticionamentoNavegacao.teste.ts), sem
+// montar este componente. Reexportado abaixo porque nada mais neste arquivo muda.
+export type { EtapaPeticionamento };
 
 const ITENS: { chave: EtapaPeticionamento; label: string; href: (id: string) => string }[] = [
   { chave: "contexto", label: "Contexto", href: (id) => `/peticionamento/${id}/contexto` },
@@ -77,12 +85,30 @@ export function ShellPeticionamento({
       </aside>
 
       <header className="topbar">
-        <MenuPeticionamento rascunhosCount={rascunhosCount} />
-        <div className="crumbs">
-          <span>Peticionamento</span>
-          <span>/</span>
-          <span className="now">{crumbAtual}</span>
+        <div className="topbar-left">
+          <MenuPeticionamento rascunhosCount={rascunhosCount} />
+          {/* "VOLTAR" — pedido do dono, 24/09/2026 (item 2): "hoje, o botão de voltar só existe
+              no questionário" (lá, é um passo INTERNO do wizard, não uma volta de página — ver
+              WizardClient.tsx). Rota fixa por etapa (hrefEtapaAnterior,
+              lib/peticionamentoNavegacao.ts), não `router.back()`: o rail permite pular direto de
+              uma etapa a outra fora de ordem, e um "Voltar" por histórico do navegador voltaria
+              para onde quer que a pessoa estivesse antes — nem sempre a etapa anterior de VERDADE
+              desta sessão. */}
+          <Link className="btn btn-ghost btn-sm" href={hrefEtapaAnterior(ativo, sessaoId)} aria-label="Voltar à etapa anterior">
+            <ChevronLeft size={14} aria-hidden="true" />
+            Voltar
+          </Link>
+          <div className="crumbs">
+            <span>Peticionamento</span>
+            <span>/</span>
+            <span className="now">{crumbAtual}</span>
+          </div>
         </div>
+        {/* Alternador de tema — pedido do dono, 24/09/2026 (item 3): "sumiu do peticionamento".
+            Ver components/peticionamento/AlternadorDeTema.tsx para a causa (esta aba nunca
+            renderizou o TopBar/TeamMonitorPanel do resto do produto, onde o alternador do portal
+            mora) e lib/peticionamentoTheme.ts para o mecanismo (próprio desta aba). */}
+        <AlternadorDeTema />
       </header>
 
       <main className={`main${rolagemSoNoMiolo ? " main-fixa" : ""}`}>{children}</main>

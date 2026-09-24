@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { contarRascunhos } from "@/lib/actions/peticionamento";
 import { EntradaClient } from "@/components/peticionamento/EntradaClient";
 import { MenuPeticionamento } from "@/components/peticionamento/MenuPeticionamento";
+import { AlternadorDeTema } from "@/components/peticionamento/AlternadorDeTema";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,9 @@ export default async function PeticionamentoEntrada() {
     <div className="entry">
       <div className="entry-top">
         <MenuPeticionamento rascunhosCount={rascunhosCount} />
+        {/* Pedido do dono, 24/09/2026, item 3: "sumiu do peticionamento" — ver
+            components/peticionamento/AlternadorDeTema.tsx para a causa e o mecanismo. */}
+        <AlternadorDeTema />
       </div>
 
       <div className="entry-center">

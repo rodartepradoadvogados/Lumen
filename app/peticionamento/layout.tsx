@@ -4,6 +4,7 @@ import { Marcellus, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { getCurrentUser } from "@/lib/currentUser";
 import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 import { ProvedorDeSaida } from "@/components/peticionamento/SaidaContext";
+import { PETICIONAMENTO_THEME_INIT_SCRIPT } from "@/lib/peticionamentoTheme";
 import "./peticionamento.css";
 
 // Aba de Peticionamento — decisão do dono: "sensação de sair do Lúmen". Por isso é uma raiz de
@@ -52,7 +53,16 @@ export default async function PeticionamentoLayout({ children }: { children: Rea
   }
 
   return (
-    <div className={`peticionamento ${marcellus.variable} ${plexSans.variable} ${plexMono.variable}`}>
+    // id="peticionamento-shell" + suppressHydrationWarning: mesmo padrão de #portal-shell em
+    // app/(app)/layout.tsx. PETICIONAMENTO_THEME_INIT_SCRIPT (lib/peticionamentoTheme.ts) marca
+    // `data-theme="light"` neste nó ANTES da hidratação quando a preferência salva for Manhã —
+    // sem isto, quem escolheu Manhã veria um flash de Noite a cada carregamento. O botão em si
+    // (components/peticionamento/AlternadorDeTema.tsx) mora no Shell (sessão) e nas telas de
+    // entrada/rascunhos — pedido do dono, 24/09/2026, item 3.
+    <div id="peticionamento-shell" className={`peticionamento ${marcellus.variable} ${plexSans.variable} ${plexMono.variable}`} suppressHydrationWarning>
+      {/* eslint-disable-next-line react/no-danger -- PETICIONAMENTO_THEME_INIT_SCRIPT é string
+          100% estática (lib/peticionamentoTheme.ts), nenhum dado de usuário entra aqui. */}
+      <script dangerouslySetInnerHTML={{ __html: PETICIONAMENTO_THEME_INIT_SCRIPT }} />
       {/* Pop-up de saída (espec. §4) — um único Provider para a aba inteira, ver
           components/peticionamento/SaidaContext.tsx para o porquê de morar aqui e não em cada
           página. */}

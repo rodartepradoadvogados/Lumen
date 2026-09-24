@@ -7,7 +7,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { MenuPeticionamento } from "./MenuPeticionamento";
+import { AlternadorDeTema } from "./AlternadorDeTema";
 import { excluirRascunho, type RascunhoResumo } from "@/lib/actions/peticionamento";
 
 function formatarData(iso: string): string {
@@ -53,7 +55,18 @@ export function RascunhosClient({ rascunhos }: { rascunhos: RascunhoResumo[] }) 
   return (
     <div className="entry" style={{ gridTemplateRows: "48px 1fr auto" }}>
       <div className="entry-top">
-        <MenuPeticionamento rascunhosCount={rascunhos.length} />
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <MenuPeticionamento rascunhosCount={rascunhos.length} />
+          {/* "VOLTAR" — pedido do dono, 24/09/2026, item 2. Aqui, diferente das telas de sessão
+              (components/peticionamento/Shell.tsx), é `router.back()`: Rascunhos não tem uma
+              única etapa anterior fixa — chega-se aqui pelo Menu a partir de QUALQUER tela do
+              módulo, então "a página anterior" É, literalmente, o histórico do navegador. */}
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => router.back()} aria-label="Voltar à página anterior">
+            <ChevronLeft size={14} aria-hidden="true" />
+            Voltar
+          </button>
+        </div>
+        <AlternadorDeTema />
       </div>
 
       <div style={{ padding: "32px 32px 48px", display: "flex", flexDirection: "column", gap: 22, maxWidth: 980, margin: "0 auto", width: "100%" }}>
