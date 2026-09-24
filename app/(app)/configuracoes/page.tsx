@@ -196,8 +196,10 @@ export default async function ConfiguracoesPage({
         orderBy: { createdAt: "asc" },
         include: { steps: { orderBy: { order: "asc" } } },
       }),
-      prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
-      prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
+      // `excluidaEm: null` nas duas — matéria excluída (botão "excluir", pedido do dono
+      // 24/09/2026) some das duas listas do admin, mesmo padrão do público em app/blog/*.
+      prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO", excluidaEm: null }, orderBy: { createdAt: "asc" } }),
+      prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO", excluidaEm: null }, orderBy: { publishedAt: "desc" } }),
       prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
       getOfficeModules(officeId),
       // O atendente e as campanhas: só admin vê a aba, mas a consulta é barata e roda junto das

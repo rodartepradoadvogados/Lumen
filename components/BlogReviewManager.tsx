@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, X, Check, Ban } from "lucide-react";
-import { updateBlogPostDraft, publishBlogPost, rejectBlogPost } from "@/lib/actions/blog";
+import { Pencil, X, Check, Ban, Trash2 } from "lucide-react";
+import { updateBlogPostDraft, publishBlogPost, rejectBlogPost, deleteBlogPost } from "@/lib/actions/blog";
 import { Badge, EmptyState } from "@/components/ui";
 import PhotoPickerGrid, { type LibraryPhoto } from "@/components/PhotoPickerGrid";
 import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
@@ -149,6 +149,14 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
     run(() => rejectBlogPost(post.id, reason));
   }
 
+  // Excluir é diferente de rejeitar: rejeitar mantém a matéria na fila do robô como "já
+  // tratada" (não reenviar o mesmo assunto); excluir é para a matéria que não devia ter sido
+  // cadastrada (duplicata, erro, teste) — soft-delete, some da tela, sem afetar o dedup do robô.
+  function handleDelete() {
+    if (!window.confirm(`Excluir "${title}"? Ela sai desta lista e não pode ser publicada depois. Esta ação não pode ser desfeita por aqui.`)) return;
+    run(() => deleteBlogPost(post.id));
+  }
+
   const sourceLinks = (post.sources || "")
     .split("\n")
     .map((s) => s.trim())
@@ -287,6 +295,18 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
             className="cfg-input w-full"
           />
         </div>
+        {/* text-atencao/hover:bg-grave-bg — mesmo par de tokens de components/DeleteButton.tsx e
+            components/HolidaysManager.tsx para ação destrutiva; `text-vinho` (usado no botão
+            Rejeitar ao lado) é uma classe sem `DEFAULT` no tema — não gera regra no Tailwind, e
+            não é replicada aqui por não fazer parte do escopo desta entrega. */}
+        <button
+          onClick={handleDelete}
+          disabled={pending}
+          data-tip="Excluir matéria"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-atencao border border-regua hover:bg-grave-bg disabled:opacity-40"
+        >
+          <Trash2 size={14} /> Excluir
+        </button>
         <button
           onClick={handleReject}
           disabled={pending}

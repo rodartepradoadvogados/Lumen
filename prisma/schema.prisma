@@ -441,6 +441,7 @@ model User {
   notificationOutbox          NotificationOutbox[]
   microsoftCredentials        MicrosoftCredential[]
   blogPostsReviewed           BlogPost[]              @relation("BlogPostReviewer")
+  blogPostsExcluidos          BlogPost[]              @relation("BlogPostExcluidoPor")
   emailsSent                  EmailMessage[]          @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]            @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[]   @relation("AssessoriaDocumentoUploadedBy")
@@ -3498,6 +3499,24 @@ model BlogPost {
   publishedAt    DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  /// EXCLUSÃO (pedido do dono, 24/09/2026 — botão "excluir" na matéria cadastrada pelo
+  /// escritório, tanto em revisão pendente quanto já publicada).
+  ///
+  /// SOFT-DELETE, nunca DELETE físico — mesmo padrão de PeticionamentoCitacao.excluidaEm: a
+  /// linha continua existindo (auditoria, e o dedup do robô de conteúdo em
+  /// app/api/blog/draft/route.ts, que olha os últimos 60 dias por título/fonte independente de
+  /// status, continua enxergando o assunto como já tratado). Todo ponto de leitura que existe
+  /// para MOSTRAR a matéria (admin em /configuracoes, público em /blog e /blog/[slug], sitemap,
+  /// a checagem de foto vinculada a post público) passa a exigir `excluidaEm: null` — sem isso
+  /// a matéria "excluída" continuaria visível em algum desses lugares.
+  ///
+  /// Coluna SÓ ACRESCENTADA e anulável: `prisma db push` roda depois do build em produção, e
+  /// remover/renomear coluna existente apagaria dado — aqui não há coluna nenhuma sendo
+  /// removida, só duas novas, nulas por padrão (nenhuma matéria já cadastrada é afetada).
+  excluidaPorId String?
+  excluidaPor   User?     @relation("BlogPostExcluidoPor", fields: [excluidaPorId], references: [id])
+  excluidaEm    DateTime?
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])

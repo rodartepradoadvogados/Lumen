@@ -27,7 +27,7 @@ export async function updateBlogPostDraft(
   if (guard.error) return { error: guard.error };
   const viewer = guard.viewer;
 
-  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId, excluidaEm: null } });
   if (!post) return { error: "Matéria não encontrada." };
 
   const updateData: Record<string, unknown> = {};
@@ -72,7 +72,7 @@ export async function publishBlogPost(id: string, imageUrl?: string): Promise<{ 
   if (guard.error) return { error: guard.error };
   const viewer = guard.viewer;
 
-  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId, excluidaEm: null } });
   if (!post) return { error: "Matéria não encontrada." };
 
   await prisma.blogPost.update({
@@ -97,7 +97,7 @@ export async function rejectBlogPost(id: string, reason?: string): Promise<{ err
   if (guard.error) return { error: guard.error };
   const viewer = guard.viewer;
 
-  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId, excluidaEm: null } });
   if (!post) return { error: "Matéria não encontrada." };
 
   await prisma.blogPost.update({
@@ -121,7 +121,7 @@ export async function updatePublishedPostImage(id: string, imageUrl: string): Pr
   if (guard.error) return { error: guard.error };
   const viewer = guard.viewer;
 
-  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId, excluidaEm: null } });
   if (!post) return { error: "Matéria não encontrada." };
 
   await prisma.blogPost.update({ where: { id }, data: { imageUrl: imageUrl.trim() || null } });
@@ -131,13 +131,39 @@ export async function updatePublishedPostImage(id: string, imageUrl: string): Pr
   return {};
 }
 
+// Exclui uma matéria cadastrada pelo escritório — pedido do dono, 24/09/2026: um botão de
+// "excluir" para a matéria (pendente de revisão ou já publicada), com confirmação, distinto do
+// "Rejeitar" que já existia (que só marca REJEITADO e mantém a matéria na fila do robô como
+// "já tratada"). SOFT-DELETE (`excluidaEm`), nunca DELETE físico — ver o comentário do campo no
+// schema. `findFirst` já exige `excluidaEm: null` para não achar quem já foi excluído (o clique
+// duplicado no botão, ou duas abas abertas na mesma matéria, dá "Matéria não encontrada", não um
+// erro solto nem uma segunda exclusão).
+export async function deleteBlogPost(id: string): Promise<{ error?: string }> {
+  const guard = await assertBlogAdmin();
+  if (guard.error) return { error: guard.error };
+  const viewer = guard.viewer;
+
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId, excluidaEm: null } });
+  if (!post) return { error: "Matéria não encontrada." };
+
+  await prisma.blogPost.update({
+    where: { id },
+    data: { excluidaEm: new Date(), excluidaPorId: viewer.id },
+  });
+  revalidatePath("/configuracoes");
+  revalidatePath("/blog");
+  // Só a matéria PUBLICADA tinha uma URL pública própria para invalidar — a pendente nunca teve.
+  if (post.status === "PUBLICADO") revalidatePath(`/blog/${post.slug}`);
+  return {};
+}
+
 // Despublica uma matéria já confirmada — volta para a fila de revisão pendente.
 export async function unpublishBlogPost(id: string): Promise<{ error?: string }> {
   const guard = await assertBlogAdmin();
   if (guard.error) return { error: guard.error };
   const viewer = guard.viewer;
 
-  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId, excluidaEm: null } });
   if (!post) return { error: "Matéria não encontrada." };
 
   await prisma.blogPost.update({
