@@ -11,6 +11,9 @@ import { avaliarExportacao } from "@/lib/peticionamentoAcesso";
 import { htmlParaAbrirAFolha } from "@/lib/peticionamentoMinutaFormatada";
 import { faixaDeGeracaoDoEscritorio } from "@/lib/peticionamentoGeracaoAssincrona";
 import { marcarDesfechoDaGeracaoComoVisto } from "@/lib/actions/peticionamento";
+import { margensDaFolha } from "@/lib/peticionamentoPaginaA4";
+import { lerTimbradoDocx } from "@/lib/peticionamentoTimbrado";
+import { timbradoDoEscritorio } from "@/lib/peticionamentoTimbradoDoEscritorio";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +130,12 @@ export default async function MinutaPage({ params }: { params: { id: string } })
   // o texto puro volta DERIVADO do HTML na gravação, e não digitado ao lado dele.
   const htmlDaFolha = htmlParaAbrirAFolha(sessao.minutaFormatadaHtml, sessao.minutaTexto);
 
+  // ETAPA B — o timbrado DO ESCRITÓRIO DE QUEM ESTÁ LOGADO (o mesmo download da exportação), lido
+  // para a prévia, e a margem da folha conciliada num lugar só: salva ▸ timbrado ▸ padrão.
+  const { formato: formatoDoTimbrado, docx: timbradoDocx } = await timbradoDoEscritorio(user.officeId);
+  const timbrado = timbradoDocx ? lerTimbradoDocx(timbradoDocx) : null;
+  const { margens, origem: origemDaMargem } = margensDaFolha(sessao.minutaMargensMm, timbrado?.margens);
+
   return (
     <ShellPeticionamento
       sessaoId={params.id}
@@ -146,6 +155,10 @@ export default async function MinutaPage({ params }: { params: { id: string } })
         htmlInicial={htmlDaFolha}
         podeExportar={avaliarExportacao(user)}
         exportada={sessao.status === "EXPORTADA"}
+        margensIniciais={margens}
+        origemDaMargem={origemDaMargem}
+        timbrado={timbrado}
+        formatoDoTimbrado={formatoDoTimbrado}
       />
     </ShellPeticionamento>
   );

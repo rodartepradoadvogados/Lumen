@@ -4481,6 +4481,16 @@ model PeticionamentoSessao {
   /// deste HTML por textoPuroDaMinutaHtml — nunca recebido em paralelo da tela. É essa derivação
   /// única que impede as duas representações de divergirem.
   minutaFormatadaHtml       String?
+  /// ETAPA B do editor (prévia com o timbrado): as MARGENS DA FOLHA que o advogado ajustou na
+  /// régua, em milímetro — { topoMm, direitaMm, baseMm, esquerdaMm }. Antes elas viviam só no
+  /// estado da tela e voltavam ao padrão a cada recarga.
+  ///
+  /// NULO É ESTADO LEGÍTIMO, e significa "ninguém mexeu na régua desta minuta": a folha usa a
+  /// margem do timbrado do escritório e, sem timbrado, a padrão (a conciliação é uma função só,
+  /// lib/peticionamentoPaginaA4.ts:margensDaFolha). Toda sessão anterior a esta entrega é null e
+  /// continua exportando exatamente como antes. Não faz parte do corpo: gravar aqui não toca
+  /// `minutaTexto` nem `minutaFormatadaHtml`.
+  minutaMargensMm           Json?
   notaRiscos                Json    @default("[]")
   jurisprudenciaCitada      Json    @default("[]")
   documentosBaseConsultados Json    @default("[]")

@@ -38,6 +38,8 @@ import { sanitizarMinutaHtml, textoPuroDaMinutaHtml } from "@/lib/peticionamento
 import { montarNotaObrigatoria } from "@/lib/peticionamentoNotaObrigatoria";
 import { montarNomeArquivoPeticao } from "@/lib/peticionamentoNomeArquivo";
 import { montarPeticaoWord } from "@/lib/peticionamentoDocx";
+import { margensValidas } from "@/lib/peticionamentoPaginaA4";
+import { timbradoDoEscritorio } from "@/lib/peticionamentoTimbradoDoEscritorio";
 import {
   hermesConfigurado,
   perguntarAoHermesComPerfil,
@@ -1818,6 +1820,28 @@ export async function atualizarCorpoDaMinuta(sessaoId: string, formatadaHtml: st
   return { ok: true };
 }
 
+/**
+ * ETAPA B — grava as MARGENS DA FOLHA que o advogado ajustou na régua, para que elas sobrevivam à
+ * recarga e cheguem ao Word (ver a conciliação em lib/peticionamentoPaginaA4.ts:margensDaFolha).
+ *
+ * NÃO TOCA O CORPO: nem `minutaTexto`, nem `minutaFormatadaHtml`, nem as citações. Por isso também
+ * não desfaz a aprovação — ela é sobre o texto que o advogado leu, e margem não muda uma palavra.
+ *
+ * As margens chegam do navegador e são revalidadas aqui (margensValidas) — fora da folha, ou sem
+ * formato de margem, a gravação é recusada em vez de guardar lixo que a tela depois desenharia.
+ */
+export async function salvarMargensDaMinuta(sessaoId: string, margens: unknown): Promise<{ ok: true } | { error: string }> {
+  const user = await exigirAcessoAba();
+  await carregarSessaoOuFalhar(sessaoId, user.officeId);
+  const validas = margensValidas(margens);
+  if (!validas) return { error: "Margens inválidas." };
+  await prisma.peticionamentoSessao.updateMany({
+    where: { id: sessaoId, officeId: user.officeId },
+    data: { minutaMargensMm: validas },
+  });
+  return { ok: true };
+}
+
 // ── EXPORTAÇÃO — a TRAVA REAL (especificação §5) ───────────────────────────────────────────────
 
 export async function confirmarExportacao(
@@ -1852,17 +1876,10 @@ export async function confirmarExportacao(
 
   if (!sessao.minutaTexto) return { error: "Esta sessão ainda não tem minuta gerada." };
 
-  const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { timbradoUrl: true, timbradoFormato: true, name: true } });
-  let timbrado: Buffer | null = null;
+  // O MESMO download que a prévia da minuta usa (lib/peticionamentoTimbradoDoEscritorio.ts): a
+  // prévia não pode mostrar um timbrado que o Word não aplica.
+  const timbrado = (await timbradoDoEscritorio(user.officeId)).docx;
   let avisoTimbrado: string | null = null;
-  if (office?.timbradoUrl && office.timbradoFormato === "DOCX") {
-    try {
-      const resp = await fetch(office.timbradoUrl);
-      if (resp.ok) timbrado = Buffer.from(await resp.arrayBuffer());
-    } catch {
-      timbrado = null;
-    }
-  }
   if (!timbrado) {
     avisoTimbrado = "Sem timbrado cadastrado para este escritório — a exportação segue em Word simples. Cadastre o timbrado em Configurações → Geral.";
   }
@@ -1896,6 +1913,9 @@ export async function confirmarExportacao(
     },
     { confirmadoPorNome: user.name, confirmadoPorOab: user.oab ?? "", confirmadoEm: agora, sessaoId: sessao.id },
     timbrado,
+    // A margem que o advogado salvou na régua (null = nunca mexeu: vale a do timbrado, ou a padrão
+    // — a mesma regra que a régua e a prévia usam, lib/peticionamentoPaginaA4.ts:margensDaFolha).
+    margensValidas(sessao.minutaMargensMm),
   );
 
   // Salva no Drive: pasta do vínculo principal, ou subpasta da sessão em "Peticionamento" para

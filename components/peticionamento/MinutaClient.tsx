@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { atualizarCorpoDaMinuta } from "@/lib/actions/peticionamento";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { atualizarCorpoDaMinuta, salvarMargensDaMinuta } from "@/lib/actions/peticionamento";
 import { MinutaEditor } from "@/components/peticionamento/MinutaEditor";
+import { PreviaDaFolha } from "@/components/peticionamento/PreviaDaFolha";
+import type { MargensDaPagina, OrigemDaMargem } from "@/lib/peticionamentoPaginaA4";
+import type { TimbradoDaPrevia } from "@/lib/peticionamentoTimbrado";
 import { ExportarModal } from "@/components/peticionamento/ExportarModal";
 import { CitacoesClient } from "@/components/peticionamento/CitacoesClient";
 import type { AvaliacaoDeExportacao } from "@/lib/peticionamentoAcesso";
@@ -15,6 +18,10 @@ export function MinutaClient({
   htmlInicial,
   podeExportar,
   exportada,
+  margensIniciais,
+  origemDaMargem,
+  timbrado,
+  formatoDoTimbrado,
 }: {
   sessaoId: string;
   titulo: string;
@@ -30,6 +37,13 @@ export function MinutaClient({
   htmlInicial: string;
   podeExportar: AvaliacaoDeExportacao;
   exportada: boolean;
+  /** Já conciliadas no servidor: salva ▸ timbrado ▸ padrão (lib/peticionamentoPaginaA4.ts:margensDaFolha). */
+  margensIniciais: MargensDaPagina;
+  origemDaMargem: OrigemDaMargem;
+  /** O timbrado .docx do escritório, lido para a prévia — null sem timbrado, com timbrado em PDF ou com falha ao baixar. */
+  timbrado: TimbradoDaPrevia | null;
+  /** "DOCX", "PDF" ou null (sem timbrado) — para a prévia dizer o que está mostrando, e o que não. */
+  formatoDoTimbrado: string | null;
 }) {
   const [corpo, setCorpo] = useState(htmlInicial);
   const [modalAberto, setModalAberto] = useState(false);
@@ -54,6 +68,42 @@ export function MinutaClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corpo]);
 
+  // ── ETAPA B: margens gravadas e a prévia no papel timbrado ────────────────────────────────────
+  const [margens, setMargens] = useState(margensIniciais);
+  const [previaAberta, setPreviaAberta] = useState(false);
+  const [imprimir, setImprimir] = useState(false);
+  const impressaoAtendida = useCallback(() => setImprimir(false), []);
+  const colunaRef = useRef<HTMLElement>(null);
+  const [larguraDaColuna, setLarguraDaColuna] = useState(0);
+
+  // A margem arrastada na régua é gravada (com a mesma espera do corpo), e só quando mudou de
+  // verdade: abrir a folha e não mexer não transforma a margem do timbrado em escolha do advogado.
+  useEffect(() => {
+    if (margens === margensIniciais) return;
+    const t = setTimeout(() => void salvarMargensDaMinuta(sessaoId, margens), 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [margens]);
+
+  useEffect(() => {
+    const coluna = colunaRef.current;
+    if (!coluna) return;
+    const observador = new ResizeObserver(([entrada]) => setLarguraDaColuna(entrada.contentRect.width));
+    observador.observe(coluna);
+    return () => observador.disconnect();
+  }, []);
+
+  const avisoDoTimbrado =
+    formatoDoTimbrado === "PDF"
+      ? "O timbrado deste escritório está em PDF, e só o timbrado em Word (.docx) é aplicado na peça — a prévia mostra a folha sem ele, como o arquivo vai sair."
+      : !formatoDoTimbrado
+        ? "Este escritório não tem papel timbrado cadastrado (Configurações → Geral) — a prévia mostra a folha simples, como o arquivo vai sair."
+        : !timbrado
+          ? "Não foi possível abrir o timbrado cadastrado agora — a prévia mostra a folha simples."
+          : null;
+  const origemLegivel =
+    origemDaMargem === "salva" ? "a que você ajustou na régua" : origemDaMargem === "timbrado" ? "a do timbrado do escritório" : "a padrão";
+
   const linhasNota = notaObrigatoria.split("\n");
 
   return (
@@ -76,6 +126,9 @@ export function MinutaClient({
         houver um configurado; sem timbrado, avisamos no momento da exportação.
       </div>
 
+      {/* ETAPA B — A MINUTA E, AO LADO, A PRÉVIA. O espaço em branco à direita da folha (a coluna de
+          conteúdo tem teto de 1040px) é onde a prévia mora — fechada, ela é só o botão. */}
+      <div className="minuta-com-previa">
       <div className="content">
         {/* A FOLHA A4 com a régua em cima e a barra de formatação embaixo (etapa A do editor de
             minuta). As duas notas continuam DENTRO da folha e FORA da área editável — a
@@ -83,6 +136,8 @@ export function MinutaClient({
         <MinutaEditor
           htmlInicial={htmlInicial}
           onMudou={setCorpo}
+          margensIniciais={margensIniciais}
+          onMargensMudaram={setMargens}
           cabecalhoNaoEditavel={
             <>
 
@@ -128,6 +183,53 @@ export function MinutaClient({
         <div className="paper-wrap">
           <CitacoesClient sessaoId={sessaoId} atualizarQuando={versaoSalva} onContagemMudou={setCitacoesPendentes} />
         </div>
+      </div>
+
+      <aside ref={colunaRef} className="minuta-previa-coluna" aria-label="Prévia no papel timbrado">
+        <div className="minuta-previa-botoes">
+          <button type="button" className="btn btn-ghost btn-sm" aria-pressed={previaAberta} onClick={() => setPreviaAberta((v) => !v)}>
+            {previaAberta ? "Esconder prévia" : "Mostrar prévia"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              // A impressão sai das folhas da prévia — sem ela aberta não há folha para imprimir.
+              setPreviaAberta(true);
+              setImprimir(true);
+            }}
+          >
+            Visualizar impressão
+          </button>
+        </div>
+        {previaAberta ? (
+          <>
+            <p className="minuta-previa-legenda">
+              No papel timbrado do escritório, atualizada enquanto você digita. Margem: {margens === margensIniciais ? origemLegivel : "a que você ajustou na régua"}.
+              A quebra de página é aproximada — o Word pode partir um parágrafo que aqui passa inteiro para a folha seguinte.
+            </p>
+            {avisoDoTimbrado && <p className="minuta-previa-aviso">{avisoDoTimbrado}</p>}
+            {timbrado?.avisos.map((a) => (
+              <p key={a} className="minuta-previa-aviso">
+                {a}
+              </p>
+            ))}
+            <PreviaDaFolha
+              html={corpo}
+              titulo={titulo}
+              notaObrigatoria={notaObrigatoria}
+              notaRiscos={notaRiscos}
+              margens={margens}
+              timbrado={timbrado}
+              larguraDisponivelPx={larguraDaColuna}
+              imprimir={imprimir}
+              aoImprimir={impressaoAtendida}
+            />
+          </>
+        ) : (
+          <p className="minuta-previa-legenda">A prévia mostra a peça no papel timbrado do escritório, e muda enquanto você digita.</p>
+        )}
+      </aside>
       </div>
 
       {modalAberto && (
