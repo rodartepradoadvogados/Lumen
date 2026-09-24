@@ -287,7 +287,7 @@ function StandaloneRailButton({ item }: { item: SectionPanelItem }) {
         />
       </span>
       <span className="hidden lg:block font-display font-semibold text-etiqueta leading-none tracking-wide whitespace-nowrap">
-        {item.label}
+        {item.rotuloCurto ?? item.label}
       </span>
     </a>
   );

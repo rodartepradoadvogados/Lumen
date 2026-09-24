@@ -217,4 +217,31 @@ teste("app/m/mais/page.tsx continua sem importar lib/navSections — a reorganiz
   igual(c.includes("navSections"), false, "app/m/mais/page.tsx passou a importar lib/navSections — o celular não deveria depender do agrupamento por seção do rail do computador");
 });
 
+// ── O RÓTULO TEM DE CABER ────────────────────────────────────────────────────────────────────
+//
+// Medido no Chromium com a Inter de verdade (12px, peso 600, tracking-wide). O <nav> do rail tem
+// 112px e `px-2`, então sobram 96px, e o rótulo é `whitespace-nowrap`: o que não cabe é CORTADO.
+// "Peticionamento" mede 110,3px e estourava em 14px — por isso existe `rotuloCurto`.
+// A largura exata não dá para medir daqui, então o que se guarda é o MECANISMO: o rail desenha o
+// rótulo curto quando ele existe, e o item mais longo tem um.
+
+teste("o rail desenha o rótulo CURTO quando existe, e o ⌘K continua com o nome inteiro", () => {
+  const rail = codigoDe(readFileSync(join(process.cwd(), "components/NavRail.tsx"), "utf8"));
+  verdade(
+    /item\.rotuloCurto\s*\?\?\s*item\.label/.test(rail),
+    "o rail voltou a desenhar item.label direto — rótulo longo será cortado no meio",
+  );
+  const busca = codigoDe(readFileSync(join(process.cwd(), "components/GlobalSearch.tsx"), "utf8"));
+  verdade(!/rotuloCurto/.test(busca), "a busca ⌘K passou a usar o rótulo curto — ali cabe o nome inteiro");
+});
+
+teste("o item de rail mais longo tem rótulo curto, e ele é mais curto mesmo", () => {
+  const longos = RAIL_STANDALONE.filter((i) => i.label.length > 12);
+  verdade(longos.length > 0, "nenhum item longo — a varredura não está lendo RAIL_STANDALONE");
+  for (const i of longos) {
+    verdade(Boolean(i.rotuloCurto), `"${i.label}" tem ${i.label.length} caracteres e não tem rotuloCurto — vai ser cortado no rail`);
+    verdade((i.rotuloCurto as string).length < i.label.length, `o rotuloCurto de "${i.label}" não é mais curto que o próprio label`);
+  }
+});
+
 resumo("Reorganização do rail — Publicações em Jurídico, Contatos em Gestão, ícones-portal (24/09/2026)");

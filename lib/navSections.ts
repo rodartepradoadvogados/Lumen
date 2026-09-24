@@ -51,6 +51,20 @@ export type SubNavItem = {
 export type SectionPanelItem = {
   href: string;
   label: string;
+  /**
+   * RÓTULO CURTO, só para o rail. Medido no Chromium com a Inter de verdade (12px, peso 600,
+   * tracking-wide): o <nav> do rail tem 112px de largura e `px-2`, então sobram 96px para o texto,
+   * que é `whitespace-nowrap` — o que não cabe é CORTADO, não dobra de linha.
+   *
+   *   Atendimento     90,9px  cabe
+   *   Comunicação     92,7px  cabia por 3,3px — e foi o que causou a barra de rolagem horizontal
+   *                           que o dono viu em 17/09
+   *   Peticionamento 110,3px  ESTOURA em 14px
+   *
+   * Por isso este campo existe: `label` continua sendo o nome inteiro (é o que a busca ⌘K mostra,
+   * e é como o produto chama a aba em todo lugar), e o rail desenha este aqui quando houver.
+   */
+  rotuloCurto?: string;
   adminOnly?: boolean;
   /** Item do Atendimento: qualquer um dos três níveis menos "nenhum". */
   atendimentoOnly?: boolean;
@@ -213,7 +227,7 @@ export const RAIL_STANDALONE: SectionPanelItem[] = [
   // mesmo padrão de "Configurações": a régua de verdade é `podeAcessarAba` dentro do próprio
   // layout, ver app/peticionamento/layout.tsx). Sem flag de visibilidade aqui — continua sempre
   // visível no rail, exatamente como estava.
-  { href: "/peticionamento", label: "Peticionamento", icon: FileSignature, abrirEmNovaAba: true },
+  { href: "/peticionamento", label: "Peticionamento", rotuloCurto: "Petições", icon: FileSignature, abrirEmNovaAba: true },
 ];
 
 // Financeiro (a SEÇÃO inteira) só aparece com acesso financeiro — mesmo critério de sempre
