@@ -625,22 +625,41 @@ type ResultadoDeIniciarConversa = { error?: string; id?: string; jaExistia?: boo
 /** O que os três "iniciar conversa" (contato existente, número digitado) têm em comum: achar (ou
  * criar) o atendimento pelo telefone, mandar a primeira mensagem, e nunca inventar sucesso. */
 async function iniciarOuRetomarConversa(
-  officeId: string,
+  viewer: { officeId: string; id: string; isAdmin: boolean; role: string | null; recebeTransferencia: boolean },
   responsibleId: string | null,
   numeroE164: string,
   nome: string,
   mensagem: string,
   clientId: string | null,
 ): Promise<ResultadoDeIniciarConversa> {
+  const officeId = viewer.officeId;
+
   // JÁ HÁ CONVERSA ABERTA COM ESTE TELEFONE NESTE ESCRITÓRIO? Reaproveita — criar uma segunda
   // conversa para o mesmo número duplicaria a Central de Atendimento e confundiria para quem lado
   // a próxima resposta do cliente deveria ir (ingestIncomingWhatsapp também escolhe pela mais
   // recente não arquivada, mesmo critério aqui).
+  //
+  // A REGRA DA CASA, AQUI TAMBÉM: quem só vê os próprios atendimentos (filtroDoAtendimento) não
+  // pode escrever numa conversa que não é dele só porque acertou o telefone de outra pessoa —
+  // seria agir sobre o que não poderia nem listar. Por isso a busca já sai com o recorte, e não
+  // só com officeId. Quando existe uma conversa com este telefone mas ela NÃO está no recorte de
+  // quem pediu, a segunda consulta (sem recorte) serve só para dar um erro que explica o que
+  // aconteceu, em vez de criar silenciosamente uma segunda conversa duplicada para o mesmo número.
   const existente = await prisma.attendance.findFirst({
-    where: { officeId, waPhone: numeroE164, status: { not: "ARQUIVADO" } },
+    where: { officeId, waPhone: numeroE164, status: { not: "ARQUIVADO" }, ...filtroDoAtendimento(viewer, viewer.id) },
     orderBy: { createdAt: "desc" },
     select: { id: true, firstResponseAt: true },
   });
+
+  if (!existente) {
+    const deOutroDono = await prisma.attendance.findFirst({
+      where: { officeId, waPhone: numeroE164, status: { not: "ARQUIVADO" } },
+      select: { id: true },
+    });
+    if (deOutroDono) {
+      return { error: "Já existe uma conversa com este número, mas você não tem acesso a ela — peça a quem organiza o atendimento." };
+    }
+  }
 
   const attendanceId = existente
     ? existente.id
@@ -770,7 +789,7 @@ export async function iniciarConversaComContato(
   if (numeroE164.length < 10) return { error: "O telefone cadastrado parece incompleto." };
 
   return iniciarOuRetomarConversa(
-    viewer.officeId,
+    viewer,
     responsavelDoNovoAtendimento(viewer, undefined),
     numeroE164,
     nome,
@@ -806,7 +825,7 @@ export async function iniciarConversaComNumero(input: {
   const numeroE164 = somenteDigitos(composePhoneWithDdi(input.ddi, input.telefone));
   if (numeroE164.length < 10) return { error: "Digite um telefone válido, com DDD." };
 
-  return iniciarOuRetomarConversa(viewer.officeId, responsavelDoNovoAtendimento(viewer, undefined), numeroE164, nome, texto, null);
+  return iniciarOuRetomarConversa(viewer, responsavelDoNovoAtendimento(viewer, undefined), numeroE164, nome, texto, null);
 }
 
 // ===== E-mail: responder ao cliente usando a conta Google do próprio advogado logado =====

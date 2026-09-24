@@ -43,8 +43,21 @@ teste("iniciarOuRetomarConversa reaproveita conversa aberta em vez de duplicar",
   const corpo = corpoDaFuncao(fonteAttendance, "iniciarOuRetomarConversa");
   verdade(corpo.length > 0, "iniciarOuRetomarConversa não foi encontrada");
   verdade(
-    corpo.includes('where: { officeId, waPhone: numeroE164, status: { not: "ARQUIVADO" } }'),
+    corpo.includes('where: { officeId, waPhone: numeroE164, status: { not: "ARQUIVADO" }, ...filtroDoAtendimento(viewer, viewer.id) }'),
     "parou de procurar uma conversa já aberta com este telefone antes de criar outra",
+  );
+});
+
+teste("iniciarOuRetomarConversa reconfere o recorte por dono — não escreve em conversa alheia", () => {
+  // REGRA DA CASA: quem só vê os próprios atendimentos não pode agir sobre o que não poderia
+  // listar. Sem isto, bastaria acertar o telefone de um cliente de outro colega para mandar
+  // mensagem na conversa dele. A segunda consulta (sem recorte) existe só para dar um ERRO
+  // explicando o que houve, nunca para agir sobre a conversa achada por ela.
+  const corpo = corpoDaFuncao(fonteAttendance, "iniciarOuRetomarConversa");
+  verdade(corpo.includes("...filtroDoAtendimento(viewer, viewer.id)"), "a busca da conversa existente perdeu o recorte por dono");
+  verdade(
+    corpo.includes("Já existe uma conversa com este número, mas você não tem acesso a ela"),
+    "sumiu o aviso de conversa existente fora do alcance de quem pediu",
   );
 });
 
