@@ -156,13 +156,22 @@ function botaoDoRotulo(fonte: string, rotulo: string): string {
   return "";
 }
 
-teste("os quatro botões de saída (Word, PDF, Imprimir, Visualizar impressão) obedecem a régua", () => {
+// O BOTÃO "IMPRIMIR" SAIU (decisão do dono, 24/09/2026): "pode tirar o botão de imprimir, pois o
+// exportar pdf já resolve". O PDF é a impressão da prévia, então eram dois nomes para um mecanismo
+// só. Restam TRÊS saídas presas à régua, e um caso abaixo impede o quarto de voltar sem decisão.
+teste("as três saídas (Word, PDF, Visualizar impressão) obedecem a régua", () => {
   verdade(/const saida = avaliarSaidaDaPeca\(\s*\{\s*aprovada,\s*citacoesPendentes\s*\}\s*\)/.test(CLIENTE), "a tela não calcula a saída pela régua única");
-  for (const rotulo of ["Exportar para Word", "Exportar para PDF", "Imprimir", "Visualizar impressão"]) {
+  for (const rotulo of ["Exportar para Word", "Exportar para PDF", "Visualizar impressão"]) {
     const tag = botaoDoRotulo(CLIENTE, rotulo);
     verdade(tag.length > 0 && tag.length < 900, `não achei (ou transbordou) o botão "${rotulo}" (${tag.length})`);
     verdade(/disabled=\{\s*!saida\.liberada\s*\}/.test(tag), `o botão "${rotulo}" não fica bloqueado antes da aprovação`);
   }
+});
+
+teste("o botão \"Imprimir\" continua fora da barra — o PDF é o caminho único para o papel", () => {
+  const tag = botaoDoRotulo(CLIENTE, "Imprimir");
+  verdade(tag.length === 0, "o botão Imprimir voltou para a barra da minuta — o dono tirou porque o PDF já cobre");
+  verdade(/Para imprimir no papel, use o PDF/.test(CLIENTE), "a faixa de formatos não diz mais por onde se imprime");
 });
 
 teste("bloqueado, a tela diz O QUE falta — lista os motivos da régua", () => {
@@ -198,5 +207,71 @@ teste("o botão de aprovar existe mesmo quando a minuta não tem citação nenhu
   verdade(retornoVazio.includes("{blocoDeAprovacao}"), "sem citação, a tela não oferece aprovar — e sem aprovar a peça nunca sairia");
   verdade(/Aprovar minuta \/ gerar peça/.test(fonte.slice(fonte.indexOf("const blocoDeAprovacao"))), "o bloco de aprovação perdeu o botão");
 });
+
+// ── AS CAIXAS DO TOPO SOMEM DA PRÉVIA QUANDO O ADVOGADO APROVA ────────────────────────────────
+//
+// Decisão do dono (24/09/2026): "a aprovação passa a remover o carimbo apenas do pdf". Como o PDF
+// É a impressão da prévia, e a paginação é MEDIDA a partir do mesmo fluxo, tirar as caixas só na
+// impressão moveria o texto e a quebra de página deixaria de ser a que está na tela. Por isso some
+// da prévia inteira depois de aprovada. O .docx NÃO muda.
+//
+// A caixa de RISCOS é a mais séria das duas: ela lista as fraquezas do próprio caso, e protocolar
+// isso entrega à parte contrária o mapa das fragilidades da tese.
+
+teste("aprovada, a prévia deixa de desenhar as duas caixas do topo", () => {
+  const p = codigoDe(readFileSync(join(process.cwd(), "components/peticionamento/PreviaDaFolha.tsx"), "utf8"));
+  verdade(/aprovada\s*\?\s*""\s*:\s*cabecalhoDaPeca\(/.test(p), "a prévia desenha o cabeçalho mesmo depois de aprovada — o PDF sai carimbado");
+  const iMemo = p.indexOf("const fluxo = useMemo(");
+  verdade(iMemo >= 0 && /\[\s*aprovada\s*,/.test(p.slice(iMemo, iMemo + 400)), "`aprovada` ficou fora das dependências do fluxo — a prévia não reagiria à aprovação");
+  verdade(/aprovada=\{\s*aprovada\s*\}/.test(CLIENTE), "a tela não passa a aprovação para a prévia");
+});
+
+teste("o Word CONTINUA com as duas caixas — só o PDF perde", () => {
+  const docx = codigoDe(readFileSync(join(process.cwd(), "lib/peticionamentoDocx.ts"), "utf8"));
+  verdade(/GERADA POR IA/.test(docx), "o gerador do Word perdeu o aviso de IA");
+  verdade(!/aprovad/i.test(docx), "o gerador do Word passou a consultar a aprovação — a decisão foi tirar o carimbo só do PDF");
+});
+
+// ── A PRÉVIA EM TAMANHO REAL NÃO DEPENDE DE APROVAÇÃO ─────────────────────────────────────────
+//
+// MEDIDO: em 1440px a coluna da prévia resolve para ~240px e a folha era desenhada a 24% — página
+// de 50px, texto de 3,4px. E a única visão em tamanho real era a de impressão, que exige aprovar:
+// o advogado assinava para só então conseguir ler. VER NÃO É EXPORTAR.
+
+teste("ver em tamanho real não passa pela régua de saída", () => {
+  const iBotao = CLIENTE.indexOf("Ver em tamanho real");
+  verdade(iBotao > 0, "sumiu o caminho para ver a peça em tamanho real");
+  const tag = CLIENTE.slice(CLIENTE.lastIndexOf("<button", iBotao), iBotao);
+  verdade(!/saida\.liberada/.test(tag), "ver em tamanho real passou a exigir aprovação — assinar para poder ler é o defeito que isto conserta");
+  verdade(/colunaEstreita/.test(CLIENTE) && /COLUNA_MINIMA_PX/.test(CLIENTE), "sumiu a regra que decide quando a coluna não comporta a prévia");
+});
+
+teste("a sobreposição tem saída, e some junto com a prévia", () => {
+  const i = CLIENTE.indexOf('className="previa-sobreposta"');
+  verdade(i > 0, "a prévia sobreposta não existe");
+  const bloco = CLIENTE.slice(i, i + 1400);
+  verdade(/Voltar a editar/.test(bloco), "a sobreposição não tem como ser fechada");
+  verdade(/Esconder prévia/.test(bloco), "a sobreposição não oferece esconder a prévia");
+  verdade(/aria-modal="true"/.test(bloco), "a sobreposição não se declara modal — leitor de tela continuaria lendo o editor atrás");
+});
+
+
+// ── A GRAVAÇÃO QUE FALHA PRECISA GRITAR ───────────────────────────────────────────────────────
+//
+// `atualizarCorpoDaMinuta` devolve sempre { ok: true } e LANÇA quando falha. Sem try/catch,
+// `setSalvo(true)` nunca rodava numa queda de rede: a tela ficava em "salvando…" para SEMPRE, sem
+// erro, e o advogado seguia digitando acreditando que estava guardado. Numa tela de peça com prazo
+// preclusivo, perder trabalho em silêncio é a falha mais cara que existe aqui.
+
+teste("a gravação da minuta trata a falha, e a tela para de dizer que está salvando", () => {
+  const i = CLIENTE.indexOf("atualizarCorpoDaMinuta(sessaoId, corpo)");
+  verdade(i > 0, "sumiu a chamada de gravação do corpo");
+  const janela = CLIENTE.slice(Math.max(0, i - 400), i + 700);
+  verdade(/try\s*\{/.test(janela) && /\}\s*catch/.test(janela), "a gravação voltou a rodar sem try/catch — a falha some em silêncio");
+  verdade(/setErroDeGravacao\(/.test(janela), "o catch não registra a falha em lugar nenhum");
+  verdade(/erroDeGravacao\s*\?\s*"NÃO SALVO"/.test(CLIENTE), 'a tela não troca "salvando…" por "NÃO SALVO" quando a gravação falha');
+  verdade(/role="alert"/.test(CLIENTE), "o aviso de falha de gravação não interrompe — quem digita precisa saber na hora");
+});
+
 
 resumo("Peticionamento — etapa C: a aprovação libera Word, PDF e impressão");

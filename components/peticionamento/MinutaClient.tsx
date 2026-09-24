@@ -5,7 +5,7 @@ import { atualizarCorpoDaMinuta, conferirSaidaDaPeca, salvarMargensDaMinuta } fr
 import { avaliarSaidaDaPeca } from "@/lib/peticionamentoAprovacao";
 import { MinutaEditor } from "@/components/peticionamento/MinutaEditor";
 import { PreviaDaFolha } from "@/components/peticionamento/PreviaDaFolha";
-import type { MargensDaPagina, OrigemDaMargem } from "@/lib/peticionamentoPaginaA4";
+import { PAGINA_A4, type MargensDaPagina, type OrigemDaMargem } from "@/lib/peticionamentoPaginaA4";
 import type { TimbradoDaPrevia } from "@/lib/peticionamentoTimbrado";
 import { ExportarModal } from "@/components/peticionamento/ExportarModal";
 import { CitacoesClient } from "@/components/peticionamento/CitacoesClient";
@@ -58,6 +58,11 @@ export function MinutaClient({
   // null = o quadro de citações ainda não carregou; até lá a saída fica travada ("conferindo").
   const [citacoesPendentes, setCitacoesPendentes] = useState<number | null>(null);
   const [aprovada, setAprovada] = useState(aprovadaInicial);
+  // A GRAVAÇÃO PODE FALHAR, E O SILÊNCIO É O PIOR DESFECHO. Sem isto, uma queda de rede deixava
+  // `setSalvo(true)` sem rodar: a tela ficava em "salvando…" para SEMPRE, sem erro, e o advogado
+  // seguia digitando acreditando que estava guardado. Numa tela de peça com prazo preclusivo,
+  // perder trabalho em silêncio é a falha mais cara que existe aqui.
+  const [erroDeGravacao, setErroDeGravacao] = useState<string | null>(null);
 
   // Só grava quando o HTML de fato mudou em relação ao que abriu. É isto que garante a promessa do
   // contrato de schema: abrir uma minuta ANTIGA (sem HTML gravado) e não mexer em nada não
@@ -70,9 +75,18 @@ export function MinutaClient({
     // ninguém aprovou.
     setAprovada(false);
     const t = setTimeout(async () => {
-      await atualizarCorpoDaMinuta(sessaoId, corpo);
-      setSalvo(true);
-      setVersaoSalva((v) => v + 1);
+      try {
+        // A ação devolve sempre { ok: true } e LANÇA quando falha — por isso o tratamento é o
+        // catch, e não a inspeção do retorno.
+        await atualizarCorpoDaMinuta(sessaoId, corpo);
+        setErroDeGravacao(null);
+        setSalvo(true);
+        setVersaoSalva((v) => v + 1);
+      } catch {
+        // Rede caiu, aba dormiu, servidor recusou. O que NÃO pode acontecer é a tela continuar
+        // dizendo "salvando…" como se ainda houvesse esperança.
+        setErroDeGravacao("Não foi possível salvar. O que você escreveu ainda está nesta tela, mas NÃO foi gravado.");
+      }
     }, 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,6 +99,13 @@ export function MinutaClient({
   const impressaoAtendida = useCallback(() => setImprimir(false), []);
   const colunaRef = useRef<HTMLElement>(null);
   const [larguraDaColuna, setLarguraDaColuna] = useState(0);
+  const [sobreposta, setSobreposta] = useState(false);
+  // LARGURA MÍNIMA PARA A PRÉVIA SER LEGÍVEL NA COLUNA. A folha A4 tem 210mm (~793px a 96dpi);
+  // abaixo de 60% de escala o corpo de 14px cai para menos de 8,4px e deixa de ser leitura, vira
+  // miniatura. 793 × 0,6 ≈ 476px, mais a folga da coluna. Medido: em 1440px a coluna resolve para
+  // ~240px (escala 0,24 — página de 50px, texto de 3,4px) e em 1920px para ~77%, que funciona.
+  const COLUNA_MINIMA_PX = 500;
+  const colunaEstreita = larguraDaColuna > 0 && larguraDaColuna < COLUNA_MINIMA_PX;
 
   // A margem arrastada na régua é gravada (com a mesma espera do corpo), e só quando mudou de
   // verdade: abrir a folha e não mexer não transforma a margem do timbrado em escolha do advogado.
@@ -154,7 +175,7 @@ export function MinutaClient({
         <div className="title-block">
           <h1>{titulo}</h1>
           <div className="sub">
-            <span className="edit-chip">Editável</span> {salvo ? "salvo automaticamente" : "salvando…"}
+            <span className="edit-chip">Editável</span> {erroDeGravacao ? "NÃO SALVO" : salvo ? "salvo automaticamente" : "salvando…"}
           </div>
         </div>
         <div className="toolbar-mid" style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -164,14 +185,12 @@ export function MinutaClient({
           <button className="btn btn-ghost btn-sm" disabled={!saida.liberada} onClick={() => abrirExportacao("pdf")}>
             Exportar para PDF
           </button>
-          <button className="btn btn-ghost btn-sm" disabled={!saida.liberada} onClick={() => void imprimirSeLiberada()}>
-            Imprimir
-          </button>
         </div>
       </div>
       <div className="export-format-strip">
-        A peça sai em <strong>Word (.docx)</strong> ou <strong>PDF</strong>, ou vai direto para a impressora — com o <strong>timbrado cadastrado do escritório</strong>{" "}
-        quando houver um. Os três ficam disponíveis <strong>depois que você aprovar a minuta</strong>.
+        A peça sai em <strong>Word (.docx)</strong> ou <strong>PDF</strong> — com o{" "}
+        <strong>timbrado cadastrado do escritório</strong> quando houver um. Os dois ficam disponíveis{" "}
+        <strong>depois que você aprovar a minuta</strong>. Para imprimir no papel, use o PDF.
       </div>
       {!saida.liberada && (
         <div className="minuta-saida-travada" role="status">
@@ -186,6 +205,15 @@ export function MinutaClient({
       {erroDeSaida && (
         <div className="callout callout-danger" style={{ margin: "0 32px" }}>
           {erroDeSaida}
+        </div>
+      )}
+      {/* A FALHA DE GRAVAÇÃO GRITA, e fica na tela até o próximo salvamento dar certo — some
+          sozinha quando `erroDeGravacao` volta a null. `role="alert"` porque isto interrompe: quem
+          está escrevendo uma peça com prazo precisa saber AGORA que o texto não está guardado. */}
+      {erroDeGravacao && (
+        <div className="callout callout-danger" role="alert" style={{ margin: "0 32px" }}>
+          {erroDeGravacao} Não feche esta aba: copie o texto para algum lugar seguro antes, ou
+          continue editando — a próxima tentativa acontece sozinha a cada alteração.
         </div>
       )}
 
@@ -283,6 +311,11 @@ export function MinutaClient({
                 {a}
               </p>
             ))}
+            {colunaEstreita && !sobreposta && (
+              <button className="btn btn-primary btn-sm" onClick={() => setSobreposta(true)}>
+                Ver em tamanho real
+              </button>
+            )}
             <PreviaDaFolha
               html={corpo}
               titulo={titulo}
@@ -294,6 +327,7 @@ export function MinutaClient({
               imprimir={imprimir}
               aoImprimir={impressaoAtendida}
               imprimivel={saida.liberada}
+              aprovada={aprovada}
             />
           </>
         ) : (
@@ -301,6 +335,45 @@ export function MinutaClient({
         )}
       </aside>
       </div>
+      {/* A PRÉVIA SOBREPOSTA — só existe quando a coluna não comporta e a pessoa pediu. Fica FORA
+          de `.minuta-com-previa` de propósito: ali dentro ela herdaria a largura da coluna, que é
+          justamente o problema que este modo resolve. */}
+      {sobreposta && previaAberta && (
+        <div className="previa-sobreposta" role="dialog" aria-modal="true" aria-label="Prévia em tamanho real">
+          <div className="previa-sobreposta-topo">
+            <span className="quiet">Prévia em tamanho real — no papel timbrado do escritório</span>
+            <span style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setSobreposta(false)}>
+                Voltar a editar
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setSobreposta(false);
+                  setPreviaAberta(false);
+                }}
+              >
+                Esconder prévia
+              </button>
+            </span>
+          </div>
+          <div className="previa-sobreposta-corpo">
+            <PreviaDaFolha
+              html={corpo}
+              titulo={titulo}
+              notaObrigatoria={notaObrigatoria}
+              notaRiscos={notaRiscos}
+              margens={margens}
+              timbrado={timbrado}
+              larguraDisponivelPx={PAGINA_A4.larguraMm * (96 / 25.4) + 8}
+              imprimir={false}
+              aoImprimir={impressaoAtendida}
+              imprimivel={saida.liberada}
+              aprovada={aprovada}
+            />
+          </div>
+        </div>
+      )}
 
       {modalAberto && (
         <ExportarModal

@@ -2176,6 +2176,49 @@
   flex: 0 1 1040px;
   min-width: 0;
 }
+/* ── A PRÉVIA SOBREPOSTA ────────────────────────────────────────────────────────────────────
+ *
+ * MEDIDO: numa tela de 1440px, com o rail, a coluna da prévia resolve para ~240px — e a folha A4
+ * era desenhada a 24% de escala: página de 50px, texto de 3,4px. Ilegível. Em 1920px dá ~77% e
+ * funciona. Ou seja, a utilidade da prévia dependia do monitor.
+ *
+ * A saída não é encolher mais nem alargar a coluna à força (isso espremeria o editor, que é onde
+ * se escreve). É deixar a prévia SAIR da coluna quando a coluna não comporta: ela se sobrepõe ao
+ * editor, em tamanho de leitura, e sai de novo quando a pessoa fecha.
+ *
+ * VER NÃO É EXPORTAR: este modo não depende de aprovação. A trava continua onde importa — em
+ * imprimir e exportar. Antes, a única visão em tamanho real era a de impressão, que exigia ter
+ * aprovado: o advogado assinava para só então conseguir ler. */
+.peticionamento .previa-sobreposta {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg-1);
+  display: flex;
+  flex-direction: column;
+}
+.peticionamento .previa-sobreposta-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+  flex: 0 0 auto;
+}
+.peticionamento .previa-sobreposta-corpo {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .peticionamento .previa-sobreposta { animation: previa-sobe 160ms ease-out; }
+  @keyframes previa-sobe { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+}
+
 .peticionamento .minuta-previa-coluna {
   flex: 1 1 0;
   min-width: 240px;

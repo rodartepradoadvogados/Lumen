@@ -61,6 +61,7 @@ export function PreviaDaFolha({
   imprimir,
   aoImprimir,
   imprimivel,
+  aprovada,
 }: {
   html: string;
   titulo: string;
@@ -79,11 +80,30 @@ export function PreviaDaFolha({
    * impressão nem existem — e o Ctrl+P do navegador imprime a tela, não a peça limpa no timbrado.
    */
   imprimivel: boolean;
+  /**
+   * APROVADA: o advogado assumiu a peça. A partir daí as DUAS caixas do topo somem da prévia —
+   * o aviso "MINUTA GERADA POR IA" e a lista de RISCOS.
+   *
+   * Por que sumir: elas existem para impedir que um rascunho não revisado seja protocolado. O ato
+   * de aprovar é justamente o advogado dizendo que leu e assumiu — o aviso perdeu a função. E a
+   * caixa de riscos é pior que o aviso: ela lista as FRAQUEZAS do próprio caso, e protocolar isso
+   * entrega à parte contrária o mapa das fragilidades da tese.
+   *
+   * Por que some da TELA também, e não só do PDF (o dono pediu "apenas do pdf"): o PDF É a
+   * impressão desta prévia, e a paginação é MEDIDA a partir deste fluxo. Tirar as caixas só na
+   * hora de imprimir moveria todo o texto para cima e a quebra de página deixaria de ser a que
+   * está na tela — a prévia perderia exatamente a promessa que a justifica. Depois de aprovada,
+   * a prévia mostra a peça final, que é o que se quer conferir antes de exportar.
+   *
+   * O .docx NÃO muda: lá as duas caixas continuam, e o advogado as apaga no Word antes de
+   * protocolar, como sempre fez.
+   */
+  aprovada: boolean;
 }) {
   const htmlAdiado = useDeferredValue(html);
   const fluxo = useMemo(
-    () => cabecalhoDaPeca(titulo, notaObrigatoria, notaRiscos) + sanitizarMinutaHtml(htmlAdiado),
-    [htmlAdiado, notaObrigatoria, notaRiscos, titulo],
+    () => (aprovada ? "" : cabecalhoDaPeca(titulo, notaObrigatoria, notaRiscos)) + sanitizarMinutaHtml(htmlAdiado),
+    [aprovada, htmlAdiado, notaObrigatoria, notaRiscos, titulo],
   );
   const medidorRef = useRef<HTMLDivElement>(null);
   const [paginas, setPaginas] = useState<string[]>([]);
