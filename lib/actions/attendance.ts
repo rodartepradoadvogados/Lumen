@@ -441,8 +441,11 @@ export async function definirAtendenteResponde(
   });
   if (!atendimento) return { error: "Atendimento não encontrado." };
 
-  // Religar depois que alguém assumiu não é permitido, e a recusa é explícita: uma chave que
-  // aceita ser ligada e depois não faz nada é pior que uma chave que diz não.
+  // Esta CHAVE continua recusando religar depois que alguém assumiu, e a recusa continua
+  // explícita: uma chave que aceita ser ligada e depois não faz nada é pior que uma chave que diz
+  // não. O dono pediu uma SAÍDA para essa situação, e ela existe — mas é `devolverAtendenteResponde`,
+  // logo abaixo, uma ação nomeada e com confirmação própria, não este mesmo botão aceitando `true`
+  // de novo.
   if (atendimento.agenteSilenciadoEm && responde) {
     return {
       error: "Uma pessoa do escritório já respondeu nesta conversa — o atendente não volta a falar aqui.",
@@ -450,6 +453,57 @@ export async function definirAtendenteResponde(
   }
 
   await prisma.attendance.update({ where: { id: attendanceId }, data: { agenteResponde: responde } });
+  revalidatePath(`/atendimento/${attendanceId}`);
+  return {};
+}
+
+/**
+ * DEVOLVE a conversa para a Ana depois que um humano assumiu.
+ *
+ * O dono decidiu reverter a trava de `definirAtendenteResponde` acima: religar não era permitido
+ * porque "uma chave que aceita ser ligada e depois não faz nada é pior que uma chave que diz não"
+ * — e continua sendo, por isso esta NÃO é aquela chave voltando a aceitar `true`. É uma ação à
+ * parte, com nome que diz o que faz, chamada só a partir de um botão com confirmação
+ * (components/AtendenteIaControle.tsx), nunca automaticamente.
+ *
+ * O mesmo contrato de sempre se aplica: ligar vale da PRÓXIMA mensagem do cliente em diante. Esta
+ * função só grava estado — quem decide se o atendente fala é `deveResponder`, chamado no próximo
+ * webhook de mensagem recebida — então devolver no meio de uma conversa não faz a Ana sair
+ * respondendo sozinha uma pergunta que a pessoa do escritório pode estar redigindo agora. Para
+ * isso existe `responderUltimaPergunta`, ato separado e explícito, disponível logo em seguida
+ * assim que a tela deixa de mostrar o cadeado.
+ */
+export async function devolverAtendenteResponde(attendanceId: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+
+  // MESMO recorte de `definirAtendenteResponde`: id + escritório de quem pediu + recorte por
+  // dono. Quem só vê os próprios atendimentos não pode devolver um atendimento que não poderia
+  // nem listar.
+  const atendimento = await prisma.attendance.findFirst({
+    where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) },
+    select: { agenteSilenciadoEm: true },
+  });
+  if (!atendimento) return { error: "Atendimento não encontrado." };
+
+  if (!atendimento.agenteSilenciadoEm) {
+    return { error: "Esta conversa não está com um humano assumido — não há o que devolver." };
+  }
+
+  // `agenteSilenciadoEm` volta a `null`: é o que faz `deveResponder` (lib/agenteAtendimento.ts)
+  // voltar a permitir resposta. Não é apagado sem deixar rastro — `agenteDevolvidoEm` e
+  // `agenteDevolvidoPorId` (prisma/schema.prisma) guardam quando e quem decidiu, porque zerar
+  // o campo perde a memória de quando o humano tinha assumido a primeira vez.
+  await prisma.attendance.update({
+    where: { id: attendanceId },
+    data: {
+      agenteSilenciadoEm: null,
+      agenteResponde: true,
+      agenteDevolvidoEm: new Date(),
+      agenteDevolvidoPorId: user.id,
+    },
+  });
   revalidatePath(`/atendimento/${attendanceId}`);
   return {};
 }

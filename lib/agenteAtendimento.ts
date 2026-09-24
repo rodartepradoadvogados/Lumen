@@ -54,9 +54,17 @@ export function deveResponder(
   if (conversa.status === "ARQUIVADO") {
     return { responde: false, motivo: "atendimento arquivado" };
   }
-  // O silêncio vem ANTES da chave da conversa de propósito: nem religar a chave traz o atendente
-  // de volta depois que um humano assumiu. É a única regra daqui que não tem como desfazer pela
-  // tela, e é assim que tem que ser.
+  // O silêncio vem ANTES da chave da conversa de propósito: religar a CHAVE não traz o atendente
+  // de volta depois que um humano assumiu — `definirAtendenteResponde` continua recusando isso.
+  //
+  // O QUE MUDOU (decisão do dono, 24/09/2026): existe agora UM caminho de volta, e um só —
+  // `devolverAtendenteResponde`, um ato deliberado e confirmado na tela, que zera este campo e
+  // grava quem devolveu e quando. Antes desta data a regra era sem volta, e o motivo escrito era
+  // que o cliente percebe quando passa de gente para máquina. O motivo continua verdadeiro; o
+  // dono decidiu que quem lê a conversa é quem tem como julgar se, naquele caso, ainda vale.
+  //
+  // Esta linha continua sendo a trava REAL: enquanto o campo estiver preenchido, a Ana não fala,
+  // venha o pedido de onde vier.
   if (conversa.agenteSilenciadoEm) {
     return { responde: false, motivo: "uma pessoa do escritório já respondeu nesta conversa" };
   }
