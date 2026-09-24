@@ -57,7 +57,7 @@
   --frame-tx-1: #aab1ba;
   --frame-tx-2: #838d97;
   --frame-tx-ghost: #3d434b;
-  --frame-accent: #5b93c4;
+  --frame-accent: #569ad2;
   --frame-accent-strong: #2c5170;
   --frame-accent-bg: rgba(91, 147, 196, 0.14);
   --frame-accent-tx: #eef4f8;
@@ -81,12 +81,41 @@
      `--list-bg-hover` e 5,57:1 sobre `--work-bg-raised` — os três acima do piso de 4,5:1 que
      PRODUCT.md fixa para texto normal, com folga. `--atd-border`/`--atd-border-strong` não levam
      texto em cima (são só filete entre planos), então não precisam da mesma régua. */
-  --list-bg: #cbd7f1;
-  --list-bg-hover: #dde4f4;
+  /* ── POR QUE ESTAS SUPERFÍCIES SÃO NEUTRAS, E NÃO AZUIS (24/09/2026) ────────────────────────
+   *
+   * O dono reclamou duas vezes desta tela, com um mês de diferença: primeiro "pálido", depois
+   * "azul claro pouco profissional". São a MESMA causa, não duas. A lista fica encostada num
+   * branco puro (--work-bg, S=0%) com claridade parecida, e o olho discrimina MATIZ em
+   * luminosidade próxima muito melhor que claridade pura — então pouco azul lê como branco
+   * manchado e muito azul lê como pastel. Saturar nunca ia resolver, em direção nenhuma.
+   *
+   * A primeira correção subiu --list-bg de 19% para 58% de saturação. Ela mediu contraste (que
+   * continuou acima do piso) e concluiu que era segura. CONTRASTE E SOBRIEDADE SÃO EIXOS
+   * DIFERENTES: contraste mede luminosidade entre texto e fundo, não se um fundo de um terço da
+   * tela virou cor de marca. Saiu de "lavado demais" para "corado demais" pulando o meio.
+   *
+   * O meio é a régua que o resto do Lúmen já usa: --papel, --ficha-alt, --linha e --linha-forte
+   * (app/globals.css) vivem todos entre 16 e 17% de saturação, variando só a claridade. Estes
+   * tokens passaram a ficar entre 15 e 18%. O contraste de --tx-3 MELHOROU nos três:
+   * 4,65 -> 5,31 | 5,27 -> 5,83 | 5,57 -> 5,99.
+   *
+   * O TELEGRAM, que o dono deu como referência, foi lido no código-fonte (telegramdesktop, temas
+   * oficiais day/night), não de memória: no tema claro, a lista de conversas e a área de trabalho
+   * são o MESMO branco puro, e o hover é cinza de saturação ZERO. O azul de marca existe num papel
+   * só — estado ativo e selecionado —, nunca preenchendo um painel. Era exatamente o inverso do
+   * que esta tela fazia.
+   *
+   * Por isso --frame-accent SOBE (47% -> 58%): com as superfícies quietas, o acento pode
+   * finalmente ser a única cor com intenção na tela, que é o que "manter só a barra superior"
+   * pedia. Contraste dele sobre o fundo da moldura: 6,44 para 1.
+   *
+   * O TEMA ESCURO NÃO FOI TOCADO: ele já usa uma disciplina só (25-27%, variando claridade). */
+  --list-bg: #e1e5ea;
+  --list-bg-hover: #edeff2;
   --work-bg: #ffffff;
-  --work-bg-raised: #e5eaf5;
-  --atd-border: #95a9d0;
-  --atd-border-strong: #607fbe;
+  --work-bg-raised: #f0f2f4;
+  --atd-border: #cad0d8;
+  --atd-border-strong: #a6b0bf;
   --atd-shadow-card: 0 8px 20px rgba(20, 23, 27, 0.1), 0 2px 6px rgba(20, 23, 27, 0.08);
 
   /* A LARGURA MÁXIMA DA SUPERFÍCIE DE LEITURA (etapa 3) — a conversa.
