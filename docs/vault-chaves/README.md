@@ -104,6 +104,7 @@ abrir a Vercel toda vez).
 | Variável | Para que serve | Onde obter/rotacionar |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Assistente do produto (`/api/assistente`) | console.anthropic.com |
+| `FIRECRAWL_API_KEY` | Busca na web e leitura de páginas públicas (`lib/firecrawl.ts`, só servidor; fail-closed) | firecrawl.dev → Dashboard → API Keys |
 
 ## Legado / migração pontual
 
