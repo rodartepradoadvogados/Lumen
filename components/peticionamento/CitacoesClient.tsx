@@ -136,9 +136,16 @@ export function CitacoesClient({
   onContagemMudou,
   onAprovacaoMudou,
   atualizarQuando,
+  papelPodeAprovar,
 }: {
   sessaoId: string;
   onContagemMudou?: (pendentes: number) => void;
+  /**
+   * APROVAR E EXPORTAR SAO A MESMA TRAVA (especificacao §4: so advogado com OAB). O servidor e quem
+   * recusa de verdade, em aprovarMinutaGerarPeca; isto aqui existe para o estagiario LER o motivo
+   * antes de clicar, em vez de descobrir o proprio limite levando um erro vermelho no topo da tela.
+   */
+  papelPodeAprovar?: { pode: boolean; motivo: string | null };
   /** ETAPA C: a aprovação é a trava da saída da peça — a tela que hospeda precisa saber quando ela muda. */
   onAprovacaoMudou?: (aprovada: boolean) => void;
   /** Muda de valor (ex.: um contador) toda vez que o corpo da minuta é salvo — força recarregar a lista, já que editar pode ter invalidado confirmações. */
@@ -235,7 +242,16 @@ export function CitacoesClient({
               ))}
             </ul>
           )}
-          <button className="btn btn-primary" disabled={!aprovacao.podeAprovar || aprovando} onClick={aprovar}>
+          {papelPodeAprovar && !papelPodeAprovar.pode && (
+            <p className="quiet" style={{ margin: "0 0 10px", fontSize: 12 }}>
+              {papelPodeAprovar.motivo}
+            </p>
+          )}
+          <button
+            className="btn btn-primary"
+            disabled={!aprovacao.podeAprovar || aprovando || (papelPodeAprovar ? !papelPodeAprovar.pode : false)}
+            onClick={aprovar}
+          >
             {aprovando ? "Aprovando…" : "Aprovar minuta / gerar peça"}
           </button>
           {aprovacaoOk && (

@@ -1370,6 +1370,13 @@ export async function excluirCitacao(sessaoId: string, citacaoId: string): Promi
  */
 export async function aprovarMinutaGerarPeca(sessaoId: string): Promise<{ ok: true } | { error: string }> {
   const user = await exigirAcessoAba();
+  // A TRAVA REAL da especificacao §4 — "Aprovar/exportar: so advogado com OAB" — estava escrita no
+  // topo de lib/peticionamentoAcesso.ts e nunca era chamada AQUI: aprovar conferia apenas o acesso
+  // a aba, que admite estagiario (podeAcessarAba). Quem aprova assume a peca perante o juizo e fica
+  // gravado em minutaAprovadaPorId; nao pode ser quem a mesma especificacao proibe de exportar.
+  // Sem esta linha, um estagiario aprovava a propria minuta e destravava a saida da peca.
+  const podeAprovar = avaliarExportacao(user);
+  if (!podeAprovar.pode) return { error: podeAprovar.motivo! };
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
   const { avisosDeMolde } = await sincronizarCitacoes(sessaoId, user.officeId);
   const linhas = await prisma.peticionamentoCitacao.findMany({ where: { sessaoId, excluidaEm: null } });

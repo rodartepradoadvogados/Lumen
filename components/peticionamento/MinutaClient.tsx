@@ -249,6 +249,7 @@ export function MinutaClient({
             atualizarQuando={versaoSalva}
             onContagemMudou={setCitacoesPendentes}
             onAprovacaoMudou={setAprovada}
+            papelPodeAprovar={podeExportar}
           />
         </div>
       </div>
