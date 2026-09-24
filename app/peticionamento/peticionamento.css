@@ -345,6 +345,16 @@
   border-bottom: 1px solid var(--border);
   background: var(--bg-0);
 }
+/* Agrupa Menu + Voltar + migalhas do lado esquerdo da barra de cima, para o alternador de tema
+   (components/peticionamento/AlternadorDeTema.tsx) ficar sozinho do lado direito — `.topbar` já é
+   `justify-content: space-between`; sem este agrupamento, um terceiro item soltaria as migalhas
+   para o meio da barra em vez de coladas no Menu. */
+.peticionamento .topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
 .peticionamento .crumbs {
   display: flex;
   align-items: center;
@@ -359,6 +369,12 @@
 .peticionamento .main {
   grid-area: main;
   overflow: auto;
+  /* Só o EIXO X fica hidden (a linha acima continua rolando o Y normalmente, em "auto"): contém o
+     excesso horizontal da transição tipo → contexto (.passo-saindo/.passo-entrando deslocam o
+     conteúdo em translateX além da própria caixa por 200-260ms) — sem isto, os dois instantes
+     abririam uma barra de rolagem horizontal momentânea. Nenhuma tela deste arquivo depende de
+     rolagem horizontal em `.main`. */
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -395,6 +411,57 @@
   max-width: 72ch;
   font-size: 13.5px;
 }
+
+/* ---- transição tipo → contexto (pedido do dono, 24/09/2026, item 1) ----
+   "escolher a categoria já avança, com a tela de tipo arrastando para a esquerda e a de contexto
+   entrando deslizando da direita". As DUAS animações são independentes (uma no TipoPecaClient que
+   está SAINDO, outra no ContextoClient que acabou de MONTAR) e só se encontram no tempo — o Next
+   14 App Router troca a árvore de forma assíncrona (RSC), então isto NÃO é uma FLIP de página
+   única (View Transitions API), é a mesma técnica que qualquer troca "página A sai, página B
+   entra" sem esse recurso. `transform`+`opacity` só (nunca `width`/`left`): não dispara layout,
+   só compositor.
+   `.passo-tela` existe só para TipoPecaClient.tsx recuperar o mesmo comportamento de
+   `.main{display:flex;flex-direction:column}` dentro de um wrapper que possa ganhar a
+   transform — sem ele, page-head/content/sticky-bar precisariam ser 3 elementos animados à
+   parte, ou perderiam o layout de coluna ao virarem filhos de uma div comum. */
+.peticionamento .passo-tela {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.peticionamento .passo-saindo {
+  animation: peticionamento-sai-esquerda 200ms ease-in both;
+}
+@keyframes peticionamento-sai-esquerda {
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+.peticionamento .passo-entrando {
+  animation: peticionamento-entra-direita 260ms ease-out both;
+}
+@keyframes peticionamento-entra-direita {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+/* Quem pediu para o sistema não animar (enjoo, vertigem, epilepsia fotossensível) troca de tela
+   sem nenhum movimento — a troca em si (a navegação) continua acontecendo, só o efeito visual
+   some. Mesmo tratamento já usado no pulso de "gerando a minuta", mais abaixo neste arquivo. */
+@media (prefers-reduced-motion: reduce) {
+  .peticionamento .passo-saindo,
+  .peticionamento .passo-entrando {
+    animation: none;
+  }
+}
+
 .peticionamento .statusbar {
   grid-area: foot;
   display: flex;

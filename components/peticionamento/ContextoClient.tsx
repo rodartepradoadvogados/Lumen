@@ -68,6 +68,20 @@ export function ContextoClient({
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
 
+  // ── ENTRADA DESLIZANDO (pedido do dono, 24/09/2026, item 1) ────────────────────────────────────
+  // `?entrando=1`: sinal de uso único que TipoPecaClient.tsx acrescenta só quando ESCOLHER uma
+  // categoria empurra para cá — nunca ao reabrir esta etapa pelo rail, por um link direto ou um
+  // F5 (o parâmetro é lido e removido da URL assim que a tela monta, e nunca reaparece depois).
+  // Lido de window.location, não de useSearchParams: useSearchParams exigiria envolver esta
+  // árvore num <Suspense> na própria page.tsx (fora de alcance aqui) — mesma razão já registrada
+  // em components/SaveCaseButton.tsx.
+  const [entrando, setEntrando] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("entrando") !== "1") return;
+    setEntrando(true);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
   // ── NATUREZA (item 4) ───────────────────────────────────────────────────────────────────────
   const [naturezaLocal, setNaturezaLocal] = useState<string | null>(naturezaProcedimento);
   const [corrigindoNatureza, setCorrigindoNatureza] = useState(false);
@@ -204,7 +218,7 @@ export function ContextoClient({
   const sugestaoDeNatureza = naturezaSugeridaPelaBusca(tipo, tipo === "assessoria" ? subtipo : null);
 
   return (
-    <div className="ctx-page">
+    <div className={`ctx-page${entrando ? " passo-entrando" : ""}`}>
       <div className="ctx-topo">
         {/* O CABEÇALHO É CURTO DE PROPÓSITO: esta parte da tela é FIXA (item 5), então cada
             linha que ela ocupa é uma linha a menos de resultado visível. O parágrafo de quatro

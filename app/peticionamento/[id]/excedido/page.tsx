@@ -19,7 +19,12 @@ export default async function ExcedidoPage({ params }: { params: { id: string } 
   return (
     <ShellPeticionamento
       sessaoId={params.id}
-      ativo="documentos"
+      // "confirmar", não "documentos": esta tela só é alcançada a partir da confirmação
+      // (ConfirmarClient.tsx empurra para cá quando o contexto excede o limite) — usar "confirmar"
+      // aqui é o que faz o botão "Voltar" do topbar (item 2 do pedido do dono, 24/09/2026) levar
+      // para onde a pessoa realmente estava, e não para "Documentos" (etapa anterior a Confirmar,
+      // não a etapa de onde este bloqueio vem).
+      ativo="confirmar"
       crumbAtual="Limite de contexto"
       nomeUsuario={user.name}
       papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}

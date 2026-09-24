@@ -25,3 +25,22 @@ export function ehCategoriaConhecida(valor: string | null | undefined): valor is
 export function usaSublistaDeTipoDePeticao(categoriaPeca: string | null | undefined): boolean {
   return categoriaPeca === "Petição" || !categoriaPeca; // sem categoria escolhida ainda: mantém o comportamento anterior à adequação (sublista visível)
 }
+
+/**
+ * O RÓTULO exibido na tela — pedido do dono, 24/09/2026 (item 1): "notificação (tire o
+ * extrajudicial do nome)". O VALOR canônico (o que fica salvo em
+ * PeticionamentoSessao.categoriaPeca, o que entra no prompt ao agente em
+ * lib/peticionamentoPrompt.ts e o que lib/peticionamentoQuestionario.ts usa para escolher a
+ * configuração do questionário) continua "Notificação Extrajudicial" DE PROPÓSITO: mudar o valor
+ * armazenado tornaria "desconhecida" (ehCategoriaConhecida) qualquer sessão JÁ CRIADA com essa
+ * categoria antes desta entrega — quebrando, em silêncio, tudo que lê esse campo numa sessão
+ * antiga (retomar rascunho, questionário, geração da minuta). Só a ETIQUETA muda; ver a prova
+ * disso em lib/testes/peticionamentoNavegacao.teste.ts.
+ *
+ * Aceita `string` solta (não só `CategoriaDePeca`) de propósito: uma sessão antiga com um valor
+ * fora da lista atual (ou nula, em quem chama já filtra) ainda precisa de ALGUM texto para
+ * mostrar — a função só troca o UM valor que conhece e devolve o resto como veio.
+ */
+export function rotuloCategoriaPeca(categoria: string): string {
+  return categoria === "Notificação Extrajudicial" ? "Notificação" : categoria;
+}
