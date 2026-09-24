@@ -44,7 +44,7 @@ function LinkDeFonte({ url, rotulo }: { url: string | null; rotulo: string }) {
 
 /** A graduação de fonte (Passo 4): nunca some, mesmo confirmada — dizer "condicional" é o ponto. */
 function SeloDeFonte({ fonte }: { fonte: CitacaoParaValidacao["fonte"] }) {
-  const cor = fonte.bloqueia ? "var(--danger, #b3261e)" : fonte.classificacao === "condicional" ? "var(--warn, #9a6700)" : "var(--ok-tx, #1b7a43)";
+  const cor = fonte.bloqueia ? "var(--danger, #b3261e)" : fonte.classificacao === "condicional" ? "var(--warn, #9a6700)" : "var(--ok)";
   return (
     <span className="quiet" style={{ color: cor, fontWeight: 600 }}>
       {fonte.bloqueia ? "⚠ " : ""}
@@ -69,7 +69,7 @@ function ItemCitacao({
   return (
     <li
       style={{
-        border: "1px solid var(--card-border, #e2e2e2)",
+        border: "1px solid var(--border)",
         borderRadius: 8,
         padding: "10px 12px",
         background: citacao.confirmada ? "var(--ok-bg, #f0fbf4)" : "transparent",
@@ -103,7 +103,7 @@ function ItemCitacao({
 
 function ItemExcluida({ citacao }: { citacao: CitacaoExcluidaParaTela }) {
   return (
-    <li style={{ border: "1px dashed var(--card-border, #e2e2e2)", borderRadius: 8, padding: "10px 12px", opacity: 0.75 }}>
+    <li style={{ border: "1px dashed var(--border)", borderRadius: 8, padding: "10px 12px", opacity: 0.75 }}>
       <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 6, textDecoration: "line-through" }}>{citacao.texto}</div>
       <div className="quiet" style={{ fontSize: 12 }}>
         excluída por {citacao.excluidaPorNome ?? "—"}
@@ -227,7 +227,7 @@ export function CitacoesClient({
   // mostrava só "nada para revisar aqui" e nenhum botão: com a aprovação virando a trava de
   // Word/PDF/impressão, essa peça ficaria impossível de exportar.
   const blocoDeAprovacao = (
-    <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--card-border, #e2e2e2)" }}>
+    <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
       {aprovacao.aprovadaEm ? (
         <p className="quiet" style={{ margin: 0, fontSize: 12.5 }}>
           <strong>Minuta aprovada</strong> por {aprovacao.aprovadaPorNome ?? "—"} em {formatarData(aprovacao.aprovadaEm)}. Editar o corpo da minuta desfaz
