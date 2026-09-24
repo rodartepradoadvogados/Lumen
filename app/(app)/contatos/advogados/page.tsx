@@ -8,6 +8,7 @@ import EditLawyerModal from "@/components/EditLawyerModal";
 import DeleteButton from "@/components/DeleteButton";
 import { deleteLawyer } from "@/lib/actions/contatos";
 import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
+import IniciarConversaContatoButton from "@/components/atendimento/IniciarConversaContatoButton";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,11 @@ export default async function AdvogadosPage({ searchParams }: { searchParams: { 
                   </p>
                 </div>
                 <div className="shrink-0 flex items-center gap-1">
+                  {/* F5.5 — só para PARCEIRO, e só com telefone: advogado ADVERSO é parte
+                      representada de um processo em curso — iniciar contato com ele por aqui não
+                      é "atendimento", é abordagem indevida (ver iniciarConversaComContato, que
+                      recusa isso de novo no servidor mesmo que este botão nunca apareça). */}
+                  {l.side === "PARCEIRO" && l.phone && <IniciarConversaContatoButton tipo="advogado" contatoId={l.id} nome={l.name} />}
                   <EditLawyerModal lawyer={l} />
                   <DeleteButton id={l.id} action={deleteLawyer} confirmMessage={`Excluir o advogado "${l.name}"?`} />
                 </div>

@@ -10,6 +10,7 @@ import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
 import { filtroDoAtendimento, podeVerAtendimentos, veTodoOAtendimento } from "@/lib/acessoAtendimento";
+import NovaConversaModal from "@/components/atendimento/NovaConversaModal";
 
 export const dynamic = "force-dynamic";
 
@@ -96,12 +97,17 @@ export default async function MobileAtendimento({
             {totalCount} {soOsMeus ? "repassado(s) a você" : "registro(s)"}
           </p>
         </div>
-        <Link
-          href="/m/atendimento/novo"
-          className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-2 shrink-0"
-        >
-          <Plus size={14} /> Novo
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <Link
+            href="/m/atendimento/novo"
+            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-2"
+          >
+            <Plus size={14} /> Novo
+          </Link>
+          {/* F5.5 — "iniciar conversa" é diferente de "novo atendimento": aquele registra um
+              contato (qualquer canal), este manda a primeira mensagem de verdade pelo WhatsApp. */}
+          <NovaConversaModal />
+        </div>
       </div>
 
       <TiraDeGuias className="-mx-4 px-4">

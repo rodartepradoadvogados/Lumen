@@ -4,7 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 
-type EntityType = "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE" | "HONORARIO_LANCAMENTO";
+// ATTENDANCE SAIU DAQUI DE PROPÓSITO (pedido do dono): excluir um atendimento apagava a única
+// cópia da conversa com o lead, e "perder o cliente" (estágio PERDIDO, com motivo obrigatório) e
+// "arquivar" já cobrem todo desfecho possível sem esse risco. A UI parou de oferecer o botão (ver
+// app/(app)/atendimento/page.tsx e .../[id]/page.tsx); tirar o tipo também daqui, e não só da
+// tela, fecha a porta para qualquer chamada direta a `requestDeletion("ATTENDANCE", ...)`.
+type EntityType = "TASK" | "CASE" | "PAYABLE" | "RECEIVABLE" | "HONORARIO_LANCAMENTO";
 
 // ONLY = comportamento de sempre (exclui só o lançamento clicado, sem olhar agrupamento nenhum).
 // FOLLOWING/ALL só fazem sentido para RECEIVABLE/PAYABLE que pertencem a um dos três agrupamentos
@@ -32,6 +37,25 @@ async function performDelete(
   actorId?: string,
   confirmadoComPagamentos?: boolean
 ): Promise<DeletionResult> {
+  // TIPO DESCONHECIDO É ERRO, NUNCA SILÊNCIO.
+  //
+  // Esta função é uma escada de `if (entityType === ...)`. Sem esta guarda, um tipo que nenhum
+  // degrau reconhece atravessa a escada inteira e cai no `return { warning }` do fim — ou seja,
+  // devolve SUCESSO sem ter apagado nada. Quem aprovasse o pedido veria "aprovada" e acreditaria
+  // que apagou.
+  //
+  // Isso deixou de ser hipótese em 24/09/2026, quando ATTENDANCE saiu da lista de tipos que
+  // aceitam pedido de exclusão (o dono tirou a lixeira do atendimento: "perder o cliente e
+  // arquivar já cobrem tudo, e é um risco perder a conversa"). Um pedido PENDENTE gravado antes
+  // dessa mudança ainda existe no banco, e aprová-lo cairia exatamente neste buraco.
+  const TIPOS_QUE_ESTA_FUNCAO_APAGA = ["TASK", "CASE", "PAYABLE", "RECEIVABLE", "HONORARIO_LANCAMENTO"];
+  if (!TIPOS_QUE_ESTA_FUNCAO_APAGA.includes(entityType)) {
+    return {
+      error:
+        `Este pedido é de um tipo que o sistema não apaga mais ("${entityType}"). ` +
+        "Nada foi excluído. Recuse o pedido — ele ficou de uma versão anterior do Lúmen.",
+    };
+  }
   let warning: string | undefined;
   if (entityType === "TASK") {
     await prisma.$transaction([
@@ -79,15 +103,6 @@ async function performDelete(
     revalidatePath("/processos");
     revalidatePath("/kanban");
     revalidatePath("/agenda");
-  } else if (entityType === "ATTENDANCE") {
-    await prisma.$transaction([
-      prisma.mention.deleteMany({ where: { officeId, comment: { task: { attendanceId: entityId } } } }),
-      prisma.comment.deleteMany({ where: { officeId, task: { attendanceId: entityId } } }),
-      prisma.attachment.deleteMany({ where: { officeId, attendanceId: entityId } }),
-      prisma.task.deleteMany({ where: { officeId, attendanceId: entityId } }),
-      prisma.attendance.deleteMany({ where: { id: entityId, officeId } }),
-    ]);
-    revalidatePath("/atendimento");
   } else if (entityType === "PAYABLE") {
     const payable = await prisma.payable.findFirst({
       where: { id: entityId, officeId },

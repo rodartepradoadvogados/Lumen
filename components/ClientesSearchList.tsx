@@ -7,6 +7,7 @@ import { Badge, EmptyState } from "@/components/ui";
 import EditClientModal from "@/components/EditClientModal";
 import DeleteButton from "@/components/DeleteButton";
 import { deleteClient } from "@/lib/actions/contatos";
+import IniciarConversaContatoButton from "@/components/atendimento/IniciarConversaContatoButton";
 
 type ClientRow = {
   id: string;
@@ -85,6 +86,8 @@ export default function ClientesSearchList({ clients }: { clients: ClientRow[] }
               </div>
               <span className="text-xs text-tx-3 shrink-0">{c._count.cases} processo(s)</span>
               <div className="shrink-0 flex items-center gap-1">
+                {/* F5.5 — só aparece com telefone: sem ele não há para onde a mensagem ir. */}
+                {c.phone && <IniciarConversaContatoButton tipo="cliente" contatoId={c.id} nome={c.name} />}
                 <EditClientModal client={c} />
                 <DeleteButton id={c.id} action={deleteClient} confirmMessage={`Excluir o cliente "${c.name}"?`} />
               </div>

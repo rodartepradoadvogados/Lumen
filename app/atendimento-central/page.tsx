@@ -23,6 +23,7 @@ import { dataDeBrasilia, dataEHoraDeBrasilia } from "@/lib/horaDeBrasilia";
 import { Badge } from "@/components/ui";
 import ThemeToggle from "@/components/ThemeToggle";
 import QuadroDoFunil, { type CardDoFunil } from "@/components/atendimento/QuadroDoFunil";
+import NovaConversaModal from "@/components/atendimento/NovaConversaModal";
 import FilaDeEspera from "@/components/atendimento/FilaDeEspera";
 import RecusadosParaAnalise, { type RecusadoNaLista } from "@/components/atendimento/RecusadosParaAnalise";
 import Conversa from "@/components/atendimento/Conversa";
@@ -417,6 +418,12 @@ export default async function AtendimentoCentralPage({
                   className="min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-etiqueta text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none"
                 />
               </form>
+              {/* F5.5 — "eu só consigo responder reativamente": este botão abre uma conversa nova
+                  sem esperar o cliente escrever primeiro. Fica na coluna de lista, e não na moldura
+                  de cima, porque é ação DESTA aba (Atendimentos), não da tela inteira. */}
+              <div className="mt-2">
+                <NovaConversaModal destino="central" />
+              </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {listaAtendimentos.length === 0 ? (
@@ -526,13 +533,14 @@ export default async function AtendimentoCentralPage({
                 attendanceId={selecionado.id}
                 telefone={telefoneDoContato}
                 contato={contatoConhecido}
+                nomeAtual={selecionado.clientName}
                 area={selecionado.area}
                 canal={channelLabels[selecionado.channel] || selecionado.channel}
                 campanha={selecionado.campanha?.nome ?? null}
                 responsavel={selecionado.responsible?.name ?? null}
                 abertoEm={selecionado.createdAt}
                 descricao={selecionado.description}
-                anexos={selecionado.attachments.map((att) => ({ id: att.id, name: att.name }))}
+                anexos={selecionado.attachments.map((att) => ({ id: att.id, name: att.name, driveUrl: att.driveUrl }))}
                 pendencias={selecionado.pendencias}
                 jaConvertido={Boolean(selecionado.convertedCaseId)}
               />

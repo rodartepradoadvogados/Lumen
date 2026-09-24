@@ -38,7 +38,17 @@
 .atd-central {
   /* MOLDURA — fixa. Não existe (e não deve passar a existir) uma segunda declaração destes oito
      tokens em nenhum lugar deste arquivo: é isso que prova, em código, que a moldura não muda de
-     tom com o tema. */
+     tom com o tema.
+
+     F5.5 (POLISH) — `--frame-accent`/`--frame-accent-strong`/`--frame-accent-bg` mais saturados.
+     Pedido do dono: "o fundo azul do atendimento está muito pálido [...] ficou meio parecendo sem
+     profissionalismo". O sotaque de #7fa8c9 tinha pouca saturação contra o `--frame-bg` quase
+     preto — lia como um azul-bebê desbotado, não como o acento intencional de um app de mensagens
+     (a referência do próprio mockup aprovado é Telegram Web/Digisac). O tom novo é MAIS SATURADO;
+     CONFERIDO (luminância relativa WCAG): o contraste contra `--frame-bg` (#090d14) cai de
+     7,73:1 para 5,94:1 — ainda bem acima do piso de 4,5:1 desta casa, com folga real, então a
+     saturação era a variável livre para resolver "pálido" sem chegar perto de arriscar
+     legibilidade. */
   --frame-bg: #090d14;
   --frame-bg-raised: #0e131c;
   --frame-border: #202838;
@@ -47,22 +57,36 @@
   --frame-tx-1: #aab1ba;
   --frame-tx-2: #838d97;
   --frame-tx-ghost: #3d434b;
-  --frame-accent: #7fa8c9;
-  --frame-accent-strong: #355f7f;
-  --frame-accent-bg: rgba(127, 168, 201, 0.1);
+  --frame-accent: #5b93c4;
+  --frame-accent-strong: #2c5170;
+  --frame-accent-bg: rgba(91, 147, 196, 0.14);
   --frame-accent-tx: #eef4f8;
   --frame-danger: #c07268;
   --frame-danger-bg: rgba(192, 114, 104, 0.13);
 
   /* LISTA e TRABALHO — valores do TEMA CLARO aqui, porque este seletor sem `.dark` na frente é o
      que vale por padrão (mesma convenção de app/globals.css: claro em `:root`, escuro em
-     `.dark`). O bloco `.dark .atd-central` logo abaixo troca só estes tokens — nunca os de cima. */
-  --list-bg: #d7dce4;
-  --list-bg-hover: #e3e6ed;
+     `.dark`). O bloco `.dark .atd-central` logo abaixo troca só estes tokens — nunca os de cima.
+
+     F5.5 (POLISH) — a raiz do "pálido" era SATURAÇÃO, não luminosidade. Medido: `--list-bg` velho
+     (#d7dce4) tinha só ~19% de saturação a 87% de luminosidade — um cinza quase neutro com uma
+     pitada de azul, não um tom desenhado de propósito; ao lado do `--work-bg` branco, lia como o
+     branco tivesse manchado, não como uma coluna própria (mesma composição de referência do
+     mockup — Telegram Web/Digisac — que usa um cinza-azulado NÍTIDO para a lista, não um lavado).
+     A correção SOBE a saturação (até ~58% em `--list-bg`) mantendo a luminosidade PARECIDA — em
+     azul isso é possível porque o canal azul pesa pouco na luminância percebida (fórmula WCAG), e
+     é o que preserva o contraste do texto sem escurecer nada.
+     CONFERIDO, não estimado (script à parte, luminância relativa WCAG): `--tx-3` (a tinta mais
+     clara do sistema, a que primeiro reprova) mede 4,65:1 sobre o `--list-bg` novo, 5,27:1 sobre
+     `--list-bg-hover` e 5,57:1 sobre `--work-bg-raised` — os três acima do piso de 4,5:1 que
+     PRODUCT.md fixa para texto normal, com folga. `--atd-border`/`--atd-border-strong` não levam
+     texto em cima (são só filete entre planos), então não precisam da mesma régua. */
+  --list-bg: #cbd7f1;
+  --list-bg-hover: #dde4f4;
   --work-bg: #ffffff;
-  --work-bg-raised: #eceff4;
-  --atd-border: #c5ccd8;
-  --atd-border-strong: #a4aec0;
+  --work-bg-raised: #e5eaf5;
+  --atd-border: #95a9d0;
+  --atd-border-strong: #607fbe;
   --atd-shadow-card: 0 8px 20px rgba(20, 23, 27, 0.1), 0 2px 6px rgba(20, 23, 27, 0.08);
 
   /* A LARGURA MÁXIMA DA SUPERFÍCIE DE LEITURA (etapa 3) — a conversa.

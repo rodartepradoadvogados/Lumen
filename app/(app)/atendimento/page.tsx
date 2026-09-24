@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
 import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import NewAttendanceModal from "@/components/NewAttendanceModal";
-import DeleteEntityButton from "@/components/DeleteEntityButton";
+import NovaConversaModal from "@/components/atendimento/NovaConversaModal";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { Filter } from "lucide-react";
@@ -106,6 +106,7 @@ export default async function AtendimentoPage({
             >
               <Filter size={16} /> Funil Comercial
             </Link>
+            <NovaConversaModal />
             <NewAttendanceModal
               users={users}
               assessorias={assessorias}
@@ -167,12 +168,12 @@ export default async function AtendimentoPage({
                   <p className="text-xs text-tx-3">{dataDeBrasilia(a.createdAt)}</p>
                   {a.responsible && <p className="text-xs text-tx-3 mt-0.5">{a.responsible.name}</p>}
                 </div>
-                <DeleteEntityButton
-                  entityType="ATTENDANCE"
-                  entityId={a.id}
-                  entityLabel={`${a.clientName} — ${a.subject}`}
-                  confirmMessage={`Excluir o atendimento de "${a.clientName}"?`}
-                />
+                {/* SEM LIXEIRA AQUI, DE PROPÓSITO (pedido do dono): "perder o cliente" (Estágio
+                    PERDIDO, com motivo obrigatório) e "arquivar" já cobrem todo desfecho possível
+                    de um atendimento, e os dois preservam a conversa. Excluir apagava a única
+                    cópia das mensagens trocadas com o lead — risco que nenhum dos dois desfechos
+                    tem, e que aqui não existia ganho nenhum para compensar. Ver
+                    lib/actions/deletion.ts, de onde o ramo ATTENDANCE saiu junto. */}
               </Link>
             ))}
           </div>

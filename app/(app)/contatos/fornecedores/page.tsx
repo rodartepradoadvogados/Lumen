@@ -8,6 +8,7 @@ import EditSupplierModal from "@/components/EditSupplierModal";
 import DeleteButton from "@/components/DeleteButton";
 import { deleteSupplier } from "@/lib/actions/suppliers";
 import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
+import IniciarConversaContatoButton from "@/components/atendimento/IniciarConversaContatoButton";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export default async function FornecedoresPage({ searchParams }: { searchParams:
                   </p>
                 </div>
                 <div className="shrink-0 flex items-center gap-1">
+                  {s.phone && <IniciarConversaContatoButton tipo="fornecedor" contatoId={s.id} nome={s.name} />}
                   <EditSupplierModal supplier={s} />
                   <DeleteButton id={s.id} action={deleteSupplier} confirmMessage={`Excluir o fornecedor "${s.name}"?`} />
                 </div>

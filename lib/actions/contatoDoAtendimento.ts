@@ -6,6 +6,8 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { podeVerAtendimentos, filtroDoAtendimento, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
 import { podeCadastrarComo, separarDdi, type TipoDeContato } from "@/lib/quemEEsteNumero";
 import { identificarNumero, telefoneDoAtendimento } from "@/lib/identificarNumero";
+import { assuntoPadraoWhatsapp, nomeEhTemporario } from "@/lib/nomeTemporarioDoLead";
+import { renomearPastaSeExistir } from "@/lib/renomeacaoDoAtendimento";
 
 // ============================================================================
 // CADASTRAR O CONTATO SEM SAIR DO ATENDIMENTO.
@@ -22,7 +24,13 @@ import { identificarNumero, telefoneDoAtendimento } from "@/lib/identificarNumer
 
 export async function cadastrarContatoDoAtendimento(
   attendanceId: string,
-  tipo: string
+  tipo: string,
+  // F5.5 — o nome que a pessoa DIGITOU no pop-up "Quem é este número" (DefinirNomeDoLead.tsx),
+  // quando o atendimento ainda carrega o nome temporário (ver lib/nomeTemporarioDoLead.ts). Sem
+  // isto, o cadastro nascia com `a.clientName` — e quando ele ainda é "Novo contato (telefone)",
+  // o escritório ganhava um cliente cadastrado com esse texto como nome de verdade. Opcional e
+  // ignorado quando vazio: o botão de sempre (nome já identificado) continua funcionando igual.
+  nomeOverride?: string
 ): Promise<{ error?: string; id?: string; tipo?: TipoDeContato }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
@@ -33,7 +41,7 @@ export async function cadastrarContatoDoAtendimento(
 
   const a = await prisma.attendance.findFirst({
     where: { id: attendanceId, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
-    select: { id: true, clientName: true, waPhone: true, contactPhone: true, contactPhoneDdi: true, clientId: true },
+    select: { id: true, clientName: true, subject: true, driveFolderId: true, waPhone: true, contactPhone: true, contactPhoneDdi: true, clientId: true },
   });
   if (!a) return { error: "Atendimento não encontrado." };
 
@@ -46,7 +54,7 @@ export async function cadastrarContatoDoAtendimento(
   const { contato } = await identificarNumero(viewer.officeId, a);
   if (contato) return { error: `Este número já está cadastrado como ${contato.nome}.` };
 
-  const nome = a.clientName.trim() || "Sem nome";
+  const nome = nomeOverride?.trim() || a.clientName.trim() || "Sem nome";
   // O DDI do formulário, quando existe, vale mais do que qualquer dedução: alguém o escolheu num
   // seletor de país. Só quando ele não existe é que o número é partido.
   const partes = a.contactPhoneDdi?.trim() && a.contactPhone?.trim()
@@ -74,8 +82,87 @@ export async function cadastrarContatoDoAtendimento(
     revalidatePath("/contatos/fornecedores");
   }
 
+  // O NOME DE VERDADE VAI PARA O ATENDIMENTO TAMBÉM — não só para o cadastro novo. Sem isto, o
+  // atendimento continuava com "Novo contato (telefone)" no cabeçalho e na pasta do Drive mesmo
+  // depois de a pessoa acabar de identificá-lo (F5.5). Só troca quando o nome ainda é o temporário:
+  // um atendimento que já tinha nome próprio (alguém digitou "João" na abertura, por exemplo) não
+  // deve virar o nome do cadastro por causa de um clique num botão que só cria contato.
+  if (nomeOverride?.trim() && nomeEhTemporario(a.clientName)) {
+    const novoAssunto = assuntoPadraoWhatsapp(nome);
+    await prisma.attendance.update({ where: { id: a.id }, data: { clientName: nome, subject: novoAssunto } });
+    await renomearPastaSeExistir(a.driveFolderId, novoAssunto, a.subject, viewer.officeId);
+  }
+
   revalidatePath("/contatos");
   revalidatePath(`/atendimento/${a.id}`);
   revalidatePath(`/m/atendimento/${a.id}`);
   return { id, tipo };
+}
+
+function revalidarConversa(attendanceId: string): void {
+  revalidatePath(`/atendimento/${attendanceId}`);
+  revalidatePath(`/m/atendimento/${attendanceId}`);
+  revalidatePath("/atendimento-central");
+  revalidatePath("/atendimento");
+}
+
+/**
+ * "Definir nome do cliente manualmente" — o primeiro dos três caminhos do pop-up (F5.5, pedido do
+ * dono): quem está na conversa com um humano só digita o nome, sem criar cadastro nenhum. Serve
+ * para quem não vale a pena virar contato formal (uma dúvida pontual, por exemplo) mas cuja pasta
+ * do Drive não deveria continuar com o nome temporário.
+ */
+export async function definirNomeDoLead(attendanceId: string, nome: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+
+  const trimmed = nome.trim();
+  if (!trimmed) return { error: "Digite um nome." };
+  if (trimmed.length > 120) return { error: "Nome longo demais." };
+
+  const a = await prisma.attendance.findFirst({
+    where: { id: attendanceId, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
+    select: { id: true, subject: true, driveFolderId: true },
+  });
+  if (!a) return { error: "Atendimento não encontrado." };
+
+  const novoAssunto = assuntoPadraoWhatsapp(trimmed);
+  await prisma.attendance.update({ where: { id: a.id }, data: { clientName: trimmed, subject: novoAssunto } });
+  await renomearPastaSeExistir(a.driveFolderId, novoAssunto, a.subject, viewer.officeId);
+
+  revalidarConversa(a.id);
+  return {};
+}
+
+/**
+ * "Selecionar um contato" — o segundo caminho do pop-up: a pessoa já está cadastrada como cliente
+ * (achada pela busca, ver `searchClients` em lib/actions/attendance.ts), só faltava vincular. Vai
+ * junto o nome do cadastro para o atendimento — mesma razão de `cadastrarContatoDoAtendimento`
+ * acima: sem isso a pasta do Drive continuaria com o nome temporário mesmo depois do vínculo.
+ */
+export async function vincularAtendimentoAoCliente(attendanceId: string, clientId: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+
+  const [a, cliente] = await Promise.all([
+    prisma.attendance.findFirst({
+      where: { id: attendanceId, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
+      select: { id: true, subject: true, driveFolderId: true },
+    }),
+    prisma.client.findFirst({ where: { id: clientId, officeId: viewer.officeId }, select: { id: true, name: true } }),
+  ]);
+  if (!a) return { error: "Atendimento não encontrado." };
+  if (!cliente) return { error: "Cliente não encontrado." };
+
+  const novoAssunto = assuntoPadraoWhatsapp(cliente.name);
+  await prisma.attendance.update({
+    where: { id: a.id },
+    data: { clientId: cliente.id, clientName: cliente.name, subject: novoAssunto },
+  });
+  await renomearPastaSeExistir(a.driveFolderId, novoAssunto, a.subject, viewer.officeId);
+
+  revalidarConversa(a.id);
+  return {};
 }

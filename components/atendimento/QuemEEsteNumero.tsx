@@ -13,6 +13,8 @@ import {
   type TipoDeContato,
 } from "@/lib/quemEEsteNumero";
 import { cadastrarContatoDoAtendimento } from "@/lib/actions/contatoDoAtendimento";
+import { nomeEhTemporario } from "@/lib/nomeTemporarioDoLead";
+import DefinirNomeDoLead from "@/components/atendimento/DefinirNomeDoLead";
 
 // ============================================================================
 // QUEM É ESTE NÚMERO — o bloco, nas duas telas.
@@ -41,10 +43,15 @@ export default function QuemEEsteNumero({
   attendanceId,
   telefone,
   contato,
+  nomeAtual,
 }: {
   attendanceId: string;
   telefone: string | null;
   contato: ContatoConhecido | null;
+  /** O `clientName` de agora — só para decidir se o pop-up "Definir quem é esta pessoa" faz
+   * sentido (ver DefinirNomeDoLead.tsx). Opcional: telas antigas que ainda não passam este dado
+   * simplesmente não oferecem o pop-up, em vez de quebrar. */
+  nomeAtual?: string;
 }) {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
@@ -100,6 +107,11 @@ export default function QuemEEsteNumero({
         ))}
       </div>
       {erro && <p className="mt-2 text-xs font-medium text-urgente">{erro}</p>}
+      {/* F5.5 — só oferece o pop-up completo (nome à mão / contato existente / novo cliente)
+          quando o nome ainda é o temporário que lib/nomeTemporarioDoLead.ts gerou. Um atendimento
+          sem telefone reconhecido mas com nome próprio (alguém digitou na abertura) já tem o que
+          precisa — o pop-up não teria o que acrescentar. */}
+      {nomeEhTemporario(nomeAtual) && <DefinirNomeDoLead attendanceId={attendanceId} />}
     </div>
   );
 }
