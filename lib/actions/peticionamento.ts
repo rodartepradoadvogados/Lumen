@@ -2006,8 +2006,10 @@ export async function confirmarExportacao(
 export async function conferirSaidaDaPeca(sessaoId: string): Promise<{ ok: true } | { error: string }> {
   const user = await exigirAcessoAba();
   const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
-  const avaliacao = avaliarExportacao(user);
-  if (!avaliacao.pode) return { error: avaliacao.motivo! };
+  // IMPRIMIR NAO EXIGE OAB, e exportar exige — decisao do dono. O que sai daqui nao e arquivo nem
+  // registro: e o dialogo do navegador sobre uma peca que um advogado JA APROVOU. Quem imprime nao
+  // decide o que vai para fora, so poe no papel o que ja foi decidido. As duas travas que importam
+  // continuam: a aprovacao gravada e a citacao pendente, conferidas logo abaixo.
   await sincronizarCitacoes(sessaoId, user.officeId);
   const citacoesPendentes = await prisma.peticionamentoCitacao.count({ where: { sessaoId, confirmadaPorId: null, excluidaEm: null } });
   const saida = avaliarSaidaDaPeca({ aprovada: Boolean(sessao.minutaAprovadaEm), citacoesPendentes });
