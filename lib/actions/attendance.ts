@@ -14,6 +14,7 @@ import { getOfficeModules } from "@/lib/officeModules";
 import { normalizeForCompare } from "@/lib/textNormalize";
 import { createAttendancePendencias, type PendenciaInput } from "@/lib/actions/attendancePendencias";
 import { podeVerAtendimentos, veTodoOAtendimento, filtroDoAtendimento, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
+import { recorteDaConversa } from "@/lib/conversaDaCentral";
 
 async function assertAttendanceRelationsInOffice(
   data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
@@ -481,7 +482,9 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
   const text = body.trim();
   if (!text) return { error: "Digite uma mensagem antes de enviar." };
 
-  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) } });
+  // O MESMO recorte da leitura da Central (id + escritório de quem pediu + recorte por dono): quem
+  // não poderia abrir a conversa não pode escrever nela.
+  const attendance = await prisma.attendance.findFirst({ where: recorteDaConversa(user, attendanceId) });
   if (!attendance) return { error: "Atendimento não encontrado." };
   if (!attendance.waPhone) return { error: "Este atendimento não tem WhatsApp vinculado." };
 
