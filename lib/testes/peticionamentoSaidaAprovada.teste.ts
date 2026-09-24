@@ -87,12 +87,15 @@ teste("o PDF passa pelas MESMAS travas do Word (OAB e ciência vêm antes do ram
   verdade(!ramo.includes("montarPeticaoWord("), "o ramo do PDF monta um .docx — ele deveria só registrar e devolver");
 });
 
-teste("imprimir tem conferência própria no servidor, com as mesmas travas", () => {
+teste("imprimir confere aprovação e citação no servidor, e NÃO exige OAB", () => {
   const corpo = codigoDe(corpoDaFuncao(ACOES, "conferirSaidaDaPeca"));
   verdade(corpo.length > 200, "conferirSaidaDaPeca não existe");
   verdade(corpo.includes("exigirAcessoAba()"), "sem a trava de acesso à aba");
   verdade(/carregarSessaoOuFalhar\(\s*sessaoId\s*,\s*user\.officeId\s*\)/.test(corpo), "não reconfere a sessão contra o escritório de quem pediu");
-  verdade(/if\s*\(\s*!avaliacao\.pode\s*\)\s*return/.test(corpo), "imprimir não exige advogado com OAB, como exportar exige");
+  // DECISÃO DO DONO: estagiário PODE imprimir uma peça que o advogado já aprovou. Imprimir não
+  // produz arquivo nem registro de auditoria — é o diálogo do navegador sobre algo já decidido.
+  // Esta asserção é o que impede a exigência de voltar sem querer, junto com alguma outra mudança.
+  verdade(!/avaliarExportacao\(/.test(corpo), "imprimir voltou a exigir advogado com OAB — o dono decidiu que estagiário imprime peça já aprovada");
   verdade(/aprovada:\s*Boolean\(\s*sessao\.minutaAprovadaEm\s*\)/.test(corpo), "imprimir não confere a aprovação gravada");
   verdade(/citacoesPendentes/.test(corpo) && /peticionamentoCitacao\.count\(/.test(corpo), "imprimir não confere a citação pendente");
   verdade(/if\s*\(\s*!saida\.liberada\s*\)\s*return/.test(corpo), "a conferência de impressão calcula e não obedece");
