@@ -2,6 +2,7 @@ import PizZip from "pizzip";
 import { PAGINA_A4, mmParaTwips } from "@/lib/peticionamentoPaginaA4";
 import { FECHO_PETICAO, terminaComFechoCorreto } from "@/lib/peticionamentoFecho";
 import { corpoDocxDoHtmlDaMinuta, type CorpoFormatadoDocx, type NumeracaoDocx } from "@/lib/peticionamentoDocxFormatado";
+import { papelDoParagrafoDaMinuta, paragrafosDoTextoPuroDaMinuta } from "@/lib/peticionamentoMinutaHeuristica";
 
 // GERA O .DOCX DA PETIÇÃO — sempre Word, sempre com o timbrado do escritório quando houver
 // (especificação §11 + decisions.md §9 item 5: "Word é o único formato em qualquer cenário...
@@ -26,7 +27,10 @@ import { corpoDocxDoHtmlDaMinuta, type CorpoFormatadoDocx, type NumeracaoDocx } 
 //   • SEM ela (nulo ou vazio) — o corpo é montado do TEXTO PURO, por `corpoDaMinuta`, exatamente
 //     como antes desta entrega. Sessão anterior ao editor é estado LEGÍTIMO (ver o contrato de
 //     `minutaFormatadaHtml` no schema), e para ela o arquivo tem de sair byte a byte igual ao que
-//     saía. É por isso que `corpoDaMinuta` e a heurística `pareceTitulo` continuam aqui, intactas.
+//     saía. É por isso que `corpoDaMinuta` continua aqui, e produz exatamente o mesmo XML.
+//     A heurística que ela usa (título em negrito, data e fecho à direita) passou para
+//     lib/peticionamentoMinutaHeuristica.ts, porque a SEMENTE da folha aplica a mesma — uma
+//     implementação, dois consumidores.
 //
 // O TEXTO PURO continua sendo a fonte de tudo o que NÃO é aparência: o fecho, a identidade de cada
 // citação e a resposta a "já existe minuta?". Nenhuma das três passou para o HTML.
@@ -114,24 +118,23 @@ function paragrafosDaNota(linhas: string[], negritoPrimeiraLinha: boolean): stri
     .join("");
 }
 
-// Heurística para distinguir título de seção ("I — DOS FATOS") de parágrafo comum: curto e em
-// maioria de caixa alta. Não precisa ser perfeita — só decide negrito/tamanho, nunca some texto.
-function pareceTitulo(linha: string): boolean {
-  const t = linha.trim();
-  if (t.length === 0 || t.length > 90) return false;
-  const letras = t.replace(/[^A-Za-zÀ-ÿ]/g, "");
-  if (letras.length === 0) return false;
-  const maiusculas = letras.replace(/[^A-ZÀ-Þ]/g, "");
-  return maiusculas.length / letras.length > 0.7;
-}
-
+// A HEURÍSTICA DE TÍTULO E DE ALINHAMENTO NÃO MORA MAIS AQUI — ela está em
+// lib/peticionamentoMinutaHeuristica.ts, e a SEMENTE da folha
+// (lib/peticionamentoMinutaFormatada.ts: `htmlDaMinutaDoTextoPuro`) aplica a MESMA, agora visível
+// na tela e editável pelo advogado. Duas cópias divergiriam no primeiro dia em que alguém mexesse
+// numa só, e a divergência seria muda: o Word e a tela discordariam sem nenhum teste acusar.
+//
+// O QUE ESTA FUNÇÃO PRODUZ NÃO MUDOU EM NADA: os mesmos parágrafos, o mesmo negrito, o mesmo
+// `<w:jc>` e o mesmo espaçamento de antes. Sessão anterior ao editor (`minutaFormatadaHtml` nulo —
+// estado legítimo pelo contrato do schema) exporta o arquivo byte a byte igual ao de sempre, e
+// lib/testes/peticionamentoDocxFormatado.teste.ts prova isso caso a caso.
 function corpoDaMinuta(texto: string): string {
-  const paragrafos = texto.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const paragrafos = paragrafosDoTextoPuroDaMinuta(texto);
   return paragrafos
     .map((p) => {
-      if (pareceTitulo(p)) return paragrafo(run(p, { negrito: true, tamanho: 11 }), { espacoAntes: 240, espacoDepois: 120 });
-      const alinhamento = p === paragrafos[paragrafos.length - 1] || /^goi[aâ]nia,|^\d{1,2} de [a-zç]+ de \d{4}/i.test(p) ? "right" : "both";
-      return paragrafo(run(p, { tamanho: 11 }), { alinhamento: alinhamento as "right" | "both", espacoDepois: 160 });
+      const papel = papelDoParagrafoDaMinuta(p, paragrafos);
+      if (papel === "titulo") return paragrafo(run(p, { negrito: true, tamanho: 11 }), { espacoAntes: 240, espacoDepois: 120 });
+      return paragrafo(run(p, { tamanho: 11 }), { alinhamento: papel === "direita" ? "right" : "both", espacoDepois: 160 });
     })
     .join("");
 }
