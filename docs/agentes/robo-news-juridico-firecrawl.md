@@ -265,7 +265,10 @@ escritório interno, via `sendSimpleEmail(to, subject, html)` de `lib/email.ts`:
 
 Falha de e-mail **não** derruba o cron. Registre e siga.
 
-### Fase 7: desligar o robô antigo (só depois de 3 dias úteis do novo rodando bem)
+### Fase 7: desligar o robô antigo (SÓ POR DECISÃO EXPRESSA DO DONO)
+> Decisão do dono em 25/09/2026: a Routine atual **continua rodando** durante e depois da
+> implementação. Não execute esta fase por iniciativa própria. Depois de 3 dias úteis do cron novo
+> funcionando bem, **pergunte** ao dono se ele quer desligar a Routine; só siga com "pode desligar".
 1. Peça ao dono para **desativar a Routine** do `rp-radar-juridico` no claude.ai. O agente não
    deve apagar Routines por conta própria.
 2. Substitua o conteúdo de `.claude/skills/rp-radar-juridico/SKILL.md` por um aviso de
