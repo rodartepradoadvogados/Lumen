@@ -32,4 +32,5 @@ ASAAS_WEBHOOK_TOKEN,Asaas (cobrança),"Painel Asaas → Configurações → Webh
 ASAAS_ENV,Asaas (cobrança),"sandbox ou production."
 ANTHROPIC_API_KEY,IA,"console.anthropic.com — usada pelo assistente do produto (/api/assistente)."
 FIRECRAWL_API_KEY,IA,"firecrawl.dev → Dashboard → API Keys — busca na web e leitura de páginas públicas (lib/firecrawl.ts, só servidor)."
+TYPESAFE_API_KEY,IA,"Painel da TypeSafe (typesafe.ai). API de julgamentos tipados; usar só no servidor."
 LEGACY_BLOB_READ_WRITE_TOKEN,Legado/migração,"Acesso ao Blob Store antigo durante migração. Vercel (projeto legado)."
