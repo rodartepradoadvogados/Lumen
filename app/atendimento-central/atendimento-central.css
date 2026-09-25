@@ -147,12 +147,36 @@
      e os dois métodos testados e descartados antes) está em PROPOSTA.md §0.4/§2.2 do mockup
      aprovado. `--work-bg-raised` em particular NÃO é um valor solto: é este token, aqui, ao lado
      dos outros — é o que a etapa 1 pedia explicitamente para não deixar "número mágico" nenhum. */
-  --list-bg: #1a212d;
-  --list-bg-hover: #283245;
-  --work-bg: #283245;
-  --work-bg-raised: #323e55;
-  --atd-border: #202838;
-  --atd-border-strong: #2a3446;
+  /* ── O ESCURO TAMBÉM SAI DO AZUL (25/09/2026) ──────────────────────────────────────────────
+   *
+   * ERRO MEU, e vale escrito: em 24/09 o tema CLARO foi trazido para a régua neutra da casa e o
+   * escuro ficou como estava, porque as duas avaliações disseram que ele "já usava uma disciplina
+   * só". Usava mesmo — uma disciplina de 26%, que é disciplinada E azul. O dono trabalha no tema
+   * escuro, olhou a tela e disse, com razão, que não tinha mudado nada. Disciplina não era o
+   * pedido; tirar o azul era.
+   *
+   * Saturação de ~26% para ~14%, matiz fixo em 218 (o mesmo de --frame-bg), variando só a
+   * claridade — a mesma gramática que o tema claro passou a usar.
+   *
+   * DOIS DEFEITOS CORRIGIDOS DE CARONA, os dois MEDIDOS e os dois anteriores a esta entrega:
+   *
+   *   1. --list-bg-hover e --work-bg eram A MESMA COR (#283245): a linha sob o cursor tinha
+   *      exatamente o tom do fundo da conversa. Agora L=16,5% e L=14,1%.
+   *   2. Três superfícies REPROVAVAM o piso de 4,5:1 com --tx-3, em silêncio, porque só quem
+   *      escolhe o tema escuro via:
+   *         --list-bg-hover   4,34 -> 4,94
+   *         --work-bg         4,34 -> 5,37
+   *         --work-bg-raised  3,63 -> 4,54
+   *
+   * O TELEGRAM, no tema escuro, faz o mesmo: a janela é S=30%, mas a área da CONVERSA — onde se
+   * lê — é #24292e, S=12%. A cor fica na moldura e no que está ativo, não na superfície de
+   * leitura. */
+  --list-bg: #181b20;
+  --list-bg-hover: #242930;
+  --work-bg: #1f2229;
+  --work-bg-raised: #2a2f37;
+  --atd-border: #272c34;
+  --atd-border-strong: #353b46;
   --atd-shadow-card: 0 8px 20px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.35);
 
   color-scheme: dark;

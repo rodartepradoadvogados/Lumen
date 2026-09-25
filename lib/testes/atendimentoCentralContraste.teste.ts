@@ -138,4 +138,45 @@ teste("o acento da moldura é a ÚNICA cor com intenção, e continua legível",
 });
 
 
+// ── O TEMA ESCURO ENTRA NA MESMA RÉGUA ────────────────────────────────────────────────────────
+//
+// A guarda de saturação nasceu vigiando só o tema claro, e o escuro ficou de fora — foi por essa
+// fresta que ele continuou em 26% enquanto o claro caía para 16%, e o dono, que trabalha no
+// escuro, viu a tela igual depois de ter pedido a mudança. A régua agora vale nos dois.
+
+teste("as superfícies de repouso do tema ESCURO também ficam neutras", () => {
+  const css = readFileSync("app/atendimento-central/atendimento-central.css", "utf8");
+  const iRegra = css.search(/^\.dark \.atd-central\s*\{/m);
+  verdade(iRegra > 0, "não achei a regra do tema escuro");
+  const escuro = css.slice(iRegra);
+  const TETO = 20;
+  for (const token of ["--list-bg", "--list-bg-hover", "--work-bg", "--work-bg-raised", "--atd-border", "--atd-border-strong"]) {
+    const m = escuro.match(new RegExp(token + ":\\s*(#[0-9a-fA-F]{6});"));
+    verdade(Boolean(m), `não achei ${token} no tema escuro`);
+    const s = saturacao(m![1]);
+    verdade(s <= TETO, `${token} está em ${s.toFixed(1)}% (${m![1]}), acima do teto de ${TETO}% no tema escuro`);
+  }
+});
+
+teste("no escuro, a linha sob o cursor NÃO tem a mesma cor do fundo da conversa", () => {
+  const css = readFileSync("app/atendimento-central/atendimento-central.css", "utf8");
+  const escuro = css.slice(css.search(/^\.dark \.atd-central\s*\{/m));
+  const hover = escuro.match(/--list-bg-hover:\s*(#[0-9a-fA-F]{6});/)![1];
+  const work = escuro.match(/--work-bg:\s*(#[0-9a-fA-F]{6});/)![1];
+  verdade(hover !== work, `--list-bg-hover e --work-bg voltaram a ser a MESMA cor (${hover}) — o hover some sobre a conversa`);
+});
+
+teste("no escuro, o texto secundário passa o piso em TODAS as superfícies", () => {
+  const css = readFileSync("app/atendimento-central/atendimento-central.css", "utf8");
+  const escuro = css.slice(css.search(/^\.dark \.atd-central\s*\{/m));
+  // --tx-3 do tema escuro (app/globals.css). Era ele que reprovava em três superfícies.
+  const TX3 = "#93969d";
+  for (const token of ["--list-bg", "--list-bg-hover", "--work-bg", "--work-bg-raised"]) {
+    const hex = escuro.match(new RegExp(token + ":\\s*(#[0-9a-fA-F]{6});"))![1];
+    const c = contraste(TX3, hex);
+    verdade(c >= 4.5, `--tx-3 sobre ${token} (${hex}) dá ${c.toFixed(2)}:1, abaixo do piso de 4,5`);
+  }
+});
+
+
 resumo("polish do fundo azul da Central (F5.5)");

@@ -183,7 +183,16 @@ teste("os tokens de LISTA e TRABALHO existem e trocam de valor entre os dois tem
 });
 
 teste("--work-bg-raised do tema escuro é um TOKEN de verdade neste arquivo, não um número mágico solto no componente", () => {
-  verdade(CSS.includes("--work-bg-raised: #323e55;"), "o valor derivado de --work-bg-raised (escuro) não está declarado como token no arquivo de paleta");
+  // ASSERÇÃO PRESA A UMA GRAFIA, CORRIGIDA EM 25/09/2026: isto cobrava o hex literal "#323e55",
+  // então qualquer ajuste legítimo de cor a derrubava — e ela não vigiava o que promete. O que
+  // importa aqui é o MECANISMO: o token existe, é declarado no bloco do tema escuro deste arquivo
+  // de paleta, e tem um valor de cor. Qual valor é decisão de design, não de teste.
+  const iEscuro = CSS.search(/^\.dark \.atd-central\s*\{/m);
+  verdade(iEscuro > 0, "não achei a regra do tema escuro no arquivo de paleta");
+  verdade(
+    /--work-bg-raised:\s*#[0-9a-fA-F]{6};/.test(CSS.slice(iEscuro)),
+    "--work-bg-raised (escuro) não está declarado como token no arquivo de paleta",
+  );
   // E não pode estar solto em `page.tsx` como hex cru — só via var(--work-bg-raised) ou clases
   // Tailwind normais (bg-sf etc, dos componentes hospedados).
   verdade(!/#[0-9a-fA-F]{3,8}/.test(PAGE), "app/atendimento-central/page.tsx tem hex cru — algum token da paleta vazou como número mágico em vez de var(--...)");
