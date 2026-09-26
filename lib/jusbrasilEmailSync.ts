@@ -132,13 +132,59 @@ export async function findClientIdByName(content: string, officeId: string): Pro
 // Cada escritório conecta sua própria conta Google para o Jusbrasil (GoogleCredential.officeId)
 // — diferente do robô Python (lib/roboBridge.ts), aqui já dá pra saber de verdade a qual
 // escritório cada e-mail encontrado pertence, direto da credencial que o encontrou.
-async function getGmailClients(): Promise<{ gmail: ReturnType<typeof google.gmail>; accountEmail: string; officeId: string }[]> {
+type GmailAccount = {
+  gmail: ReturnType<typeof google.gmail>;
+  credentialId: string;
+  accountEmail: string;
+  officeId: string;
+  lastSyncAt: Date | null;
+};
+
+async function getGmailClients(): Promise<GmailAccount[]> {
   const creds = await prisma.googleCredential.findMany({ where: { syncJusbrasil: true } });
   return creds.map((cred) => {
     const client = getOAuthClient();
     client.setCredentials({ refresh_token: cred.refreshToken });
-    return { gmail: google.gmail({ version: "v1", auth: client }), accountEmail: cred.accountEmail, officeId: cred.officeId };
+    return {
+      gmail: google.gmail({ version: "v1", auth: client }),
+      credentialId: cred.id,
+      accountEmail: cred.accountEmail,
+      officeId: cred.officeId,
+      lastSyncAt: cred.lastSyncAt,
+    };
   });
+}
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+// Sobreposição: a Jusbrasil às vezes entrega o e-mail com atraso de um dia. Revarrer é seguro —
+// processMessage descarta por emailMessageId e, para a mesma intimação chegando por outra caixa,
+// por dia + número do processo + início do texto.
+const SOBREPOSICAO_MS = 2 * DIA_MS;
+// Caixa que nunca foi varrida com sucesso (recém-conectada, ou reconectada depois de dias em
+// invalid_grant): busca 7 dias para trás. Cobre fim de semana e feriado prolongado — e é o que
+// recupera o atraso de uma caixa que ficou derrubada — sem despejar um mês de intimações velhas
+// na fila de triagem.
+const PRIMEIRA_VARREDURA_MS = 7 * DIA_MS;
+
+// "Desde quando" buscar, POR CAIXA. Antes isto vinha da publicação mais recente do ESCRITÓRIO, de
+// qualquer fonte (JUSBRASIL_EMAIL, DJEN, DOU, PNCP, PJE...). Como o robô do DJEN e as outras
+// fontes produzem publicação todo dia, a marca ficava sempre em "hoje" — e quando a caixa de um
+// advogado voltava depois de dias com o token morto, tudo o que havia chegado nela durante a
+// queda estava ANTES da marca e nunca era buscado: ele reconectava e continuava sem receber nada.
+function janelaDaCaixa(account: GmailAccount): Date {
+  if (!account.lastSyncAt) return new Date(Date.now() - PRIMEIRA_VARREDURA_MS);
+  return new Date(account.lastSyncAt.getTime() - SOBREPOSICAO_MS);
+}
+
+// Mensagem em que o escritório consegue agir, em vez do texto cru do Google.
+export function descreverFalhaDaCaixa(accountEmail: string, raw: string): string {
+  if (/invalid_grant|invalid_request|Token has been expired or revoked/i.test(raw)) {
+    return `[${accountEmail}] A autorização do Google desta caixa expirou ou foi revogada (invalid_grant). Entre no Lúmen com essa conta e reconecte em Meu Perfil → Minha conta conectada. Se isso se repetir toda semana, a tela de consentimento OAuth do projeto no Google Cloud provavelmente está em "Testing" — nesse estado o Google expira o token a cada 7 dias.`;
+  }
+  if (/insufficient|ACCESS_TOKEN_SCOPE|insufficient_scope/i.test(raw)) {
+    return `[${accountEmail}] A autorização desta caixa não inclui a leitura do Gmail. Reconecte em Meu Perfil e aceite TODAS as permissões pedidas.`;
+  }
+  return `[${accountEmail}] Falha ao consultar o Gmail — ${raw}. Reconecte essa caixa em Meu Perfil para reautorizar o acesso ao Gmail.`;
 }
 
 async function processMessage(
@@ -240,21 +286,14 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
   const broadSubjectQuery = BROAD_SUBJECT_KEYWORDS.map((k) => `subject:"${k}"`).join(" OR ");
   const excludeKnownSenders = RELEVANT_SENDERS.map((s) => `-from:${s}`).join(" ");
 
-  for (const { gmail, accountEmail, officeId } of clients) {
+  for (const account of clients) {
+    const { gmail, accountEmail, officeId, credentialId } = account;
     result.accountsScanned++;
+    // Marcada ANTES da varredura: e-mail que chegar durante ela entra na sobreposição da próxima,
+    // em vez de cair no vão entre as duas.
+    const inicioDaVarredura = new Date();
     try {
-      // "Desde quando" buscar é por escritório — o último e-mail já importado PARA ESTE
-      // escritório (de qualquer fonte), não o mais recente da plataforma inteira.
-      const priorSync = await prisma.publication.findFirst({
-        // Lista de sources válidos de Publication — mantida em sincronia com lib/outlookEmailSync.ts
-        // (a mesma lista existe lá) e agora também com "PNCP" (lib/pncpBridge.ts, Fase 1) e "DOU"
-        // (lib/douBridge.ts, Fase 2 do Setor de Processos Administrativos), pelo mesmo motivo
-        // que "DJEN" está aqui.
-        where: { officeId, source: { in: ["JUSBRASIL_EMAIL", "DJE", "PJE", "ESAJ", "PROJUDI", "EPROC", "DJEN", "PNCP", "DOU"] } },
-        orderBy: { publishedAt: "desc" },
-      });
-      const sinceDate = priorSync ? priorSync.publishedAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const afterEpochSeconds = Math.floor(sinceDate.getTime() / 1000);
+      const afterEpochSeconds = Math.floor(janelaDaCaixa(account).getTime() / 1000);
 
       // Duas buscas: a conhecida (remetentes do Jusbrasil, parsing específico) e a ampla
       // (assunto com termos de comunicação processual, qualquer remetente — exceto os já
@@ -327,11 +366,24 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
           }
         }
       }
+      // Com .catch: se só a gravação da marca d'água falhar, o catch de baixo não deve classificar
+      // isso como falha de autorização do Gmail. Perder a marca custa uma rejanela na próxima
+      // rodada, e o dedup absorve.
+      await prisma.googleCredential
+        .update({
+          where: { id: credentialId },
+          data: { lastSyncAt: inicioDaVarredura, lastSyncError: null, lastSyncErrorAt: null },
+        })
+        .catch(() => {});
     } catch (e) {
       const message = e instanceof Error ? e.message : "erro desconhecido";
-      result.errors.push(
-        `[${accountEmail}] Falha ao consultar o Gmail — ${message}. Reconecte essa conta em Configurações para autorizar o acesso ao Gmail.`
-      );
+      const descrita = descreverFalhaDaCaixa(accountEmail, message);
+      result.errors.push(descrita);
+      // `lastSyncAt` fica como estava DE PROPÓSITO: quando a caixa voltar, a janela ainda cobre
+      // todo o período da queda e o atraso é recuperado.
+      await prisma.googleCredential
+        .update({ where: { id: credentialId }, data: { lastSyncError: descrita, lastSyncErrorAt: new Date() } })
+        .catch(() => {});
     }
   }
 
