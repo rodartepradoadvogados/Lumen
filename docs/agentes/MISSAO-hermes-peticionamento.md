@@ -75,7 +75,7 @@ validação é a leitura feita pelas ferramentas do Lúmen, que fica registrada.
 - **Aparecem** `pesquisar_jurisprudencia` e `ler_fonte_juridica` → siga para o Passo 2.
 - **Não aparecem** → diga ao dono:
   > "As ferramentas de pesquisa com Firecrawl ainda não estão no Lúmen. Elas são implementadas
-  > pelo Robô de conteúdo jurídico (Etapa 3 da missão dele, `docs/agentes/MISSAO-robo-juridico.md`).
+  > pelo Robô de conteúdo jurídico (Etapa 5 da missão dele, `docs/agentes/MISSAO-robo-juridico.md`).
   > Enquanto isso, aplico as duas regras com minhas próprias ferramentas de busca, lendo as páginas.
   > Me avise quando o PR dele estiver em produção."
 

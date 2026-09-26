@@ -1,135 +1,116 @@
-# MISSÃO: Robô de Conteúdo Jurídico implementa o Firecrawl no Lúmen
+# MISSÃO: Robô de Conteúdo Jurídico, Firecrawl + agendamento no Lúmen
 
 > **Destinatário:** o **Robô de conteúdo jurídico** (sessão do Claude Code, repositório
 > `rodartepradoadvogados/Lumen`).
-> **Quem enviou:** o dono do projeto (rodartepradoadvogados@gmail.com). Ele vai acompanhar só por
-> você: **não existe outra sessão cuidando disso**. Você executa o trabalho e **guia o dono** em
-> cada passo que só ele pode fazer (painéis, variáveis, testes na tela, decisões).
+> **Quem enviou:** o dono do projeto (rodartepradoadvogados@gmail.com). Ele acompanha **só por
+> você**: você executa e **guia o dono** nos passos que só ele pode fazer.
 >
-> Documento escrito em 25/09/2026.
+> Versão de 26/09/2026. Substitui qualquer versão anterior desta missão.
 
 ---
 
 ## 1. O que você vai entregar
 
-| # | Entrega | Especificação técnica (já está no repositório) |
+| # | Entrega | Especificação (no repositório) |
 |---|---|---|
-| A | **Robô News nativo no Lúmen:** cron diário com Firecrawl, dupla validação por código, rascunho em "Revisão Pendente", **agendamento de publicação** e aviso por e-mail | `docs/agentes/robo-news-juridico-firecrawl.md` |
-| B | **Suporte do Lúmen à pesquisa de jurisprudência do peticionamento:** ferramentas MCP de pesquisa/leitura via Firecrawl, número CNJ com dígito verificador, dupla validação obrigatória com os dois links, skill do Hermes atualizada no repositório | `docs/agentes/peticionamento-firecrawl-validacao.md` |
+| A | **Lúmen:** agendamento de publicação, aviso por e-mail, checagem de fontes no servidor e correção das lacunas da `/api/blog/draft` | `docs/agentes/robo-news-juridico-firecrawl.md`, Parte A |
+| B | **A sua própria skill** (`rp-radar-juridico`) passa a pesquisar e validar pelo **Firecrawl** | mesma especificação, Parte B |
+| C | **Lúmen, lado do peticionamento:** ferramentas MCP de pesquisa/leitura via Firecrawl para o Hermes, número CNJ com dígito verificador, dupla validação obrigatória com os dois links, skill do Hermes atualizada no repositório | `docs/agentes/peticionamento-firecrawl-validacao.md` |
 
-**Leia as duas especificações inteiras antes de começar.** Elas trazem arquivos, funções, testes e
-critérios de aceite. Este documento diz **em que ordem** trabalhar e **quando parar para falar com
-o dono**.
+**Leia as duas especificações inteiras antes de começar.** Este documento define a **ordem** e os
+**pontos de parada** com o dono.
 
-## 2. Decisões do dono que valem para toda a missão
-1. **A sua Routine diária continua rodando** (skill `.claude/skills/rp-radar-juridico/`). **Não**
-   a desligue, não a apague e não esvazie a skill. A Fase 7 da especificação A só acontece se o
-   dono disser "pode desligar", depois de você perguntar (Etapa 6).
-2. O Hermes (agente de peticionamento, em servidor próprio) recebe do dono um documento separado
-   (`docs/agentes/MISSAO-hermes-peticionamento.md`). A parte **de código** do peticionamento é
-   sua (entrega B). O Hermes só passa a usar as ferramentas depois que o seu PR estiver em produção.
-3. **Segredos:** nunca escreva valor de chave, senha ou token em código, commit, PR, log ou chat
-   (CLAUDE.md, achado F3). Se precisar de um valor, peça ao dono para colocá-lo no lugar certo
-   (Vercel ou variáveis do ambiente desta Routine). Nunca peça para ele colar o valor no chat.
-4. **Regras do repositório:** siga o `CLAUDE.md` do Lúmen (sincronizar com `origin/main`, gate
-   `tsc` + `eslint` + `next build`, commit e PR em português, padrão fail-closed). Se o
-   `next build` falhar **só** porque o ambiente não alcança o banco Neon, diga isso no PR e
-   **pergunte ao dono** antes de mergear.
+## 2. Decisões do dono
+1. **Sem `ANTHROPIC_API_KEY`.** Nada no Lúmen chama API de IA paga. **Você** continua sendo quem
+   pesquisa e redige as matérias, agora com o Firecrawl.
+2. **A sua Routine diária continua.** Não a desligue nem esvazie a sua skill. Só **melhore** a
+   skill (entrega B).
+3. **Futuro:** a redação passará ao **Hermes** (Parte C da especificação), **só quando o dono
+   pedir**. Não implemente agora.
+4. **Segredos:** nunca escreva valor de chave, senha ou token em código, commit, PR, log ou chat.
+   Nunca peça ao dono para colar um segredo no chat. Oriente-o a colocá-lo no painel certo.
+5. **Regras do repositório:** siga o `CLAUDE.md` do Lúmen (sincronizar com `origin/main`, gate
+   `tsc` + `eslint` + `next build`, PR em português, fail-closed). Build vermelho **só** por falta
+   de acesso ao banco → diga no PR e **pergunte** antes de mergear.
 
 ## 3. Como falar com o dono
-- Em cada **ponto de parada (🛑)**, envie uma mensagem curta com: o que foi feito, o que você
-  precisa dele (passo a passo numerado, dizendo onde clicar) e a pergunta objetiva. Depois
-  **espere a resposta**.
-- Não faça o dono ler código. Dê links de PR e diga o que testar na tela.
-- Um passo que falhar é relatado com o erro real e a próxima ação proposta.
+Em cada **🛑**: diga o que fez, o que precisa dele (passos numerados, dizendo onde clicar) e uma
+pergunta objetiva. Depois **espere**. Não faça o dono ler código: dê o link do PR e diga o que
+testar na tela.
 
 ---
 
-## Etapa 0: verificar o ambiente 🛑
-1. Confirme que esta sessão tem o repositório `rodartepradoadvogados/Lumen` com permissão de
-   **push** e de abrir PR. Se não tiver, oriente o dono: claude.ai → Claude Code → esta Routine ou
-   o ambiente dela → repositórios → adicionar `rodartepradoadvogados/Lumen` com escrita.
-2. Confirme se `FIRECRAWL_API_KEY` existe **nesta sessão** (`test -n "$FIRECRAWL_API_KEY"`; nunca
-   imprima o valor). Ela é necessária para a Fase 0 da especificação A (testar as fontes). Se não
-   existir, guie o dono:
-   > claude.ai → Claude Code → Environments → ambiente usado por esta Routine → Environment
-   > variables → adicionar `FIRECRAWL_API_KEY` (mesma chave cadastrada na Vercel) → salvar →
-   > reenviar esta missão numa sessão nova.
-3. Rode `npm ci` e `npm run testar` em `main` para saber se a base está verde.
+## Etapa 0: ambiente 🛑
+Verifique, **sem imprimir valores** (`test -n "$VAR"`):
+1. Acesso de **push** e PR em `rodartepradoadvogados/Lumen`.
+2. `FIRECRAWL_API_KEY` definida. Teste o saldo:
+   `curl -sS https://api.firecrawl.dev/v2/team/credit-usage -H "Authorization: Bearer $FIRECRAWL_API_KEY"`.
+3. `BLOG_ROBOT_SECRET` definida. Se o segredo estiver escrito no **prompt** da sua Routine, avise o
+   dono para movê-lo para variável de ambiente e tirá-lo do prompt.
 
-**🛑 Mensagem ao dono:** "Ambiente OK / falta X. Próximo passo: conferir as variáveis na Vercel."
+Se faltar algo, guie:
+> 1. claude.ai → Claude Code → **Routines** → "Robô de conteúdo jurídico" → veja o **Environment**.
+> 2. Abra uma sessão nesse ambiente → barra de título → nome do ambiente → **Edit** →
+>    **Environment variables**.
+> 3. Adicione a linha `NOME=valor` que faltar → **Save**.
+> 4. Me avise. Uma sessão **nova** enxerga a mudança.
 
-## Etapa 1: variáveis na Vercel (quem faz é o dono) 🛑
-Guie o dono, item por item:
-> Vercel → projeto **lumen** → Settings → Environment Variables (ambiente Production):
-> 1. Confirme que existem: `FIRECRAWL_API_KEY`, `ANTHROPIC_API_KEY`, `CRON_SECRET`, `EMAIL_HOST`,
->    `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD`.
-> 2. Adicione `RADAR_JURIDICO_ATIVO` com valor `0` (o robô novo nasce **desligado**).
-> 3. Me responda "variáveis ok" ou diga qual está faltando.
+**🛑 Mensagem ao dono:** "Ambiente ok (saldo do Firecrawl: N créditos) / falta X."
 
-Se faltar `EMAIL_*`, o aviso por e-mail não sai, mas o resto funciona. Registre e siga.
-
-## Etapa 2: entrega A, fases 0 a 6 🛑
-1. Execute a **Fase 0** da especificação A (testar as páginas de listagem das fontes com o
-   Firecrawl). **🛑 Envie o relatório ao dono:** quais fontes funcionam e o custo estimado em
-   créditos por dia. Espere o "ok".
-2. Execute as Fases 1 a 6 numa branch, com testes. Abra **um PR** (o PR A).
-3. **🛑 Guie o dono no teste do preview da Vercel** (link no PR):
-   > a) Configurações → Blog → Revisão Pendente: a nova ação **"Agendar…"** aparece?
-   > b) Agende um rascunho qualquer para daqui a 20 minutos. Ele sai de "Revisão Pendente" e vai
-   >    para a aba **"Agendadas"**?
-   > c) Depois de ~35 minutos ele aparece em `/blog` do preview?
-   > Responda "teste ok" ou descreva o que viu.
-
-   Para disparar o cron do radar no preview, você mesmo pode chamar a rota com o
-   `CRON_SECRET`, se o dono tiver colocado no seu ambiente. Senão, peça a ele que rode o comando
-   que você fornecer, sem colar o segredo no chat.
-4. Com o "teste ok" e o gate verde, **mergeie** (CLAUDE.md autoriza) ou pergunte, se o build
-   estiver vermelho só por causa do banco.
-
-## Etapa 3: entrega B, lado Lúmen do peticionamento 🛑
-1. Implemente a especificação B inteira (módulo CNJ com dígito verificador, régua de fontes, as
-   duas ferramentas MCP, lista branca e testes, prompt, e a skill
-   `servidor-hermes/skills/pesquisa-jurisprudencia/SKILL.md` atualizada sem nomes de tribunal nem
-   URLs). Abra **o PR B**.
-2. Depois do merge e do deploy em produção, **🛑 guie o dono**:
-   > 1. Publique no servidor do Hermes a skill atualizada `pesquisa-jurisprudencia`, seguindo
-   >    `servidor-hermes/LEIA-ME.md` (seção de skills). [Cite os comandos exatos que o LEIA-ME traz.]
-   > 2. Envie ao Hermes o documento `docs/agentes/MISSAO-hermes-peticionamento.md`.
-   > 3. Gere uma petição de teste com um precedente: a minuta **só pode ser aprovada** se cada
-   >    julgado tiver número CNJ completo e válido **e** os dois links (oficial + secundário). Me
-   >    diga o que aconteceu.
-
-## Etapa 4: ligar o robô News 🛑
+## Etapa 1: variáveis da Vercel 🛑
 Guie o dono:
-> 1. Vercel → lumen → Environment Variables → `RADAR_JURIDICO_ATIVO` = `1` → salvar.
-> 2. Deployments → último deploy de produção → **Redeploy** (variável nova só vale em deploy novo).
-> 3. Amanhã, depois das 06:00 (Brasília), abra Configurações → Blog → Revisão Pendente: os
->    rascunhos com selo **"Robô"** chegaram? O e-mail "Blog: N matéria(s) aguardando revisão"
->    chegou?
-> 4. Em cada rascunho: **Publicar agora**, **Agendar…** ou **Rejeitar**.
+> Vercel → projeto **lumen** → Settings → Environment Variables. Confirme que existem, em
+> Production: `CRON_SECRET`, `BLOG_ROBOT_SECRET`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`,
+> `EMAIL_PASSWORD` e `FIRECRAWL_API_KEY` (esta também em **Preview**). Responda "ok" ou diga o
+> que falta.
 
-Enquanto isso, a sua Routine antiga também continua mandando rascunhos pela `/api/blog/draft`.
-**Avise o dono** que, nesse período, podem aparecer matérias parecidas das duas origens. O
-anti-duplicata (mesmo título ou mesma fonte em 60 dias) barra os casos idênticos.
+`ANTHROPIC_API_KEY` **não** é necessária. Sem `EMAIL_*`, o aviso por e-mail não sai, mas o resto
+funciona.
 
-## Etapa 5: acompanhamento (3 dias úteis)
-A cada dia, nas execuções da sua Routine, verifique (se tiver acesso) ou pergunte ao dono:
-quantos rascunhos o cron novo gerou, quantos foram rejeitados e se houve erro. Corrija defeitos
-por PR.
+## Etapa 2: entrega A (Lúmen) 🛑
+1. Implemente a **Parte A** da especificação, com testes. Abra **o PR A**.
+2. **🛑 Guie o dono no preview** (link no PR):
+   > a) Configurações → Blog → Revisão Pendente: aparece o botão **"Agendar…"**?
+   > b) Agende um rascunho para daqui a 20 minutos: ele vai para a aba **"Agendadas"**?
+   > c) Depois de ~35 minutos, ele aparece em `/blog` do preview?
+   > d) Chegou o e-mail "Blog: nova matéria aguardando revisão"? (Só se houver rascunho novo no
+   >    preview; se não houver, este item é testado na Etapa 4.)
+   > Responda "teste ok" ou conte o que viu.
+3. Gate verde + "teste ok" → mergeie (o CLAUDE.md autoriza). Se o build estiver vermelho só por
+   causa do banco, pergunte antes.
 
-## Etapa 6: decisão sobre o robô antigo 🛑
-Pergunte ao dono, com os números da Etapa 5:
-> "O robô novo gerou X rascunhos em 3 dias (Y aprovados, Z rejeitados). Quer desligar a Routine
-> antiga agora (Fase 7 da especificação), manter as duas por mais tempo, ou manter só a antiga e
-> desligar o cron novo (`RADAR_JURIDICO_ATIVO=0`)?"
+## Etapa 3: entrega B (sua skill com Firecrawl) 🛑
+1. **Depois** do PR A em produção (a API passa a recusar fontes insuficientes), atualize
+   `.claude/skills/rp-radar-juridico/SKILL.md` conforme a **Parte B**.
+   - Na primeira execução, teste as páginas de listagem e fixe na skill as que funcionam.
+2. Abra **o PR B** e **🛑 peça ao dono para mergear** (a skill muda o comportamento da Routine
+   diária):
+   > "Este PR muda como eu pesquiso: passo a ler as fontes pelo Firecrawl. Confira e mergeie. A
+   > partir da próxima execução diária, uso o novo modo."
 
-Execute **só** o que ele escolher. Na Fase 7, **o dono** desativa ou apaga a Routine no claude.ai
-(guie o clique). Você só marca a skill como descontinuada, por PR.
+## Etapa 4: primeira execução no modo novo 🛑
+Na próxima execução diária, depois do merge do PR B, envie ao dono um relatório:
+- fontes lidas;
+- candidatos encontrados;
+- matérias enviadas e descartadas, com o motivo;
+- créditos gastos.
 
----
+E guie:
+> "Abra Configurações → Blog → Revisão Pendente: as matérias com selo **Robô** chegaram? O
+> e-mail chegou? Em cada uma: **Publicar agora**, **Agendar…** ou **Rejeitar**."
+
+## Etapa 5: entrega C (peticionamento, lado Lúmen) 🛑
+1. Implemente `docs/agentes/peticionamento-firecrawl-validacao.md`. Abra **o PR C**.
+2. Depois do merge e do deploy, **🛑 guie o dono**:
+   > 1. Publique no servidor do Hermes a skill atualizada `servidor-hermes/skills/pesquisa-jurisprudencia/`,
+   >    seguindo o `servidor-hermes/LEIA-ME.md`. [Cite aqui os comandos exatos que o LEIA-ME traz.]
+   > 2. Envie ao Hermes o documento `docs/agentes/MISSAO-hermes-peticionamento.md`. Ele vai te
+   >    guiar no teste.
 
 ## Encerramento
-A missão termina quando os PRs A e B estiverem em produção, o teste do peticionamento tiver passado
-e a decisão da Etapa 6 tiver sido tomada. Mande ao dono um resumo final: PRs, o que ficou ligado, o
-que ficou pendente e onde está cada configuração.
+Quando os PRs A, B e C estiverem em produção e a Etapa 4 tiver rodado bem, mande ao dono um resumo
+final:
+- os PRs;
+- o que ficou ligado;
+- os créditos médios por dia;
+- o que fica para o futuro: a redação pelo Hermes, **só quando o dono pedir**.
