@@ -1,4 +1,4 @@
-# MISSÃO: Hermes, dupla validação de jurisprudência com Firecrawl
+# MISSÃO: Hermes, dupla validação de jurisprudência (Parte 1) e redação das matérias do blog (Parte 2)
 
 > **Destinatário:** **Hermes**, agente de peticionamento do Lúmen (perfil `peticionamento-lumen`).
 > **Quem enviou:** o dono do escritório. Ele não vai consultar outra fonte: **você** o guia nos
@@ -110,3 +110,56 @@ toda minuta segue as Regras 1 e 2."
   toolsets e informe no resultado da minuta que a validação foi feita fora do Lúmen.
 - Página oficial não abre: o precedente **não é citado**. Nunca preencha número "de memória".
 - Qualquer dúvida sobre as regras: prevalece "não citar" sobre "citar sem prova".
+
+
+---
+
+# Parte 2: redação das matérias do blog do Lúmen (etapa final)
+
+> **Quando vale:** só depois que o Robô de conteúdo jurídico concluir a **Etapa 6** da missão dele
+> (`docs/agentes/MISSAO-robo-juridico.md`) e o dono criar o perfil **`materias-lumen`** no seu
+> servidor. Até lá, a Parte 1 é a única ativa.
+
+## 2.1 Como vai funcionar
+- Uma vez por dia (06:00, Brasília), o Lúmen faz sozinho a varredura e a **dupla validação**
+  das fontes pelo Firecrawl.
+- Para cada pauta validada, o Lúmen chama **você**, no perfil `materias-lumen` (que usa o seu
+  modelo via OpenRouter), entregando: as regras, as áreas permitidas e o **texto das fontes já
+  lidas**.
+- Você **redige** e devolve a matéria. O Lúmen confere e grava como **rascunho**, em
+  Configurações → Blog → Revisão Pendente. **Quem publica é sempre um advogado.**
+
+## 2.2 Regras de redação (inegociáveis)
+- **Use só o que está no texto das fontes recebidas.** Nenhum fato, número de processo, ementa,
+  data ou citação de fora. Sem certeza, omita.
+- Fontes divergentes: diga isso explicitamente no texto.
+- **Paráfrase sempre.** Citação literal só curta e entre aspas.
+- `type`: `NOTICIA` (1 a 3 parágrafos) ou `ANALISE` (o que mudou, por que importa, impacto
+  prático).
+- `title` objetivo (≤ 180 caracteres); `summary` com 1 a 2 frases (≤ 400); `content` em markdown
+  simples (≤ 12.000): parágrafos, `##`/`###`, listas, negrito, itálico. **Sem imagem.**
+- `area`: **exatamente** uma das áreas que o Lúmen enviar na mensagem.
+- Linguagem de publicação jurídica séria, sem autopromoção, observando as regras de publicidade da
+  advocacia (skill `etica-oab-publicidade`, se estiver no perfil).
+
+## 2.3 Formato de resposta (o Lúmen só aceita isto)
+```
+###MATERIA_JSON###
+{"title": "...", "area": "...", "type": "NOTICIA", "summary": "...", "content": "..."}
+###FIM###
+```
+- Nada antes nem depois dos marcadores.
+- JSON inválido, área fora da lista ou campo faltando: o Lúmen **descarta** a matéria.
+- Se as fontes não sustentam uma matéria, responda o JSON com `"title": ""`. O Lúmen entende
+  como "sem matéria".
+
+## 2.4 Primeira coisa a fazer nesta parte: guiar o dono 🛑
+1. Pergunte se o perfil `materias-lumen` já existe no servidor e se a chave do **OpenRouter** está
+   no `.env` desse perfil. Para conferir, peça ao dono para rodar no servidor:
+   `hermes -p materias-lumen config check` (tudo com ✓).
+2. Pergunte se a skill `redacao-materias-blog` foi instalada nesse perfil (o Robô jurídico a
+   deixa no repositório, em `servidor-hermes/skills/redacao-materias-blog/`).
+3. Quando o dono avisar que ligou `RADAR_JURIDICO_ATIVO=1` na Vercel, diga:
+   > "Amanhã, depois das 06:00, confira Configurações → Blog → Revisão Pendente. As matérias com
+   > selo Robô foram redigidas por mim a partir das fontes validadas pelo Lúmen. Revise, publique,
+   > agende ou rejeite. Rejeições me ajudam: se quiser, me diga o motivo."

@@ -15,7 +15,8 @@
 |---|---|---|
 | A | **Lúmen:** agendamento de publicação, aviso por e-mail, checagem de fontes no servidor e correção das lacunas da `/api/blog/draft` | `docs/agentes/robo-news-juridico-firecrawl.md`, Parte A |
 | B | **A sua própria skill** (`rp-radar-juridico`) passa a pesquisar e validar pelo **Firecrawl** | mesma especificação, Parte B |
-| C | **Lúmen, lado do peticionamento:** ferramentas MCP de pesquisa/leitura via Firecrawl para o Hermes, número CNJ com dígito verificador, dupla validação obrigatória com os dois links, skill do Hermes atualizada no repositório | `docs/agentes/peticionamento-firecrawl-validacao.md` |
+| C1 | **Lúmen, lado do peticionamento:** ferramentas MCP de pesquisa/leitura via Firecrawl para o Hermes, número CNJ com dígito verificador, dupla validação obrigatória com os dois links, skill do Hermes atualizada no repositório | `docs/agentes/peticionamento-firecrawl-validacao.md` |
+| D | **Etapa final: redação das matérias pelo Hermes** (perfil `materias-lumen`, OpenRouter), com varredura e validação feitas pelo próprio Lúmen via Firecrawl | `robo-news-juridico-firecrawl.md`, Parte C |
 
 **Leia as duas especificações inteiras antes de começar.** Este documento define a **ordem** e os
 **pontos de parada** com o dono.
@@ -25,8 +26,8 @@
    pesquisa e redige as matérias, agora com o Firecrawl.
 2. **A sua Routine diária continua.** Não a desligue nem esvazie a sua skill. Só **melhore** a
    skill (entrega B).
-3. **Futuro:** a redação passará ao **Hermes** (Parte C da especificação), **só quando o dono
-   pedir**. Não implemente agora.
+3. **Etapa final:** a redação passa ao **Hermes** (Parte C da especificação, Etapa 6 abaixo).
+   Implemente **por último**, só depois de A, B e C1 (peticionamento) funcionando.
 4. **Segredos:** nunca escreva valor de chave, senha ou token em código, commit, PR, log ou chat.
    Nunca peça ao dono para colar um segredo no chat. Oriente-o a colocá-lo no painel certo.
 5. **Regras do repositório:** siga o `CLAUDE.md` do Lúmen (sincronizar com `origin/main`, gate
@@ -45,8 +46,18 @@ Verifique, **sem imprimir valores** (`test -n "$VAR"`):
 1. Acesso de **push** e PR em `rodartepradoadvogados/Lumen`.
 2. `FIRECRAWL_API_KEY` definida. Teste o saldo:
    `curl -sS https://api.firecrawl.dev/v2/team/credit-usage -H "Authorization: Bearer $FIRECRAWL_API_KEY"`.
-3. `BLOG_ROBOT_SECRET` definida. Se o segredo estiver escrito no **prompt** da sua Routine, avise o
-   dono para movê-lo para variável de ambiente e tirá-lo do prompt.
+3. `BLOG_ROBOT_SECRET` definida no ambiente. **Atenção, confirmado em 26/09/2026: o prompt atual
+   da Routine "Robô de conteúdo jurídico — Lúmen" traz o valor desse segredo em texto puro** (linha
+   `export BLOG_ROBOT_SECRET=...`). Guie o dono, **nesta ordem**, para a Routine não quebrar:
+   > 1. Coloque `BLOG_ROBOT_SECRET` (o mesmo valor da Vercel) nas Environment variables do ambiente
+   >    da Routine.
+   > 2. claude.ai/code → Routines → "Robô de conteúdo jurídico — Lúmen" → editar o prompt → apague
+   >    a linha do `export BLOG_ROBOT_SECRET=...` e escreva no lugar: "use a variável de ambiente
+   >    BLOG_ROBOT_SECRET". Salve.
+   > 3. Recomendado, quando o dono quiser: gerar um valor novo (o antigo ficou exposto no prompt),
+   >    trocar na Vercel **e** no ambiente ao mesmo tempo, e fazer Redeploy na Vercel.
+
+   Você não edita a Routine: quem clica é o dono.
 
 Se faltar algo, guie:
 > 1. claude.ai → Claude Code → **Routines** → "Robô de conteúdo jurídico" → veja o **Environment**.
@@ -107,10 +118,31 @@ E guie:
    > 2. Envie ao Hermes o documento `docs/agentes/MISSAO-hermes-peticionamento.md`. Ele vai te
    >    guiar no teste.
 
+## Etapa 6: redação pelo Hermes (etapa final) 🛑
+Só comece com as Etapas 2 a 5 concluídas e funcionando.
+1. **🛑 Guie o dono no servidor do Hermes**, conforme a Parte C2 da especificação:
+   - criar o perfil `materias-lumen` e colocar a chave do **OpenRouter** no `.env` desse perfil;
+   - rodar `hermes -p materias-lumen config check`.
+
+   Cite os comandos exatos do `servidor-hermes/LEIA-ME.md`.
+2. Implemente as Partes C2 (skill `redacao-materias-blog` no repositório) e C3 (Lúmen). Abra o
+   **PR D**.
+3. Depois do merge, **🛑 guie o dono**:
+   > 1. Instale a skill `redacao-materias-blog` no perfil `materias-lumen`, conforme o LEIA-ME.
+   > 2. Envie ao Hermes a **Parte 2** de `docs/agentes/MISSAO-hermes-peticionamento.md` (redação
+   >    de matérias), se ainda não enviou o documento inteiro.
+   > 3. Vercel → lumen → Environment Variables → `RADAR_JURIDICO_ATIVO` = `1` → Save →
+   >    Deployments → ⋯ → Redeploy.
+   > 4. Amanhã, depois das 06:00 (Brasília): em Revisão Pendente aparecem matérias com selo Robô
+   >    vindas do Hermes? Chegou o e-mail?
+4. Acompanhe 3 dias úteis, com a Routine e o Hermes rodando juntos. Depois, **🛑 pergunte**:
+   > "O Hermes gerou X rascunhos (Y aprovados, Z rejeitados). Posso considerar a Routine
+   > dispensável? Se sim: claude.ai/code → Routines → 'Robô de conteúdo jurídico — Lúmen' →
+   > desative (ou apague). Eu marco a skill antiga como descontinuada."
+
 ## Encerramento
-Quando os PRs A, B e C estiverem em produção e a Etapa 4 tiver rodado bem, mande ao dono um resumo
-final:
+Com os PRs A, B, C e D em produção e a decisão da Etapa 6 tomada, mande ao dono um resumo final:
 - os PRs;
 - o que ficou ligado;
 - os créditos médios por dia;
-- o que fica para o futuro: a redação pelo Hermes, **só quando o dono pedir**.
+- onde está cada configuração.

@@ -9,8 +9,9 @@
 >   (Claude Code, skill `.claude/skills/rp-radar-juridico/`), que passa a usar o **Firecrawl**.
 > - **O Lúmen ganha:** agendamento de publicação, aviso por e-mail, checagem de fontes feita pelo
 >   servidor e correção das lacunas da API.
-> - **Futuro (não fazer agora):** a redação passa para o **Hermes** (que usa OpenRouter no próprio
->   servidor), descrito na Parte C, só como referência.
+> - **Etapa final (decisão do dono de 26/09/2026): a redação passa para o Hermes** (que usa o
+>   OpenRouter no próprio servidor, sem chave nova na Vercel). É a **Parte C**, implementada **por
+>   último**, depois que as Partes A e B estiverem funcionando. Até lá, a Routine segue redigindo.
 >
 > Levantamento sobre `main` em 26/09/2026. Confira `git log -1 origin/main` antes de começar e
 > reconfirme os pontos citados.
@@ -187,16 +188,68 @@ Atualize `.claude/skills/rp-radar-juridico/SKILL.md`, mantendo todas as regras e
 5. **Teto:** 30 chamadas Firecrawl por execução.
 6. **Plano B:** sem Firecrawl, use a pesquisa antiga com as mesmas regras e avise no relatório.
 
-## Parte C: futuro, redação pelo Hermes (NÃO implementar agora)
-Quando o dono pedir:
-- **Perfil novo no Hermes** (ex.: `materias-lumen`), usando o OpenRouter que já está no servidor
-  dele. Nenhuma chave nova na Vercel.
-- **Cron no Lúmen:** faz a varredura e a validação com `lib/firecrawl.ts`, usa `validarFontes` e
-  envia ao Hermes pela ponte existente (`lib/hermesPonte.ts`, padrão de `perguntarAoHermesComPerfil`)
-  o markdown das fontes lidas.
-- **Retorno:** o Hermes devolve `{title, area, type, summary, content}`, e o Lúmen grava com
-  `origem: "ROBO_HERMES"`.
-- **A Routine** é desligada só por decisão do dono.
+## Parte C: etapa final, redação pelo Hermes (implementar por último)
+**Objetivo:** o Lúmen passa a fazer a varredura e a validação com o Firecrawl (`lib/firecrawl.ts`).
+Quem **redige** é o Hermes, com o OpenRouter configurado no servidor dele. A Routine deixa de ser
+necessária e o dono decide quando desligá-la.
+
+### C1. Variáveis (Vercel, projeto lumen)
+| Variável | Situação | Uso |
+|---|---|---|
+| `HERMES_URL`, `HERMES_TOKEN` | já existem (ponte do chat e do peticionamento) | chamar o Hermes |
+| `HERMES_PERFIL_MATERIAS` | **nova, opcional** (padrão `materias-lumen`) | perfil do Hermes que redige |
+| `RADAR_JURIDICO_ATIVO` | já criada pelo dono com `0` | `1` liga o cron; qualquer outro valor desliga |
+| `FIRECRAWL_API_KEY`, `CRON_SECRET` | já existem | varredura/validação e auth do cron |
+
+**Nenhuma** `ANTHROPIC_API_KEY`. O Lúmen não chama API de IA diretamente.
+
+### C2. Servidor do Hermes (quem faz é o dono, guiado por você)
+- **Perfil `materias-lumen`:** crie seguindo o `servidor-hermes/LEIA-ME.md`, com a chave do
+  **OpenRouter** no `.env` **do perfil**. Confira com `hermes -p materias-lumen config env-path` e
+  `hermes -p materias-lumen config check`.
+- **Skill nova no repositório:** `servidor-hermes/skills/redacao-materias-blog/SKILL.md`, com as
+  regras editoriais da seção 4 e o formato de saída da C3. Ela precisa passar em
+  `lib/testes/skillsHermesSemDadoDeEscritorio.teste.ts`: sem nomes de tribunal, sem URLs e sem
+  dados do escritório. Instale a skill no perfil conforme o LEIA-ME.
+
+### C3. Lúmen
+- **`lib/radarJuridico.ts` (puro, com testes):** extração de candidatos das listagens,
+  `validarFontes` (reaproveite `lib/blogRegras.ts`) e montagem da mensagem ao Hermes. A mensagem
+  leva as regras, a área permitida e o markdown **das fontes lidas** (cortado em ~6.000 caracteres
+  por fonte) e exige a resposta **só** entre os marcadores:
+  ```
+  ###MATERIA_JSON###
+  {"title": "...", "area": "...", "type": "NOTICIA|ANALISE", "summary": "...", "content": "..."}
+  ###FIM###
+  ```
+  O Hermes **não** pode acrescentar fato, número ou citação que não esteja no markdown fornecido.
+- **`lib/radarJuridicoExecutar.ts`:**
+  1. memória de 60 dias;
+  2. `lerPagina` nas listagens (teto de 30 chamadas);
+  3. seleção de até 3 candidatos por heurística simples: palavras-chave de pauta e tribunais
+     superiores primeiro, descartando as duplicatas;
+  4. validação: `buscarNaWeb` + `lerPagina` na oficial e no portal;
+  5. redação: para cada candidato validado, `perguntarAoHermesComPerfil` (`lib/hermesPonte.ts`)
+     com o perfil `HERMES_PERFIL_MATERIAS ?? "materias-lumen"`. Se o tempo de resposta não couber
+     no `maxDuration`, use o padrão assíncrono (`iniciarGeracaoNoHermes` /
+     `consultarGeracaoNoHermes`) com um segundo cron de coleta.
+  6. validação da resposta: JSON entre os marcadores, `areaValida` e limites. Falhou, descarta
+     e registra o motivo.
+  7. grava `AGUARDANDO_REVISAO` com `origem: "ROBO_HERMES"` e dispara o aviso por e-mail da A6.
+- **Cron `app/api/cron/radar-juridico/route.ts`:** `GET`, `maxDuration = 300`, auth `CRON_SECRET`
+  fail-closed. Sem `RADAR_JURIDICO_ATIVO=1`, sem Firecrawl ou sem Hermes configurado, responde
+  `{ executado: false, motivo }`.
+- **`vercel.json`:** `{ "path": "/api/cron/radar-juridico", "schedule": "0 9 * * *" }`, que é
+  **06:00 em Brasília**.
+- **Testes:** montagem da mensagem sem dado de escritório, parser dos marcadores (JSON inválido,
+  área fora da lista, campo faltando → descarta) e cron fail-closed.
+
+### C4. Transição
+1. Liga com `RADAR_JURIDICO_ATIVO=1` e Redeploy. Durante 3 dias úteis, **Routine e Hermes rodam
+   juntos**; o anti-duplicata barra os casos iguais.
+2. Depois, pergunte ao dono se quer **desligar a Routine**. Com o "pode desligar":
+   - o dono pausa ou apaga a Routine no claude.ai;
+   - você marca a skill `rp-radar-juridico` como descontinuada, por PR.
 
 ---
 
