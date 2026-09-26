@@ -1,309 +1,221 @@
 # Robô News Jurídico com Firecrawl: especificação de implementação
 
-> **Para quem é este documento:** o agente de IA que vai **implementar** o novo robô de matérias
-> jurídicas do blog do Lúmen. Ao final, ele **substitui integralmente** o robô atual
-> (`.claude/skills/rp-radar-juridico/`, disparado por uma Routine do Claude), que então é desligado.
+> **Para quem é este documento:** o agente de IA (Robô de conteúdo jurídico, sessão do Claude Code
+> no repositório Lumen) que vai implementar a nova versão do fluxo de matérias jurídicas do blog.
 >
-> **Regra de leitura:** siga as fases na ordem. Cada fase tem uma condição de saída. Não comece a
-> fase seguinte com a anterior vermelha. Em caso de dúvida sobre regra editorial, **a regra deste
-> documento prevalece sobre qualquer suposição**. Se algo não bater com o código real, pare e
-> pergunte ao dono do projeto (rodartepradoadvogados@gmail.com).
+> **Decisão do dono (26/09/2026), que define a arquitetura:**
+> - **Sem `ANTHROPIC_API_KEY`.** O Lúmen não chama nenhuma API de IA paga para redigir matéria.
+> - **Por agora, quem pesquisa e redige continua sendo a Routine do Robô de conteúdo jurídico**
+>   (Claude Code, skill `.claude/skills/rp-radar-juridico/`), que passa a usar o **Firecrawl**.
+> - **O Lúmen ganha:** agendamento de publicação, aviso por e-mail, checagem de fontes feita pelo
+>   servidor e correção das lacunas da API.
+> - **Futuro (não fazer agora):** a redação passa para o **Hermes** (que usa OpenRouter no próprio
+>   servidor), descrito na Parte C, só como referência.
 >
-> Levantamento feito sobre `main` em 25/09/2026. Confira `git log -1 origin/main` antes de começar.
-> Se o código tiver mudado nos pontos citados, reconfirme antes de seguir.
+> Levantamento sobre `main` em 26/09/2026. Confira `git log -1 origin/main` antes de começar e
+> reconfirme os pontos citados.
 
 ---
 
-## 1. O que existe hoje (e vai ser esvaziado)
+## 1. Como funciona hoje
 
-| Peça | Onde | Estado atual |
+| Peça | Onde | Estado |
 |---|---|---|
-| Robô (instruções) | `.claude/skills/rp-radar-juridico/SKILL.md` | Skill do Claude. Roda **fora** do Lúmen, numa Routine diária (manhã, Brasília), em sessão nova a cada disparo. A Routine é configurada no claude.ai e não está no repositório. |
-| Entrada de rascunhos | `app/api/blog/draft/route.ts` | `GET ?days=N` (memória anti-duplicata) e `POST` (cria rascunho). Auth `Authorization: Bearer $BLOG_ROBOT_SECRET`, fail-closed. |
-| Modelo | `prisma/schema.prisma` → `model BlogPost` | `status` é **string** com 3 valores: `AGUARDANDO_REVISAO`, `PUBLICADO`, `REJEITADO`. **Não há campo de agendamento.** |
-| Revisão/aprovação | `app/(app)/configuracoes/page.tsx` (seção `blog`, abas `revisao`/`publicadas`/`fotos`) + `components/BlogReviewManager.tsx` + `lib/actions/blog.ts` | Só admin do escritório com `blogAccess`. Publicar = público **na hora**. |
-| Blog público | `app/blog/page.tsx`, `app/blog/[slug]/page.tsx`, `app/sitemap.ts` | Leem só `status: "PUBLICADO", excluidaEm: null`. |
-| Aviso de rascunho novo | não existe | O único sinal hoje é o contador "Revisão Pendente (N)". |
-| Firecrawl | `lib/firecrawl.ts` | Cliente só servidor, fail-closed. Nada o usa ainda. |
-
-**Defeitos do fluxo atual que esta implementação corrige:**
-1. Depende de uma Routine externa (sessão efêmera, sem estado, sem log dentro do Lúmen).
-2. Não existe **agendamento** de publicação.
-3. Ninguém é **avisado** quando chega rascunho.
-4. A API aceita `area` livre, sem limite de tamanho e sem exigir `sources`.
-
----
+| Robô | `.claude/skills/rp-radar-juridico/SKILL.md` + Routine diária no claude.ai | Pesquisa por conta própria, sem Firecrawl. Envia rascunho pela API. |
+| Entrada | `app/api/blog/draft/route.ts` | `GET ?days=N` (memória anti-duplicata) e `POST` (cria `AGUARDANDO_REVISAO`). Auth `Bearer $BLOG_ROBOT_SECRET`, fail-closed. **Aceita `area` livre, sem limite de tamanho e sem exigir `sources`.** |
+| Modelo | `prisma/schema.prisma` → `BlogPost` | `status` é string: `AGUARDANDO_REVISAO` / `PUBLICADO` / `REJEITADO`. **Não há agendamento.** |
+| Aprovação | `app/(app)/configuracoes/page.tsx` (seção `blog`), `components/BlogReviewManager.tsx`, `lib/actions/blog.ts`, versão mobile em `app/m/configuracoes/page.tsx` | Só admin com `blogAccess`. Publicar = público na hora. |
+| Público | `app/blog/page.tsx`, `app/blog/[slug]/page.tsx`, `app/sitemap.ts` | Leem só `PUBLICADO` e `excluidaEm: null`. |
+| Aviso | não existe | Só o contador "Revisão Pendente (N)". |
 
 ## 2. Arquitetura alvo
 
-Tudo passa a rodar **dentro do Lúmen**, na Vercel, sem Routine e sem sessão de Claude Code:
-
 ```
-Vercel Cron (1x/dia)                       Vercel Cron (a cada 15 min)
-      │                                              │
-      ▼                                              ▼
-/api/cron/radar-juridico                   /api/cron/blog-publicar-agendadas
-      │                                              │
-      ├─ 1. varredura (Firecrawl: lerPagina)         └─ publica BlogPost AGENDADO
-      ├─ 2. triagem (Claude, API Anthropic)             com agendadaPara <= agora
-      ├─ 3. dupla validação (Firecrawl: buscarNaWeb + lerPagina)
-      ├─ 4. redação (Claude)
-      ├─ 5. anti-duplicata (mesma regra da API atual)
-      ├─ 6. grava BlogPost AGUARDANDO_REVISAO
-      └─ 7. e-mail aos admins: "N rascunhos aguardando revisão"
-
-Admin, em Configurações → Blog → Revisão Pendente:
-   [Editar]  [Publicar agora]  [Agendar…]  [Rejeitar]  [Excluir]
+Routine diária (Claude Code)                     Lúmen (Vercel)
+ skill rp-radar-juridico                         ───────────────────────────────────────
+  1. GET /api/blog/draft?days=30 (memória)  ──▶  lista posts 30 dias
+  2. varredura: Firecrawl /scrape nas listagens
+  3. validação: Firecrawl /search + /scrape
+     (1 portal + 1 oficial, ambos LIDOS)
+  4. redação (a própria Routine)
+  5. POST /api/blog/draft  ────────────────────▶ valida área, limites e FONTES (servidor)
+                                                  anti-duplicata → grava AGUARDANDO_REVISAO
+                                                  e-mail aos admins
+ Admin: Configurações → Blog → Revisão Pendente
+   [Editar] [Publicar agora] [Agendar…] [Rejeitar] [Excluir]
+ Cron /api/cron/blog-publicar-agendadas (15 min) → publica AGENDADO vencido
 ```
 
-**Princípio que não muda:** o robô **nunca publica**. Tudo entra como `AGUARDANDO_REVISAO`. Só um
-advogado admin publica, agora ou agendado.
+**Princípio que não muda:** robô **nunca publica**. Só advogado admin publica, agora ou agendado.
+
+## 3. Credenciais (só nomes; nenhum valor em código, commit, PR ou chat)
+
+| Variável | Onde | Uso |
+|---|---|---|
+| `FIRECRAWL_API_KEY` | **Ambiente da Routine** no claude.ai (e também na Vercel, para as ferramentas do peticionamento) | Varredura e validação feitas pela Routine |
+| `BLOG_ROBOT_SECRET` | Vercel **e** ambiente da Routine | Auth da `/api/blog/draft`. Se hoje estiver escrito no **prompt** da Routine, mova para variável de ambiente e tire do prompt. |
+| `CRON_SECRET` | Vercel (já existe) | Auth do cron novo de publicação agendada |
+| `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` | Vercel | Aviso de rascunho novo (`sendSimpleEmail`, `lib/email.ts`) |
+
+`RADAR_JURIDICO_ATIVO` e `ANTHROPIC_API_KEY` **não são usadas** nesta versão. Se o dono criou
+`RADAR_JURIDICO_ATIVO` na Vercel, ela pode ficar; é inofensiva.
+
+**Orçamento do Firecrawl:** 1.000 créditos/mês, compartilhados com MilkNews e peticionamento. Teto
+da Routine: **30 chamadas por execução**. Consulte `GET https://api.firecrawl.dev/v2/team/credit-usage`
+no início. Com menos de 150 créditos, reduza para 1 matéria no dia e avise.
+
+## 4. Regras editoriais (inalteradas; valem literalmente)
+- **Fontes:**
+  - portais: Migalhas, Conjur e Jusbrasil **só notícias**;
+  - oficiais: STF, STJ, TST, TSE, TJs, TRFs, TRTs (`*.jus.br`), e `planalto.gov.br`, `in.gov.br`,
+    `camara.leg.br`, `senado.leg.br` para lei.
+  - A pasta "DOUTRINA" do Drive continua fora.
+- **Pauta:** decisões de tribunais superiores, mudanças legislativas, teses vinculantes, notícias de
+  alto impacto.
+- **Meta:** cerca de 3 matérias/dia, mas **nunca forçar**. 0, 1 ou 2 é normal.
+- **Dupla validação:** pelo menos duas fontes independentes **lidas**.
+  - Com decisão judicial: **1 portal + 1 página oficial `*.jus.br`**.
+  - Sem decisão judicial: quaisquer duas independentes, preferindo a oficial.
+  - Sem fonte oficial do tribunal, não publica. Divergência, declara no texto.
+  - Snippet não é fonte. Nunca inventar número, ementa ou citação.
+- **Formato:**
+  - `type` NOTICIA (1 a 3 parágrafos) ou ANALISE;
+  - `title` objetivo; `summary` com 1 a 2 frases; `content` em markdown simples; **sem imagem**;
+    paráfrase.
+  - `area` **exatamente** um de: Cível, Consumerista, Empresarial, Tributário, Trabalhista,
+    Previdenciário, Administrativo, Licitação, Compliance, Due Diligence, Contratual,
+    Responsabilidade Civil, Execuções.
+  - `sources` = URLs lidas.
 
 ---
 
-## 3. Credenciais e variáveis de ambiente
+## Parte A: código do Lúmen
 
-**Nenhum valor real entra no repositório, no chat, em commit ou em PR** (CLAUDE.md, achado F3 da
-auditoria). Valores reais ficam só na **Vercel → lumen → Settings → Environment Variables** e no
-gerenciador de senhas (`docs/vault-chaves/README.md`). No código, leia de `process.env`.
+### A1. Schema (aditivo, seguro para `prisma db push`)
+Em `model BlogPost`, **só campos opcionais**:
+```prisma
+agendadaPara    DateTime?
+agendadaPorId   String?
+agendadaPor     User?     @relation("BlogPostAgendador", fields: [agendadaPorId], references: [id])
+origem          String?   // "ROBO_ROUTINE" | "API_MANUAL" | "ROBO_HERMES" (futuro) | null (legado)
+@@index([status, agendadaPara])
+```
+- Novo valor de `status`: `AGENDADO` (documente no comentário do modelo).
+- Relação inversa em `User`.
 
-| Variável | Já existe? | Uso | Onde o dono obtém |
-|---|---|---|---|
-| `FIRECRAWL_API_KEY` | Sim (Vercel) | Varredura e validação (`lib/firecrawl.ts`) | firecrawl.dev → Dashboard → API Keys |
-| `FIRECRAWL_API_URL` | Opcional | Só se houver Firecrawl auto-hospedado | — |
-| `ANTHROPIC_API_KEY` | Sim | Triagem e redação (mesmo SDK de `app/api/assistente/route.ts`) | console.anthropic.com |
-| `CRON_SECRET` | Sim | Autentica os 2 crons novos (padrão dos crons existentes) | Aleatório, já configurado |
-| `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` | Sim | Aviso de rascunhos novos (`sendSimpleEmail` em `lib/email.ts`) | Provedor SMTP |
-| `BLOG_ROBOT_SECRET` | Sim | Continua protegendo `/api/blog/draft`, que fica como **entrada manual/legada**. Não é mais usado pelo robô. | Aleatório |
-| `RADAR_JURIDICO_ATIVO` | **Nova** | `"1"` liga o cron. Qualquer outro valor desliga. Chave de emergência sem deploy. | Definir na Vercel |
+### A2. Biblioteca pura `lib/blogRegras.ts` (sem rede, sem Prisma) + testes
+- `AREAS_DO_BLOG`, `areaValida(area)`.
+- `ehOficial(url)`: `*.jus.br`, `planalto.gov.br`, `in.gov.br`, `camara.leg.br`, `senado.leg.br`.
+- `ehPortalJuridico(url)`: migalhas.com.br, conjur.com.br, jusbrasil.com.br/noticias.
+- `validarFontes(sources)`: ≥ 2 URLs `https://`, de **domínios distintos**, com **pelo menos 1
+  oficial**. Devolve `{ ok } | { ok: false, motivo }`.
+- `normalizarTitulo` e `ehDuplicata`, **extraídas** da rota atual (mesma regra: título normalizado
+  igual ou URL de fonte igual, 60 dias, inclusive rejeitados e excluídos). A rota passa a importar
+  daqui.
+- Limites: título ≤ 180, summary ≤ 400, content ≤ 12.000.
 
-**Fail-closed obrigatório:**
-- Os dois crons recusam com 401 sem `CRON_SECRET` correto (copie o padrão de
-  `app/api/cron/resumo-diario/route.ts`).
-- Sem `FIRECRAWL_API_KEY` ou `ANTHROPIC_API_KEY`, o cron do radar **não faz nada**. Ele registra
-  "não configurado" e devolve 200 com `{ executado: false, motivo }`. Nunca cai em modo anônimo
-  nem inventa conteúdo.
+Testes em `lib/testes/blogRegras.teste.ts` (estilo `executar.ts`):
+- área fora da lista → recusa;
+- 1 fonte só → recusa;
+- 2 fontes do mesmo domínio → recusa;
+- 2 portais sem oficial → recusa;
+- Conjur + `stj.jus.br` → aceita;
+- `planalto.gov.br` + Migalhas → aceita;
+- título duplicado com acento/caixa diferente → duplicata.
 
-**Modelo de IA:** use a mesma constante/modelo do assistente (`app/api/assistente/route.ts`,
-`const MODEL`). Não escreva um ID de modelo novo sem necessidade.
+### A3. Endurecer `POST /api/blog/draft`
+- Recusar com **400** e mensagem clara: `area` inválida, limites estourados, `validarFontes`
+  reprovado.
+- Aceitar campo opcional `origem` (`"ROBO_ROUTINE"`), gravando `API_MANUAL` quando ausente.
+- **Depois de criar**, disparar o aviso da A6 sem bloquear a resposta (erro de e-mail não muda o 201).
+- `GET` inalterado.
 
-**Orçamento do Firecrawl:** o plano atual tem **1.000 créditos/mês** (1 scrape ≈ 1 crédito, 1 busca
-≈ 1 crédito por resultado). Teto por execução: **30 chamadas** (constante `LIMITE_CHAMADAS_FIRECRAWL`).
-Ao atingir o teto, o cron encerra o ciclo com o que já validou.
+### A4. Agendamento
+- `lib/actions/blog.ts`, no padrão `assertBlogAdmin()`:
+  - `scheduleBlogPost(id, agendadaParaISO, imageUrl?)`: data ≥ agora + 5 min →
+    `status "AGENDADO"`, `agendadaPara`, `agendadaPorId`, `reviewedById`, `reviewedAt`;
+  - `unscheduleBlogPost(id)`: volta para `AGUARDANDO_REVISAO`;
+  - `publishBlogPost` limpa `agendadaPara`.
+- Cron `app/api/cron/blog-publicar-agendadas/route.ts`: `GET`, `maxDuration = 60`, auth
+  `CRON_SECRET` fail-closed (copie `app/api/cron/resumo-diario/route.ts`).
+  - Passa `AGENDADO` com `agendadaPara <= agora` e `excluidaEm: null` para `PUBLICADO`, com
+    `publishedAt = agendadaPara`.
+  - Depois chama `revalidatePath("/blog")` e o slug de cada post publicado.
+- `vercel.json` → `crons`: `{ "path": "/api/cron/blog-publicar-agendadas", "schedule": "*/15 * * * *" }`.
 
----
+### A5. Tela
+Em `components/BlogReviewManager.tsx` e `app/m/configuracoes/page.tsx`:
+- Botão **"Agendar…"** com `datetime-local` no fuso **America/Sao_Paulo** (converter para UTC ao
+  gravar).
+- Aba **"Agendadas (N)"** (`?secao=blog&blogTab=agendadas`), ordenada por `agendadaPara asc`, com
+  "Cancelar agendamento" e "Publicar agora".
+- Selo **"Robô"** quando `origem` começa com `ROBO_`.
 
-## 4. Regras editoriais (herdadas do robô atual; valem literalmente)
+O blog público **não muda** (só `PUBLICADO`).
 
-### 4.1 Fontes
-- **Portais jurídicos:** Migalhas (`https://www.migalhas.com.br/`), Conjur
-  (`https://www.conjur.com.br/`), Jusbrasil **somente notícias** (`https://www.jusbrasil.com.br/noticias/`).
-  Nunca toque em publicações processuais do Jusbrasil. Isso é outro sistema (`robo-publicacoes/`).
-- **Oficiais:** sites de STF, STJ, TST, TSE, tribunais superiores, TJs, TRFs, TRTs (domínios
-  `*.jus.br`). Para lei: `planalto.gov.br`, `in.gov.br` (Diário Oficial), `camara.leg.br`, `senado.leg.br`.
-- A pasta "DOUTRINA" do Drive continua **fora**.
+### A6. Aviso por e-mail
+Por rascunho criado, um e-mail a cada admin com `blogAccess` do escritório interno
+(`getPlatformOffice()`), via `sendSimpleEmail`:
+- assunto: `Blog: nova matéria aguardando revisão: <título>`;
+- corpo: área, resumo e link para `/configuracoes?secao=blog&blogTab=revisao`.
 
-### 4.2 Pauta
-Decisões de tribunais superiores, mudanças legislativas, teses vinculantes (repetitivos, súmulas,
-IRDR, ADI/ADC) e notícias de alto impacto.
+Sem `EMAIL_*`, só registra e segue.
 
-### 4.3 Meta
-Cerca de **3 matérias por dia** (NOTICIA + ANALISE somadas). **A meta nunca justifica forçar
-conteúdo fraco**: 0, 1 ou 2 no dia é normal.
+### A7. Documentação
+- `.env.example`: acrescente `BLOG_ROBOT_SECRET=` (hoje ausente), só o nome.
+- Atualize `docs/CONTEXTO-COMPLETO-PROJETO.md` §13.
 
-### 4.4 Dupla validação (inegociável, e **verificada por código**, não só pelo modelo)
-Cada matéria precisa de **pelo menos duas fontes independentes, efetivamente lidas** (via
-`lerPagina`, com markdown não vazio):
-- Havendo decisão judicial: **obrigatoriamente** 1 portal jurídico (4.1) **+** 1 página oficial do
-  tribunal envolvido (`*.jus.br`).
-- Sem decisão judicial (ex.: lei nova): quaisquer duas independentes, preferindo a oficial.
-- **Não achou a fonte oficial do tribunal? Não gera a matéria.**
-- Fontes divergentes: pode gerar, mas o texto **declara a divergência explicitamente**.
-- Snippet de busca **não é fonte**. Só conta página lida.
-- **Nunca inventar** fundamentação, número de processo, ementa ou citação. Dado não confirmado
-  fica de fora ou vai marcado como não confirmado.
-
-A checagem em código (função pura, testável) exige:
-`fontes.length >= 2`, domínios distintos, e, se `temDecisaoJudicial`, um domínio da lista de
-portais e um `*.jus.br`.
-
-### 4.5 Formato
-- `type`: `NOTICIA` (1 a 3 parágrafos) ou `ANALISE` (o que mudou, por que importa, impacto
-  prático por área).
-- `title` objetivo; `summary` com 1 a 2 frases; `content` em markdown simples (o que
-  `lib/markdownSimples.tsx` renderiza: parágrafos, `##`/`###`, citação, listas, tabelas, negrito,
-  itálico, links http/https).
-- **Nunca incluir imagem.** A foto é escolhida pelo admin na revisão.
-- Paráfrase sempre. Citação literal só curta e entre aspas.
-- `area`: **exatamente** um destes valores: Cível, Consumerista, Empresarial, Tributário,
-  Trabalhista, Previdenciário, Administrativo, Licitação, Compliance, Due Diligence, Contratual,
-  Responsabilidade Civil, Execuções.
-- `sources`: URLs reais das páginas lidas, uma por linha no banco.
-
----
-
-## 5. Fases de implementação
-
-### Fase 0: sincronizar e confirmar o terreno (sem escrever código)
-1. `git fetch origin main -q` e crie a branch a partir de `origin/main`.
-2. Releia os arquivos da seção 1 e confirme que nada mudou.
-3. Teste o Firecrawl a partir de um script local, com a chave vinda do ambiente e **nunca colada no
-   código**. Faça `lerPagina` em cada página de listagem candidata:
+## Parte B: a skill da Routine passa a usar o Firecrawl
+Atualize `.claude/skills/rp-radar-juridico/SKILL.md`, mantendo todas as regras editoriais:
+1. **Início:** confira `FIRECRAWL_API_KEY` e `BLOG_ROBOT_SECRET` no ambiente (sem imprimir). Faltou
+   alguma, pare e avise o dono. Consulte o saldo de créditos.
+2. **Varredura:** `POST https://api.firecrawl.dev/v2/scrape`
+   `{"url": "<listagem>", "formats": ["markdown"], "onlyMainContent": true}` nas páginas de
+   listagem que funcionarem. Teste e fixe a lista na primeira execução. Ponto de partida:
    - `https://www.migalhas.com.br/quentes`
    - `https://www.conjur.com.br/`
    - `https://noticias.stf.jus.br/`
-   - a página de últimas notícias do STJ e do TST (descubra a URL atual com
-     `buscarNaWeb("últimas notícias site:stj.jus.br")`)
+   - últimas notícias do STJ e do TST (ache a URL com `/search`)
    - `https://www.jusbrasil.com.br/noticias/`
+3. **Validação:**
+   - `POST /v2/search {"query": "<tema> site:<tribunal>.jus.br", "limit": 5}` para achar a oficial;
+   - `/scrape` para **ler** a oficial e o portal;
+   - só conta página com markdown não vazio.
+4. **Envio:** `POST /api/blog/draft` com `"origem": "ROBO_ROUTINE"` e `sources` = as URLs lidas. O
+   servidor agora **recusa** fontes insuficientes (400): não tente contornar. Descarte a matéria e
+   registre o motivo.
+5. **Teto:** 30 chamadas Firecrawl por execução.
+6. **Plano B:** sem Firecrawl, use a pesquisa antiga com as mesmas regras e avise no relatório.
 
-   Anote quais devolvem markdown útil. **As URLs acima são ponto de partida, não verdade.** Fixe no
-   código só as que funcionarem.
-4. **Saída:** um relatório curto ao dono com o que funciona, o que não funciona e quantos créditos
-   um ciclo deve gastar. Só siga com a lista de fontes validada.
-
-### Fase 1: schema de agendamento (aditivo, seguro para `db push`)
-Em `model BlogPost`, **só acrescente campos opcionais** (o build de produção roda
-`prisma db push`, e o projeto não tem pasta `migrations`):
-```prisma
-agendadaPara    DateTime?   // quando AGENDADO: momento de publicar
-agendadaPorId   String?
-agendadaPor     User?       @relation("BlogPostAgendador", fields: [agendadaPorId], references: [id])
-origem          String?     // "ROBO_RADAR" | "API_MANUAL" | null (legado)
-@@index([status, agendadaPara])
-```
-- Novo valor de `status`: `AGENDADO` (é string, não enum; documente no comentário do modelo).
-- Adicione a relação inversa em `User`.
-- **Saída:** `npx prisma validate` e `npx tsc --noEmit -p .` limpos.
-
-### Fase 2: biblioteca pura do robô, `lib/radarJuridico.ts` (sem rede, sem Prisma)
-Funções puras e testáveis:
-- `AREAS_DO_BLOG` (lista da seção 4.5) e `areaValida(area)`.
-- `PORTAIS_JURIDICOS` (domínios migalhas.com.br, conjur.com.br, jusbrasil.com.br/noticias) e
-  `ehOficial(url)` (`*.jus.br`, `planalto.gov.br`, `in.gov.br`, `camara.leg.br`, `senado.leg.br`).
-- `validarFontes({ fontes, temDecisaoJudicial })` → `{ ok: true } | { ok: false, motivo }`,
-  implementando a seção 4.4.
-- `normalizarTitulo` e `ehDuplicata(candidato, existentes)`. **Extraia** a lógica de
-  `app/api/blog/draft/route.ts` (título normalizado igual **ou** URL de fonte igual, janela de 60
-  dias, incluindo rejeitados e excluídos) para cá. Faça a rota passar a usar a mesma função, para
-  não haver duas regras.
-- Limites: título ≤ 180, summary ≤ 400, content ≤ 12.000 caracteres.
-
-Aproveite para fechar os buracos da API legada: `POST /api/blog/draft` passa a recusar com 400
-`area` fora da lista, campos acima do limite e `sources` com menos de 2 URLs.
-
-**Testes:** `lib/testes/radarJuridico.teste.ts`, no estilo de `lib/testes/executar.ts`:
-- matéria com decisão judicial e só portal → recusa;
-- sem `*.jus.br` → recusa;
-- 2 fontes do mesmo domínio → recusa;
-- lei com `planalto.gov.br` + Conjur → aceita;
-- área fora da lista → recusa;
-- título duplicado com acento/caixa diferente → duplicata;
-- mesma URL de fonte → duplicata.
-
-### Fase 3: orquestração, `lib/radarJuridicoExecutar.ts` (com rede e Prisma)
-Ciclo, com teto de chamadas e de tempo (deixe 30s de folga do `maxDuration`):
-1. **Memória:** carregue os `BlogPost` do escritório interno (`getPlatformOffice()` de
-   `lib/officeModules.ts`) dos últimos 60 dias, em qualquer status.
-2. **Varredura:** `lerPagina` nas listagens validadas na Fase 0. Extraia manchete + URL de cada item.
-3. **Triagem (Claude):** envie a lista de manchetes (não o conteúdo inteiro) + as regras 4.2/4.3.
-   Peça no máximo 6 candidatos, em JSON estrito:
-   `[{ manchete, url, area, type, temDecisaoJudicial, tribunal }]`. Descarte os que `ehDuplicata`
-   já pegar.
-4. **Validação por candidato:**
-   - `lerPagina(url)` da fonte original.
-   - Se `temDecisaoJudicial`: `buscarNaWeb("<tema> site:<domínio do tribunal>")`, depois
-     `lerPagina` no melhor resultado oficial. Sem página oficial lida, **descarta**.
-   - Se a original é oficial, busque o portal (Migalhas/Conjur/Jusbrasil) do mesmo fato.
-   - Rode `validarFontes`. Reprovou, descarta e registra o motivo.
-5. **Redação (Claude):** entregue o markdown das fontes lidas + as regras 4.4/4.5. Resposta em JSON
-   estrito `{ title, area, type, summary, content, divergencia: string|null }`. Rejeite a resposta
-   (não grave) se o JSON for inválido, se `areaValida` falhar ou se os limites estourarem.
-   **O prompt proíbe número de processo, ementa ou citação que não esteja no markdown fornecido.**
-6. **Gravação:** `prisma.blogPost.create` com `status: "AGUARDANDO_REVISAO"`,
-   `origem: "ROBO_RADAR"`, `sources` = URLs lidas juntadas por `\n`, e slug no mesmo formato da rota
-   (`app/api/blog/draft/route.ts`: kebab sem acento, base ≤ 80 caracteres + 6 hex).
-7. **Log:** um `console.info` estruturado por ciclo: candidatos, descartados (com motivo), gravados,
-   chamadas Firecrawl usadas. Nunca logue chave nem conteúdo inteiro.
-
-### Fase 4: crons
-- `app/api/cron/radar-juridico/route.ts`: `GET`, `export const maxDuration = 300`,
-  `dynamic = "force-dynamic"`, auth `CRON_SECRET` (fail-closed), respeita `RADAR_JURIDICO_ATIVO`.
-- `app/api/cron/blog-publicar-agendadas/route.ts`: `GET`, `maxDuration = 60`, auth `CRON_SECRET`.
-  Faz `updateMany` de `status: "AGENDADO", agendadaPara <= now, excluidaEm: null` para
-  `status: "PUBLICADO", publishedAt: agendadaPara`. Depois chama `revalidatePath("/blog")` e o slug
-  de cada post publicado.
-- Em `vercel.json` → `crons`:
-  ```json
-  { "path": "/api/cron/radar-juridico", "schedule": "0 9 * * *" },
-  { "path": "/api/cron/blog-publicar-agendadas", "schedule": "*/15 * * * *" }
-  ```
-  Cron da Vercel é em **UTC**: `0 9 * * *` = **06:00 em Brasília**. Rascunhos ficam prontos antes
-  do expediente.
-
-### Fase 5: aprovação e agendamento na tela
-Em `lib/actions/blog.ts` (mesmo padrão `assertBlogAdmin()`, escopo `officeId` + `excluidaEm: null`,
-`revalidatePath`):
-- `scheduleBlogPost(id, agendadaParaISO, imageUrl?)`: exige data futura (≥ agora + 5 min), grava
-  `status: "AGENDADO"`, `agendadaPara`, `agendadaPorId`, `reviewedById`, `reviewedAt`.
-- `unscheduleBlogPost(id)`: volta para `AGUARDANDO_REVISAO` e limpa o agendamento.
-- `publishBlogPost` continua publicando **agora** e limpa `agendadaPara`.
-
-Na UI (`components/BlogReviewManager.tsx` e a versão mobile em `app/m/configuracoes/page.tsx`):
-- botão **"Agendar…"** ao lado de "Publicar", com `<input type="datetime-local">` exibido no fuso
-  **America/Sao_Paulo** e convertido para UTC ao gravar;
-- nova aba **"Agendadas (N)"** em `?secao=blog&blogTab=agendadas`, listando `status: "AGENDADO"` por
-  `agendadaPara asc`, com "Cancelar agendamento" e "Publicar agora";
-- selo "Robô" nos cartões com `origem = "ROBO_RADAR"`.
-
-O blog público **não muda**: continua lendo só `PUBLICADO`. Agendado nunca vaza antes da hora.
-
-### Fase 6: aviso de rascunhos novos
-Ao fim do ciclo, se gravou ≥ 1 rascunho, envie **um** e-mail por admin com `blogAccess` do
-escritório interno, via `sendSimpleEmail(to, subject, html)` de `lib/email.ts`:
-- assunto: `Blog: N matéria(s) aguardando revisão`;
-- corpo: títulos + área + link para `/configuracoes?secao=blog&blogTab=revisao`.
-
-Falha de e-mail **não** derruba o cron. Registre e siga.
-
-### Fase 7: desligar o robô antigo (SÓ POR DECISÃO EXPRESSA DO DONO)
-> Decisão do dono em 25/09/2026: a Routine atual **continua rodando** durante e depois da
-> implementação. Não execute esta fase por iniciativa própria. Depois de 3 dias úteis do cron novo
-> funcionando bem, **pergunte** ao dono se ele quer desligar a Routine; só siga com "pode desligar".
-1. Peça ao dono para **desativar a Routine** do `rp-radar-juridico` no claude.ai. O agente não
-   deve apagar Routines por conta própria.
-2. Substitua o conteúdo de `.claude/skills/rp-radar-juridico/SKILL.md` por um aviso de
-   descontinuação que aponte para este documento e para o cron `/api/cron/radar-juridico`. Remova o
-   gatilho "roda o robô de conteúdo jurídico" da descrição, para ele não ser mais acionado.
-3. `/api/blog/draft` **continua existindo** como entrada manual (útil para colar uma pauta
-   pontual), com as validações novas da Fase 2.
-4. Atualize `docs/CONTEXTO-COMPLETO-PROJETO.md` §13 e `.env.example`. Acrescente
-   `BLOG_ROBOT_SECRET=` (hoje ausente) e `RADAR_JURIDICO_ATIVO=`, só os nomes.
+## Parte C: futuro, redação pelo Hermes (NÃO implementar agora)
+Quando o dono pedir:
+- **Perfil novo no Hermes** (ex.: `materias-lumen`), usando o OpenRouter que já está no servidor
+  dele. Nenhuma chave nova na Vercel.
+- **Cron no Lúmen:** faz a varredura e a validação com `lib/firecrawl.ts`, usa `validarFontes` e
+  envia ao Hermes pela ponte existente (`lib/hermesPonte.ts`, padrão de `perguntarAoHermesComPerfil`)
+  o markdown das fontes lidas.
+- **Retorno:** o Hermes devolve `{title, area, type, summary, content}`, e o Lúmen grava com
+  `origem: "ROBO_HERMES"`.
+- **A Routine** é desligada só por decisão do dono.
 
 ---
 
-## 6. Verificação antes do PR (gate do CLAUDE.md)
+## Verificação (gate do CLAUDE.md)
 ```bash
 rm -rf .next && npx tsc --noEmit -p .
 npx eslint <arquivos alterados>
 npm run testar
 npx next build
 ```
-Se o build falhar só no pré-render que precisa do banco (ambiente sem acesso ao Neon), **diga isso
-no PR e não mergeie sozinho**. Deixe a decisão para o dono.
+Build vermelho **só** por falta de acesso ao banco no ambiente → diga no PR e pergunte antes de
+mergear.
 
-Teste manual depois do deploy de preview:
-1. `curl -H "Authorization: Bearer $CRON_SECRET" https://<preview>/api/cron/radar-juridico` gera
-   rascunhos com ≥ 2 fontes cada.
-2. Agendar um rascunho para daqui a 20 min: ele some da aba Revisão, aparece em Agendadas e, após o
-   cron de 15 min, aparece em `/blog`.
-3. Sem `CRON_SECRET` no header → 401. Com `RADAR_JURIDICO_ATIVO=0` → `{ executado: false }`.
-
-## 7. Critérios de aceite
-- [ ] Nenhum rascunho gravado sem 2 fontes lidas e aprovadas por `validarFontes`.
-- [ ] Nenhum post aparece em `/blog` sem ação de um admin (publicar ou agendar).
-- [ ] Agendamento publica no horário (tolerância: 15 min) e respeita o fuso de Brasília na tela.
-- [ ] Admins recebem e-mail quando há rascunho novo.
-- [ ] Tudo desliga com `RADAR_JURIDICO_ATIVO=0` sem deploy.
-- [ ] Routine antiga desativada pelo dono e skill marcada como descontinuada.
-- [ ] Nenhum segredo no diff (`git diff | grep -i "fc-\|sk-ant"` vazio).
-- [ ] Commit e PR em português, detalhando causa raiz, impacto e correção (padrão do repositório).
+## Critérios de aceite
+- [ ] `POST /api/blog/draft` recusa área inválida, limites estourados e fontes sem oficial ou do
+      mesmo domínio.
+- [ ] Agendamento publica no horário (tolerância de 15 min), com hora de Brasília na tela, e nada
+      vaza antes.
+- [ ] Admins recebem e-mail a cada rascunho novo.
+- [ ] A Routine usa o Firecrawl para ler e validar, e o saldo é respeitado.
+- [ ] Nenhuma chamada a API de IA paga no Lúmen.
+- [ ] Nenhum segredo no diff.
