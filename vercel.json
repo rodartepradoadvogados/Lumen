@@ -13,6 +13,7 @@
     { "path": "/api/cron/campanhas-provisionamento", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/alerta-memoria-hermes", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/resumo-diario", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/blog-publicar-agendadas", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/drive-sync", "schedule": "0 5 * * *" },
     { "path": "/api/cron/expirar-acessos", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/comunicados-outbox", "schedule": "*/15 * * * *" },

@@ -43,7 +43,11 @@ const PETICIONAMENTO_CITACAO_MODEL = blocoDoModelo(SCHEMA, "PeticionamentoCitaca
 
 teste("a varredura achou o bloco certo do modelo BlogPost, e não o arquivo inteiro nem outro modelo", () => {
   verdade(BLOG_POST_MODEL.length > 200, "blocoDoModelo não achou 'model BlogPost { ... }' — varredura cega");
-  verdade(BLOG_POST_MODEL.length < 3000, "o bloco transbordou para o próximo modelo — a contagem de chaves não fechou no lugar certo");
+  // Teto reajustado em 26/09/2026 (docs/agentes/robo-news-juridico-firecrawl.md, Parte A1): o
+  // modelo ganhou agendadaPara/agendadaPorId/agendadaPor/origem, com comentário explicando cada
+  // um — cresceu de propósito, não por transbordo. O teto continua bem abaixo do que um transbordo
+  // para "model Photo" produziria (a asserção seguinte prova isso de outro jeito).
+  verdade(BLOG_POST_MODEL.length < 4200, "o bloco transbordou para o próximo modelo — a contagem de chaves não fechou no lugar certo");
   verdade(!BLOG_POST_MODEL.includes("model Photo"), "o bloco extraído engoliu o modelo seguinte (Photo) — corpo errado, as asserções abaixo valeriam para outro modelo");
 });
 
@@ -96,10 +100,13 @@ teste("deleteBlogPost não encontra (e não reprocessa) uma matéria já excluí
     "o findFirst de deleteBlogPost deixou de exigir excluidaEm: null — clicar duas vezes, ou duas abas na mesma matéria, encontraria e reprocessaria quem já foi excluído");
 });
 
-teste("todo findFirst de lib/actions/blog.ts (as 6 ações) exige excluidaEm: null — nenhuma ação opera sobre matéria já excluída", () => {
+teste("todo findFirst de lib/actions/blog.ts (as 8 ações) exige excluidaEm: null — nenhuma ação opera sobre matéria já excluída", () => {
+  // 6 → 8 em 26/09/2026 (Parte A4 do agendamento): scheduleBlogPost e unscheduleBlogPost seguem o
+  // mesmo portão das demais ações — mesmo findFirst com officeId + excluidaEm: null antes de mexer
+  // no post.
   const semComentarios = codigoDe(BLOG_ACTIONS_FONTE);
   const comGuardaCompleta = [...semComentarios.matchAll(/officeId:\s*viewer\.officeId,\s*excluidaEm:\s*null/g)];
-  igual(comGuardaCompleta.length, 6, "esperava 6 ocorrências de 'officeId: viewer.officeId, excluidaEm: null' (uma por ação) em lib/actions/blog.ts — alguma ação perdeu a guarda contra matéria já excluída");
+  igual(comGuardaCompleta.length, 8, "esperava 8 ocorrências de 'officeId: viewer.officeId, excluidaEm: null' (uma por ação) em lib/actions/blog.ts — alguma ação perdeu a guarda contra matéria já excluída");
 });
 
 // ── 3. TODO PONTO DE LEITURA QUE MOSTRA A MATÉRIA exclui quem já foi excluído ───────────────────

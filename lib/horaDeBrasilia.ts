@@ -158,6 +158,48 @@ export function lerPeriodoEmBrasilia(
 }
 
 /**
+ * O instante UTC correspondente a um horário de relógio (ano/mês/dia/hora/minuto) no fuso do
+ * escritório — mesma técnica de duas passagens de `inicioDoDiaEmBrasilia`, generalizada para
+ * incluir hora e minuto.
+ */
+export function instanteEmBrasilia(
+  ano: number,
+  mes: number,
+  dia: number,
+  hora: number,
+  minuto: number,
+  fuso: string = FUSO_DO_ESCRITORIO,
+): Date {
+  const ingenuo = Date.UTC(ano, mes - 1, dia, hora, minuto, 0, 0);
+  let instante = new Date(ingenuo - deslocamentoMs(new Date(ingenuo), fuso));
+  instante = new Date(ingenuo - deslocamentoMs(instante, fuso));
+  return instante;
+}
+
+/**
+ * Lê o valor bruto de um `<input type="datetime-local">` ("2026-09-19T14:30") como horário do
+ * fuso do escritório e devolve o instante UTC correspondente — usado no agendamento de publicação
+ * do blog (docs/agentes/robo-news-juridico-firecrawl.md, Parte A4/A5). Devolve nulo para texto
+ * fora do formato esperado ou para um dia de calendário que não existe (ex.: 31 de abril).
+ */
+export function lerDatetimeLocalEmBrasilia(texto: string | undefined | null, fuso: string = FUSO_DO_ESCRITORIO): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec((texto || "").trim());
+  if (!m) return null;
+  const [, anoS, mesS, diaS, horaS, minutoS] = m;
+  const ano = Number(anoS);
+  const mes = Number(mesS);
+  const dia = Number(diaS);
+  const hora = Number(horaS);
+  const minuto = Number(minutoS);
+  if (mes < 1 || mes > 12 || dia < 1 || dia > 31 || hora > 23 || minuto > 59) return null;
+  const instante = instanteEmBrasilia(ano, mes, dia, hora, minuto, fuso);
+  // Dia que "rolou" para outro mês (31 de abril vira 1º de maio em qualquer conta de calendário)
+  // é recusado em vez de aceito em silêncio — mesma trava de `lerPeriodoEmBrasilia`.
+  if (diaDeBrasilia(instante, fuso) !== `${anoS}-${mesS}-${diaS}`) return null;
+  return instante;
+}
+
+/**
  * "09/2026" — mês e ano, no fuso do escritório.
  *
  * Existe porque a tela da Assessoria mostra "Desde MM/AAAA" e fazia isso com um

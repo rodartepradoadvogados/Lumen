@@ -442,6 +442,7 @@ model User {
   microsoftCredentials        MicrosoftCredential[]
   blogPostsReviewed           BlogPost[]              @relation("BlogPostReviewer")
   blogPostsExcluidos          BlogPost[]              @relation("BlogPostExcluidoPor")
+  blogPostsAgendados          BlogPost[]              @relation("BlogPostAgendador")
   emailsSent                  EmailMessage[]          @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]            @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[]   @relation("AssessoriaDocumentoUploadedBy")
@@ -3491,7 +3492,7 @@ model BlogPost {
   content        String // corpo da matéria, pode ser markdown simples
   sources        String? // URLs das fontes usadas, uma por linha (texto simples)
   imageUrl       String? // preenchido manualmente pelo admin antes de publicar
-  status         String    @default("AGUARDANDO_REVISAO") // AGUARDANDO_REVISAO | PUBLICADO | REJEITADO
+  status         String    @default("AGUARDANDO_REVISAO") // AGUARDANDO_REVISAO | AGENDADO | PUBLICADO | REJEITADO
   rejectedReason String?
   reviewedById   String?
   reviewedBy     User?     @relation("BlogPostReviewer", fields: [reviewedById], references: [id])
@@ -3499,6 +3500,20 @@ model BlogPost {
   publishedAt    DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  /// AGENDAMENTO (docs/agentes/robo-news-juridico-firecrawl.md, Parte A4) — admin escolhe uma
+  /// data/hora futura em vez de publicar na hora; o cron blog-publicar-agendadas passa a
+  /// PUBLICADO quando `agendadaPara` vence. Campos aditivos e anuláveis, seguros para
+  /// `prisma db push` — mesmo padrão de excluidaEm/excluidaPorId abaixo.
+  agendadaPara  DateTime?
+  agendadaPorId String?
+  agendadaPor   User?     @relation("BlogPostAgendador", fields: [agendadaPorId], references: [id])
+
+  /// ORIGEM da matéria — quem a criou, para diferenciar selo "Robô" na tela e, no futuro,
+  /// permitir métricas por fonte. "ROBO_ROUTINE" (skill rp-radar-juridico via POST /api/blog/draft),
+  /// "API_MANUAL" (POST sem o campo, ou enviado por outra ferramenta), "ROBO_HERMES" (Parte C,
+  /// ainda não implementada) ou null (matéria legada, criada antes deste campo existir).
+  origem String?
 
   /// EXCLUSÃO (pedido do dono, 24/09/2026 — botão "excluir" na matéria cadastrada pelo
   /// escritório, tanto em revisão pendente quanto já publicada).
@@ -3524,6 +3539,7 @@ model BlogPost {
   @@unique([officeId, slug])
   @@index([officeId, status, publishedAt])
   @@index([officeId, area])
+  @@index([status, agendadaPara])
 }
 
 // ============ BIBLIOTECA DE FOTOS ============

@@ -220,8 +220,34 @@ ferramenta), então o robô não consulta essa pasta nas execuções agendadas �
 reflete isso. Para reativar no futuro, seria preciso recriar a Routine pela UI de Routines
 em claude.ai a partir de uma sessão com o conector do Google Drive já conectado.
 
-**Pendência:** `BLOG_ROBOT_SECRET` foi gerado nesta sessão e precisa ser colado como
-variável de ambiente (Production) no projeto Vercel `rp-financeiro` — sem isso o GET/POST
-respondem 401 e o robô fica bloqueado. Buscar o valor exato com o usuário (foi entregue a
-ele fora deste documento, por ser segredo) se for preciso reconfigurar.
+**Pendência (resolvida em 2026-09):** `BLOG_ROBOT_SECRET` já está configurada na Vercel
+(Production) e no ambiente da Routine — o GET/POST funcionam normalmente.
 - Projeto Railway do robô: `rp-financeiro-robo-publicacoes` (id `8abe7add-585c-468f-82bf-de8bc9266297`)
+
+### 13.1. Agendamento, aviso por e-mail e Firecrawl (2026-09-26)
+
+Decisão do dono de 26/09/2026 — `docs/agentes/robo-news-juridico-firecrawl.md` — reformulou este
+fluxo em quatro partes, sem `ANTHROPIC_API_KEY` em nenhuma delas:
+
+- **Parte A (Lúmen, implementada):** `POST /api/blog/draft` passou a **recusar** (400) área fora
+  da lista, limites de tamanho estourados ou fontes insuficientes (menos de 2 URLs `https://` de
+  domínios distintos, ou nenhuma oficial) — regras extraídas para `lib/blogRegras.ts`, puras e
+  testadas. A matéria criada ganhou um campo `origem` (`ROBO_ROUTINE` | `API_MANUAL` |
+  `ROBO_HERMES`, exibido como selo "Robô" na tela) e passou a poder ser **agendada**: além de
+  "Publicar agora", o admin escolhe uma data/hora futura (`datetime-local`, fuso
+  America/Sao_Paulo — conversão para UTC em `lib/horaDeBrasilia.ts:lerDatetimeLocalEmBrasilia`), o
+  post fica `AGENDADO` e o cron `/api/cron/blog-publicar-agendadas` (a cada 15 min) confirma a
+  publicação sozinho quando vence. Cada rascunho novo dispara um e-mail aos admins com
+  `blogAccess` (`sendBlogDraftNotificationEmails`, `lib/email.ts`) — sem `EMAIL_*`, só não envia,
+  não bloqueia a criação.
+- **Parte B (skill de conta, fora deste repositório):** a Routine passou a varrer as listagens e
+  validar as fontes pelo **Firecrawl** (`https://api.firecrawl.dev`) em vez da pesquisa livre de
+  antes — `.claude/skills/rp-radar-juridico/SKILL.md`. Continua sendo quem redige, por enquanto.
+- **Parte C1 (peticionamento, lado Lúmen):** ver `docs/agentes/peticionamento-firecrawl-validacao.md`
+  — número CNJ com dígito verificador obrigatório, dupla validação de citação com as duas URLs
+  (oficial + secundária independente), e duas ferramentas MCP novas (`pesquisar_jurisprudencia`,
+  `ler_fonte_juridica`, `lib/firecrawl.ts`) liberadas para o Hermes no peticionamento.
+- **Parte C3 (etapa final, ainda não ligada):** a própria redação passa do robô-Routine para o
+  **Hermes** (perfil `materias-lumen`, OpenRouter no servidor dele) — o Lúmen só varre e valida
+  via Firecrawl e manda o material já validado para o Hermes redigir. Gate: `RADAR_JURIDICO_ATIVO`
+  na Vercel (`1` liga o cron `/api/cron/radar-juridico`, qualquer outro valor desliga).

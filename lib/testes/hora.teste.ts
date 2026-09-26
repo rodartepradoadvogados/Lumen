@@ -9,6 +9,7 @@ import {
   inicioDoDiaEmBrasilia,
   lerPeriodoEmBrasilia,
   mesEAnoDeBrasilia,
+  lerDatetimeLocalEmBrasilia,
 } from "@/lib/horaDeBrasilia";
 
 // ============================================================================
@@ -171,6 +172,25 @@ teste("mês e ano saem no fuso do escritório, não no do servidor", () => {
   igual(mesEAnoDeBrasilia(new Date("2026-10-01T01:00:00Z")), "09/2026");
   igual(mesEAnoDeBrasilia(new Date("2026-09-30T22:00:00-03:00")), "09/2026");
   igual(mesEAnoDeBrasilia(new Date("2026-10-01T00:30:00-03:00")), "10/2026");
+});
+
+// ── Agendamento (datetime-local) ─────────────────────────────────────────────────────────────
+
+teste("datetime-local em Brasília converte para o instante UTC correto", () => {
+  // 19/09/2026 14:30 em Brasília = 17:30 UTC.
+  igual(lerDatetimeLocalEmBrasilia("2026-09-19T14:30")?.toISOString(), "2026-09-19T17:30:00.000Z");
+});
+
+teste("datetime-local aceita segundos no final, mas ignora", () => {
+  igual(lerDatetimeLocalEmBrasilia("2026-09-19T14:30:00")?.toISOString(), "2026-09-19T17:30:00.000Z");
+});
+
+teste("datetime-local em texto inválido devolve nulo", () => {
+  igual(lerDatetimeLocalEmBrasilia(""), null);
+  igual(lerDatetimeLocalEmBrasilia(undefined), null);
+  igual(lerDatetimeLocalEmBrasilia("não é data"), null);
+  igual(lerDatetimeLocalEmBrasilia("2026-13-01T10:00"), null); // mês inexistente
+  igual(lerDatetimeLocalEmBrasilia("2026-04-31T10:00"), null); // dia que rola pra maio
 });
 
 resumo("Hora de Brasília");
