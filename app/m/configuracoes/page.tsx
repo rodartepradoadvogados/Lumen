@@ -13,6 +13,7 @@ import WorkflowsManager from "@/components/WorkflowsManager";
 import OfficeBillingSummary from "@/components/OfficeBillingSummary";
 import BlogReviewManager from "@/components/BlogReviewManager";
 import BlogPublishedManager from "@/components/BlogPublishedManager";
+import BlogScheduledManager from "@/components/BlogScheduledManager";
 import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess, type OfficeModules } from "@/lib/officeModules";
@@ -81,6 +82,7 @@ export default async function MobileConfiguracoes({
     taskTypePoints,
     blogPendingRaw,
     blogPublishedRaw,
+    blogScheduledRaw,
     photosRaw,
     roboExecucaoLogs,
     processosMonitoradosCount,
@@ -104,6 +106,7 @@ export default async function MobileConfiguracoes({
         // excluidaEm: null nas duas — mesmo filtro do computador, matéria excluída some daqui.
         prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO", excluidaEm: null }, orderBy: { createdAt: "asc" } }),
         prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO", excluidaEm: null }, orderBy: { publishedAt: "desc" } }),
+        prisma.blogPost.findMany({ where: { officeId, status: "AGENDADO", excluidaEm: null }, orderBy: { agendadaPara: "asc" } }),
         prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
         // Tabelas globais espelhadas do robô Python (sem officeId) — só pra mostrar o status
         // real das últimas execuções, igual ao card equivalente no computador.
@@ -111,7 +114,7 @@ export default async function MobileConfiguracoes({
         prisma.roboProcessoMonitorado.count(),
         getOwnOfficeBilling(),
       ])
-    : [null, false, null, [], [], null, [], [], [], [], [], [], 0, { subscription: null, invoices: [] }];
+    : [null, false, null, [], [], null, [], [], [], [], [], [], [], 0, { subscription: null, invoices: [] }];
 
   const photos = photosRaw.map((p) => ({
     id: p.id,
@@ -122,7 +125,13 @@ export default async function MobileConfiguracoes({
     createdAt: p.createdAt.toISOString(),
   }));
   const blogTab =
-    searchParams.blogTab === "publicadas" ? "publicadas" : searchParams.blogTab === "fotos" ? "fotos" : "revisao";
+    searchParams.blogTab === "publicadas"
+      ? "publicadas"
+      : searchParams.blogTab === "agendadas"
+        ? "agendadas"
+        : searchParams.blogTab === "fotos"
+          ? "fotos"
+          : "revisao";
 
   const initials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
   const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
@@ -439,6 +448,14 @@ export default async function MobileConfiguracoes({
                       Revisão {blogPendingRaw.length > 0 && `(${blogPendingRaw.length})`}
                     </Link>
                     <Link
+                      href="/m/configuracoes?blogTab=agendadas"
+                      className={`text-corpo font-semibold px-3 py-1.5 transition-colorsinline-flex items-center min-h-[44px]${
+                        blogTab === "agendadas" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
+                      }`}
+                    >
+                      Agendadas ({blogScheduledRaw.length})
+                    </Link>
+                    <Link
                       href="/m/configuracoes?blogTab=publicadas"
                       className={`text-corpo font-semibold px-3 py-1.5 transition-colorsinline-flex items-center min-h-[44px]${
                         blogTab === "publicadas" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
@@ -468,9 +485,23 @@ export default async function MobileConfiguracoes({
                           content: p.content,
                           sources: p.sources,
                           imageUrl: p.imageUrl,
+                          origem: p.origem,
                           createdAt: p.createdAt.toISOString(),
                         }))}
                         photos={photos}
+                      />
+                    ) : blogTab === "agendadas" ? (
+                      <BlogScheduledManager
+                        posts={blogScheduledRaw.map((p) => ({
+                          id: p.id,
+                          slug: p.slug,
+                          title: p.title,
+                          area: p.area,
+                          type: p.type,
+                          origem: p.origem,
+                          imageUrl: p.imageUrl,
+                          agendadaPara: p.agendadaPara ? p.agendadaPara.toISOString() : null,
+                        }))}
                       />
                     ) : blogTab === "publicadas" ? (
                       <BlogPublishedManager

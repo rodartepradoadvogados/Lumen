@@ -4,8 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { hasBlogAccess } from "@/lib/officeModules";
+import { lerDatetimeLocalEmBrasilia } from "@/lib/horaDeBrasilia";
 
 const VALID_TYPES = ["NOTICIA", "ANALISE"];
+
+// Antecedência mínima para agendar (docs/agentes/robo-news-juridico-firecrawl.md, Parte A4) — um
+// agendamento "para já" não dá tempo do cron (que roda a cada 15 min) pegar antes de a pessoa sair
+// da tela achando que já estava marcado.
+const ANTECEDENCIA_MINIMA_MS = 5 * 60 * 1000;
 
 // Só admin de um escritório com acesso ao Blog (hoje, só o Rodarte Prado) pode produzir,
 // editar ou aprovar matérias — ver comentário de Office.blogAccess no schema.
@@ -82,12 +88,64 @@ export async function publishBlogPost(id: string, imageUrl?: string): Promise<{ 
       publishedAt: new Date(),
       reviewedById: viewer.id,
       reviewedAt: new Date(),
+      agendadaPara: null, // "Publicar agora" numa matéria agendada cancela o agendamento
       ...(imageUrl !== undefined ? { imageUrl: imageUrl.trim() || null } : {}),
     },
   });
   revalidatePath("/configuracoes");
   revalidatePath("/blog");
   revalidatePath(`/blog/${post.slug}`);
+  return {};
+}
+
+// Agenda a publicação para um instante futuro (docs/agentes/robo-news-juridico-firecrawl.md,
+// Parte A4) — em vez de publicar na hora, o cron blog-publicar-agendadas confirma quando o
+// horário vencer. `agendadaParaISO` vem do <input type="datetime-local"> da tela (fuso do
+// escritório, convertido para UTC aqui — nunca no client, que não sabe reproduzir a mesma
+// conversão de forma auditável).
+export async function scheduleBlogPost(id: string, agendadaParaISO: string, imageUrl?: string): Promise<{ error?: string }> {
+  const guard = await assertBlogAdmin();
+  if (guard.error) return { error: guard.error };
+  const viewer = guard.viewer;
+
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId, excluidaEm: null } });
+  if (!post) return { error: "Matéria não encontrada." };
+
+  const agendadaPara = lerDatetimeLocalEmBrasilia(agendadaParaISO);
+  if (!agendadaPara) return { error: "Data/hora de agendamento inválida." };
+  if (agendadaPara.getTime() < Date.now() + ANTECEDENCIA_MINIMA_MS) {
+    return { error: "O agendamento precisa ser para pelo menos 5 minutos a partir de agora." };
+  }
+
+  await prisma.blogPost.update({
+    where: { id },
+    data: {
+      status: "AGENDADO",
+      agendadaPara,
+      agendadaPorId: viewer.id,
+      reviewedById: viewer.id,
+      reviewedAt: new Date(),
+      ...(imageUrl !== undefined ? { imageUrl: imageUrl.trim() || null } : {}),
+    },
+  });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
+// Cancela o agendamento — volta para a fila de revisão pendente, sem publicar.
+export async function unscheduleBlogPost(id: string): Promise<{ error?: string }> {
+  const guard = await assertBlogAdmin();
+  if (guard.error) return { error: guard.error };
+  const viewer = guard.viewer;
+
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId, excluidaEm: null } });
+  if (!post) return { error: "Matéria não encontrada." };
+
+  await prisma.blogPost.update({
+    where: { id },
+    data: { status: "AGUARDANDO_REVISAO", agendadaPara: null, agendadaPorId: null },
+  });
+  revalidatePath("/configuracoes");
   return {};
 }
 

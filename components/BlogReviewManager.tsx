@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, X, Check, Ban, Trash2 } from "lucide-react";
-import { updateBlogPostDraft, publishBlogPost, rejectBlogPost, deleteBlogPost } from "@/lib/actions/blog";
+import { Pencil, X, Check, Ban, Trash2, CalendarClock } from "lucide-react";
+import { updateBlogPostDraft, publishBlogPost, rejectBlogPost, deleteBlogPost, scheduleBlogPost } from "@/lib/actions/blog";
 import { Badge, EmptyState } from "@/components/ui";
 import PhotoPickerGrid, { type LibraryPhoto } from "@/components/PhotoPickerGrid";
 import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
@@ -18,8 +18,17 @@ export type PendingPost = {
   content: string;
   sources: string | null;
   imageUrl: string | null;
+  origem: string | null;
   createdAt: string;
 };
+
+// Formata a data mínima aceita pelo <input type="datetime-local"> (agora + 5min, no fuso local do
+// navegador — a conversão para o fuso do escritório acontece no servidor, em scheduleBlogPost).
+function minDatetimeLocal(): string {
+  const d = new Date(Date.now() + 5 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
@@ -99,6 +108,8 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const [title, setTitle] = useState(post.title);
@@ -143,6 +154,17 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
     run(() => publishBlogPost(post.id, imageUrl));
   }
 
+  function handleConfirmSchedule() {
+    if (!scheduleAt) {
+      setError("Escolha uma data e hora para o agendamento.");
+      return;
+    }
+    run(
+      () => scheduleBlogPost(post.id, scheduleAt, imageUrl),
+      () => setScheduling(false)
+    );
+  }
+
   function handleReject() {
     const reason = window.prompt("Motivo da rejeição (opcional):") || "";
     if (!window.confirm("Rejeitar esta matéria? Ela não será publicada.")) return;
@@ -181,9 +203,12 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
           ) : (
             <h4 className="font-bold text-tx text-base">{title}</h4>
           )}
-          <p className="text-etiqueta text-tx-3 mt-0.5">
-            Enviado pelo robô em {new Date(post.createdAt).toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO })}
-          </p>
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {post.origem?.startsWith("ROBO_") && <Badge color="gold">Robô</Badge>}
+            <p className="text-etiqueta text-tx-3">
+              Enviado em {new Date(post.createdAt).toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO })}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
           {!editing && (
@@ -315,6 +340,13 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
           <Ban size={14} /> Rejeitar
         </button>
         <button
+          onClick={() => setScheduling((s) => !s)}
+          disabled={pending}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-tx border border-regua hover:bg-sf-apoio disabled:opacity-40"
+        >
+          <CalendarClock size={14} /> Agendar…
+        </button>
+        <button
           onClick={handlePublish}
           disabled={pending}
           className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover disabled:opacity-40 transition-colors"
@@ -322,6 +354,35 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
           <Check size={14} /> Confirmar e publicar
         </button>
       </div>
+
+      {scheduling && (
+        <div className="flex items-end gap-2 flex-wrap pt-2 border-t border-regua">
+          <div>
+            <label className="text-etiqueta font-medium text-tx-2">Publicar em (horário de Brasília)</label>
+            <input
+              type="datetime-local"
+              value={scheduleAt}
+              min={minDatetimeLocal()}
+              onChange={(e) => setScheduleAt(e.target.value)}
+              className="cfg-input"
+            />
+          </div>
+          <button
+            onClick={handleConfirmSchedule}
+            disabled={pending}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover disabled:opacity-40 transition-colors"
+          >
+            <CalendarClock size={14} /> Confirmar agendamento
+          </button>
+          <button
+            onClick={() => setScheduling(false)}
+            disabled={pending}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-tx border border-regua hover:bg-sf-apoio disabled:opacity-40"
+          >
+            <X size={13} /> Cancelar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

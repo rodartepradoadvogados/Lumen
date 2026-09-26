@@ -22,6 +22,7 @@ import TaskTypePointsManager from "@/components/TaskTypePointsManager";
 import WorkflowsManager from "@/components/WorkflowsManager";
 import BlogReviewManager from "@/components/BlogReviewManager";
 import BlogPublishedManager from "@/components/BlogPublishedManager";
+import BlogScheduledManager from "@/components/BlogScheduledManager";
 import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersManager";
 import BankAccountsManager from "@/components/BankAccountsManager";
@@ -168,6 +169,7 @@ export default async function ConfiguracoesPage({
     workflowTemplates,
     blogPendingRaw,
     blogPublishedRaw,
+    blogScheduledRaw,
     photosRaw,
     modules,
     atendente,
@@ -200,6 +202,8 @@ export default async function ConfiguracoesPage({
       // 24/09/2026) some das duas listas do admin, mesmo padrão do público em app/blog/*.
       prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO", excluidaEm: null }, orderBy: { createdAt: "asc" } }),
       prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO", excluidaEm: null }, orderBy: { publishedAt: "desc" } }),
+      // Aba "Agendadas" (Parte A5) — ordenada pela mais PRÓXIMA de publicar primeiro.
+      prisma.blogPost.findMany({ where: { officeId, status: "AGENDADO", excluidaEm: null }, orderBy: { agendadaPara: "asc" } }),
       prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
       getOfficeModules(officeId),
       // O atendente e as campanhas: só admin vê a aba, mas a consulta é barata e roda junto das
@@ -533,7 +537,13 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && blogAccess && secao === "blog" && (() => {
         const blogTab =
-          searchParams.blogTab === "publicadas" ? "publicadas" : searchParams.blogTab === "fotos" ? "fotos" : "revisao";
+          searchParams.blogTab === "publicadas"
+            ? "publicadas"
+            : searchParams.blogTab === "agendadas"
+              ? "agendadas"
+              : searchParams.blogTab === "fotos"
+                ? "fotos"
+                : "revisao";
         return (
           <>
             <div className="flex gap-2 flex-wrap">
@@ -546,6 +556,16 @@ export default async function ConfiguracoesPage({
                 }`}
               >
                 Revisão Pendente {blogPendingRaw.length > 0 && `(${blogPendingRaw.length})`}
+              </Link>
+              <Link
+                href="/configuracoes?secao=blog&blogTab=agendadas"
+                className={`text-xs font-semibold px-3.5 py-1.5 transition-colors ${
+                  blogTab === "agendadas"
+                    ? "bg-acao text-acao-tx"
+                    : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
+                }`}
+              >
+                Agendadas ({blogScheduledRaw.length})
               </Link>
               <Link
                 href="/configuracoes?secao=blog&blogTab=publicadas"
@@ -573,7 +593,7 @@ export default async function ConfiguracoesPage({
               <Card>
                 <CardHeader
                   title="Revisão de Publicação Definitiva"
-                  subtitle="Rascunhos enviados pelo robô de conteúdo jurídico — revise, edite se necessário, adicione a imagem e confirme para publicar"
+                  subtitle="Rascunhos enviados pelo robô de conteúdo jurídico — revise, edite se necessário, adicione a imagem e confirme para publicar ou agende"
                 />
                 <BlogReviewManager
                   posts={blogPendingRaw.map((p) => ({
@@ -586,9 +606,26 @@ export default async function ConfiguracoesPage({
                     content: p.content,
                     sources: p.sources,
                     imageUrl: p.imageUrl,
+                    origem: p.origem,
                     createdAt: p.createdAt.toISOString(),
                   }))}
                   photos={photos}
+                />
+              </Card>
+            ) : blogTab === "agendadas" ? (
+              <Card>
+                <CardHeader title="Matérias Agendadas" subtitle="Publicação confirmada para um horário futuro — o cron publica sozinho quando vencer" />
+                <BlogScheduledManager
+                  posts={blogScheduledRaw.map((p) => ({
+                    id: p.id,
+                    slug: p.slug,
+                    title: p.title,
+                    area: p.area,
+                    type: p.type,
+                    origem: p.origem,
+                    imageUrl: p.imageUrl,
+                    agendadaPara: p.agendadaPara ? p.agendadaPara.toISOString() : null,
+                  }))}
                 />
               </Card>
             ) : blogTab === "publicadas" ? (

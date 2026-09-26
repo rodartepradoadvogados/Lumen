@@ -6,6 +6,7 @@ import { getOAuthClient } from "@/lib/googleDrive";
 import { getMicrosoftAccessToken } from "@/lib/microsoftGraph";
 import { escapeHtml } from "@/lib/htmlEscape";
 import { describeMentionLocation, mentionCommentInclude } from "@/lib/mentions";
+import { getAppUrl } from "@/lib/appUrl";
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -932,4 +933,55 @@ export async function sendDailyDigestEmails(officeId?: string): Promise<{ sent: 
   }
 
   return { sent, failed };
+}
+
+// ============================================================================
+// Robô de conteúdo jurídico — aviso de rascunho novo (docs/agentes/robo-news-juridico-firecrawl.md,
+// Parte A6). Disparado por POST /api/blog/draft logo depois de criar o rascunho, SEM bloquear a
+// resposta ao chamador (robô externo): erro de e-mail não muda o 201, só fica registrado.
+// ============================================================================
+
+/** Um e-mail a cada admin com `blogAccess` do escritório interno (`getPlatformOffice`), avisando
+ * de uma matéria nova aguardando revisão. Usa `sendSimpleEmail` (SMTP-only, sem a cascata de
+ * contas conectadas reservada a e-mail crítico) — sem EMAIL_*, não envia e segue quieto, mesmo
+ * padrão dos demais avisos deste arquivo. */
+export async function sendBlogDraftNotificationEmails(
+  officeId: string,
+  title: string,
+  area: string,
+  summary: string,
+): Promise<{ sent: number; reason?: string }> {
+  // A permissão de ver o Blog é do ESCRITÓRIO (Office.blogAccess), não por usuário — quem chama
+  // já resolveu officeId como o escritório interno (getPlatformOffice); todo admin ativo dele
+  // recebe o aviso, mesmo critério de quem pode revisar (assertBlogAdmin em lib/actions/blog.ts).
+  const admins = await prisma.user.findMany({
+    where: { officeId, isAdmin: true, active: true },
+    select: { email: true },
+  });
+  if (admins.length === 0) {
+    return { sent: 0, reason: "nenhum administrador ativo cadastrado neste escritório." };
+  }
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">BLOG JURÍDICO</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">Uma nova matéria está aguardando revisão no blog jurídico.</p>
+      <p style="font-size:14px;color:#14161a;"><strong>Área:</strong> ${escapeHtml(area)}</p>
+      <p style="font-size:14px;color:#3d4045;">${escapeHtml(summary)}</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${getAppUrl()}/configuracoes?secao=blog&blogTab=revisao" style="background:#181b1f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Revisar agora</a>
+      </p>
+    </div>
+  </div>`;
+
+  let sent = 0;
+  for (const admin of admins) {
+    const r = await sendSimpleEmail(admin.email, `Blog: nova matéria aguardando revisão: ${title}`, html);
+    if (r.sent) sent++;
+  }
+  return sent > 0 ? { sent } : { sent: 0, reason: "falha ao enviar para todos os administradores (ver logs)." };
 }
