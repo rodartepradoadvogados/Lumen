@@ -8,6 +8,7 @@
 // (Fase 2, armazenamento), que reaproveita exchangeMicrosoftCodeForTokens/getMicrosoftAccessToken
 // abaixo (exportados daqui pra não duplicar o fluxo OAuth). O calendário do Outlook segue de fora.
 import { prisma } from "@/lib/prisma";
+import { getAppUrl } from "@/lib/appUrl";
 
 const AUTHORITY = "https://login.microsoftonline.com/common/oauth2/v2.0";
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
@@ -21,8 +22,15 @@ export function isMicrosoftConfigured(): boolean {
   return Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
 }
 
+// O endereço de retorno do OAuth. Antes o fallback era o domínio da Vercel FIXO no código — e
+// como MICROSOFT_REDIRECT_URI nunca foi definida na Vercel, era esse texto fixo que valia de verdade.
+// No dia em que o Lúmen passar a atender por um domínio próprio, isso apontaria silenciosamente
+// para o endereço antigo até alguém descobrir. Agora o fallback deriva de getAppUrl()
+// (APP_URL → VERCEL_URL → localhost), então trocar o domínio do sistema basta: atualizar APP_URL
+// leva junto este retorno. A variável específica continua tendo precedência, para o caso de o
+// provedor exigir um endereço diferente do domínio principal.
 function redirectUri(): string {
-  return process.env.MICROSOFT_REDIRECT_URI || "https://lumen-flax-chi.vercel.app/api/microsoft/callback";
+  return process.env.MICROSOFT_REDIRECT_URI || `${getAppUrl()}/api/microsoft/callback`;
 }
 
 export function getMicrosoftAuthUrl(state?: string): string {
