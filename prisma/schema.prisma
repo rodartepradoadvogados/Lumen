@@ -3510,7 +3510,7 @@ model BlogPost {
   agendadaPor   User?     @relation("BlogPostAgendador", fields: [agendadaPorId], references: [id])
 
   /// ORIGEM da matéria — quem a criou, para diferenciar selo "Robô" na tela e, no futuro,
-  /// permitir métricas por fonte. "ROBO_ROUTINE" (skill rp-radar-juridico via POST /api/blog/draft),
+  /// permitir métricas por fonte. "ROBO_ROUTINE" (skill lumen-robo-juridico via POST /api/blog/draft),
   /// "API_MANUAL" (POST sem o campo, ou enviado por outra ferramenta), "ROBO_HERMES" (Parte C,
   /// ainda não implementada) ou null (matéria legada, criada antes deste campo existir).
   origem String?

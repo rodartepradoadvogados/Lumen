@@ -242,7 +242,9 @@ fluxo em quatro partes, sem `ANTHROPIC_API_KEY` em nenhuma delas:
   não bloqueia a criação.
 - **Parte B (skill de conta, fora deste repositório):** a Routine passou a varrer as listagens e
   validar as fontes pelo **Firecrawl** (`https://api.firecrawl.dev`) em vez da pesquisa livre de
-  antes — `.claude/skills/rp-radar-juridico/SKILL.md`. Continua sendo quem redige, por enquanto.
+  antes — `.claude/skills/lumen-robo-juridico/SKILL.md` (renomeada de `rp-radar-juridico` em
+  26/09/2026, a pedido do dono, para não confundir com outros robôs de conteúdo do mesmo dono).
+  Continua sendo quem redige, por enquanto.
 - **Parte C1 (peticionamento, lado Lúmen):** ver `docs/agentes/peticionamento-firecrawl-validacao.md`
   — número CNJ com dígito verificador obrigatório, dupla validação de citação com as duas URLs
   (oficial + secundária independente), e duas ferramentas MCP novas (`pesquisar_jurisprudencia`,

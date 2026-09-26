@@ -1,16 +1,18 @@
 ---
-name: rp-radar-juridico
+name: lumen-robo-juridico
 description: >
   Robô autônomo de conteúdo jurídico do Escritório Rodarte Prado Advogados (Goiânia-GO).
   Varre fontes de jurisprudência, legislação e notícia jurídica, valida contra pelo menos
   duas fontes independentes, e envia rascunhos de matérias para o blog público do site
   Lúmen (rodartepradoadvogados/Lumen — mesmo repositório que já foi `rp-financeiro`,
   renomeado) via API — nunca publica diretamente. Use SEMPRE que o usuário
-  disser "/rp-radar-juridico", "roda o robô de conteúdo jurídico", "verifica novidades
+  disser "/lumen-robo-juridico", "roda o robô de conteúdo jurídico", "verifica novidades
   jurídicas para o blog", ou quando este skill for acionado por uma Routine agendada para
-  o ciclo diário do robô de conteúdo. Não confundir com a skill "juridico-rodarte-prado"
-  (que atende casos/clientes) nem com o robô Python `robo-publicacoes/` (que trata
-  e-mails de publicação processual do Jusbrasil — sistema totalmente separado).
+  o ciclo diário do robô de conteúdo. Renomeada de "rp-radar-juridico" em 26/09/2026 (pedido
+  do dono, para não confundir com outros projetos/robôs de conteúdo do mesmo dono). Não
+  confundir com a skill "juridico-rodarte-prado" (que atende casos/clientes) nem com o robô
+  Python `robo-publicacoes/` (que trata e-mails de publicação processual do Jusbrasil —
+  sistema totalmente separado).
 ---
 
 # Robô de Conteúdo Jurídico — Rodarte Prado Advogados
