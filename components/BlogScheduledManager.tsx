@@ -20,16 +20,24 @@ export type ScheduledPost = {
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
-// Aba "Agendadas" (docs/agentes/robo-news-juridico-firecrawl.md, Parte A5) — matérias com
-// status AGENDADO, ordenadas por agendadaPara (a mais próxima primeiro), com "Cancelar
-// agendamento" (volta para Revisão Pendente) e "Publicar agora" (confirma antes da hora).
+// Aba "Agendamento" (docs/agentes/robo-news-juridico-firecrawl.md, Parte A5; renomeada de
+// "Agendadas" em 26/09/2026 a pedido do dono) — matérias com status AGENDADO, ordenadas por
+// agendadaPara (a mais próxima primeiro), com "Cancelar agendamento" (volta para Revisão
+// Pendente) e "Publicar agora" (confirma antes da hora). Agendar uma matéria NOVA continua sendo
+// feito de dentro da aba "Revisão Pendente" (botão "Agendar…" em cada rascunho) — esta aba só
+// GERENCIA quem já está agendado.
 export default function BlogScheduledManager({ posts }: { posts: ScheduledPost[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   if (posts.length === 0) {
-    return <EmptyState title="Nenhuma matéria agendada" subtitle={'Use "Agendar…" na aba "Revisão Pendente" para marcar uma data de publicação.'} />;
+    return (
+      <EmptyState
+        title="Nenhuma matéria agendada"
+        subtitle={'Para agendar, abra a aba "Revisão Pendente" e use o botão "Agendar…" em qualquer rascunho.'}
+      />
+    );
   }
 
   function handleUnschedule(id: string, title: string) {
