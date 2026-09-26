@@ -202,7 +202,9 @@ export default async function ConfiguracoesPage({
       // 24/09/2026) some das duas listas do admin, mesmo padrão do público em app/blog/*.
       prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO", excluidaEm: null }, orderBy: { createdAt: "asc" } }),
       prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO", excluidaEm: null }, orderBy: { publishedAt: "desc" } }),
-      // Aba "Agendadas" (Parte A5) — ordenada pela mais PRÓXIMA de publicar primeiro.
+      // Aba "Agendamento" (Parte A5, renomeada de "Agendadas" a pedido do dono em 26/09/2026 —
+      // "Agendadas" sozinho fazia parecer que era ali que se agendava) — ordenada pela mais
+      // PRÓXIMA de publicar primeiro.
       prisma.blogPost.findMany({ where: { officeId, status: "AGENDADO", excluidaEm: null }, orderBy: { agendadaPara: "asc" } }),
       prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
       getOfficeModules(officeId),
@@ -565,7 +567,7 @@ export default async function ConfiguracoesPage({
                     : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
                 }`}
               >
-                Agendadas ({blogScheduledRaw.length})
+                Agendamento ({blogScheduledRaw.length})
               </Link>
               <Link
                 href="/configuracoes?secao=blog&blogTab=publicadas"
@@ -614,7 +616,7 @@ export default async function ConfiguracoesPage({
               </Card>
             ) : blogTab === "agendadas" ? (
               <Card>
-                <CardHeader title="Matérias Agendadas" subtitle="Publicação confirmada para um horário futuro — o cron publica sozinho quando vencer" />
+                <CardHeader title="Agendamento" subtitle="Matérias com publicação confirmada para um horário futuro — o cron publica sozinho quando vencer. Para agendar uma matéria nova, use o botão “Agendar…” na aba “Revisão Pendente”." />
                 <BlogScheduledManager
                   posts={blogScheduledRaw.map((p) => ({
                     id: p.id,

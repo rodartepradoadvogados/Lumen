@@ -453,7 +453,7 @@ export default async function MobileConfiguracoes({
                         blogTab === "agendadas" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
                       }`}
                     >
-                      Agendadas ({blogScheduledRaw.length})
+                      Agendamento ({blogScheduledRaw.length})
                     </Link>
                     <Link
                       href="/m/configuracoes?blogTab=publicadas"
