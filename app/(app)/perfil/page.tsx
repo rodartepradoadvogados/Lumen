@@ -33,7 +33,12 @@ export default async function PerfilPage({
   const initials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
 
   const [minhaConexaoGoogle, minhaConexaoMicrosoft] = await Promise.all([
-    prisma.googleCredential.findFirst({ where: { userId: viewer.id }, select: { accountEmail: true } }),
+    prisma.googleCredential.findFirst({
+      where: { userId: viewer.id },
+      // lastSyncError: sem isto, o advogado via "Conectado como ..." mesmo com a caixa em
+      // invalid_grant há dias, e não tinha como saber que precisava reconectar.
+      select: { accountEmail: true, lastSyncError: true },
+    }),
     prisma.microsoftCredential.findFirst({ where: { userId: viewer.id }, select: { accountEmail: true } }),
   ]);
 
@@ -61,9 +66,12 @@ export default async function PerfilPage({
             {searchParams.google === "conectado" && <StatusLine state="ok">Google conectado com sucesso!</StatusLine>}
             {searchParams.google === "erro" && <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>}
             {minhaConexaoGoogle ? (
-              <StatusLine state="ok">
-                Conectado como <strong>{minhaConexaoGoogle.accountEmail}</strong>
-              </StatusLine>
+              <>
+                <StatusLine state={minhaConexaoGoogle.lastSyncError ? "erro" : "ok"}>
+                  Conectado como <strong>{minhaConexaoGoogle.accountEmail}</strong>
+                </StatusLine>
+                {minhaConexaoGoogle.lastSyncError && <StatusLine state="erro">{minhaConexaoGoogle.lastSyncError}</StatusLine>}
+              </>
             ) : (
               <StatusLine state="off">Você ainda não conectou seu Google.</StatusLine>
             )}

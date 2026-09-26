@@ -1916,6 +1916,19 @@ model GoogleCredential {
   folderId          String?
   templatesFolderId String?
   generatedFolderId String?
+
+  // Saúde da varredura de publicações DESTA caixa. Antes destes três campos, a falha de uma caixa
+  // só existia no retorno efêmero do botão "Sincronizar agora": o cron descartava, nada ficava
+  // gravado, e a lista de Conexões mostrava a caixa como saudável mesmo com o token morto há
+  // dias — foi assim que a caixa de um dos sócios ficou em invalid_grant sem ninguém notar.
+  // lastSyncAt é também a MARCA D'ÁGUA do `after:` do Gmail (ver lib/jusbrasilEmailSync.ts):
+  // antes a janela vinha da publicação mais recente do ESCRITÓRIO, de qualquer fonte (DJEN, DOU,
+  // PNCP...), então ficava sempre "hoje" e o atraso de uma caixa que voltava depois de dias
+  // derrubada nunca era buscado.
+  lastSyncAt        DateTime? // última varredura BEM-SUCEDIDA desta caixa
+  lastSyncError     String?   // null = saudável; preenchido = precisa de atenção (ex.: reconectar)
+  lastSyncErrorAt   DateTime?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

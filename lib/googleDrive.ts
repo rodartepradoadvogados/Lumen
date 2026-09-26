@@ -76,6 +76,10 @@ export async function saveTokensFromCode(code: string, officeId: string) {
       data: {
         accountEmail,
         refreshToken,
+        // A conta do Drive também é varrida em busca de publicações (syncJusbrasil nasce true):
+        // reconectar limpa a falha registrada para ela.
+        lastSyncError: null,
+        lastSyncErrorAt: null,
         ...(trocouDeConta ? { rootFolderId: null, folderId: null, templatesFolderId: null, generatedFolderId: null } : {}),
       },
     });
@@ -83,7 +87,7 @@ export async function saveTokensFromCode(code: string, officeId: string) {
   }
   await prisma.googleCredential.upsert({
     where: { accountEmail },
-    update: { refreshToken, isPrimaryDrive: true, officeId },
+    update: { refreshToken, isPrimaryDrive: true, officeId, lastSyncError: null, lastSyncErrorAt: null },
     create: { accountEmail, refreshToken, isPrimaryDrive: true, officeId },
   });
 }
@@ -113,7 +117,9 @@ export async function saveJusbrasilTokensFromCode(code: string, userId: string |
 
   await prisma.googleCredential.upsert({
     where: { accountEmail },
-    update: { refreshToken, syncJusbrasil: true, userId, officeId },
+    // Token novo = a falha anterior está resolvida: limpa o registro para a caixa voltar a
+    // aparecer saudável já na volta do consentimento, sem esperar o próximo ciclo do cron.
+    update: { refreshToken, syncJusbrasil: true, userId, officeId, lastSyncError: null, lastSyncErrorAt: null },
     create: { accountEmail, refreshToken, syncJusbrasil: true, userId, officeId },
   });
 }
@@ -290,6 +296,8 @@ export async function listGoogleAccounts(officeId: string) {
     syncJusbrasil: c.syncJusbrasil,
     userId: c.userId,
     ownerName: c.user?.name ?? null,
+    lastSyncAt: c.lastSyncAt,
+    lastSyncError: c.lastSyncError,
   }));
 }
 

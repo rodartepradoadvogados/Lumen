@@ -23,6 +23,16 @@ export async function middleware(req: NextRequest) {
     pathname === "/redefinir-senha" ||
     pathname === "/blog" ||
     pathname.startsWith("/blog/") ||
+    // A política de privacidade. Sem esta linha a página EXISTIA (app/privacidade/page.tsx) mas
+    // era inalcançável: o middleware mandava qualquer visitante sem sessão para a homepage. Três
+    // consequências, todas silenciosas — (a) o link "Política de privacidade" no rodapé da
+    // homepage pública levava o visitante para a tela de login, (b) a Meta não conseguia ler a
+    // política exigida para publicar o app do WhatsApp Cloud API, que é o motivo pelo qual a
+    // página foi escrita, e (c) o Google não conseguia ler a política exigida para publicar a
+    // tela de consentimento OAuth — e um app OAuth em "Testing" tem o refresh_token expirado
+    // pelo Google a cada 7 DIAS, que é a causa de as caixas de e-mail dos advogados caírem em
+    // invalid_grant toda semana por mais que reconectem.
+    pathname === "/privacidade" ||
     // A carta de recusa. Precisa ser pública porque quem a lê é o lead, que nunca teve login — e
     // sem esta linha o middleware mandava a carta para a homepage de marketing, com status 200,
     // que é o pior defeito possível: a pessoa clica no link que o escritório mandou e vê
