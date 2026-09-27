@@ -1,5 +1,23 @@
 # Lúmen — instruções para o Claude
 
+## Leia antes de mexer em qualquer coisa
+
+`docs/ESTADO-ATUAL-E-ARMADILHAS.md` lista as decisões deste projeto que parecem
+arbitrárias e não são — cada uma com o defeito que ela corrigiu e o que volta a quebrar se
+for desfeita. **Leia antes de alterar código, variável de ambiente ou painel externo.**
+
+O mínimo, para quem não vai ler agora:
+
+- O sistema atende em **`https://lumen.rodarteprado.com.br`**. Nunca escreva endereço
+  absoluto no código — use `getAppUrl()` (`lib/appUrl.ts`).
+- **`GoogleCredential.lastSyncAt` é a marca d'água** da busca no Gmail, não telemetria.
+  Trocá-la por uma consulta por escritório reintroduz um defeito silencioso (item 3).
+- **A política de privacidade (`app/privacidade/page.tsx`) descreve o comportamento real
+  do código**, inclusive o que é enviado a provedor de IA. Mudou o que o sistema faz com
+  dados do Gmail ou do Drive? Atualize a política no mesmo PR (item 5).
+- No Google Cloud, **não clique em "Voltar para o teste"** e não apague o domínio
+  autorizado antigo nem o URI de retorno antigo (item 7).
+
 ## Merge automático de Pull Requests
 
 Autorização permanente do dono do projeto (rodartepradoadvogados): PRs abertos pelo Claude
