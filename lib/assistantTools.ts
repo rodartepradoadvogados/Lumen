@@ -11,6 +11,9 @@ import { formatarEquipe } from "@/lib/equipeFormato";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 import { pendenciaKindLabel } from "@/lib/pendencias";
 import { montarPerfilDoEscritorio } from "@/lib/perfilDoEscritorio";
+import { buscarNaWeb, lerPagina, ERRO_FIRECRAWL_NAO_CONFIGURADO } from "@/lib/firecrawl";
+import { cnjValido } from "@/lib/cnjNumero";
+import { urlOficialValida } from "@/lib/peticionamentoAprovacao";
 
 // ============================================================================
 // Ferramentas do Assistente Claude (chat interno)
@@ -41,7 +44,11 @@ export type AssistantToolModule =
   // próprio porque não é nenhum dos outros — não é "documentos" (que lista os arquivos já
   // anexados) nem "equipe" (que é gente). Nada aqui é financeiro, então nenhuma régua de nível
   // se aplica: ver `liberada` em app/api/agente/ferramentas/route.ts.
-  | "escritorio";
+  | "escritorio"
+  // Pesquisa e leitura de páginas públicas da web pelo Firecrawl (docs/agentes/peticionamento-
+  // firecrawl-validacao.md §5) — hoje só para localizar e LER jurisprudência antes de citá-la no
+  // peticionamento. Módulo próprio, não "escritorio": não fala do escritório, fala da web pública.
+  | "pesquisa";
 
 // Entrada bruta de um tool_use — vem de fora (o modelo), então nunca é tipada
 // como a interface "ideal" da ferramenta; cada `executar` lê os campos que
@@ -1329,6 +1336,101 @@ async function executarHistoricoCliente(input: ToolInput, officeId: string, quem
 }
 
 // ---------------------------------------------------------------------------
+// pesquisar_jurisprudencia / ler_fonte_juridica — Firecrawl (docs/agentes/peticionamento-
+// firecrawl-validacao.md §5). Ferramentas SÓ DE LEITURA PÚBLICA: nunca escrevem nada, nunca
+// tocam dado do escritório — por isso liberadas também para o escopo "conversa" inteiro, ao lado
+// do peticionamento (ver lib/agenteFerramentasLiberadas.ts).
+// ---------------------------------------------------------------------------
+
+// A rota MCP (app/api/agente/mcp/route.ts) tem maxDuration=30 — nunca deixar uma chamada ao
+// Firecrawl (com sua própria margem de rede) chegar perto disso. Não é o `maxDuration` da rota
+// que sobe por causa desta ferramenta; é o timeout da CHAMADA que fica bem abaixo dele.
+const TIMEOUT_FIRECRAWL_MS = 20_000;
+
+/** Recusa URL que não seja https, e recusa IP literal/localhost — evita SSRF via Firecrawl
+ * (a ferramenta pediria ao Firecrawl para buscar um endereço de rede interno). */
+function ehUrlSeguraParaLer(urlTexto: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(urlTexto);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "0.0.0.0") return false;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return false; // IPv4 literal
+  return true;
+}
+
+/** Só os números no PADRÃO CNJ (não recurso/súmula/tema) — extraídos de markdown de página real,
+ * cada um marcado com `cnjValido` (forma + dígito verificador + tribunal reconhecido). */
+function extrairNumerosCnjDoTexto(texto: string): { numero: string; valido: boolean }[] {
+  const RE_CNJ = /\d{7}\s*-\s*\d{2}\s*\.\s*\d{4}\s*\.\s*\d\s*\.\s*\d{2}\s*\.\s*\d{4}/g;
+  const vistos = new Set<string>();
+  const achados: { numero: string; valido: boolean }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = RE_CNJ.exec(texto))) {
+    const numero = m[0].trim();
+    if (vistos.has(numero)) continue;
+    vistos.add(numero);
+    achados.push({ numero, valido: cnjValido(numero) });
+  }
+  return achados;
+}
+
+async function executarPesquisarJurisprudencia(input: ToolInput): Promise<string> {
+  const consulta = str(input, "consulta");
+  if (!consulta) return JSON.stringify({ erro: "informe o campo obrigatório 'consulta'." });
+  const dominio = str(input, "dominio");
+  const limitePedido = num(input, "limite");
+  const limite = limitePedido ? Math.min(Math.max(Math.trunc(limitePedido), 1), 5) : 5;
+  const query = dominio ? `${consulta} site:${dominio}` : consulta;
+
+  try {
+    const resultados = await buscarNaWeb(query, { limite, timeoutMs: TIMEOUT_FIRECRAWL_MS });
+    return JSON.stringify({
+      resultados: resultados.map((r) => ({ titulo: r.titulo, url: r.url, descricao: r.descricao, oficial: urlOficialValida(r.url) })),
+      aviso: "snippet de busca não é fonte: leia a página com ler_fonte_juridica antes de citar",
+    });
+  } catch (erro) {
+    // FAIL-CLOSED AMIGÁVEL: retorna string, nunca relança — se relançasse, a rota MCP trocaria a
+    // mensagem por um genérico "Não foi possível consultar agora" (ver app/api/agente/mcp/route.ts).
+    if (erro instanceof Error && erro.message === ERRO_FIRECRAWL_NAO_CONFIGURADO) {
+      return "a pesquisa web do Lúmen não está configurada no momento — não é possível localizar jurisprudência agora.";
+    }
+    console.error("[assistantTools] erro em pesquisar_jurisprudencia:", erro);
+    return "Não foi possível pesquisar agora. Tente novamente em instantes.";
+  }
+}
+
+async function executarLerFonteJuridica(input: ToolInput): Promise<string> {
+  const url = str(input, "url");
+  if (!url) return JSON.stringify({ erro: "informe o campo obrigatório 'url'." });
+  if (!ehUrlSeguraParaLer(url)) {
+    return "URL recusada: só é possível ler um endereço https:// público (nunca localhost nem um IP literal).";
+  }
+
+  try {
+    const pagina = await lerPagina(url, { timeoutMs: TIMEOUT_FIRECRAWL_MS });
+    const markdown = truncate(pagina.markdown, 15_000);
+    return JSON.stringify({
+      url: pagina.url,
+      titulo: pagina.titulo,
+      oficial: urlOficialValida(pagina.url),
+      numerosCnj: extrairNumerosCnjDoTexto(markdown),
+      markdown,
+    });
+  } catch (erro) {
+    if (erro instanceof Error && erro.message === ERRO_FIRECRAWL_NAO_CONFIGURADO) {
+      return "a leitura de página do Lúmen não está configurada no momento — não é possível ler esta fonte agora.";
+    }
+    console.error("[assistantTools] erro em ler_fonte_juridica:", erro);
+    return "Não foi possível ler esta página agora. Tente novamente em instantes.";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Registro de ferramentas
 // ---------------------------------------------------------------------------
 
@@ -1608,5 +1710,39 @@ export const assistantTools: AssistantTool[] = [
       },
     },
     executar: (input, ctx) => executarHistoricoCliente(input, ctx.officeId, { financeiro: ctx.financeiro ?? false, admin: ctx.admin ?? false }),
+  },
+  {
+    modulo: "pesquisa",
+    spec: {
+      name: "pesquisar_jurisprudencia",
+      description:
+        "Busca na web por jurisprudência, precedente ou legislação, pelo Firecrawl. Use para LOCALIZAR o site oficial do tribunal (ou uma fonte secundária independente) antes de citar um julgado — o resultado é uma LISTA DE CANDIDATOS, nunca uma fonte já lida: leia a página encontrada com ler_fonte_juridica antes de citá-la. Informe `dominio` (ex.: um domínio de tribunal) para restringir a busca a um site específico.",
+      input_schema: {
+        type: "object",
+        properties: {
+          consulta: { type: "string", description: "Os termos da busca (ex.: tema, número do processo, palavras-chave da tese)." },
+          dominio: { type: "string", description: "Domínio para restringir a busca (ex.: o domínio de um tribunal). Opcional." },
+          limite: { type: "integer", description: "Quantos resultados trazer (1 a 5). Padrão: 5." },
+        },
+        required: ["consulta"],
+      },
+    },
+    executar: (input) => executarPesquisarJurisprudencia(input),
+  },
+  {
+    modulo: "pesquisa",
+    spec: {
+      name: "ler_fonte_juridica",
+      description:
+        "Lê o conteúdo de verdade de uma página pública (site oficial de tribunal, ou portal de notícia jurídica), pelo Firecrawl. USE ANTES DE CITAR qualquer julgado, súmula ou tese: um resultado de pesquisar_jurisprudencia é só um snippet, nunca uma fonte lida — é esta ferramenta que efetivamente lê a página. A resposta já extrai os números de processo no padrão CNJ encontrados no texto, cada um marcado como válido ou não (forma + dígito verificador).",
+      input_schema: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "A URL https:// da página a ler." },
+        },
+        required: ["url"],
+      },
+    },
+    executar: (input) => executarLerFonteJuridica(input),
   },
 ];

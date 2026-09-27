@@ -12,7 +12,13 @@
 // decide o que fazer com o banco.
 
 import { createHash } from "node:crypto";
-import { classificarIdentificador, encontrarIdentificadoresNoTexto, piorMoldeNoTexto } from "./peticionamentoIdentificadorDeJulgado";
+import { classificarIdentificador, encontrarIdentificadoresNoTexto, piorMoldeNoTexto, ehSumulaTemaOuEnunciado } from "./peticionamentoIdentificadorDeJulgado";
+
+// Reexportada por compatibilidade: quem já importava `ehSumulaTemaOuEnunciado` daqui continua
+// funcionando — a definição em si mora em peticionamentoIdentificadorDeJulgado.ts (ver o
+// comentário lá) porque este módulo puxa "node:crypto", que não pode chegar ao bundle do
+// navegador através de lib/peticionamentoAprovacao.ts (usado por MinutaClient, componente client).
+export { ehSumulaTemaOuEnunciado };
 
 export type TipoDeCitacao = "EMENTA" | "TRECHO";
 

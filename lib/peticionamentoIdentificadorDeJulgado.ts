@@ -148,6 +148,31 @@ export function contemCnjValido(texto: string | null | undefined): boolean {
   return false;
 }
 
+// Súmula — inclusive quando a palavra "súmula" NEM APARECE: "enunciado", "verbete (sumular)" e a
+// abreviação "SV" (Súmula Vinculante) são formas correntes de citar sem usar a palavra inteira.
+const RE_SUMULA = /\b(s[uú]mula(\s+vinculante)?|s[uú]m\.|enunciado(\s+sumular)?|verbete(\s+sumular)?|sv)\b\s*n?[ºo°:.]*\s*\d+/gi;
+
+const RE_TEMA = /\btema\b\s*n?[ºo°:.]*\s*\d+/gi;
+
+/**
+ * Súmula, tema (repetitivo/repercussão geral) ou enunciado são identificados por espécie + número
+ * + órgão — NÃO têm número CNJ (docs/agentes/peticionamento-firecrawl-validacao.md §3.2, item 4).
+ * Usado pelo gate de aprovação (lib/peticionamentoAprovacao.ts) para não exigir número de processo
+ * de uma citação que, por natureza, nunca teve um: exigir CNJ de "Súmula 297 do STJ" bloquearia
+ * toda citação de súmula, para sempre, mesmo perfeitamente identificada.
+ *
+ * Mora AQUI, e não em peticionamentoCitacoes.ts (onde nasceu), porque este arquivo não importa
+ * "node:crypto" — peticionamentoAprovacao.ts é usado por um componente client (MinutaClient), e
+ * importar dali puxava o hash de node:crypto para o bundle do navegador e quebrava o build.
+ */
+export function ehSumulaTemaOuEnunciado(texto: string): boolean {
+  // Cópia nova a cada chamada: as duas regex são globais (`g`) e guardam `lastIndex` na própria
+  // instância — reusar a constante do módulo entre chamadas sucessivas corromperia a checagem da
+  // segunda citação em diante.
+  const semLastIndex = (re: RegExp) => new RegExp(re.source, re.flags);
+  return semLastIndex(RE_SUMULA).test(texto) || semLastIndex(RE_TEMA).test(texto);
+}
+
 /**
  * Classifica um IDENTIFICADOR ISOLADO (não uma frase inteira) — usado pelos testes de mesa e por
  * quem já isolou o candidato antes de perguntar. Tenta, nesta ordem: forma CNJ (com ou sem
