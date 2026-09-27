@@ -959,6 +959,11 @@ export async function sendBlogDraftNotificationEmails(
     select: { email: true },
   });
   if (admins.length === 0) {
+    // Achado em 27/09/2026: o rascunho é criado normalmente (201) mesmo quando isto acontece —
+    // o chamador (POST /api/blog/draft) só via `.catch()` numa promise que NUNCA rejeita aqui,
+    // então "nenhum admin encontrado" ficava invisível nos logs da Vercel. Logar aqui, e não só
+    // devolver o motivo, é o que torna essa causa investigável sem acesso direto ao banco.
+    console.error(`[blog/draft] aviso de rascunho novo não enviado: nenhum administrador ativo em officeId=${officeId}.`);
     return { sent: 0, reason: "nenhum administrador ativo cadastrado neste escritório." };
   }
 
@@ -979,9 +984,18 @@ export async function sendBlogDraftNotificationEmails(
   </div>`;
 
   let sent = 0;
+  const falhas: string[] = [];
   for (const admin of admins) {
     const r = await sendSimpleEmail(admin.email, `Blog: nova matéria aguardando revisão: ${title}`, html);
     if (r.sent) sent++;
+    else falhas.push(`${admin.email}: ${r.reason ?? "motivo desconhecido"}`);
   }
-  return sent > 0 ? { sent } : { sent: 0, reason: "falha ao enviar para todos os administradores (ver logs)." };
+  if (sent === 0) {
+    // Mesma lógica do log acima: sem isto, uma falha de SMTP específica deste envio (ex.: e-mail
+    // rejeitado, timeout) some sem deixar rastro — o botão "Testar" de Conexões usa a mesma
+    // configuração, mas não passa pelo MESMO código nem pelos MESMOS destinatários.
+    console.error(`[blog/draft] aviso de rascunho novo falhou para todos os administradores: ${falhas.join(" | ")}`);
+    return { sent: 0, reason: "falha ao enviar para todos os administradores (ver logs)." };
+  }
+  return { sent };
 }
