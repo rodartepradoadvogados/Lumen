@@ -1,3 +1,5 @@
+import { cnjValido } from "@/lib/cnjNumero";
+
 // RECONHECEDOR DE FORMA de identificador de julgado — módulo puro, sem Prisma e sem rede. O
 // Lúmen não sabe se um processo existe de verdade; ele só sabe dizer se o que o agente devolveu
 // TEM FORMA de número real ou tem forma de MOLDE — o número de exemplo que sobra quando o agente
@@ -111,7 +113,39 @@ function classificarSegmentosCnj(segmentos: string[]): "valido" | "molde" {
   // A checagem de MÁSCARA (X/N/_) continua valendo sobre o texto concatenado, isto é, sobre TODOS
   // os segmentos: é ela que pega "20XX" e ".XXXX" dos exemplos do dono, e ela não muda aqui.
   if (ehSequenciaTrivial(segmentos[0].replace(/[^0-9XN_]/g, ""))) return "molde";
+
+  // O DÍGITO VERIFICADOR (docs/agentes/peticionamento-firecrawl-validacao.md §3) — chegando aqui,
+  // os segmentos JÁ passaram pelas duas checagens acima: sem máscara (X/N/_) e sem sequência
+  // trivial. Um número com FORMA de CNJ completo (20 dígitos) mas com o dígito verificador errado
+  // ainda tem cara de processo real — nenhum regex pega isso, só a conta (ISO 7064 MOD 97-10). Sem
+  // esta checagem, "0001234-56.2023.5.18.0001" (dígito 56, correto seria 85) passava como "válido"
+  // e citação sem processo de verdade continuava aprovável.
+  const digitos20 = segmentos.map((s) => s.replace(/\D/g, "")).join("");
+  if (digitos20.length === 20 && !cnjValido(digitos20)) return "molde";
+
   return "valido";
+}
+
+/**
+ * Existe, dentro de um texto maior, pelo menos UM número no padrão CNJ completo (20 dígitos) com
+ * forma E dígito verificador válidos? Usada pelo gate de aprovação (lib/peticionamentoAprovacao.ts)
+ * para exigir "processo com número completo" em citação de julgado — deliberadamente restrita ao
+ * padrão CNJ, e não a `classificarIdentificador` inteiro: um número de recurso solto ("REsp
+ * 1.234.567/SP") tem FORMA válida de identificador, mas não é o número único do processo, e a
+ * especificação é explícita que ele sozinho não basta.
+ */
+export function contemCnjValido(texto: string | null | undefined): boolean {
+  if (!texto) return false;
+  const re = new RegExp(RE_CNJ_OU_MOLDE.source, "g");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(texto))) {
+    if (m[0].length === 0) {
+      re.lastIndex++;
+      continue;
+    }
+    if (classificarSegmentosCnj([m[1], m[2], m[3], m[4], m[5], m[6]]) === "valido") return true;
+  }
+  return false;
 }
 
 /**

@@ -35,9 +35,18 @@ teste("uma ementa reproduzida literalmente no corpo NÃO vira também um trecho 
 // oferecendo "Li e revisei esta citação" como se fosse um julgado de verdade.
 
 teste("RECONHECEDOR DE FORMA: números reais passam como 'valido'", () => {
-  igual(classificarIdentificador("0001234-56.2023.5.18.0001"), "valido");
+  igual(classificarIdentificador("0001234-85.2023.5.18.0001"), "valido");
   igual(classificarIdentificador("REsp 1.874.782/SP"), "valido");
   igual(classificarIdentificador("AREsp 738.415/RJ"), "valido");
+});
+
+// DÍGITO VERIFICADOR (docs/agentes/peticionamento-firecrawl-validacao.md §3) — o MESMO número de
+// cima, mas com o dígito errado (56 em vez de 85): forma de CNJ completo, sem máscara, sem
+// sequência trivial — e ainda assim não é um processo real. Nenhum regex pega isso sozinho, só a
+// conta (lib/cnjNumero.ts:cnjValido, ISO 7064 MOD 97-10). Este é exatamente o número que este
+// arquivo usava como "válido" antes desta entrega.
+teste("RECONHECEDOR DE FORMA: número com forma de CNJ completo mas DÍGITO VERIFICADOR errado é molde, não válido", () => {
+  igual(classificarIdentificador("0001234-56.2023.5.18.0001"), "molde", "dígito 56 é inválido para este número (o correto é 85)");
 });
 
 // REGRESSÃO — o reconhecedor nasceu recusando número REAL. A régua de "sequência trivial" era
@@ -47,12 +56,12 @@ teste("RECONHECEDOR DE FORMA: números reais passam como 'valido'", () => {
 // cita. O efeito era o pior possível: um julgado real virava "molde" e travava a aprovação da
 // minuta, ensinando o advogado a desconfiar do aviso que existe para protegê-lo.
 teste("REGRESSÃO: unidade de origem '0000' é processo originário do tribunal — número real, nunca molde", () => {
-  igual(classificarIdentificador("1001234-56.2021.8.26.0000"), "valido", "ação originária no TJSP");
-  igual(classificarIdentificador("0010567-89.2019.5.18.0000"), "valido", "dissídio/ação originária no TRT-18");
-  igual(classificarIdentificador("RO 0010567-89.2019.5.18.0000"), "valido", "o mesmo número com a sigla do recurso na frente");
+  igual(classificarIdentificador("1001234-68.2021.8.26.0000"), "valido", "ação originária no TJSP");
+  igual(classificarIdentificador("0010567-06.2019.5.18.0000"), "valido", "dissídio/ação originária no TRT-18");
+  igual(classificarIdentificador("RO 0010567-06.2019.5.18.0000"), "valido", "o mesmo número com a sigla do recurso na frente");
   // A máscara continua valendo sobre TODOS os segmentos — a correção acima não abriu essa porta.
-  igual(classificarIdentificador("00XX234-56.2021.8.26.0000"), "molde", "máscara no primeiro segmento, unidade 0000 de verdade");
-  igual(classificarIdentificador("1001234-56.20XX.8.26.0000"), "molde", "máscara no ano, unidade 0000 de verdade");
+  igual(classificarIdentificador("00XX234-68.2021.8.26.0000"), "molde", "máscara no primeiro segmento, unidade 0000 de verdade");
+  igual(classificarIdentificador("1001234-68.20XX.8.26.0000"), "molde", "máscara no ano, unidade 0000 de verdade");
 });
 
 teste("RECONHECEDOR DE FORMA: os três exemplos exatos do print do dono são molde", () => {
@@ -124,11 +133,13 @@ teste("EDGE CASE: número de processo CNJ quebrado em duas linhas ainda é recon
   // "1874782" (não "1234567") DE PROPÓSITO: "1234567" é uma sequência ascendente perfeita e, com
   // o reconhecedor de molde/exemplo (23/09/2026), passaria a ser classificada como número de
   // exemplo — o que faria este teste de RECONSTITUIÇÃO DE LINHA QUEBRADA (o que ele realmente se
-  // propõe a provar) parar de provar isso e passar a provar outra coisa por acidente.
-  const minuta = "Vide os autos do processo 1874782-89.2020.8.09.\n0051, em trâmite na comarca.";
+  // propõe a provar) parar de provar isso e passar a provar outra coisa por acidente. Dígito
+  // verificador 45 (não 89) pelo mesmo motivo, desde a checagem de DV (peticionamento-firecrawl-
+  // validacao.md §3): um DV errado agora vira molde, e este teste deixaria de provar reconstituição.
+  const minuta = "Vide os autos do processo 1874782-45.2020.8.09.\n0051, em trâmite na comarca.";
   const trechos = extrairTrechosSoltos(minuta, []);
   igual(trechos.length, 1);
-  verdade(trechos[0].texto.replace(/\s+/g, "") === "1874782-89.2020.8.09.0051", `número não reconstituído: "${trechos[0].texto}"`);
+  verdade(trechos[0].texto.replace(/\s+/g, "") === "1874782-45.2020.8.09.0051", `número não reconstituído: "${trechos[0].texto}"`);
 });
 
 teste("EDGE CASE: súmula citada SEM a palavra 'súmula' — via 'Enunciado' — ainda é encontrada", () => {
