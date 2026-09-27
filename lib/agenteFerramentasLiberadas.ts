@@ -30,7 +30,7 @@ import { assistantTools, type AssistantTool } from "@/lib/assistantTools";
 // custa um chamado de suporte ("por que a minuta não vê X"), nunca um vazamento — o MESMO
 // princípio que este arquivo já aplica ao financeiro ausente (ver `liberada`, abaixo).
 //
-// AS SETE, e por que cada módulo de fora ficou de fora:
+// AS NOVE (sete de sempre + as duas do Firecrawl, 26/09/2026), e por que cada módulo de fora ficou de fora:
 //
 //   consultar_perfil_do_escritorio  — quem é o escritório, útil para o cabeçalho/qualificação da peça.
 //   consultar_processos             — os processos vinculados à sessão, insumo direto de fatos.
@@ -40,6 +40,11 @@ import { assistantTools, type AssistantTool } from "@/lib/assistantTools";
 //                                     continua valendo — ver lib/nivelFinanceiro.ts).
 //   consultar_documentos            — os documentos do vínculo, para citar o que já existe no caso.
 //   consultar_assessorias           — contexto de assessoria continuada, quando a peça nasce dali.
+//   pesquisar_jurisprudencia,
+//   ler_fonte_juridica              — localizar e LER o julgado no site oficial e na fonte
+//                                     secundária antes de citá-lo (docs/agentes/peticionamento-
+//                                     firecrawl-validacao.md §5) — só leitura pública, nunca
+//                                     dado do escritório.
 //
 //   financeiro, indicadores   — FORA: dinheiro não é insumo de peça. Uma minuta não cobra nem
 //                               presta contas; se algum dia precisar citar valor de causa, ele já
@@ -57,6 +62,8 @@ export const FERRAMENTAS_DO_PETICIONAMENTO: ReadonlySet<string> = new Set([
   "consultar_historico_cliente",
   "consultar_documentos",
   "consultar_assessorias",
+  "pesquisar_jurisprudencia",
+  "ler_fonte_juridica",
 ]);
 
 /**

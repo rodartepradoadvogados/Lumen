@@ -59,6 +59,8 @@ const LISTA_BRANCA_ESPERADA = [
   "consultar_historico_cliente",
   "consultar_documentos",
   "consultar_assessorias",
+  "pesquisar_jurisprudencia",
+  "ler_fonte_juridica",
 ].sort();
 
 async function credencialForjada(campos: Record<string, unknown>): Promise<string> {

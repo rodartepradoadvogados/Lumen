@@ -204,6 +204,33 @@ favorável pode ser distinguido pelo adversário. É aqui que a pesquisa vira es
 protocolo, com o motivo. Esta seção existir é o que impede o descarte silencioso de virar
 esquecimento.
 
+## Passo 7 — As ferramentas de pesquisa e leitura do Lúmen
+
+Quando esta skill roda dentro do agente de peticionamento do Lúmen, os passos 1 a 3 acima não são
+metáfora: existem duas ferramentas que os executam de verdade, e usá-las é obrigatório antes de
+qualquer citação entrar numa minuta.
+
+1. **A busca do passo 2 (base primária) roda pela ferramenta de pesquisa.** Ela devolve uma lista
+   de candidatos — título, link, descrição — nunca o conteúdo lido da página. Trate cada item como
+   hipótese a confirmar, exatamente como o passo 2 já manda: nunca cite direto do resultado da
+   busca.
+2. **O sítio oficial do passo 2 e a fonte secundária do passo 3 são lidos pela ferramenta de
+   leitura de fonte.** É essa ferramenta que abre de verdade o link candidato e devolve o texto —
+   sem ela, "conferi no oficial" seria só a página aberta na memória do modelo, não uma leitura real.
+3. **O número completo do processo, no protocolo de conferência de identificação do passo 3, só
+   conta como confirmado quando ele aparece no texto que a ferramenta de leitura devolveu — e vem
+   junto marcado como correto na forma e no dígito verificador.** Um número plausível, mas que a
+   ferramenta não confirmou como correto, é tratado como não confirmado: siga a saída do passo 4
+   para "não achei no sítio oficial" ou "os dados divergem entre as fontes", conforme o caso — nunca
+   escreva o número mesmo assim.
+4. **Súmula, tema ou enunciado não têm esse número de processo — e não precisam dele.** A exigência
+   do item 3 vale para o julgado individual; a citação de súmula/tema segue confirmada pela leitura
+   do texto vigente, como já manda o passo 3, item 4.
+5. Se a ferramenta de pesquisa ou a de leitura da fonte responder que não está disponível no
+   momento, isso é o mesmo caso do passo 4 para falta de acesso à base, à rede ou ao sítio oficial:
+   entregue a pesquisa sem as citações que dependiam dela, com a lista do que precisa ser validado
+   quando o acesso voltar.
+
 ## Formato da saída
 
 **Regra da casa nº 2: objetiva e informativa, com fundamentação precisa, sem formatação

@@ -1288,7 +1288,7 @@ export async function listarCitacoesParaValidacao(sessaoId: string): Promise<Lis
   }));
 
   const avaliacaoAprovacao = avaliarAprovacaoDeMinuta({
-    citacoes: citacoes.map((c) => ({ confirmada: c.confirmada, fonteUrl: c.fonteUrl, fonteSecundariaUrl: c.fonteSecundariaUrl })),
+    citacoes: citacoes.map((c) => ({ confirmada: c.confirmada, fonteUrl: c.fonteUrl, fonteSecundariaUrl: c.fonteSecundariaUrl, texto: c.texto })),
     haAvisoDeMolde: avisosDeMolde.length > 0,
   });
 
@@ -1381,7 +1381,7 @@ export async function aprovarMinutaGerarPeca(sessaoId: string): Promise<{ ok: tr
   const { avisosDeMolde } = await sincronizarCitacoes(sessaoId, user.officeId);
   const linhas = await prisma.peticionamentoCitacao.findMany({ where: { sessaoId, excluidaEm: null } });
   const avaliacao = avaliarAprovacaoDeMinuta({
-    citacoes: linhas.map((c) => ({ confirmada: !!c.confirmadaPorId, fonteUrl: c.fonteUrl, fonteSecundariaUrl: c.fonteSecundariaUrl })),
+    citacoes: linhas.map((c) => ({ confirmada: !!c.confirmadaPorId, fonteUrl: c.fonteUrl, fonteSecundariaUrl: c.fonteSecundariaUrl, texto: c.texto })),
     haAvisoDeMolde: avisosDeMolde.length > 0,
   });
   if (!avaliacao.podeAprovar) {

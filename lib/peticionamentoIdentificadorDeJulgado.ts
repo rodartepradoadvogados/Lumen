@@ -1,3 +1,5 @@
+import { cnjValido } from "@/lib/cnjNumero";
+
 // RECONHECEDOR DE FORMA de identificador de julgado — módulo puro, sem Prisma e sem rede. O
 // Lúmen não sabe se um processo existe de verdade; ele só sabe dizer se o que o agente devolveu
 // TEM FORMA de número real ou tem forma de MOLDE — o número de exemplo que sobra quando o agente
@@ -111,7 +113,64 @@ function classificarSegmentosCnj(segmentos: string[]): "valido" | "molde" {
   // A checagem de MÁSCARA (X/N/_) continua valendo sobre o texto concatenado, isto é, sobre TODOS
   // os segmentos: é ela que pega "20XX" e ".XXXX" dos exemplos do dono, e ela não muda aqui.
   if (ehSequenciaTrivial(segmentos[0].replace(/[^0-9XN_]/g, ""))) return "molde";
+
+  // O DÍGITO VERIFICADOR (docs/agentes/peticionamento-firecrawl-validacao.md §3) — chegando aqui,
+  // os segmentos JÁ passaram pelas duas checagens acima: sem máscara (X/N/_) e sem sequência
+  // trivial. Um número com FORMA de CNJ completo (20 dígitos) mas com o dígito verificador errado
+  // ainda tem cara de processo real — nenhum regex pega isso, só a conta (ISO 7064 MOD 97-10). Sem
+  // esta checagem, "0001234-56.2023.5.18.0001" (dígito 56, correto seria 85) passava como "válido"
+  // e citação sem processo de verdade continuava aprovável.
+  const digitos20 = segmentos.map((s) => s.replace(/\D/g, "")).join("");
+  if (digitos20.length === 20 && !cnjValido(digitos20)) return "molde";
+
   return "valido";
+}
+
+/**
+ * Existe, dentro de um texto maior, pelo menos UM número no padrão CNJ completo (20 dígitos) com
+ * forma E dígito verificador válidos? Usada pelo gate de aprovação (lib/peticionamentoAprovacao.ts)
+ * para exigir "processo com número completo" em citação de julgado — deliberadamente restrita ao
+ * padrão CNJ, e não a `classificarIdentificador` inteiro: um número de recurso solto ("REsp
+ * 1.234.567/SP") tem FORMA válida de identificador, mas não é o número único do processo, e a
+ * especificação é explícita que ele sozinho não basta.
+ */
+export function contemCnjValido(texto: string | null | undefined): boolean {
+  if (!texto) return false;
+  const re = new RegExp(RE_CNJ_OU_MOLDE.source, "g");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(texto))) {
+    if (m[0].length === 0) {
+      re.lastIndex++;
+      continue;
+    }
+    if (classificarSegmentosCnj([m[1], m[2], m[3], m[4], m[5], m[6]]) === "valido") return true;
+  }
+  return false;
+}
+
+// Súmula — inclusive quando a palavra "súmula" NEM APARECE: "enunciado", "verbete (sumular)" e a
+// abreviação "SV" (Súmula Vinculante) são formas correntes de citar sem usar a palavra inteira.
+const RE_SUMULA = /\b(s[uú]mula(\s+vinculante)?|s[uú]m\.|enunciado(\s+sumular)?|verbete(\s+sumular)?|sv)\b\s*n?[ºo°:.]*\s*\d+/gi;
+
+const RE_TEMA = /\btema\b\s*n?[ºo°:.]*\s*\d+/gi;
+
+/**
+ * Súmula, tema (repetitivo/repercussão geral) ou enunciado são identificados por espécie + número
+ * + órgão — NÃO têm número CNJ (docs/agentes/peticionamento-firecrawl-validacao.md §3.2, item 4).
+ * Usado pelo gate de aprovação (lib/peticionamentoAprovacao.ts) para não exigir número de processo
+ * de uma citação que, por natureza, nunca teve um: exigir CNJ de "Súmula 297 do STJ" bloquearia
+ * toda citação de súmula, para sempre, mesmo perfeitamente identificada.
+ *
+ * Mora AQUI, e não em peticionamentoCitacoes.ts (onde nasceu), porque este arquivo não importa
+ * "node:crypto" — peticionamentoAprovacao.ts é usado por um componente client (MinutaClient), e
+ * importar dali puxava o hash de node:crypto para o bundle do navegador e quebrava o build.
+ */
+export function ehSumulaTemaOuEnunciado(texto: string): boolean {
+  // Cópia nova a cada chamada: as duas regex são globais (`g`) e guardam `lastIndex` na própria
+  // instância — reusar a constante do módulo entre chamadas sucessivas corromperia a checagem da
+  // segunda citação em diante.
+  const semLastIndex = (re: RegExp) => new RegExp(re.source, re.flags);
+  return semLastIndex(RE_SUMULA).test(texto) || semLastIndex(RE_TEMA).test(texto);
 }
 
 /**

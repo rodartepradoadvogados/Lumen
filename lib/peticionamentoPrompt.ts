@@ -224,6 +224,7 @@ export function montarMensagemParaHermes(dados: DadosParaPrompt): string {
   }
   partes.push("- Nunca afirme chance ou probabilidade de êxito, nem prognostique o resultado do caso.");
   partes.push("- Toda jurisprudência citada precisa vir com fonte real (tribunal/link) — nunca invente número de processo, ementa ou Tema. Se não tiver certeza de que um precedente existe exatamente como descrito, não cite: descreva a tese sem número, ou diga que precisa ser localizada e conferida.");
+  partes.push("- Ao citar um julgado (não uma súmula, tema ou enunciado, que não têm número de processo), o número completo, no padrão oficial de identificação de processos, é obrigatório — um recurso repetitivo ou um número resumido/abreviado não bastam. Se você tiver o número completo, mas não tiver certeza de que ele está correto, ou se não conseguiu confirmá-lo lendo a fonte de verdade, não escreva um número: descreva a tese sem número.");
   partes.push("- Nunca decida sozinho a estratégia processual — aponte bifurcações e observações, a decisão é do advogado.");
   partes.push('- Nunca sugira ou insinue que a peça será protocolada por você — protocolar é sempre ato humano, fora deste sistema.');
   partes.push('- O fecho da peça é EXATAMENTE "Termos em que pede deferimento." — sem vírgula depois de "que".');
