@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Menu, Plus, MessageSquare, LayoutDashboard, Users, Settings } from "lucide-react";
+import { Menu, Plus, MessageSquare, LayoutDashboard, Users, Settings } from "lucide-react";
 import { ReactNode } from "react";
 
 const THEME_INIT_SCRIPT = `
@@ -36,7 +36,6 @@ export default function AtendimentoAppShell({ officeName, children }: { officeNa
 }
 
 function AtendimentoAppHeader({ officeName }: { officeName?: string }) {
-  const [totalAlerts, setTotalAlerts] = useState(0);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
@@ -44,13 +43,6 @@ function AtendimentoAppHeader({ officeName }: { officeName?: string }) {
     const isDark = stored === "dark" || (stored === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     setTheme(isDark ? "dark" : "light");
     document.getElementById("atendimento-shell")?.classList.toggle("atendimento-dark", isDark);
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/alerts/count", { credentials: "include" })
-      .then(r => r.json())
-      .then(data => setTotalAlerts(data.count || 0))
-      .catch(() => {});
   }, []);
 
   const toggleTheme = () => {
@@ -81,10 +73,6 @@ function AtendimentoAppHeader({ officeName }: { officeName?: string }) {
         </div>
       </Link>
       <div className="flex items-center gap-1.5 shrink-0">
-        <Link href="/atendimento-app/alertas" aria-label={`Alertas${totalAlerts > 0 ? `, ${totalAlerts} pendente(s)` : ""}`} className="relative h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-gaveta-tinta-2 hover:text-ouro-acento hover:bg-gaveta-fundo transition-colors">
-          {totalAlerts > 0 ? <span aria-hidden="true" className="text-destaque leading-none">🔔</span> : <Bell size={18} />}
-          {totalAlerts > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-4 px-1 rounded-full bg-ouro-acento text-ouro-tx text-etiqueta font-bold flex items-center justify-center border border-gaveta tabular-nums">{totalAlerts > 99 ? "99+" : totalAlerts}</span>}
-        </Link>
         <button onClick={toggleTheme} aria-label={theme === "light" ? "Tema escuro" : "Tema claro"} className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-gaveta-tinta-2 hover:text-ouro-acento hover:bg-gaveta-fundo transition-colors">
           {theme === "light" ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
         </button>

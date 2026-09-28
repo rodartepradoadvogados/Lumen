@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card } from "@/components/ui";
-import { ArrowLeft, Settings, User, BarChart3, Users, LogOut, Bell, Palette } from "lucide-react";
+import { ArrowLeft, User, Users, Palette, LogOut, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -23,25 +23,17 @@ export default async function MaisAppPage() {
           <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><User size={18} className="text-ouro-acento" /></div>
           <div className="flex-1"><p className="font-medium text-tx">Perfil</p><p className="text-xs text-tx-2">Dados da conta e preferências</p></div>
         </Link>
-        <Link href="/atendimento-app/alertas" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
-          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Bell size={18} className="text-ouro-acento" /></div>
-          <div className="flex-1"><p className="font-medium text-tx">Alertas</p><p className="text-xs text-tx-2">Prazos, menções e notificações</p></div>
-        </Link>
-        <Link href="/atendimento-app/relatorios" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
-          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><BarChart3 size={18} className="text-ouro-acento" /></div>
-          <div className="flex-1"><p className="font-medium text-tx">Relatórios</p><p className="text-xs text-tx-2">Indicadores e métricas do escritório</p></div>
-        </Link>
         <Link href="/atendimento-app/equipe" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
           <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Users size={18} className="text-ouro-acento" /></div>
           <div className="flex-1"><p className="font-medium text-tx">Equipe</p><p className="text-xs text-tx-2">Usuários e permissões</p></div>
         </Link>
-        <Link href="/atendimento-app/configuracoes" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
-          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Settings size={18} className="text-ouro-acento" /></div>
-          <div className="flex-1"><p className="font-medium text-tx">Configurações</p><p className="text-xs text-tx-2">Preferências do app</p></div>
-        </Link>
         <Link href="/atendimento-app/tema" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
           <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Palette size={18} className="text-ouro-acento" /></div>
           <div className="flex-1"><p className="font-medium text-tx">Tema</p><p className="text-xs text-tx-2">Claro / Escuro / Automático</p></div>
+        </Link>
+        <Link href="/" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
+          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><ExternalLink size={18} className="text-ouro-acento" /></div>
+          <div className="flex-1"><p className="font-medium text-tx">Abrir site completo</p><p className="text-xs text-tx-2">Ir para o Lúmen desktop</p></div>
         </Link>
       </Card>
 
