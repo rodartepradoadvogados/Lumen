@@ -1,5 +1,21 @@
 # Lúmen — instruções para o Claude
 
+## NUNCA use o repositório rp-financeiro
+
+Existe um repositório antigo, `rodartepradoadvogados/rp-financeiro`, que **não é usado pelo
+escritório**. O sistema real, o que o escritório efetivamente opera e chama de "Lúmen", é
+**este** repositório: `rodartepradoadvogados/lumen` (o nome do repo no GitHub é `Lumen`, com
+maiúscula — não confundir com o produto/marca "Lúmen", com acento, que é como o dono se refere
+ao sistema em conversa).
+
+Instrução permanente do dono do projeto: **nenhum agente deve ler, investigar, editar ou
+enviar (push) qualquer coisa em `rp-financeiro`**, a menos que o dono peça **expressamente e
+pelo nome** "rp-financeiro" naquela conversa. Um pedido genérico sobre "o sistema", "o Lúmen",
+"o app", "o site do escritório" etc. — mesmo que a sessão tenha sido iniciada ou anexada por
+engano ao `rp-financeiro` — significa **este** repositório (`lumen`), nunca aquele. Se uma
+sessão perceber que está trabalhando em `rp-financeiro` sem esse pedido explícito, deve parar,
+avisar o dono, e trocar para `lumen` antes de continuar.
+
 ## Leia antes de mexer em qualquer coisa
 
 `docs/ESTADO-ATUAL-E-ARMADILHAS.md` lista as decisões deste projeto que parecem
