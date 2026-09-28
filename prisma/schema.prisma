@@ -1352,6 +1352,9 @@ model Attendance {
   // Attendance — model separado de Case, não confundir com o legado Case.type = "ATENDIMENTO".
   anotacoes        Anotacao[]
 
+  // Metadados flexíveis para flags e configurações extras (ex.: anaResponde)
+  metadata         Json?
+
   @@index([officeId])
   @@index([officeId, waPhone])
 }

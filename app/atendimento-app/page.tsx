@@ -1,0 +1,121 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
+import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
+import { Plus, Search } from "lucide-react";
+import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
+import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
+import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
+
+export const dynamic = "force-dynamic";
+
+const statusColors: Record<string, "amber" | "blue" | "green" | "slate"> = {
+  NOVO: "amber",
+  EM_TRIAGEM: "blue",
+  CONVERTIDO: "green",
+  ARQUIVADO: "slate",
+  RASCUNHO: "slate",
+};
+
+const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
+
+const TABS = [
+  { label: "Todos", status: undefined },
+  { label: "Novo", status: "NOVO" },
+  { label: "Em Triagem", status: "EM_TRIAGEM" },
+  { label: "Convertido", status: "CONVERTIDO" },
+  { label: "Arquivado", status: "ARQUIVADO" },
+  { label: "Rascunhos", status: "RASCUNHO" },
+];
+
+export default async function AtendimentoAppHome({ searchParams }: { searchParams: { status?: string; q?: string } }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
+  const q = (searchParams.q || "").trim();
+
+  const baseFilters: Prisma.AttendanceWhereInput = {
+    officeId: viewer.officeId,
+    status: searchParams.status || { not: "RASCUNHO" },
+  };
+  const matchingIds = q ? await findAttendanceIdsByLooseName(q, baseFilters) : [];
+  const where: Prisma.AttendanceWhereInput = { ...baseFilters, ...(q ? { id: { in: matchingIds } } : {} ) };
+
+  const [attendances, totalCount] = await Promise.all([
+    prisma.attendance.findMany({ where, include: { responsible: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+    prisma.attendance.count({ where }),
+  ]);
+
+  const tabHref = (status?: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (status) params.set("status", status);
+    const s = params.toString();
+    return `/atendimento-app${s ? `?${s}` : ""}`;
+  };
+
+  return (
+    <div className="p-4 space-y-4 animate-fade-in">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-tx">Triagem</h1>
+          <p className="text-sm text-tx-2">{totalCount} registro(s)</p>
+        </div>
+        <Link href="/atendimento-app/novo" className="inline-flex items-center gap-1.5 bg-ouro-acento hover:bg-ouro-hover text-ouro-tx text-corpo font-semibold px-3 py-2 shrink-0">
+          <Plus size={14} /> Novo
+        </Link>
+      </div>
+
+      <TiraDeGuias className="-mx-4 px-4">
+        {TABS.map((t) => (
+          <GuiaLink key={t.label} href={tabHref(t.status)} ativa={t.status ? searchParams.status === t.status : !searchParams.status}>
+            {t.label}
+          </GuiaLink>
+        ))}
+      </TiraDeGuias>
+
+      <form className="flex gap-2">
+        {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
+          <input type="text" name="q" defaultValue={q} placeholder="Buscar por nome ou assunto" className="w-full border border-regua bg-sf text-tx placeholder:text-tx-3 pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ouro-acento" />
+        </div>
+        <button type="submit" className="bg-ouro-acento text-ouro-tx text-sm font-semibold px-4 py-2">Buscar</button>
+      </form>
+
+      <Card>
+        {attendances.length === 0 ? (
+          <EmptyState title="Nenhum atendimento encontrado" />
+        ) : (
+          <div className="divide-y divide-regua">
+            {attendances.map((a) => (
+              <Link key={a.id} href={`/atendimento-app/${a.id}`} className="atd-row flex items-center gap-3 px-4 py-3.5 hover:bg-sf-apoio transition-colors">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium text-tx truncate">{a.clientName}</p>
+                    <Badge color={statusColors[a.status]}>{attendanceStatusLabels[a.status] ?? a.status}</Badge>
+                  </div>
+                  <p className="text-corpo text-tx-2 mt-0.5 truncate">{a.subject}</p>
+                  <div className="flex items-center gap-2 flex-wrap mt-1">
+                    <Badge color="navy">{channelLabels[a.channel]}</Badge>
+                    {a.area && <Badge color="gold">{a.area}</Badge>}
+                  </div>
+                </div>
+                <div className="meta text-right shrink-0">
+                  <p className="text-corpo text-tx-2">{formatDate(a.createdAt)}</p>
+                  {a.responsible && <p className="text-corpo text-tx-2 mt-0.5">{a.responsible.name}</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {attendances.length < totalCount && (
+        <p className="text-corpo text-tx-2 text-center">Mostrando os {attendances.length} mais recentes de {totalCount} — use a busca para encontrar os demais</p>
+      )}
+    </div>
+  );
+}

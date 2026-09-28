@@ -39,7 +39,7 @@ export default async function AssessoriaListPage() {
               <Link
                 key={a.id}
                 href={`/assessoria/${a.id}`}
-                className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-sf-apoio transition-colors flex-wrap"
+                className="atd-row flex items-center justify-between gap-4 px-5 py-4 hover:bg-sf-apoio transition-colors flex-wrap"
               >
                 <div className="min-w-0">
                   <p className="font-semibold text-tx">{a.client.name}</p>
@@ -47,7 +47,7 @@ export default async function AssessoriaListPage() {
                     {a._count.documents} documento(s) · {a._count.licitacoes} licitação(ões)
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="meta flex items-center gap-3">
                   <Badge color={statusColors[a.status] || "slate"}>{statusLabels[a.status] || a.status}</Badge>
                   <span className="text-sm font-semibold text-tx-2 whitespace-nowrap">
                     {formatCurrency(a.monthlyFee)}/mês

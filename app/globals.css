@@ -274,6 +274,84 @@
   --fonte-pje-bg: rgba(74, 147, 181, .14);
 }
 
+/* ============================================================================
+   ATENDIMENTO APP — Tema próprio (ouro/âmbar #c9962f como identidade)
+   Independente do tema do site (.dark) — usa .atendimento-dark no #atendimento-shell
+   ============================================================================ */
+.atendimento-shell {
+  /* Tokens do Atendimento App (tema claro/Manhã) */
+  --atd-ouro: #c9962f;
+  --atd-ouro-hover: #d4a83a;
+  --atd-ouro-tx: #fffdf7;
+  --atd-ouro-bg: #fbf7ea;
+  --atd-grafite: #16191d;
+  --atd-grafite-800: #181b1f;
+  --atd-vinho: #cd5f77;
+}
+
+.atendimento-dark {
+  /* Tokens do Atendimento App (tema escuro/Noite) — paleta aproximada Dracula */
+  --atd-ouro: #d4a83a;
+  --atd-ouro-hover: #e0b84a;
+  --atd-ouro-tx: #1a1608;
+  --atd-ouro-bg: #3d3208;
+  --atd-grafite: #282a36;
+  --atd-grafite-800: #1e1f29;
+  --atd-vinho: #ff6b9d;
+  
+  /* Retematizar superfícies para o modo escuro do Atendimento */
+  --sf-fundo: #1e1f29;
+  --ficha: #282a36;
+  --ficha-alt: #1a1b26;
+  --linha: #44475a;
+  --linha-forte: #6272a4;
+  --tinta: #f8f8f2;
+  --tinta-2: #bdbfc7;
+  --tinta-3: #9aa0b3;
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: #ff5555;
+  --urgente-bg: rgba(255, 85, 85, .14);
+  --aviso: #ffb86c;
+  --aviso-bg: rgba(255, 184, 108, .14);
+  --concluido: #50fa7b;
+  --concluido-bg: rgba(80, 250, 123, .14);
+  --concluido-glow: 0 0 10px rgba(80, 250, 123, .55);
+  --ouro-acento: var(--atd-ouro);
+  --ouro-hover: var(--atd-ouro-hover);
+  --ouro-tx: var(--atd-ouro-tx);
+  --ouro-bg: var(--atd-ouro-bg);
+  --grafite-800: var(--atd-grafite-800);
+  --acao: var(--atd-ouro);
+  --acao-hover: var(--atd-ouro-hover);
+  --acao-tx: var(--atd-ouro-tx);
+  --acao-bg: var(--atd-ouro-bg);
+  --marca: var(--atd-ouro);
+  --marca-tx: var(--atd-ouro-tx);
+  --marca-bg: var(--atd-ouro-bg);
+  --campo-risco: #4a1a1a;
+  --campo-risco-linha: #8b3a3a;
+  color-scheme: dark;
+  background: var(--sf-fundo);
+  color: var(--tinta);
+}
+
+/* Mapear classes do Atendimento para usar tokens --atd-* */
+.atendimento-shell .bg-ouro-acento { background-color: var(--atd-ouro) !important; }
+.atendimento-shell .hover\\:bg-ouro-hover:hover { background-color: var(--atd-ouro-hover) !important; }
+.atendimento-shell .text-ouro-tx { color: var(--atd-ouro-tx) !important; }
+.atendimento-shell .text-ouro-acento { color: var(--atd-ouro) !important; }
+.atendimento-shell .hover\\:text-ouro-acento:hover { color: var(--atd-ouro) !important; }
+.atendimento-shell .hover\\:bg-ouro-bg:hover { background-color: var(--atd-ouro-bg) !important; }
+.atendimento-shell .bg-ouro-bg { background-color: var(--atd-ouro-bg) !important; }
+.atendimento-shell .border-ouro-acento { border-color: var(--atd-ouro) !important; }
+.atendimento-shell .focus\\:ring-ouro-acento:focus { --tw-ring-color: var(--atd-ouro) !important; }
+
 /* ----------------------------------------------------------------------------
    LEGADO. As variáveis abaixo existiam antes do redesenho Modernist e ainda são
    lidas por componentes não migrados. Apontam para os valores NOVOS, para que a
@@ -432,22 +510,6 @@ input[type="radio"] {
   55% { background-color: var(--concluido); opacity: 1; }
   100% { background-color: var(--concluido); opacity: 0; }
 }
-/* A ENTRADA DE UMA ETAPA DO FORMULÁRIO DE CAMPANHA.
-   Desliza da direita e some ao mesmo tempo — é o gesto de "a próxima folha chegou", e ele importa
-   num formulário de sete etapas: sem movimento nenhum, trocar de etapa parece um erro de
-   carregamento, e a pessoa clica de novo.
-   Curta de propósito (180ms): quem está preenchendo dezesseis campos vai ver isto quatorze vezes,
-   e uma animação generosa na terceira já é uma animação irritante na décima.
-   `prefers-reduced-motion` desliga o movimento e mantém só o aparecer. */
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(16px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.animate-slide-in { animation: slideIn 180ms ease-out; }
-@media (prefers-reduced-motion: reduce) {
-  .animate-slide-in { animation: fadeIn 180ms ease-out; }
-}
-
 .animate-slide-out-left { animation: slideOutLeft 1000ms ease-in forwards; }
 .animate-slide-out-down { animation: slideOutDown 1000ms ease-in forwards; }
 .animate-flash-wine-out { animation: flashWineOut 1000ms ease-in forwards; }
@@ -1088,52 +1150,6 @@ html:has(.site-publico) {
 @media (prefers-reduced-motion: reduce) {
   .portal-shell .live-dot {
     animation: none;
-  }
-}
-
-/* ============================================================================
-   BOLINHA DE "ESPERANDO RESPOSTA" — o cliente escreveu e ninguém respondeu.
-   ============================================================================
-   Pisca de propósito, e é a ÚNICA coisa do produto que pisca. Movimento é o recurso de atenção
-   mais caro que existe numa tela: gasta-se uma vez, e num fato que não pode passar despercebido.
-   Aqui o fato é uma pessoa esperando resposta com relógio correndo.
-
-   NÃO CONFUNDIR COM A COLUNA "AGUARDANDO" da Triagem. A coluna é ESTÁGIO (alguém pôs o card ali);
-   a bolinha é FATO (a última mensagem é do cliente). Um lead pode ter a bolinha em qualquer
-   coluna, inclusive em Fechado. Ver a nota longa em lib/funil.ts.
-
-   O pulso é de OPACIDADE e não de tamanho: tamanho empurra o texto ao lado e faz a linha inteira
-   tremer, que é o tipo de movimento que cansa em dez minutos de tela aberta.
-
-   Fora do `.portal-shell` de propósito: a mesma bolinha vale no site e no app (`.mobile-shell`),
-   e a `live-dot` do portal é outra coisa — aquela é verde e diz "está acontecendo agora". */
-.bolinha-espera {
-  width: 7px;
-  height: 7px;
-  border-radius: 9999px;
-  background: var(--acao);
-  box-shadow: 0 0 0 0 var(--acao);
-  display: inline-block;
-  flex-shrink: 0;
-  animation: pulso-espera 1.6s ease-in-out infinite;
-}
-@keyframes pulso-espera {
-  0%,
-  100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 var(--acao-light);
-  }
-  50% {
-    opacity: 0.45;
-    box-shadow: 0 0 0 3px transparent;
-  }
-}
-/* Quem desligou movimento continua vendo a bolinha — ela só para de piscar. A informação é a
-   COR e a PRESENÇA; o piscar é o reforço, e reforço é o que se abre mão primeiro. */
-@media (prefers-reduced-motion: reduce) {
-  .bolinha-espera {
-    animation: none;
-    box-shadow: 0 0 0 2px var(--acao-light);
   }
 }
 
@@ -2092,95 +2108,175 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
    servidor (ver primeiraMaiuscula em lib/email.ts); aqui, no navegador, o CSS resolve. */
 .inicial-maiuscula::first-letter { text-transform: uppercase; }
 
-/* ---------------------------------------------------------------------------
-   A RESPOSTA DO ASSISTENTE, que vem em markdown simples.
-   O agente escreve `**112 processos**` e listas com hífen. Sem estilo, o
-   renderizador (lib/markdownSimples.tsx) devolve h2/h3/ul/blockquote com o
-   tamanho de MATÉRIA DE BLOG — o que dentro de um balão de conversa fica
-   grotesco. Aqui o mesmo markdown ganha a escala de uma conversa.
-   Sem isto, a alternativa seria o texto cru: no primeiro uso real do agente a
-   resposta apareceu como "você tem **20 processos**", com os asteriscos na
-   tela do advogado.
-   --------------------------------------------------------------------------- */
-.assistente-md > * + * { margin-top: 6px; }
-.assistente-md h2,
-.assistente-md h3 { font-size: 1em; font-weight: 600; }
-.assistente-md ul,
-.assistente-md ol { padding-left: 18px; }
-.assistente-md ul { list-style: disc; }
-.assistente-md ol { list-style: decimal; }
-.assistente-md li + li { margin-top: 3px; }
-.assistente-md strong { font-weight: 600; }
-.assistente-md a { text-decoration: underline; }
-.assistente-md blockquote {
-  padding-left: 10px;
-  border-left: 2px solid var(--regua-forte);
-  color: var(--tx-2);
+/* ============================================================================
+   RESPONSIVIDADE CENTRAL — Rampa mobile-first (Fase 1 do plano)
+   Breakpoints únicos: <768px (mobile) e <1024px (tablet).
+   Normaliza: linha de lista, badges, PageHeader, .tela padding, alvos de toque.
+   ============================================================================ */
+
+/* Mobile: < 768px */
+@media (max-width: 767px) {
+  /* .tela — padding vertical reduzido */
+  .tela {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  /* PageHeader — ação quebra para linha cheia */
+  .tela > :first-child > div:last-child,
+  .tela > div:first-child > div:last-child {
+    width: 100%;
+  }
+
+  /* Linha de lista — metadados direita vão para baixo, badges em linha própria */
+  .atd-row,
+  .divide-y > a,
+  .divide-y > div > a {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  .atd-row > div:first-child,
+  .divide-y > a > div:first-child {
+    width: 100%;
+  }
+
+  .atd-row .meta,
+  .divide-y > a > div:last-child {
+    text-align: left !important;
+    display: flex !important;
+    gap: 1rem !important;
+    font-size: 0.75rem !important;
+    flex-wrap: wrap;
+  }
+
+  .atd-row .badges,
+  .divide-y > a .badges {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Badges — tamanho mínimo de toque 44px */
+  .atd-badge,
+  [class*="Badge"] {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+  }
+
+  /* Funil — colunas viram cartões empilhados */
+  .flex.gap-4.overflow-x-auto,
+  .flex.gap-4.overflow-x-auto > div {
+    flex-direction: column !important;
+    overflow-x: visible !important;
+  }
+
+  .flex.gap-4.overflow-x-auto > div {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Funil específico — colunas w-80 empilham no mobile */
+  .funil-cols {
+    flex-direction: column !important;
+    overflow-x: visible !important;
+  }
+
+  .funil-cols .funil-col {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+  }
+
+  /* Atendimento App Funil — colunas empilham no mobile */
+  .funil-cols-app {
+    flex-direction: column !important;
+    overflow-x: visible !important;
+  }
+
+  .funil-cols-app .funil-col-app {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+  }
+
+  /* Filtros — scroll horizontal se necessário */
+  .flex.gap-2.flex-wrap,
+  .atd-filters {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+  }
+  .flex.gap-2.flex-wrap::-webkit-scrollbar,
+  .atd-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Botões — altura mínima 44px */
+  button,
+  [role="button"],
+  a.btn,
+  .atd-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Grid de 2 colunas vira 1 coluna */
+  .md\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tabelas com scroll horizontal */
+  table,
+  .overflow-x-auto {
+    overflow-x: auto !important;
+  }
 }
 
-/* TABELA DENTRO DO BALÃO DE CONVERSA.
-   O agente responde em tabela sempre que a resposta tem mais de uma coluna, e um balão de
-   conversa tem 320px no celular. A rolagem lateral fica NESTA caixa e não na página: empurrar a
-   página inteira para o lado seria trocar um problema por outro pior.
-   `-webkit-overflow-scrolling` mantém a rolagem com inércia no iOS, onde sem ela a tabela
-   "gruda" e parece travada. */
-.md-tabela {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  max-width: 100%;
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tela {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
 
-  /* SOMBRA QUE DIZ "TEM MAIS PARA O LADO".
-     Sem ela, um número de processo cortado na borda do balão parece defeito, e não tabela que
-     rola — e "texto cortado na tela" é exatamente a reclamação que a gente já ouviu antes.
-     A técnica é a clássica de duas camadas: as de `local` acompanham o conteúdo e apagam a
-     sombra quando não há mais nada daquele lado; as de `scroll` ficam presas na moldura. Ou
-     seja, a sombra aparece só quando de fato há conteúdo escondido.
-     `currentColor` em vez de cor fixa: funciona nos oito temas sem uma linha por tema. */
-  background:
-    linear-gradient(to right, var(--sf-superficie) 30%, transparent) left / 20px 100% no-repeat local,
-    linear-gradient(to left, var(--sf-superficie) 30%, transparent) right / 20px 100% no-repeat local,
-    radial-gradient(farthest-side at 0 50%, color-mix(in srgb, currentColor 20%, transparent), transparent)
-      left / 10px 100% no-repeat scroll,
-    radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, currentColor 20%, transparent), transparent)
-      right / 10px 100% no-repeat scroll;
-}
-.assistente-md .md-tabela table {
-  border-collapse: collapse;
-  font-size: 0.92em;
-  /* `auto` e não `100%`: numa tabela de cinco colunas dentro do balão, forçar a largura total
-     espreme as colunas e quebra número de processo no meio. Melhor deixar crescer e rolar. */
-  width: auto;
-  min-width: 100%;
-}
-.assistente-md .md-tabela th,
-.assistente-md .md-tabela td {
-  border: 1px solid var(--regua);
-  padding: 4px 8px;
-  text-align: left;
-  vertical-align: top;
-  white-space: nowrap;
-}
-.assistente-md .md-tabela th {
-  font-weight: 600;
-  background: var(--sf-apoio);
-}
-/* Números de processo e datas em colunas: alinhar os dígitos é o que torna a coluna legível. */
-.assistente-md .md-tabela td { font-variant-numeric: tabular-nums; }
+  .atd-row,
+  .divide-y > a,
+  .divide-y > div > a {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+  }
 
-/* A mesma tabela no corpo de uma matéria do blog, onde há largura de sobra. */
-.artigo .md-tabela table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 1rem 0;
-}
-.artigo .md-tabela th,
-.artigo .md-tabela td {
-  border: 1px solid var(--regua);
-  padding: 8px 12px;
-  text-align: left;
-  vertical-align: top;
-}
-.artigo .md-tabela th {
-  font-weight: 600;
-  background: var(--sf-apoio);
+  .atd-row > div:first-child,
+  .divide-y > a > div:first-child {
+    width: 100%;
+  }
+
+  .atd-row .meta,
+  .divide-y > a > div:last-child {
+    text-align: left;
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.8125rem;
+    flex-wrap: wrap;
+  }
+
+  .atd-row .badges,
+  .divide-y > a .badges {
+    width: 100%;
+  }
+
+  .flex.gap-4.overflow-x-auto > div {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
 }

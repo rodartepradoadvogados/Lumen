@@ -110,3 +110,23 @@ export function LumenAba({
     </Link>
   );
 }
+
+export function LumenBadge({
+  children,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "success" | "warning" | "risk";
+}) {
+  const variantClass = {
+    default: "bg-sf-apoio text-tx-2",
+    success: "bg-concluido-bg text-concluido",
+    warning: "bg-aviso-bg text-aviso",
+    risk: "bg-urgente-bg text-urgente",
+  }[variant];
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-etiqueta font-semibold whitespace-nowrap ${variantClass}`}>
+      {children}
+    </span>
+  );
+}
