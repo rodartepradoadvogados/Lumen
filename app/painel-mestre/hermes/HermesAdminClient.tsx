@@ -126,17 +126,17 @@ export default function HermesAdminClient() {
 
   // Cor crua do Tailwind não retematiza: fica igual no tema claro e no escuro. Trocada pelas
   // variantes do selo, que leem os tokens da casa.
-  const statusColors: Record<string, "success" | "warning" | "danger" | "default"> = {
+  const statusColors: Record<string, "success" | "warning" | "risk" | "default"> = {
     provisioned: "success",
     ready: "success",
     not_provisioned: "warning",
-    unhealthy: "danger",
+    unhealthy: "risk",
     unknown: "default",
   };
 
-  const healthColors: Record<string, "success" | "warning" | "danger" | "default"> = {
+  const healthColors: Record<string, "success" | "warning" | "risk" | "default"> = {
     healthy: "success",
-    unhealthy: "danger",
+    unhealthy: "risk",
     unknown: "default",
   };
 
