@@ -16,9 +16,9 @@ async function runHermesCommand(profileName: string, args: string[]): Promise<st
   const { execSync } = await import("child_process");
   try {
     return execSync(command, { encoding: "utf-8", timeout: 60000, maxBuffer: 1024 * 1024 * 5 }).trim();
-  } catch (error: any) {
-    console.error("[hermes/admin] Error:", error.message);
-    throw new Error(`Hermes command failed: ${error.message}`);
+  } catch (error: unknown) {
+    console.error("[hermes/admin] Error:", (error as Error).message);
+    throw new Error(`Hermes command failed: ${(error as Error).message}`);
   }
 }
 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 
       const profileName = getTenantProfileName(slug);
       let health = "unknown";
-      let sessions: any[] = [];
+      let sessions: { id: string; title: string }[] = [];
 
       try {
         await runHermesCommand(profileName, ["chat", "-q", "ping", "--quiet"]);
@@ -103,9 +103,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
-  } catch (error: any) {
-    console.error("[hermes/admin] Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("[hermes/admin] Error:", (error as Error).message);
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
 
@@ -149,9 +149,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
-  } catch (error: any) {
-    console.error("[hermes/admin] Action error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("[hermes/admin] Action error:", (error as Error).message);
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
 

@@ -9,7 +9,7 @@ function getTenantProfileName(officeSlug: string): string {
   return `${TENANT_PROFILE_PREFIX}${officeSlug}`;
 }
 
-async function runHermesSessions(profileName: string, action: "list" | "delete", sessionId?: string): Promise<any> {
+async function runHermesSessions(profileName: string, action: "list" | "delete", sessionId?: string): Promise<string> {
   const args = ["sessions", action];
   if (sessionId) args.push(sessionId);
   args.push("--profile", profileName, "--quiet");
@@ -24,13 +24,13 @@ async function runHermesSessions(profileName: string, action: "list" | "delete",
       maxBuffer: 1024 * 1024 * 5
     });
     return output.trim();
-  } catch (error: any) {
-    console.error("[hermes/sessions] Error:", error.message);
-    throw new Error(`Hermes sessions failed: ${error.message}`);
+  } catch (error: unknown) {
+    console.error("[hermes/sessions] Error:", (error as Error).message);
+    throw new Error(`Hermes sessions failed: ${(error as Error).message}`);
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const user = await getCurrentUser();
   if (!user || !user.active) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
@@ -49,14 +49,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const output = await runHermesSessions(profileName, "list");
-    const sessions = output.split("\n").filter(Boolean).map(line => {
+    const sessions = output.split("\n").filter(Boolean).map((line: string) => {
       const [id, ...rest] = line.split(/\s+/);
       return { id, title: rest.join(" ") || "Sem título" };
     });
 
     return NextResponse.json({ sessions });
-  } catch (error: any) {
-    console.error("[hermes/sessions] Error:", error);
+  } catch (error: unknown) {
+    console.error("[hermes/sessions] Error:", (error as Error).message);
     return NextResponse.json(
       { error: "Não foi possível listar as sessões." },
       { status: 502 }
@@ -90,8 +90,8 @@ export async function DELETE(request: NextRequest) {
   try {
     await runHermesSessions(profileName, "delete", sessionId);
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error("[hermes/sessions] Delete error:", error);
+  } catch (error: unknown) {
+    console.error("[hermes/sessions] Delete error:", (error as Error).message);
     return NextResponse.json(
       { error: "Não foi possível excluir a sessão." },
       { status: 502 }

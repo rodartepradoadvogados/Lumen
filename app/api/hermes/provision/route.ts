@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 
 const PROVISION_SCRIPT = "/root/.hermes/profiles/lumen-master/scripts/provision_tenant.py";
-const HERMES_BIN = process.env.HERMES_BIN || "/root/.local/bin/lumen-master";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser({ ignoreActing: true });
@@ -42,11 +41,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, profile: result });
-  } catch (error: any) {
-    console.error("[hermes/provision] Error:", error);
-    let detail = error.message;
+  } catch (error: unknown) {
+    console.error("[hermes/provision] Error:", (error as Error).message);
+    let detail = (error as Error).message;
     try {
-      const stderr = error.stderr?.toString() || "";
+      const stderr = (error as { stderr?: Buffer }).stderr?.toString() || "";
       const lastLine = stderr.trim().split("\n").pop();
       if (lastLine) detail = lastLine;
     } catch {}
@@ -54,7 +53,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const user = await getCurrentUser({ ignoreActing: true });
   if (!user || !user.active || !user.isPlatformOwner) {
     return NextResponse.json({ error: "Acesso restrito ao dono da plataforma." }, { status: 403 });
@@ -66,8 +65,8 @@ export async function GET(request: NextRequest) {
     const output = execSync(command, { encoding: "utf-8", timeout: 30000 });
     const result = JSON.parse(output.trim().split("\n").pop() || "{}");
     return NextResponse.json(result);
-  } catch (error: any) {
-    console.error("[hermes/provision] List error:", error);
+  } catch (error: unknown) {
+    console.error("[hermes/provision] List error:", (error as Error).message);
     return NextResponse.json({ error: "Falha ao listar perfis" }, { status: 500 });
   }
 }
@@ -90,8 +89,8 @@ export async function DELETE(request: NextRequest) {
     const output = execSync(command, { encoding: "utf-8", timeout: 60000 });
     const result = JSON.parse(output.trim().split("\n").pop() || "{}");
     return NextResponse.json(result);
-  } catch (error: any) {
-    console.error("[hermes/provision] Deprovision error:", error);
+  } catch (error: unknown) {
+    console.error("[hermes/provision] Deprovision error:", (error as Error).message);
     return NextResponse.json({ error: "Falha ao remover perfil" }, { status: 500 });
   }
 }

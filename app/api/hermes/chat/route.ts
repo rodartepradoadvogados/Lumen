@@ -41,9 +41,9 @@ async function runHermesChat(
     const response = lines.filter(l => !l.startsWith("session_id:")).join("\n").trim();
 
     return { response, sessionId: newSessionId };
-  } catch (error: any) {
-    console.error("[hermes/chat] Error:", error.message);
-    throw new Error(`Hermes execution failed: ${error.message}`);
+  } catch (error: unknown) {
+    console.error("[hermes/chat] Error:", (error as Error).message);
+    throw new Error(`Hermes execution failed: ${(error as Error).message}`);
   }
 }
 
@@ -84,10 +84,10 @@ export async function POST(request: NextRequest) {
       sessionId,
       tenant: { id: office.id, slug: office.slug, name: office.name }
     });
-  } catch (error: any) {
-    console.error("[hermes/chat] Error:", error);
+  } catch (error: unknown) {
+    console.error("[hermes/chat] Error:", (error as Error).message);
 
-    if (error.message.includes("profile") && error.message.includes("not found")) {
+    if ((error as Error).message.includes("profile") && (error as Error).message.includes("not found")) {
       return NextResponse.json(
         { error: "Perfil do Hermes não provisionado para este escritório. Contate o administrador." },
         { status: 503 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, X, Send, Bot, RefreshCw, Trash2 } from "lucide-react";
+import { X, Send, Bot, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { useAnotacoesOptional } from "@/components/anotacoes/AnotacoesContext";
 import { useHermesTenant } from "@/components/HermesContext";
@@ -12,7 +12,7 @@ type ChatMessage = {
 };
 
 export default function HermesChatbox() {
-  const { tenantId, tenantSlug, tenantName } = useHermesTenant();
+  const { tenantSlug, tenantName } = useHermesTenant();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -117,7 +117,7 @@ export default function HermesChatbox() {
         onClick={() => setOpen((v) => !v)}
         data-tip="Assistente Hermes"
         style={{ right: rightOffsetPx }}
-        className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-grafite-800 text-rail-marca shadow-pop flex items-center justify-center hover:bg-grafite-700 transition-[right,background-color] duration-200"
+        className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-gaveta-fundo text-rail-marca shadow-pop flex items-center justify-center hover:bg-gaveta transition-[right,background-color] duration-200"
         aria-label={open ? "Fechar assistente Hermes" : "Abrir assistente Hermes"}
       >
         {open ? <X size={22} /> : <Bot size={22} />}
@@ -126,20 +126,20 @@ export default function HermesChatbox() {
       {open && (
         <div
           style={{ right: rightOffsetPx }}
-          className="fixed bottom-20 w-full max-w-md h-[70vh] shadow-pop bg-sf z-40 flex flex-col overflow-hidden border border-regua transition-[right] duration-200"
+          className="fixed bottom-20 w-full max-w-md h-[70vh] shadow-pop bg-ficha z-40 flex flex-col overflow-hidden border border-gaveta-linha transition-[right] duration-200"
         >
-          <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-grafite-800 text-white">
+          <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-gaveta-fundo text-gaveta-tinta">
             <div className="flex items-center gap-2">
               <Bot size={18} className="text-rail-marca" />
               <span className="font-medium text-sm">Hermes Agent</span>
-              <span className="px-2 py-0.5 text-xs bg-white/10 rounded text-white/70">{tenantName}</span>
+              <span className="px-2 py-0.5 text-xs bg-gaveta-linha/20 rounded text-gaveta-tinta/70">{tenantName}</span>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={limparHistorico}
                 title="Limpar histórico"
-                className="p-1.5 rounded hover:bg-white/10 transition-colors text-white/70 hover:text-white"
+                className="p-1.5 rounded hover:bg-gaveta-linha/20 transition-colors text-gaveta-tinta/70 hover:text-gaveta-tinta"
                 aria-label="Limpar histórico da conversa"
               >
                 <Trash2 size={16} />
@@ -147,7 +147,7 @@ export default function HermesChatbox() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="p-1.5 rounded hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded hover:bg-gaveta-linha/20 transition-colors"
                 aria-label="Fechar assistente"
               >
                 <X size={18} />
@@ -155,10 +155,10 @@ export default function HermesChatbox() {
             </div>
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-3 space-y-3 bg-sf-apoio">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-3 space-y-3 bg-ficha-alt">
             {mensagens.length === 0 && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] px-3 py-2 text-sm bg-sf border border-regua text-tx-2 shadow-card">
+                <div className="max-w-[85%] px-3 py-2 text-sm bg-sf-apoio border border-regua text-tx-2 shadow-card">
                   Olá! Sou o Hermes, seu assistente jurídico com acesso a todos os dados do escritório.
                   Posso consultar processos, publicações, agenda, atendimentos, clientes, financeiro,
                   documentos e muito mais. Como posso ajudar?
@@ -172,8 +172,8 @@ export default function HermesChatbox() {
                   className={clsx(
                     "max-w-[85%] px-3 py-2 text-sm whitespace-pre-wrap break-words",
                     m.role === "user" && "bg-acao text-acao-tx",
-                    m.role === "assistant" && "bg-sf border border-regua text-tx shadow-card",
-                    m.role === "error" && "bg-red-50 border border-red-200 text-red-700"
+                    m.role === "assistant" && "bg-sf-superficie border border-regua text-tx shadow-card",
+                    m.role === "error" && "bg-risco-vencido/10 border border-risco-vencido/30 text-risco-vencido"
                   )}
                 >
                   {m.text}
@@ -183,7 +183,7 @@ export default function HermesChatbox() {
 
             {enviando && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] px-3 py-2 text-sm bg-sf border border-regua text-tx-2 shadow-card flex items-center gap-2">
+                <div className="max-w-[85%] px-3 py-2 text-sm bg-sf-superficie border border-regua text-tx-2 shadow-card flex items-center gap-2">
                   <span className="animate-pulse">Hermes está pensando</span>
                   <span className="animate-bounce">…</span>
                 </div>
@@ -192,12 +192,12 @@ export default function HermesChatbox() {
           </div>
 
           {error && (
-            <div className="shrink-0 px-4 py-2 bg-red-50 border-b border-red-200 text-red-700 text-xs flex items-center justify-between">
+            <div className="shrink-0 px-4 py-2 bg-risco-vencido/10 border-b border-risco-vencido/30 text-risco-vencido text-xs flex items-center justify-between">
               <span>{error}</span>
               <button
                 type="button"
                 onClick={() => setError(null)}
-                className="p-1 hover:bg-red-100 rounded"
+                className="p-1 hover:bg-risco-vencido/20 rounded"
                 aria-label="Dispensar erro"
               >
                 <X size={14} />
@@ -205,14 +205,14 @@ export default function HermesChatbox() {
             </div>
           )}
 
-          <div className="shrink-0 border-t border-regua p-3 flex items-end gap-2 bg-sf">
+          <div className="shrink-0 border-t border-gaveta-linha p-3 flex items-end gap-2 bg-ficha">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder="Pergunte sobre processos, agenda, clientes, documentos..."
               rows={1}
-              className="flex-1 resize-none border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40 max-h-28"
+              className="flex-1 resize-none border border-gaveta-linha px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx/40 max-h-28"
               aria-label="Mensagem para o Hermes"
               disabled={enviando}
             />

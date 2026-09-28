@@ -278,7 +278,7 @@ export default async function ProcessosPage({
             {cases.map((c) => {
               const nat = naturezaOf(c.type);
               return (
-                <div key={c.id} data-delete-row className="flex items-center gap-4 px-5 py-4 hover:bg-sf-apoio transition-colors">
+                <div key={c.id} data-delete-row className="atd-row flex items-center gap-4 px-5 py-4 hover:bg-sf-apoio transition-colors">
                   <Link href={`/processos/${c.id}`} className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="h-10 w-10 rounded-full bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
                       <Scale size={18} />
@@ -312,11 +312,11 @@ export default async function ProcessosPage({
                         )}
                       </p>
                     </div>
-                    <div className="text-right shrink-0 hidden sm:block">
+                    <div className="meta text-right shrink-0 hidden sm:block">
                       {c.caseValue != null && <p className="text-sm font-semibold text-tx tabular-nums">{formatCurrency(c.caseValue)}</p>}
                       <p className="text-xs text-tx-3 mt-0.5">{c.responsible?.name ?? "Sem responsável"}</p>
                     </div>
-                    <div className="text-xs text-tx-3 shrink-0 w-20 text-right hidden md:block tabular-nums">
+                    <div className="meta text-xs text-tx-3 shrink-0 w-20 text-right hidden md:block tabular-nums">
                       {c._count.tasks} tarefa(s)
                     </div>
                   </Link>

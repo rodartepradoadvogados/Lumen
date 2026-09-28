@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, Building2, Wallet, Users, Activity, ShieldCheck, Scale, Tag, Menu, X, Bot, Database } from "lucide-react";
+import { LayoutDashboard, Building2, Wallet, Users, Activity, ShieldCheck, Scale, Tag, Menu, X, Bot } from "lucide-react";
 import LumenMark from "@/components/LumenMark";
 
 type NavItem = { label: string; href: string; icon: LucideIcon; comingSoon?: boolean };

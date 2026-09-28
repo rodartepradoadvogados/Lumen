@@ -274,6 +274,84 @@
   --fonte-pje-bg: rgba(74, 147, 181, .14);
 }
 
+/* ============================================================================
+   ATENDIMENTO APP — Tema próprio (ouro/âmbar #c9962f como identidade)
+   Independente do tema do site (.dark) — usa .atendimento-dark no #atendimento-shell
+   ============================================================================ */
+.atendimento-shell {
+  /* Tokens do Atendimento App (tema claro/Manhã) */
+  --atd-ouro: #c9962f;
+  --atd-ouro-hover: #d4a83a;
+  --atd-ouro-tx: #fffdf7;
+  --atd-ouro-bg: #fbf7ea;
+  --atd-grafite: #16191d;
+  --atd-grafite-800: #181b1f;
+  --atd-vinho: #cd5f77;
+}
+
+.atendimento-dark {
+  /* Tokens do Atendimento App (tema escuro/Noite) — paleta aproximada Dracula */
+  --atd-ouro: #d4a83a;
+  --atd-ouro-hover: #e0b84a;
+  --atd-ouro-tx: #1a1608;
+  --atd-ouro-bg: #3d3208;
+  --atd-grafite: #282a36;
+  --atd-grafite-800: #1e1f29;
+  --atd-vinho: #ff6b9d;
+  
+  /* Retematizar superfícies para o modo escuro do Atendimento */
+  --sf-fundo: #1e1f29;
+  --ficha: #282a36;
+  --ficha-alt: #1a1b26;
+  --linha: #44475a;
+  --linha-forte: #6272a4;
+  --tinta: #f8f8f2;
+  --tinta-2: #bdbfc7;
+  --tinta-3: #9aa0b3;
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: #ff5555;
+  --urgente-bg: rgba(255, 85, 85, .14);
+  --aviso: #ffb86c;
+  --aviso-bg: rgba(255, 184, 108, .14);
+  --concluido: #50fa7b;
+  --concluido-bg: rgba(80, 250, 123, .14);
+  --concluido-glow: 0 0 10px rgba(80, 250, 123, .55);
+  --ouro-acento: var(--atd-ouro);
+  --ouro-hover: var(--atd-ouro-hover);
+  --ouro-tx: var(--atd-ouro-tx);
+  --ouro-bg: var(--atd-ouro-bg);
+  --grafite-800: var(--atd-grafite-800);
+  --acao: var(--atd-ouro);
+  --acao-hover: var(--atd-ouro-hover);
+  --acao-tx: var(--atd-ouro-tx);
+  --acao-bg: var(--atd-ouro-bg);
+  --marca: var(--atd-ouro);
+  --marca-tx: var(--atd-ouro-tx);
+  --marca-bg: var(--atd-ouro-bg);
+  --campo-risco: #4a1a1a;
+  --campo-risco-linha: #8b3a3a;
+  color-scheme: dark;
+  background: var(--sf-fundo);
+  color: var(--tinta);
+}
+
+/* Mapear classes do Atendimento para usar tokens --atd-* */
+.atendimento-shell .bg-ouro-acento { background-color: var(--atd-ouro) !important; }
+.atendimento-shell .hover\\:bg-ouro-hover:hover { background-color: var(--atd-ouro-hover) !important; }
+.atendimento-shell .text-ouro-tx { color: var(--atd-ouro-tx) !important; }
+.atendimento-shell .text-ouro-acento { color: var(--atd-ouro) !important; }
+.atendimento-shell .hover\\:text-ouro-acento:hover { color: var(--atd-ouro) !important; }
+.atendimento-shell .hover\\:bg-ouro-bg:hover { background-color: var(--atd-ouro-bg) !important; }
+.atendimento-shell .bg-ouro-bg { background-color: var(--atd-ouro-bg) !important; }
+.atendimento-shell .border-ouro-acento { border-color: var(--atd-ouro) !important; }
+.atendimento-shell .focus\\:ring-ouro-acento:focus { --tw-ring-color: var(--atd-ouro) !important; }
+
 /* ----------------------------------------------------------------------------
    LEGADO. As variáveis abaixo existiam antes do redesenho Modernist e ainda são
    lidas por componentes não migrados. Apontam para os valores NOVOS, para que a
@@ -2029,3 +2107,176 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
    `::first-letter` não é confiável em cliente de e-mail, então lá a frase chega pronta do
    servidor (ver primeiraMaiuscula em lib/email.ts); aqui, no navegador, o CSS resolve. */
 .inicial-maiuscula::first-letter { text-transform: uppercase; }
+
+/* ============================================================================
+   RESPONSIVIDADE CENTRAL — Rampa mobile-first (Fase 1 do plano)
+   Breakpoints únicos: <768px (mobile) e <1024px (tablet).
+   Normaliza: linha de lista, badges, PageHeader, .tela padding, alvos de toque.
+   ============================================================================ */
+
+/* Mobile: < 768px */
+@media (max-width: 767px) {
+  /* .tela — padding vertical reduzido */
+  .tela {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  /* PageHeader — ação quebra para linha cheia */
+  .tela > :first-child > div:last-child,
+  .tela > div:first-child > div:last-child {
+    width: 100%;
+  }
+
+  /* Linha de lista — metadados direita vão para baixo, badges em linha própria */
+  .atd-row,
+  .divide-y > a,
+  .divide-y > div > a {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  .atd-row > div:first-child,
+  .divide-y > a > div:first-child {
+    width: 100%;
+  }
+
+  .atd-row .meta,
+  .divide-y > a > div:last-child {
+    text-align: left !important;
+    display: flex !important;
+    gap: 1rem !important;
+    font-size: 0.75rem !important;
+    flex-wrap: wrap;
+  }
+
+  .atd-row .badges,
+  .divide-y > a .badges {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Badges — tamanho mínimo de toque 44px */
+  .atd-badge,
+  [class*="Badge"] {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+  }
+
+  /* Funil — colunas viram cartões empilhados */
+  .flex.gap-4.overflow-x-auto,
+  .flex.gap-4.overflow-x-auto > div {
+    flex-direction: column !important;
+    overflow-x: visible !important;
+  }
+
+  .flex.gap-4.overflow-x-auto > div {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Funil específico — colunas w-80 empilham no mobile */
+  .funil-cols {
+    flex-direction: column !important;
+    overflow-x: visible !important;
+  }
+
+  .funil-cols .funil-col {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+  }
+
+  /* Atendimento App Funil — colunas empilham no mobile */
+  .funil-cols-app {
+    flex-direction: column !important;
+    overflow-x: visible !important;
+  }
+
+  .funil-cols-app .funil-col-app {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+  }
+
+  /* Filtros — scroll horizontal se necessário */
+  .flex.gap-2.flex-wrap,
+  .atd-filters {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+  }
+  .flex.gap-2.flex-wrap::-webkit-scrollbar,
+  .atd-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Botões — altura mínima 44px */
+  button,
+  [role="button"],
+  a.btn,
+  .atd-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Grid de 2 colunas vira 1 coluna */
+  .md\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tabelas com scroll horizontal */
+  table,
+  .overflow-x-auto {
+    overflow-x: auto !important;
+  }
+}
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tela {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .atd-row,
+  .divide-y > a,
+  .divide-y > div > a {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .atd-row > div:first-child,
+  .divide-y > a > div:first-child {
+    width: 100%;
+  }
+
+  .atd-row .meta,
+  .divide-y > a > div:last-child {
+    text-align: left;
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.8125rem;
+    flex-wrap: wrap;
+  }
+
+  .atd-row .badges,
+  .divide-y > a .badges {
+    width: 100%;
+  }
+
+  .flex.gap-4.overflow-x-auto > div {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}

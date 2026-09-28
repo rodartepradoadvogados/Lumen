@@ -135,7 +135,11 @@ export default async function AtendimentoPage({
         ) : (
           <div className="divide-y divide-regua">
             {attendances.map((a) => (
-              <Link key={a.id} href={`/atendimento/${a.id}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-sf-apoio transition-colors">
+              <Link
+                key={a.id}
+                href={`/atendimento/${a.id}`}
+                className="atd-row flex items-center gap-4 px-5 py-3.5 hover:bg-sf-apoio transition-colors"
+              >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium text-tx">{a.clientName}</p>
@@ -145,7 +149,7 @@ export default async function AtendimentoPage({
                   </div>
                   <p className="text-xs text-tx-3 mt-0.5">{a.subject}</p>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="meta text-right shrink-0">
                   <p className="text-xs text-tx-3">{formatDate(a.createdAt)}</p>
                   {a.responsible && <p className="text-xs text-tx-3 mt-0.5">{a.responsible.name}</p>}
                 </div>

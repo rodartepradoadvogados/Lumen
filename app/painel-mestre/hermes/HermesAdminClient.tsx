@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, AlertCircle, CheckCircle, Trash2, Activity, Database, Terminal, X } from "lucide-react";
+import { RefreshCw, AlertCircle, Trash2, Activity, Database, X } from "lucide-react";
 import { LumenPanel, LumenPanelHeader, LumenBadge } from "@/components/painelMestre/LumenUi";
 
 type HermesProfile = {
@@ -22,6 +22,8 @@ type HermesStatus = {
   sessions: { id: string; title: string }[];
   profile: string;
 };
+
+type FetchError = { message: string };
 
 export default function HermesAdminClient() {
   const [profiles, setProfiles] = useState<HermesProfile[]>([]);
@@ -71,8 +73,9 @@ export default function HermesAdminClient() {
         await fetchStatus(slug);
       }
       fetchProfiles();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const err = e as FetchError;
+      setError(err.message);
     } finally {
       setActionLoading(null);
     }
@@ -89,8 +92,9 @@ export default function HermesAdminClient() {
       });
       if (!res.ok) throw new Error("Falha ao excluir sessão");
       await fetchStatus(slug);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const err = e as FetchError;
+      setError(err.message);
     } finally {
       setActionLoading(null);
     }
@@ -100,17 +104,17 @@ export default function HermesAdminClient() {
     fetchProfiles();
   }, []);
 
-  const statusColors = {
-    ready: "bg-green-100 text-green-800",
-    not_provisioned: "bg-yellow-100 text-yellow-800",
-    unhealthy: "bg-red-100 text-red-800",
-    unknown: "bg-gray-100 text-gray-800",
+  const statusVariants = {
+    ready: "success" as const,
+    not_provisioned: "warning" as const,
+    unhealthy: "risk" as const,
+    unknown: "default" as const,
   };
 
-  const healthColors = {
-    healthy: "bg-green-100 text-green-800",
-    unhealthy: "bg-red-100 text-red-800",
-    unknown: "bg-gray-100 text-gray-800",
+  const healthVariants = {
+    healthy: "success" as const,
+    unhealthy: "risk" as const,
+    unknown: "default" as const,
   };
 
   return (
@@ -133,10 +137,10 @@ export default function HermesAdminClient() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm flex items-center gap-2">
+        <div className="bg-aviso-bg/10 border border-aviso-bg/30 text-aviso px-4 py-3 rounded-sm flex items-center gap-2">
           <AlertCircle size={20} />
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-red-100 rounded">
+          <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-aviso-bg/20 rounded">
             <X size={16} />
           </button>
         </div>
@@ -184,7 +188,7 @@ export default function HermesAdminClient() {
                     </td>
                     <td className="p-3 font-mono text-xs text-tx-2">{p.profile}</td>
                     <td className="p-3">
-                      <LumenBadge variant={statusColors[p.status as keyof typeof statusColors] || "default"}>
+                      <LumenBadge variant={statusVariants[p.status as keyof typeof statusVariants] || "default"}>
                         {p.status === "ready" ? "Pronto" : p.status === "not_provisioned" ? "Não provisionado" : p.status}
                       </LumenBadge>
                     </td>
@@ -241,13 +245,13 @@ export default function HermesAdminClient() {
           />
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <LumenBadge variant={healthColors[status.health as keyof typeof healthColors] || "default"}>
+              <LumenBadge variant={healthVariants[status.health as keyof typeof healthVariants] || "default"}>
                 {status.health === "healthy" ? "Saudável" : status.health === "unhealthy" ? "Não saudável" : "Desconhecido"}
               </LumenBadge>
               <button
                 onClick={() => fetchStatus(selectedProfile)}
                 disabled={actionLoading === selectedProfile}
-                className="text-sm text-acao hover:underline"
+                className="text-sm text-marca-tx hover:underline"
               >
                 <RefreshCw size={14} className="inline mr-1" /> Atualizar
               </button>
@@ -268,14 +272,14 @@ export default function HermesAdminClient() {
                       <button
                         onClick={() => deleteSession(selectedProfile, s.id)}
                         disabled={actionLoading === `${selectedProfile}-${s.id}`}
-                        className="p-1.5 hover:bg-red-50 text-red-600 rounded transition-colors"
+                        className="p-1.5 hover:bg-urgente-bg/10 text-urgente rounded transition-colors"
                         title="Excluir sessão"
                       >
                         <Trash2 size={16} />
                       </button>
                     </li>
-                  ))
-                )}
+                  ))}
+                </ul>
               )}
             </div>
           </div>
