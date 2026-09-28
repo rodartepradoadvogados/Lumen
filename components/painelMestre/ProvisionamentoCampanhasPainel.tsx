@@ -21,10 +21,10 @@ export type ProvisionamentoDeEscritorio = {
   situacao: SituacaoDoProvisionamento;
 };
 
-const TOM_PARA_VARIANTE: Record<string, "success" | "warning" | "danger" | "default"> = {
+const TOM_PARA_VARIANTE: Record<string, "success" | "warning" | "risk" | "default"> = {
   ok: "success",
   warn: "warning",
-  risk: "danger",
+  risk: "risk",
   neutro: "default",
 };
 
