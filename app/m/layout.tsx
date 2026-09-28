@@ -82,8 +82,13 @@ export default async function MobileLayout({ children }: { children: React.React
     <UndoToastProvider>
     <div id="mobile-shell" className="mobile-shell min-h-screen bg-sf-fundo transition-colors">
       {/* eslint-disable-next-line react/no-danger -- THEME_INIT_SCRIPT é string 100% estática
-          (definida logo acima neste arquivo), nenhum dado de usuário entra aqui. */}
-      <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+                (definida logo acima neste arquivo), nenhum dado de usuário entra aqui. */}
+              <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+              <script dangerouslySetInnerHTML={{ __html: `
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.register('/sw-m.js', {scope: '/m/'}).catch(()=>{});
+                }
+              `}} />
       <InactivityNotice />
       <AppBadgeSync initialCount={totalAlerts} />
       {/* `sticky` (não `fixed`) de propósito: empilhado num flex-col junto com a faixa de

@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Lúmen",
     description: "Software de gestão jurídica — versão mobile",
     start_url: "/m",
-    scope: "/",
+    scope: "/m/",
     display: "standalone",
     background_color: "#f3f4f6",
     theme_color: "#16191d",

@@ -21,6 +21,11 @@ export default function AtendimentoAppShell({ officeName, children }: { officeNa
     <>
     {/* eslint-disable-next-line react/no-danger */}
     <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+    <script dangerouslySetInnerHTML={{ __html: `
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw-atendimento.js', {scope: '/atendimento-app/'}).catch(()=>{});
+      }
+    `}} />
     <div id="atendimento-shell" className="atendimento-shell min-h-screen bg-sf-fundo transition-colors">
       <AtendimentoAppHeader officeName={officeName} />
       <main className="pb-20 min-h-screen max-w-md mx-auto px-4">{children}</main>
