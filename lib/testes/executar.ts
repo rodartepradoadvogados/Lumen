@@ -1,0 +1,167 @@
+// Corredor de testes de mesa — o mínimo para que uma regra escrita em código fique provada, e
+// não apenas comentada. Sem dependência nova: o projeto roda isto com `tsx`, e um framework de
+// teste inteiro para meia dúzia de arquivos seria peso sem retorno.
+
+let falhas = 0;
+let passaram = 0;
+const pendentes: Promise<void>[] = [];
+
+export function teste(nome: string, corpo: () => void | Promise<void>) {
+  const executar = async () => {
+    try {
+      await corpo();
+      passaram++;
+    } catch (e) {
+      falhas++;
+      console.error(`✗ ${nome}\n  ${(e as Error).message}`);
+    }
+  };
+  pendentes.push(executar());
+}
+
+export function igual(obtido: unknown, esperado: unknown, contexto = "") {
+  const a = JSON.stringify(obtido);
+  const b = JSON.stringify(esperado);
+  if (a !== b) throw new Error(`${contexto}esperado ${b}, obtido ${a}`);
+}
+
+export function verdade(condicao: unknown, contexto: string) {
+  if (!condicao) throw new Error(contexto);
+}
+
+export async function resumo(titulo: string) {
+  await Promise.all(pendentes);
+  const total = passaram + falhas;
+  if (falhas > 0) {
+    console.error(`\n${titulo}: ${falhas} de ${total} casos falharam.`);
+    process.exit(1);
+  }
+  console.log(`${titulo}: ${total} casos, todos passaram.`);
+}
+
+// ============================================================================
+// VARREDURA DE CÓDIGO-FONTE — as duas ferramentas, e o motivo de existirem.
+//
+// Boa parte das regras desta casa não cabe num teste de mesa: "esta ação checa a permissão",
+// "aquele `where` não perdeu o recorte por dono". A prova delas é ler o código. E lendo o código
+// nasceram, sempre, os mesmos DOIS defeitos de teste — os dois já aconteceram de verdade aqui, e
+// os dois deixam a varredura passando enquanto a trava que ela vigia já foi embora:
+//
+//   1. O COMENTÁRIO QUE EXPLICA A TRAVA satisfaz a busca pela trava. Comentário bom cita o código
+//      de que fala; a varredura encontra a citação e dá a regra por cumprida. Aconteceu quatro
+//      vezes numa rodada só, sempre com o comentário dizendo exatamente a frase procurada.
+//   2. A JANELA DE N CARACTERES transborda para a função de baixo, e a varredura encontra na
+//      vizinha a trava que a função examinada perdeu.
+//
+// Quem varre código daqui em diante usa estas duas funções, e não `readFileSync` + `includes`.
+// ============================================================================
+
+/** O arquivo sem as linhas de comentário — ver o defeito 1 acima. */
+export function codigoDe(fonte: string): string {
+  return fonte
+    .split("\n")
+    .filter((l) => {
+      const t = l.trim();
+      return !t.startsWith("//") && !t.startsWith("*") && !t.startsWith("/*");
+    })
+    .join("\n");
+}
+
+/**
+ * O corpo de UMA função, do cabeçalho dela até o da seguinte, sem comentários.
+ *
+ * Devolve "" quando a função não existe — e quem chama deve conferir isso, porque uma varredura
+ * que procura trava dentro de string vazia nunca acha nada e sempre passa.
+ */
+export function corpoDaFuncao(fonte: string, nome: string): string {
+  const cabecalhos = [`export async function ${nome}(`, `async function ${nome}(`, `export function ${nome}(`, `function ${nome}(`];
+  let i = -1;
+  for (const c of cabecalhos) {
+    i = fonte.indexOf(c);
+    if (i >= 0) break;
+  }
+  if (i < 0) return "";
+
+  // O FIM DA FUNÇÃO É A CHAVE QUE FECHA NA MESMA INDENTAÇÃO DO CABEÇALHO, e não "a próxima função
+  // do arquivo". A heurística antiga transbordava em função ANINHADA: `function soltar(` dentro de
+  // um componente não tem outra `function` antes do fim do componente, então o trecho ia até o
+  // próximo componente e levava junto o JSX inteiro. Uma varredura que procurava uma palavra dentro
+  // da função a encontrava no JSX e passava verde com o defeito instalado — foi exatamente o que
+  // aconteceu com a mensagem de recusa do quadro do funil.
+  const inicioDaLinha = fonte.lastIndexOf("\n", i) + 1;
+  const indentacao = fonte.slice(inicioDaLinha, i);
+  // A CHAVE TEM DE SER A LINHA INTEIRA, e não só começar a linha. Sem isso, qualquer função que
+  // DESESTRUTURA o parâmetro devolvia só a lista de parâmetros: em
+  //
+  //     export async function ingestIncomingWhatsapp({
+  //       fromNumber,
+  //       ...
+  //     }: IncomingMessage): Promise<...> {
+  //
+  // o `}` que fecha a desestruturação também está na coluna do cabeçalho, e a busca parava ali.
+  // O trecho devolvido tinha 137 caracteres e nenhum corpo — então uma varredura que procurasse
+  // algo DENTRO da função acusava ausência do que existe, e pior, uma varredura escrita como
+  // "não pode conter X" passava VERDE com o defeito instalado. A linha de fechamento de verdade
+  // é só `}` (ou `};`); a da desestruturação sempre tem tipo ou parêntese depois.
+  const fechamento = new RegExp(`\\n${indentacao}\\}\\s*;?\\s*(?=\\n|$)`);
+  const fim = fonte.slice(i).search(fechamento);
+  if (fim >= 0) return codigoDe(fonte.slice(i, i + fim + 2 + indentacao.length));
+
+  // Sem chave no lugar esperado (formatação fora do padrão), volta à heurística antiga em vez de
+  // devolver vazio — vazio faria a varredura acusar ausência de algo que existe.
+  const seguinte = fonte.slice(i + 10).search(/\n(export )?(async )?function /);
+  return codigoDe(seguinte < 0 ? fonte.slice(i) : fonte.slice(i, i + 10 + seguinte));
+}
+
+/**
+ * Os `href` de TODOS os `<Link>` do arquivo, na ordem, como EXPRESSÃO CRUA.
+ *
+ * Existe por causa do defeito 3 desta casa, o que mais já custou tempo: a asserção presa a UMA
+ * GRAFIA. Uma varredura escrita como
+ *
+ *     fonte.match(/href=\{`\/atendimento\/\$\{q\.id\}`\}/g)
+ *
+ * prova o que importa (a linha inteira abre a conversa) enquanto ninguém mexe no arquivo — e no dia
+ * em que o endereço passa a ser calculado por uma função, ela reprova a CORREÇÃO, não o defeito.
+ * Quem lê o relatório conclui que a mudança quebrou a regra, quando a regra continua de pé.
+ *
+ * Devolvendo a expressão, a asserção passa a ser sobre o que não pode mudar — "o endereço desta
+ * linha é derivado do id deste registro" — e tolera template, chamada de função, concatenação ou o
+ * que vier depois.
+ *
+ * A LEITURA É BALANCEADA, e não uma janela de N caracteres: conta as chaves de `{...}` até fechar,
+ * então um `${...}` dentro de template não encerra o atributo cedo e o valor não transborda para o
+ * atributo seguinte. A busca do `href=` é limitada ao próximo `<Link`, para um Link sem href não
+ * roubar o href do vizinho de baixo.
+ */
+export function hrefsDeLinks(fonte: string): string[] {
+  const aberturas = [...fonte.matchAll(/<Link\b/g)].map((m) => m.index!);
+  const achados: string[] = [];
+
+  for (let n = 0; n < aberturas.length; n++) {
+    const inicio = aberturas[n];
+    const limite = n + 1 < aberturas.length ? aberturas[n + 1] : fonte.length;
+    const iHref = fonte.indexOf("href=", inicio);
+    if (iHref < 0 || iHref >= limite) continue;
+
+    let j = iHref + "href=".length;
+    const aspa = fonte[j];
+    if (aspa === '"' || aspa === "'") {
+      const fim = fonte.indexOf(aspa, j + 1);
+      achados.push(fonte.slice(j + 1, fim < 0 ? limite : fim));
+      continue;
+    }
+    if (aspa !== "{") continue;
+
+    let nivel = 0;
+    for (; j < limite; j++) {
+      if (fonte[j] === "{") nivel++;
+      else if (fonte[j] === "}") {
+        nivel--;
+        if (nivel === 0) break;
+      }
+    }
+    achados.push(fonte.slice(iHref + "href=".length + 1, j));
+  }
+  return achados;
+}

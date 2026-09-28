@@ -9,6 +9,7 @@ import { fetchNotices, type SerializedNotice } from "@/lib/actions/notices";
 import PortalThemeToggle from "@/components/PortalThemeToggle";
 import NoticesPanel from "@/components/NoticesPanel";
 import type { TeamSummary, DayHistory } from "@/lib/timesheet";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 // Rótulo de bloco dentro do menu (DESIGN-SYSTEM.md §5): 9,5px caixa alta, tracking .11em, --tx-2.
 // Usado pelo bloco "TEMA".
@@ -25,11 +26,11 @@ function formatHMS(totalSeconds: number) {
 function formatDateTime(iso: string | null) {
   if (!iso) return "Nunca";
   const d = new Date(iso);
-  return `${d.toLocaleDateString("pt-BR")}, às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${dataDeBrasilia(d)}, às ${horaDeBrasilia(d)}`;
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return horaDeBrasilia(new Date(iso));
 }
 
 export default function TeamMonitorPanel({
@@ -263,6 +264,10 @@ export default function TeamMonitorPanel({
                       <div key={h.date} className="py-1.5 border-b border-regua last:border-0">
                         <div className="flex justify-between text-etiqueta">
                           <span className="text-tx-2">
+                            {/* `h.date` é um DIA ("2026-09-19"), não um instante: ele já nasce com a meia-noite
+                                local colada no fim para ser lido como o dia que é. Passá-lo pelo fuso do
+                                escritório o deslocaria para o dia anterior em qualquer navegador a leste de
+                                Brasília — trocaria um erro de três horas por um erro de um dia. */}
                             {new Date(h.date + "T00:00:00").toLocaleDateString("pt-BR")} · primeiro login {formatTime(h.firstLogin)}
                           </span>
                           <span className="font-semibold text-tx">{formatHMS(h.seconds)}</span>

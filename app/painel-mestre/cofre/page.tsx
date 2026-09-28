@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { ACCESS_REASONS } from "@/lib/supportAccessConstants";
 import { LumenPanel, LumenPanelHeader, LumenStatusDot, LumenAbas, LumenAba } from "@/components/painelMestre/LumenUi";
+import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
+import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
 
@@ -143,7 +145,7 @@ export default async function CofrePage({ searchParams }: { searchParams: { aba?
                     <td className="px-3 py-3 text-tx-2">{s.member.user?.name ?? s.member.name ?? "—"}</td>
                     <td className="px-3 py-3 text-tx-2">{reasonLabel(s.request.reasonCode)}</td>
                     <td className="px-3 py-3 font-mono tabular-nums text-tx-2">
-                      {s.startedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {horaDeBrasilia(s.startedAt)}
                     </td>
                     <td className="px-3 py-3 font-mono tabular-nums text-tx-2">{expiraEm(s.expiresAt)}</td>
                   </tr>
@@ -186,7 +188,7 @@ export default async function CofrePage({ searchParams }: { searchParams: { aba?
                     {r.approver ? r.approver.user?.name ?? r.approver.name ?? "—" : "—"}
                   </td>
                   <td className="px-3 py-3 font-mono tabular-nums text-tx-2 text-xs">
-                    {r.requestedAt.toLocaleString("pt-BR")}
+                    {r.requestedAt.toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO })}
                   </td>
                 </tr>
               ))}
@@ -220,7 +222,7 @@ export default async function CofrePage({ searchParams }: { searchParams: { aba?
               {recentAudit.map((log) => (
                 <tr key={log.id}>
                   <td className="px-5 py-3 font-mono tabular-nums text-tx-2 text-xs whitespace-nowrap">
-                    {log.createdAt.toLocaleString("pt-BR")}
+                    {log.createdAt.toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO })}
                   </td>
                   <td className="px-3 py-3 text-tx">{log.office.name}</td>
                   <td className="px-3 py-3 text-tx-2">{log.member?.user?.name ?? log.member?.name ?? "—"}</td>

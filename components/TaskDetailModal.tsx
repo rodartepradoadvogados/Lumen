@@ -7,16 +7,16 @@ import { Check } from "lucide-react";
 import { getTaskDetail, updateTask, toggleTaskDone, TaskDetail } from "@/lib/actions/tasks";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import CommentBox from "@/components/CommentBox";
-import { formatDate } from "@/components/ui";
 import { typeMeta } from "@/components/AgendaView";
 import ModalShell from "@/components/ModalShell";
 import RichTextEditor from "@/components/RichTextEditor";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 // Rótulo discreto de auditoria (tooltip) exibido no botão de concluir/reabrir quando a
 // tarefa já está concluída — mesmo formato usado na Agenda (components/AgendaView.tsx).
 function completedLabel(name: string, completedAt: string): string {
   const d = new Date(completedAt);
-  return `Concluído por ${name} em ${d.toLocaleDateString("pt-BR")} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `Concluído por ${name} em ${dataDeBrasilia(d)} às ${horaDeBrasilia(d)}`;
 }
 
 // "Card do compromisso": mostra e permite editar uma tarefa/evento/audiência/perícia/prazo, com
@@ -261,7 +261,10 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                       <div className="min-w-0">
                         <p className="text-sm">
                           <span className="font-semibold text-tx">{cm.authorName}</span>{" "}
-                          <span className="text-etiqueta text-tx-3">{formatDate(cm.createdAt)}</span>
+                          {/* createdAt é instante (quando o comentário foi postado) — formatDate()
+                              não declara fuso e sai errado perto da meia-noite; dataDeBrasilia()
+                              força o fuso do escritório. */}
+                          <span className="text-etiqueta text-tx-3">{dataDeBrasilia(cm.createdAt)}</span>
                         </p>
                         <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                       </div>

@@ -76,6 +76,10 @@ export async function saveTokensFromCode(code: string, officeId: string) {
       data: {
         accountEmail,
         refreshToken,
+        // A conta do Drive também é varrida em busca de publicações (syncJusbrasil nasce true):
+        // reconectar limpa a falha registrada para ela.
+        lastSyncError: null,
+        lastSyncErrorAt: null,
         ...(trocouDeConta ? { rootFolderId: null, folderId: null, templatesFolderId: null, generatedFolderId: null } : {}),
       },
     });
@@ -83,7 +87,7 @@ export async function saveTokensFromCode(code: string, officeId: string) {
   }
   await prisma.googleCredential.upsert({
     where: { accountEmail },
-    update: { refreshToken, isPrimaryDrive: true, officeId },
+    update: { refreshToken, isPrimaryDrive: true, officeId, lastSyncError: null, lastSyncErrorAt: null },
     create: { accountEmail, refreshToken, isPrimaryDrive: true, officeId },
   });
 }
@@ -113,7 +117,9 @@ export async function saveJusbrasilTokensFromCode(code: string, userId: string |
 
   await prisma.googleCredential.upsert({
     where: { accountEmail },
-    update: { refreshToken, syncJusbrasil: true, userId, officeId },
+    // Token novo = a falha anterior está resolvida: limpa o registro para a caixa voltar a
+    // aparecer saudável já na volta do consentimento, sem esperar o próximo ciclo do cron.
+    update: { refreshToken, syncJusbrasil: true, userId, officeId, lastSyncError: null, lastSyncErrorAt: null },
     create: { accountEmail, refreshToken, syncJusbrasil: true, userId, officeId },
   });
 }
@@ -290,6 +296,8 @@ export async function listGoogleAccounts(officeId: string) {
     syncJusbrasil: c.syncJusbrasil,
     userId: c.userId,
     ownerName: c.user?.name ?? null,
+    lastSyncAt: c.lastSyncAt,
+    lastSyncError: c.lastSyncError,
   }));
 }
 
@@ -804,6 +812,29 @@ export async function getAssessoriaLicitacoesContainerFolderId(companyName: stri
 export async function getAssessoriaRootFolderId(officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
   return getOrCreateRootFolder(drive, cred, "assessoria", officeId);
+}
+
+// ============ PETICIONAMENTO (especificação §10) ============
+//
+// A pasta "Peticionamento" só recebe conteúdo quando a sessão está DESVINCULADA de processo/
+// caso/atendimento/assessoria (petição avulsa) — com vínculo, o anexo e a minuta final vão
+// direto pra pasta do item vinculado (getOrCreateCaseFolder e companhia), esta raiz nem é
+// tocada. Sem cache num campo de GoogleCredential (ao contrário de anexos/modelos/gerados, que
+// têm coluna própria): esta aba é nova, e uma raiz a mais cacheada exigiria migração de schema
+// só por performance — aceitável, porque cada sessão avulsa chama isto no máximo uma vez.
+export async function getOrCreatePeticionamentoRootFolderId(officeId: string): Promise<string> {
+  const { drive, cred } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, cred, "peticionamento", officeId);
+}
+
+// Subpasta POR SESSÃO dentro de "Peticionamento" (especificação §10: "tanto os anexos quanto a
+// petição final vão para uma subpasta por sessão"). `label` é um nome legível (ex.: data +
+// início dos fatos ou "Sessão avulsa <id curto>") — não o id da sessão sozinho, que não diz nada
+// pra quem abre o Drive.
+export async function getOrCreatePeticionamentoSessaoFolder(label: string, officeId: string): Promise<string> {
+  const rootId = await getOrCreatePeticionamentoRootFolderId(officeId);
+  const { drive } = await getDriveClient(officeId);
+  return findOrCreateChildFolder(drive, rootId, label);
 }
 
 // Subpasta "Pareceres" dentro da pasta da empresa (garante a estrutura completa) — usado pela

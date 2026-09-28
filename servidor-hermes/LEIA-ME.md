@@ -1,0 +1,772 @@
+# Ponte entre o Lúmen e o Hermes
+
+O Hermes é um programa de linha de comando, e os perfis dos escritórios ficam no disco do servidor.
+O Lúmen roda na Vercel, em contêineres efêmeros onde esse programa não existe. Por isso a chamada
+precisa atravessar a rede: o Lúmen pergunta por HTTP, **este serviço** executa o Hermes ali mesmo e
+devolve a resposta.
+
+São três arquivos e nenhuma dependência — só o Python 3 que o servidor já tem.
+
+---
+
+## Instalação, passo a passo
+
+Tudo abaixo roda **no servidor onde o Hermes está instalado**, como root.
+
+### 1. Copiar os arquivos
+
+```bash
+mkdir -p /opt/lumen/servidor-hermes
+# copie servidor.py para /opt/lumen/servidor-hermes/servidor.py
+chmod 755 /opt/lumen/servidor-hermes/servidor.py
+```
+
+### 2. Criar o segredo
+
+O segredo é a única coisa que separa o Hermes de quem alcançar a porta. Gere um novo, não invente
+um à mão, e **não reaproveite** nenhuma senha existente:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Guarde o que saiu — você vai precisar dele de novo no passo 5. Agora grave:
+
+```bash
+printf 'HERMES_TOKEN=%s\n' 'COLE_AQUI_O_SEGREDO' > /etc/lumen-hermes.env
+chmod 600 /etc/lumen-hermes.env
+```
+
+O `chmod 600` importa: sem ele, qualquer usuário da máquina lê o segredo.
+
+### 3. Subir o serviço
+
+```bash
+cp ponte-hermes.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now ponte-hermes
+systemctl status ponte-hermes
+```
+
+Confira que está de pé:
+
+```bash
+curl -s http://127.0.0.1:8787/saude
+# {"ok": true, "hermes": true}
+```
+
+Se vier `"hermes": false`, o binário não está em `/usr/local/bin/hermes` — ajuste `HERMES_BIN` no
+`/etc/lumen-hermes.env` e reinicie.
+
+**A chave do modelo é por perfil.** O Hermes lê o `.env` DO PERFIL, não o global. Para descobrir
+qual arquivo é, pergunte a ele:
+
+```bash
+hermes -p <perfil> config env-path
+hermes -p <perfil> config check      # mostra o que falta, com ✓ e ○
+```
+
+Foi por não perguntar isso que uma chave gravada no arquivo global ficou horas sem efeito.
+
+### 4. Abrir para a internet, com TLS
+
+O serviço só escuta em `127.0.0.1`. Quem atende a internet e cuida do certificado é o nginx:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name hermes.SEUDOMINIO.com.br;
+
+    ssl_certificate     /etc/letsencrypt/live/hermes.SEUDOMINIO.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/hermes.SEUDOMINIO.com.br/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        # 280s, E ESTE NÚMERO NÃO PRECISA MAIS SER MEXIDO — nem quando o teto da geração subiu
+        # para quinze minutos (HERMES_TIMEOUT_S = 900s). Leia o parágrafo abaixo do bloco antes
+        # de editar aqui: a geração NÃO passa por um cano aberto durante 900s.
+        # 280s fica ACIMA do único teto que ainda segura conexão aberta neste caminho (o
+        # peticionamento SÍNCRONO de compatibilidade, 230s do lado do Lúmen) e ABAIXO do teto da
+        # Vercel (maxDuration da tela de confirmação, 300s): quem desiste primeiro é sempre o
+        # lado que sabe explicar ao advogado o que aconteceu.
+        proxy_read_timeout 280s;
+    }
+}
+```
+
+> **Não publique a porta 8787 direto.** Sem TLS, o segredo viaja em texto limpo na rede.
+
+**O `proxy_read_timeout` NÃO limita a geração da minuta, e não há nada a ajustar aqui quando o teto
+do trabalho subir.** Isto merece estar escrito, porque a versão anterior deste arquivo dizia que
+280s tinha de ficar *acima do teto da ponte* — e com `HERMES_TIMEOUT_S` em 900s alguém leria isso
+como "preciso subir o nginx para 900s ou mais". Não precisa:
+
+| caminho | quem segura a conexão aberta | o nginx conta? |
+|---|---|---|
+| `POST /chat-async` (o disparo da geração) | ninguém — responde `202` na hora | não |
+| `GET /resultado/<id>` (o acompanhamento) | ninguém — responde na hora | não |
+| `POST /chat` do atendimento (a Ana) | até 105s, teto do lado do Lúmen | sim, e 280s sobra |
+| `POST /chat` do peticionamento síncrono (ponte antiga) | até 230s, teto do lado do Lúmen | sim, e 280s sobra |
+
+A geração de quinze minutos corre numa **thread desta máquina**, sem ninguém do outro lado da rede
+esperando: é exatamente por isso que o teto do trabalho pôde deixar de ser o teto de uma requisição
+HTTP. Se um dia o `POST /chat` síncrono voltar a ser o caminho normal do peticionamento, então sim —
+aí o número aqui teria de ficar acima de `HERMES_TIMEOUT_S`, e a conta volta a valer.
+
+### 5. Ligar o Lúmen nele
+
+Na Vercel, em *Settings → Environment Variables*, no ambiente de **Production**:
+
+| variável | valor |
+|---|---|
+| `HERMES_URL` | `https://hermes.SEUDOMINIO.com.br` |
+| `HERMES_TOKEN` | o mesmo segredo do passo 2 |
+| `HERMES_PERFIL` | o nome do perfil que existe na máquina (ex.: `atendimento-lumen`) |
+
+A terceira é temporária. O desenho é um perfil por escritório (`lumen-tenant-<slug>`), e é o que o
+Lúmen calcula sozinho. Enquanto existir um perfil só, com outro nome, `HERMES_PERFIL` manda. Quando
+houver um por escritório, apague a variável e o cálculo automático volta a valer — sem release.
+
+Redeploy, e pronto: a caixa de conversa do portal passa a ser respondida pelo Hermes.
+
+**Enquanto essas duas variáveis não existirem, nada acontece** — o Lúmen nem tenta falar com o
+Hermes, e a caixa continua respondendo pelo Claude, como hoje. Não há passo intermediário quebrado.
+
+### 6. Deixar a ponte de pé 24 horas por dia
+
+O `Restart=always` da unidade reinicia a ponte quando o processo **morre**. Ele não tem como saber
+que um processo **vivo** parou de atender — uma chamada presa, um socket que não fecha. Para quem
+pergunta ao agente, os dois casos são a mesma coisa: não responde.
+
+O vigia cobre o segundo caso. De dois em dois minutos ele pergunta `/saude`; se não vier resposta
+em dez segundos, manda reiniciar a ponte.
+
+Um comando de cada vez. Depois de cada um, confira o que está escrito em **"deve aparecer"** antes
+de rodar o seguinte.
+
+**6a.** Copie os dois arquivos novos (`ponte-hermes-vigia.service` e `ponte-hermes-vigia.timer`)
+para `/etc/systemd/system/`, do mesmo jeito que você copiou os outros.
+
+**6b.** Atualize também a unidade da ponte, que mudou de `Restart=on-failure` para
+`Restart=always` — copie `ponte-hermes.service` por cima do que está em `/etc/systemd/system/`.
+
+**6c.**
+
+```bash
+systemctl daemon-reload && systemctl restart ponte-hermes && systemctl enable --now ponte-hermes-vigia.timer
+```
+
+*Deve aparecer:* uma linha começando com `Created symlink`. Se não aparecer nada, também está
+certo — quer dizer que o vigia já estava ligado.
+
+**6d.** Confira que o vigia está agendado:
+
+```bash
+systemctl list-timers ponte-hermes-vigia --no-pager
+```
+
+*Deve aparecer:* uma linha com `ponte-hermes-vigia.timer` e um horário em `NEXT`, dentro dos
+próximos dois minutos.
+
+**6e.** Prove que ele funciona. Derrube a ponte de propósito e espere dois minutos:
+
+```bash
+systemctl stop ponte-hermes && sleep 150 && systemctl is-active ponte-hermes
+```
+
+*Deve aparecer:* `active`. Ou seja: você derrubou, e a máquina levantou sozinha. Se aparecer
+`inactive`, o vigia não está funcionando — mande `journalctl -u ponte-hermes-vigia -n 20` e o
+resultado diz o porquê.
+
+O vigia fica marcado como *failed* toda vez que encontra a ponte caída. **Isso é de propósito**: é
+o único rastro que conta, depois, que houve uma queda e quando. `systemctl status
+ponte-hermes-vigia` mostra a última.
+
+---
+
+## O que este serviço faz, e o que ele recusa
+
+| pedido | resposta |
+|---|---|
+| `GET /saude` | `200` com o estado, sem exigir segredo (serve para o nginx e para você) |
+| qualquer outra rota sem o segredo, ou com o segredo errado | `401` |
+| perfil fora do formato (minúsculas, dígitos, `.`, `-`, `_`) | `400` |
+| mensagem vazia, ou acima de 200.000 **caracteres** (`PERGUNTA_MAXIMA`) | `400` |
+| corpo acima de 512 KiB = 524.288 **bytes** (`CORPO_MAXIMO`) | `413` |
+| algum argumento da linha de comando acima do teto do sistema (`TETO_DE_ARGUMENTO_BYTES`) | `400`, com a mesma frase de tamanho |
+| escritório sem perfil provisionado no Hermes | `404` |
+| provisionamento pedido numa instalação sem o script | `501` |
+| binário do `hermes` velho demais, sem `--query-file` | `501`, dizendo para atualizar o binário |
+| Hermes passou de 900 segundos (`HERMES_TIMEOUT_S`) | `504` |
+| resposta boa em `POST /chat` | `200` com `{"resposta": ..., "sessao": ...}` |
+| `POST /chat-async` (mesmo corpo de `/chat`) | `202` com `{"tarefa": "<id>"}`, **na hora** |
+| `POST /chat-async` com a memória de tarefas cheia (`HERMES_TAREFAS_MAXIMAS`) | `503`, falado |
+| `GET /resultado/<id>` sem o segredo, ou com o errado | `401` — a MESMA autorização de `/chat` |
+| `GET /resultado/<id>` em andamento | `200` com `{"estado": "trabalhando"}` |
+| `GET /resultado/<id>` pronto | `200` com `{"estado": "pronto", "resposta": ..., "sessao": ...}` — **e a tarefa some da memória** |
+| `GET /resultado/<id>` que falhou | `200` com `{"estado": "falhou", "erro": ..., "codigo": ...}` |
+| `GET /resultado/<id>` desconhecido (ponte reiniciada, vencido, ou já lido) | `404` com `{"estado": "desconhecida"}` |
+| `GET /perfis` | a lista de escritórios provisionados |
+| `POST /provisionar` com `{slug, officeId, nome}` | cria o perfil do escritório |
+| `POST /desprovisionar` com `{slug}` | remove o perfil |
+| `POST /estado` com `{perfis: [...]}` | se cada perfil existe, quanto ocupa, quantas conversas |
+| slug fora do formato, `officeId` fora do formato, nome vazio | `400` |
+
+### As variáveis de ambiente desta entrega
+
+Todas têm padrão seguro; nenhuma precisa ser definida para a ponte funcionar.
+
+| variável | padrão | o que faz |
+|---|---|---|
+| `HERMES_TIMEOUT_S` | `900` | teto do processo do Hermes — **quinze minutos, o teto do trabalho** |
+| `HERMES_RUN_BUDGET_FOLGA_S` | `60` | folga entre o orçamento do agente e a morte do processo |
+| `HERMES_MAX_TURNS` | `60` | teto de iterações de ferramenta por turno (o padrão do binário é 500) |
+| `HERMES_TOOLSETS` | `web,search,skills` | quais famílias de ferramenta o agente pode usar — **vazio desliga a parede** |
+| `HERMES_TAREFAS_MAXIMAS` | `32` | quantas gerações assíncronas cabem na memória ao mesmo tempo |
+| `HERMES_TAREFA_VALIDADE_S` | `2400` | quanto tempo uma tarefa não buscada continua de pé |
+
+### A parede de ferramentas (`HERMES_TOOLSETS`)
+
+Sem essa opção, o Hermes habilita o conjunto padrão dele — que inclui **ler e escrever arquivo e
+rodar comando na máquina**. Numa ponte que recebe texto de documento vindo de fora, isso é
+superfície que ninguém pediu: o texto da peça já viaja dentro da pergunta, e a geração não precisa
+abrir arquivo nem executar nada.
+
+O padrão é `web,search,skills`, e os três nomes têm motivo:
+
+- **`web`** — a validação dupla de jurisprudência (regra da casa nº 1) depende de alcançar a web;
+- **`search`** — validar precedente exige **achar** antes de abrir, e a busca é conjunto separado;
+- **`skills`** — no Hermes **as skills moram dentro do perfil**, e é por ali que passa também a
+  integração que liga o agente às ferramentas do Lúmen. Não existe conjunto chamado `lumen` no
+  registro do binário.
+
+**O padrão era `web` sozinho, e isso era um defeito calado.** Com ele, o risco não era perder uma
+comodidade: era o agente ficar sem as skills jurídicas da plataforma **e** sem as ferramentas do
+Lúmen que o peticionamento ganhou — sem erro nenhum, apenas respondendo pior. O conserto só foi
+possível depois de ler o registro de nomes do próprio binário instalado:
+
+```
+python -c "from toolsets import TOOLSETS; print(sorted(TOOLSETS))"
+```
+
+Ficam **de fora**, por decisão e agora por nome: `file` e `terminal` (ler e escrever arquivo, rodar
+comando — o motivo original desta parede), `code_execution`, `coding`, `computer_use`, `browser`,
+`desktop_ui`, `delegation`, `cronjob`, `memory`, `connections`, e os conjuntos de mensageria
+(`hermes-whatsapp`, `hermes-telegram`, `hermes-slack` e os demais). Nenhum é insumo de redigir peça:
+a resposta volta para o Lúmen, que é quem fala com o mundo.
+
+**Leia isto antes de trocar o valor.** O binário **não recusa** nome de conjunto que não conhece:
+
+```
+$ hermes chat --toolsets __invalido__ --oneshot -Q -q oi
+Warning: Unknown toolsets: __invalido__
+
+session_id: 20260923_054842_abaa0e
+Oi
+```
+
+Ele avisa e **segue, sem ferramenta nenhuma**. Quer dizer que um nome errado aqui não derruba a
+ponte — ele apaga a busca na web em silêncio. Por isso duas defesas:
+
+1. O valor mora **no ambiente da máquina**, não no código: corrige-se no arquivo de ambiente, sem
+   upload de arquivo e sem esperar deploy.
+2. A ponte **lê o aviso na volta** e o registra como `ERRO` no log, com o valor configurado e o
+   conserto por extenso. Um nome errado passa a gritar no `journalctl` em vez de sumir.
+
+A mesma leitura conserta um defeito que a parede criaria: o aviso sai na **mesma saída da
+resposta**, antes do `session_id:`. Sem tratamento, `Warning: Unknown toolsets: web` apareceria
+**no começo da minuta**, dentro do documento exportado. A extração agora descarta da resposta toda
+linha iniciada por `Warning:` — e registra cada uma no log.
+
+Para desligar a parede por completo (o agente volta ao conjunto padrão do binário):
+
+```
+HERMES_TOOLSETS=
+```
+
+**A corrente de tempos de hoje, e ela tem DUAS pernas.** A do trabalho (o caminho assíncrono, que é
+o normal do peticionamento) e a de uma requisição web (o síncrono e o atendimento):
+
+```
+TRABALHO    ponte 900s (HERMES_TIMEOUT_S)          ← o teto de 15 minutos que o dono pediu
+              < Lúmen 1200s (PRAZO_MAXIMO_DA_GERACAO_MS, quando desiste de esperar)
+                < validade da tarefa 2400s (HERMES_TAREFA_VALIDADE_S)
+            e a varredura por cron (a cada 5 min, janela de 24h) cobre tudo isso.
+
+REQUISIÇÃO  Ana 105s < peticionamento síncrono 230s < nginx 280s < Vercel 300s
+```
+
+A ordem da primeira perna é o que separa "minuta entregue" de "trabalho pago perdido": uma tarefa
+que vence antes de o Lúmen desistir apagaria da memória uma peça **pronta**.
+
+O **orçamento do agente não é uma variável**: ele é `HERMES_TIMEOUT_S` menos
+`HERMES_RUN_BUDGET_FOLGA_S`, com piso de 30s (a constante `ORCAMENTO_S`, no `servidor.py`). Isso é
+de propósito — um segundo número solto voltaria a permitir a combinação que matou uma geração real
+em produção: o processo morto antes de o agente sequer ser avisado de que havia prazo.
+
+Cinco decisões que valem explicação:
+
+**`--run-budget`: o agente conclui em vez de morrer.**
+
+O registro da VPS, numa geração real do dono com dois documentos anexados (uma decisão judicial em
+PDF e um parecer em DOCX):
+
+```
+subprocess.TimeoutExpired: Command '['/usr/local/bin/hermes', '-p', 'peticionamento-lumen',
+'chat', ...]' timed out after 240 seconds
+BrokenPipeError: [Errno 32] Broken pipe
+```
+
+O Hermes passou de 240s **sem terminar** e foi morto no meio da redação. O cano quebrado veio logo
+atrás: o Lúmen já havia desistido aos 230s, então quando a ponte tentou responder não havia mais
+ninguém do outro lado. O advogado leu `DEMORA: o Hermes não respondeu em 230s`, e todo o trabalho
+— e o custo das chamadas de modelo — se perdeu.
+
+`hermes chat --run-budget SEGUNDOS` conserta o que dava para consertar aqui: aos 80% do orçamento o
+agente recebe um aviso único para ir concluindo, e os tempos de espera implícitos do provedor
+passam a ser limitados ao que sobra, de modo que uma chamada travada não consuma a execução
+inteira. Com os padrões de hoje: orçamento de **840s**, aviso aos **672s**, 168s para concluir, e
+60s de margem entre o fim do orçamento e a machadada do `subprocess`. Quem termina a execução passa
+a ser o agente, e não o sistema operacional.
+
+`--max-turns 60` entra junto e pelo mesmo motivo: o padrão do binário é 500 iterações de chamada de
+ferramenta, e uma ferramenta em laço gasta o orçamento **inteiro** sem escrever uma linha — aí o
+aviso dos 80% chega a um agente que passou o tempo todo girando, e o que ele entrega é o nada que
+ele tem. Sessenta é várias vezes o que uma geração saudável usa, e ainda assim um teto.
+
+**`/chat-async`: a espera sai de dentro da requisição web.**
+
+`--run-budget` faz o agente entregar o que tem dentro do prazo. Mas, enquanto a geração corria
+dentro de uma requisição web, o prazo em si não tinha para onde crescer: **o teto duro de uma função
+da Vercel é 300 segundos**, e nenhuma passa disso. Uma peça a partir de um processo de dezenas de
+páginas pode legitimamente precisar de mais — limitar o agente para caber numa requisição HTTP é
+limitar a *qualidade* do trabalho ao tempo de um cano de rede.
+
+**E foi esta rota que destravou o teto de quinze minutos.** Com o disparo respondendo na hora, o
+relógio da Vercel (300s) e o do nginx (280s) deixaram de contar durante a geração: os 900s de
+`HERMES_TIMEOUT_S` são o tempo de uma thread desta máquina, e nada mais. Os 300s continuam valendo
+para a requisição que dispara — e ela leva menos de um segundo.
+
+Por isso a geração deixou de ser "esperar" e passou a ser um trabalho com nome:
+
+```
+POST /chat-async   → 202 {"tarefa": "<id>"}          (na hora; o trabalho corre numa thread)
+GET  /resultado/id → {"estado": "trabalhando"}       (ainda redigindo)
+                   → {"estado": "pronto", ...}       (e a tarefa some da memória)
+                   → {"estado": "falhou", ...}       (e a tarefa some da memória)
+                   → 404 {"estado": "desconhecida"}  (a ponte reiniciou, venceu, ou já foi lida)
+```
+
+`POST /chat` **continua existindo, intacto** — é por ele que o atendimento (a Ana) fala, com o teto
+de 105s do lado do Lúmen. Nada desta entrega chega até ele: mesmo corpo, mesmos códigos, mesmas
+frases de recusa.
+
+As tarefas vivem **em memória**, com teto de quantidade e validade, e somem depois de lidas. Uma
+tarefa pronta guarda uma peça inteira; sem teto, a ponte viraria um vazamento de memória guardando
+peças, e esta VPS tem 1,6 GB livres. Com a memória cheia a ponte **recusa** (`503`, falado) em vez
+de aceitar e ficar sem memória no meio de três gerações.
+
+> **Se a ponte reiniciar, as tarefas somem.** Isso é estado possível do mundo, não defeito:
+> `/resultado/<id>` responde `404 {"estado": "desconhecida"}`, e o Lúmen transforma isso numa
+> recusa falada ("a geração se perdeu, tente de novo"). Do lado do Lúmen há ainda uma rede de
+> segurança por cron (`/api/cron/minutas-pendentes`, a cada 5 minutos) que colhe a geração de quem
+> fechou a aba — é ela que torna verdadeira a frase que a tela mostra ao advogado.
+
+> **O conteúdo nunca vai ao registro.** Nem a pergunta, nem a resposta, nem a credencial: fica o
+> tamanho, o perfil e o estado. São dados de cliente de escritório de advocacia passando por aqui.
+
+
+**A pergunta não viaja pela linha de comando — e o motivo não é elegância.**
+
+Esta é a correção mais importante que este arquivo já recebeu, e ela custou dois dias de
+produção. Vale escrever por extenso, porque o número aqui não é redondo por acidente.
+
+O Linux limita o tamanho de **um único argumento** de linha de comando. A constante chama-se
+`MAX_ARG_STRLEN`, está em `include/uapi/linux/binfmts.h`, e vale `32 * PAGE_SIZE`. Numa máquina de
+página de 4 KiB — todo x86-64, esta VPS inclusive — são **131.072 bytes**, contando o byte nulo do
+fim. Não é ajustável por `ulimit`; não é o `ARG_MAX` do `getconf`, que é outro limite (a soma de
+tudo, argumentos mais ambiente) e é muito maior. É um teto por argumento, e é duro.
+
+A ponte mandava a pergunta inteira como um argumento: `hermes -p <perfil> chat -q "<pergunta>"`.
+Com isso, o teto de 200.000 **caracteres** que este serviço anuncia era **inalcançável**, e por uma
+razão de unidade: 131.072 é um limite de **bytes**, e em português com acento o UTF-8 gasta 2 bytes
+em cada acento. Na prática o teto real era algo entre **110.000 e 125.000 caracteres** — e nada
+dizia isso em lugar nenhum. O registro da VPS, numa geração real:
+
+```
+[ponte-hermes] pergunta para peticionamento-lumen (160059 caracteres, nova conversa, ferramentas: nao)
+[ponte-hermes] falha ao executar o Hermes: [Errno 7] Argument list too long: '/usr/local/bin/hermes'
+```
+
+Nove milésimos de segundo. Nunca chegou ao Hermes. E como o Lúmen aprovava o pedido (a trava dele
+é 190.000 caracteres), o que o advogado lia na tela era `500 {"erro": "falha ao executar o
+Hermes"}` — pior que o `400` que existia antes, porque um 500 não diz o que fazer.
+
+**O conserto não foi baixar o teto.** `hermes chat` aceita `--query-file PATH`, que lê a pergunta
+de um arquivo em vez da linha de comando, e `-` como caminho significa "leia da entrada padrão".
+É por aí que a pergunta viaja agora. Fora do `argv`, `MAX_ARG_STRLEN` deixa de ser teto do produto,
+e 200.000 caracteres passam a ser alcançáveis de verdade — que é o que o número sempre disse que
+era. (`-q` e `--query-file` são mutuamente exclusivos: não se manda os dois.)
+
+Entrada padrão, e não arquivo temporário, por quatro razões, nesta ordem de peso:
+
+1. **sigilo.** A pergunta é dado de cliente de escritório de advocacia. Um arquivo temporário põe a
+   peça inteira no disco, ainda que por segundos, onde backup, snapshot da VPS e qualquer outro
+   processo da máquina alcançam. A entrada padrão não encosta no disco;
+2. **não há o que apagar**, logo não há caminho de erro em que o apagar não aconteça. Com arquivo
+   seria preciso um `try/finally` que sobrevivesse ao tempo esgotado e a qualquer exceção — e
+   "quase sempre apaga", em dado sigiloso, é o mesmo que "vaza às vezes";
+3. **não há nome para colidir.** Esta ponte é `ThreadingHTTPServer`: duas gerações simultâneas são
+   o caso normal, não a exceção;
+4. **não há permissão para errar.** O arquivo que não existe não precisa de `chmod 600`.
+
+A codificação da entrada é **UTF-8 explícita** (`encoding="utf-8"` no `subprocess.run`), e não a
+do ambiente: numa VPS com `LANG=C` o padrão do Python escreveria em ASCII e quebraria no primeiro
+"ção".
+
+Sobrou no código uma conferência de tamanho de argumento (`checar_argumentos`), que hoje nunca
+dispara. Ela fica **de propósito**: se alguém um dia reintroduzir `-q`, a recusa vem como `400`
+falado, com a mesma frase de tamanho que o Lúmen já sabe traduzir, em vez de `[Errno 7]` virando
+`500` opaco na tela do advogado.
+
+> **Ao atualizar a ponte, atualize o `hermes` junto.** Um binário velho, sem `--query-file`,
+> responde `501` dizendo exatamente isso — em vez de um erro genérico que mandaria você procurar
+> defeito na ponte. Para conferir antes: `hermes chat --help | grep query-file`.
+
+**O serviço não sobe sem o segredo.** Nem com um segredo curto (mínimo de 32 caracteres). Uma
+ponte sem autenticação não é uma ponte aberta: é um buraco, e falhar na hora de subir é a única
+resposta honesta.
+
+**Não existe shell no caminho.** O Hermes é executado com uma *lista* de argumentos, entregue
+direto ao sistema operacional. A pergunta do usuário pode conter aspas, `;`, `$(...)` — nada disso
+vira comando. (A rota antiga montava a linha de comando como texto e escapava as aspas à mão; isso
+funciona até o dia em que não funciona.)
+
+**As portas de provisionamento existem por necessidade, não por conforto.** Um escritório sem
+perfil no Hermes tem a caixa de conversa muda, e não há nada que a pessoa possa fazer pela tela.
+Por isso `/provisionar` e `/desprovisionar` moram aqui, ao lado do `/chat`: é o mesmo caminho, e
+sem elas o assistente só funcionaria para os escritórios que já existiam.
+
+**O registro guarda o tamanho da pergunta, nunca o conteúdo.** São dados de cliente de escritório
+de advocacia passando por aqui. `journalctl -u ponte-hermes` mostra quem perguntou para qual perfil
+e quando — o suficiente para investigar um problema, sem virar uma segunda cópia das conversas.
+
+---
+
+## O script de provisionamento (`provision_tenant.py`)
+
+**Sem este arquivo instalado, `GET /perfis`, `POST /provisionar` e `POST /desprovisionar`
+respondem `501`** — é o próprio `servidor.py` dizendo "esta instalação não tem o script de
+provisionamento" (`ProvisionamentoIndisponivel`, em `executar_provisionamento`). E um `501` aqui
+não é um detalhe de API: sem ele, um escritório novo nasce com a caixa de conversa **muda** — o
+`/chat` responde `404` (perfil não encontrado) e não há nada que a tela do painel mestre possa
+fazer a respeito. `servidor-hermes/provision_tenant.py`, neste repositório, é o que fecha esse
+buraco.
+
+### O contrato, exatamente como `servidor.py` o impõe
+
+A ponte executa `python3 <script> <argumentos>` — uma **lista** de argumentos, nunca uma linha de
+comando montada como texto — e espera:
+
+| comando | argumentos | teto de tempo da ponte |
+|---|---|---|
+| listar perfis | `list` | 30s |
+| criar um perfil | `provision --slug S --id OFFICEID --name NOME` | 120s |
+| remover um perfil | `deprovision --slug S` | 60s |
+
+- **A última linha do stdout tem de ser JSON, sempre.** É literalmente o que a ponte faz:
+  `json.loads(stdout.strip().split("\n")[-1])`. Qualquer diagnóstico do script vai para o
+  **stderr** — uma linha solta no stdout quebraria esse `json.loads`.
+- **Saída diferente de zero** → a ponte lê a **última linha do stderr** como motivo. Se essa linha
+  contiver `not found` / `nao encontrado` / `não encontrado`, ela responde `404`; qualquer outra
+  frase vira `500`.
+- **O `--slug` é o nome do diretório do perfil**, não necessariamente o slug do escritório:
+  `lib/hermesPonte.ts:perfilDeCampanha` manda `lumen-campanha-<slug>` (módulo de campanhas), e
+  `app/api/hermes/provision/route.ts` manda o slug cru do escritório (atendimento). O script
+  recebe o que vier e não adivinha.
+- **`provision` é idempotente.** Perfil que já existe devolve sucesso dizendo que já existia
+  (`"jaExistia": true`), sem tocar em `auth.json` nem no estado de sessão dele — o disparo imediato
+  do webhook e o cron de segurança (`lib/actions/provisionamentoCampanhas.ts`) podem tentar o mesmo
+  perfil quase ao mesmo tempo, e a segunda chamada não pode estragar o que a primeira já fez.
+- **A criação é atômica.** O perfil é montado inteiro num diretório temporário, dentro da própria
+  pasta de perfis, e só então movido de uma vez para o nome definitivo. Uma cópia interrompida no
+  meio (disco cheio, processo morto) nunca deixa um perfil pela metade — o que sobraria seria pior
+  que "perfil não encontrado": o Hermes falharia de um jeito que ninguém sabe traduzir.
+- **`list` devolve o formato documentado no cabeçalho do próprio script** —
+  `{"perfis": [{"slug", "temAuth", ...}]}` — e é passado **opaco** por
+  `app/api/hermes/provision/route.ts:GET` direto para a tela.
+- **Nada de shell.** Nenhum `os.system`, nenhum `subprocess` com `shell=True`, nenhum caminho
+  montado por concatenação de texto vindo de argumento — só operações de sistema de arquivos sobre
+  um nome já validado e confinado à pasta de perfis (nada de `..`, nada de link simbólico seguido
+  às cegas).
+
+As expressões de validação (`SLUG_VALIDO`, `ID_VALIDO`, `NOME_MAXIMO`) são um **espelho** das que
+`servidor.py` já usa — copiadas à mão, porque o script pode ser chamado direto, sem passar pela
+ponte. `lib/testes/hermesProvisionamento.teste.ts` lê os dois arquivos e falha se algum dia
+divergirem, do mesmo jeito que já protege `PERGUNTA_MAXIMA`/`CORPO_MAXIMO`.
+
+### Instalação, passo a passo
+
+Também roda **no servidor onde o Hermes está instalado**, como root — continuando de onde o passo
+1 desta página parou.
+
+**1. Copie o script:**
+
+```bash
+cp servidor-hermes/provision_tenant.py /root/.hermes/profiles/lumen-master/scripts/provision_tenant.py
+```
+
+(crie a pasta `scripts/` dentro de `lumen-master` se ela ainda não existir). O caminho é fixo —
+`SCRIPT_PROVISIONAMENTO` em `servidor.py` — mas configurável por `HERMES_PROVISION_SCRIPT` em
+`/etc/lumen-hermes.env`, se um dia precisar viver noutro lugar.
+
+**2. Instale o perfil-modelo**, se `lumen-master` ainda não existir na máquina:
+
+```bash
+mkdir -p /root/.hermes/profiles/lumen-master
+cp servidor-hermes/perfil-modelo/profile.yaml /root/.hermes/profiles/lumen-master/profile.yaml
+cp servidor-hermes/perfil-modelo/env.modelo /root/.hermes/profiles/lumen-master/.env
+```
+
+**2b. Leve `config.yaml`, `SOUL.md` e a pasta `skills/` de um perfil que já funciona.** Nenhum dos
+três está no repositório, e os dois primeiros não são detalhe: `config.yaml` é **obrigatório** (sem
+ele o `provision` recusa) e, sem `SOUL.md`, o escritório novo ganha um assistente genérico em vez
+da atendente do Lúmen. A pasta `skills/` importa porque **no Hermes as skills moram dentro do
+perfil** — sem ela o escritório nasce sem nenhuma das skills jurídicas da plataforma.
+
+```bash
+ORIGEM=/root/.hermes/profiles/atendimento-lumen
+DESTINO=/root/.hermes/profiles/lumen-master
+cp -p "$ORIGEM/config.yaml" "$DESTINO/config.yaml"
+cp -p "$ORIGEM/SOUL.md"     "$DESTINO/SOUL.md"
+cp -a "$ORIGEM/skills"      "$DESTINO/skills"
+```
+
+Revise o `SOUL.md` e as `skills/` do modelo antes do primeiro `provision`: **o que estiver no
+perfil-modelo é o que todo escritório contratante vai receber.**
+
+**3. Copie o `auth.json` — este passo é obrigatório, e só acontece na VPS.**
+`auth.json` **não está no repositório** (é a credencial do provedor de modelo, e segredo de
+produção não mora em git, nem privado). Sem ele, `provision_tenant.py` **recusa provisionar** e
+diz exatamente este passo na mensagem de erro:
+
+```bash
+cp /root/.hermes/profiles/<algum-perfil-que-ja-funciona>/auth.json \
+   /root/.hermes/profiles/lumen-master/auth.json
+```
+
+Confira com `hermes -p lumen-master config check` que não falta nada — inclusive as variáveis do
+`.env`, cujos nomes exatos este repositório não tem como confirmar sem acesso à VPS (ver
+`servidor-hermes/perfil-modelo/LEIA-ME.md`).
+
+**4. Reinicie a ponte**, para ela conferir de novo se `SCRIPT_PROVISIONAMENTO` existe:
+
+```bash
+systemctl restart ponte-hermes
+```
+
+### Como confirmar que funcionou
+
+Antes do passo 1 acima, `GET /perfis` responde `501`:
+
+```bash
+curl -s -H "authorization: Bearer $HERMES_TOKEN" https://hermes.SEUDOMINIO.com.br/perfis
+# {"erro": "esta instalacao nao tem o script de provisionamento (/root/.hermes/profiles/lumen-master/scripts/provision_tenant.py)"}
+```
+
+Depois de instalado, o mesmo comando lista os perfis (pelo menos o `lumen-master`):
+
+```bash
+curl -s -H "authorization: Bearer $HERMES_TOKEN" https://hermes.SEUDOMINIO.com.br/perfis
+# {"perfis": [{"slug": "lumen-master", "temAuth": true}]}
+```
+
+E um provisionamento de teste prova o caminho inteiro:
+
+```bash
+curl -s -X POST -H "authorization: Bearer $HERMES_TOKEN" -H "content-type: application/json" \
+  -d '{"slug": "teste-provisionamento", "officeId": "off_teste", "nome": "Escritório de Teste"}' \
+  https://hermes.SEUDOMINIO.com.br/provisionar
+# {"slug": "teste-provisionamento", "officeId": "off_teste", "criado": true, "jaExistia": false}
+
+curl -s -X POST -H "authorization: Bearer $HERMES_TOKEN" -H "content-type: application/json" \
+  -d '{"slug": "teste-provisionamento"}' \
+  https://hermes.SEUDOMINIO.com.br/desprovisionar
+# {"slug": "teste-provisionamento", "removido": true}
+```
+
+---
+
+## As ferramentas: como o agente consulta os dados do escritório
+
+> **ATUALIZAÇÃO — esta seção descreve o desenho ANTIGO, e ele nunca chegou a funcionar de
+> verdade.** Foi medido: `grep -rl "LUMEN_FERRAMENTAS"` sobre a instalação inteira do Hermes só
+> encontra dois arquivos de *cache de terminal* (gravações de ambiente, não código) — nada na
+> máquina do Hermes lê `LUMEN_FERRAMENTAS_URL`/`LUMEN_FERRAMENTAS_CREDENCIAL` de verdade. O passo
+> "Depois disso, o perfil do Hermes precisa saber que essa ferramenta existe — é instrução no
+> prompt dele" (abaixo) nunca foi de fato aplicado a um perfil em produção. Consequência: as
+> ferramentas do escritório NUNCA chegaram ao agente do Hermes — nem no peticionamento, nem no
+> atendimento. Só funcionavam pelo caminho da RESERVA (`app/api/assistente/route.ts`), onde é o
+> próprio Lúmen que chama o modelo e já entrega as ferramentas prontas.
+>
+> **O desenho novo está na seção "MCP: o Hermes fala direto com o Lúmen", logo abaixo desta.** Ele
+> substitui `lumen-consultar.py` e a instrução de prompt — o Hermes já fala MCP nativamente (há
+> servidores MCP no `config.yaml` de pelo menos um perfil da VPS), então a ferramenta certa é dar a
+> ele um SERVIDOR MCP, não um comando de terminal que precisa ser lembrado num prompt. O texto
+> abaixo fica como registro do que existia e do porquê não funcionava — não repita este passo a
+> passo numa instalação nova.
+
+O agente **não tem o banco do Lúmen**, e não deve ter. Quando precisa de um número, ele roda o
+programa `lumen-consultar.py`, que pergunta ao Lúmen e devolve a resposta.
+
+O que faz isso funcionar são duas variáveis que a ponte põe no ambiente **de cada execução**:
+
+```
+LUMEN_FERRAMENTAS_URL          onde perguntar
+LUMEN_FERRAMENTAS_CREDENCIAL   a credencial DAQUELA pergunta
+```
+
+**A credencial é da pergunta, não do escritório.** Ela carrega quem perguntou e o que essa pessoa
+pode ver, vale cinco minutos, e morre com o processo. Um token fixo por escritório seria mais
+simples e estaria errado: bastaria alguém sem acesso ao financeiro pedir ao agente "quanto entrou
+este mês" para contornar a regra pela porta dos fundos.
+
+Quem decide o que responder é o **Lúmen**, do outro lado. O agente não tem opinião sobre permissão
+— e é justamente isso que torna a regra confiável.
+
+### Instalar
+
+```bash
+curl -fsSL -o /opt/lumen/servidor-hermes/lumen-consultar.py \
+  https://raw.githubusercontent.com/rodartepradoadvogados/Lumen/main/servidor-hermes/lumen-consultar.py
+chmod 755 /opt/lumen/servidor-hermes/lumen-consultar.py
+ln -sf /opt/lumen/servidor-hermes/lumen-consultar.py /usr/local/bin/lumen-consultar
+```
+
+Depois disso, o perfil do Hermes precisa **saber que essa ferramenta existe** — é instrução no
+prompt dele, não configuração da ponte. Algo como:
+
+> Para qualquer pergunta sobre processos, publicações, agenda, atendimentos, clientes ou
+> financeiro do escritório, rode `lumen-consultar` no terminal. Sem argumentos ele lista o que é
+> possível consultar. Nunca invente números: se a consulta não trouxer, diga que não encontrou.
+> Se a resposta for uma recusa de acesso, isso é regra do escritório — não tente outro caminho.
+
+### Conferir
+
+```bash
+lumen-consultar          # fora de uma pergunta do Lúmen, deve dizer que não há credencial
+```
+
+---
+
+## MCP: o Hermes fala direto com o Lúmen
+
+Esta é a substituição do desenho da seção anterior. O Hermes já fala MCP nativamente — há
+servidores MCP configurados no `config.yaml` de pelo menos um perfil da VPS, entre eles um
+`mcp-remote@latest` e um servidor com `url:` — então, em vez de um comando de terminal que depende
+de uma instrução escrita à mão no prompt (e que, medido, nunca chegou a entrar de fato num perfil
+de produção), o Lúmen agora expõe um **servidor MCP de verdade**: `app/api/agente/mcp/route.ts`,
+"streamable HTTP" (JSON-RPC 2.0 sobre POST — sem WebSocket, sem SSE).
+
+**A credencial e as duas variáveis de ambiente CONTINUAM AS MESMAS.** É isto que faz o desenho
+fechar sem exigir nada novo da ponte (`servidor-hermes/servidor.py`): ela já põe
+`LUMEN_FERRAMENTAS_URL` e `LUMEN_FERRAMENTAS_CREDENCIAL` no ambiente do processo do Hermes, a cada
+pergunta, antes de lançá-lo (ver o bloco `ambiente[...]` em `servidor.py`). Um servidor MCP que o
+Hermes lance como subprocesso — ou aponte via `url:` — herda esse ambiente. A credencial continua
+sendo **da pergunta**, não do escritório: ela carrega quem perguntou e o que essa pessoa pode ver,
+e é isso que impede alguém sem acesso ao financeiro de contornar a regra pedindo ao agente "quanto
+entrou este mês" (ver o cabeçalho de `lib/agenteCredencial.ts`, no repositório do Lúmen).
+
+A rota fala os quatro métodos MCP que um cliente precisa para descobrir e usar as ferramentas:
+
+```
+initialize              → protocolVersion, capabilities: { tools: {} }, serverInfo
+notifications/initialized → notificação, sem resposta
+tools/list               → o catálogo que AQUELA credencial alcança (mesma regra da rota REST)
+tools/call                → executa uma ferramenta e devolve o resultado + a instrução de como mostrar
+```
+
+A autorização é a MESMA da rota REST (`app/api/agente/ferramentas/route.ts`): cabeçalho
+`Authorization: Bearer <token>`, lido por `lerCredencial`. Sem ele, ou com um token que não valide,
+a resposta é um erro de autorização — sem dizer se o motivo foi "expirou" ou "é inválido", de
+propósito (ver o comentário da própria rota). As duas rotas leem a regra de acesso do MESMO módulo
+(`lib/agenteFerramentasLiberadas.ts`) — não são duas cópias que podem divergir.
+
+### O que precisa ser configurado na VPS
+
+Isto é o que falta, e só pode ser feito na máquina onde o Hermes roda:
+
+1. **Uma entrada de servidor MCP no `config.yaml` do perfil**, apontando para a rota do Lúmen —
+   o mesmo endereço que hoje vai para `LUMEN_FERRAMENTAS_URL`, mas com `/agente/mcp` no lugar de
+   `/agente/ferramentas` (ex.: `https://SEUDOMINIO.com.br/api/agente/mcp` em vez de
+   `https://SEUDOMINIO.com.br/api/agente/ferramentas`).
+2. **Um cabeçalho `Authorization: Bearer <credencial>`** nessa entrada, onde `<credencial>` precisa
+   vir de `LUMEN_FERRAMENTAS_CREDENCIAL` — a variável que a ponte já põe no ambiente do processo a
+   cada pergunta. Ou seja: a entrada do `config.yaml` precisa referenciar uma VARIÁVEL DE AMBIENTE,
+   não um valor fixo — um token fixo devolveria à instalação exatamente o defeito que a credencial
+   por pergunta existe para evitar (ver o cabeçalho de `lib/agenteCredencial.ts`).
+3. **A URL também precisa vir de `LUMEN_FERRAMENTAS_URL`**, pelo mesmo motivo: não é um endereço
+   fixo escrito no `config.yaml`, é o que a ponte manda a cada pergunta.
+
+**O FORMATO EXATO desses três pontos — a sintaxe de uma entrada de servidor MCP no `config.yaml`
+do Hermes, como ela referencia uma variável de ambiente para a URL e para o cabeçalho, se é preciso
+`headers:`, `env:`, ou outra chave — este repositório NÃO TEM COMO CONFIRMAR sem acesso à VPS.** O
+que se sabe, medido, é que o Hermes já tem PELO MENOS UM servidor MCP configurado lá (um
+`mcp-remote@latest` e um com `url:`, vistos num `config.yaml` de perfil) — use essa entrada
+existente como referência de sintaxe real da instalação, e não invente a chave a partir de memória
+de outras ferramentas MCP. **Confirme o formato contra o `config.yaml` da máquina antes de
+aplicar.**
+
+### Como confirmar que funcionou
+
+Sem esperar por uma pergunta de verdade, dá para testar a rota isoladamente — trocando
+`SEUDOMINIO.com.br` e a credencial por valores reais (uma credencial de teste pode ser emitida
+manualmente, ou capturada do log da ponte na próxima pergunta que passar por ela):
+
+```bash
+curl -s -X POST https://SEUDOMINIO.com.br/api/agente/mcp \
+  -H "authorization: Bearer <credencial>" -H "content-type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}
+```
+
+Sem credencial (ou com uma inválida), o mesmo pedido devolve um erro de autorização — nunca um
+catálogo, e nunca um 500:
+
+```bash
+curl -s -X POST https://SEUDOMINIO.com.br/api/agente/mcp \
+  -H "content-type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# {"jsonrpc":"2.0","id":1,"error":{"code":-32001,"message":"Credencial ausente."}}
+```
+
+Depois de configurado o `config.yaml`, uma pergunta de verdade ao Hermes que dependa de dado do
+escritório (por exemplo, "quantos processos estão em andamento?") é a prova final: se o agente
+responde com um número real (e um link clicável, por causa da instrução que viaja junto de cada
+resultado), o MCP está funcionando; se ele disser que não tem como consultar, o `config.yaml` ainda
+não está apontando para a ferramenta certa.
+
+---
+
+## Manutenção
+
+```bash
+systemctl status ponte-hermes         # está de pé?
+journalctl -u ponte-hermes -n 50      # o que aconteceu
+systemctl restart ponte-hermes        # depois de mudar /etc/lumen-hermes.env
+journalctl -u ponte-hermes-vigia -n 20  # quantas vezes ela caiu, e quando
+```
+
+**Trocar o segredo:** gere um novo, grave no `/etc/lumen-hermes.env`, reinicie o serviço e
+atualize `HERMES_TOKEN` na Vercel. Entre um passo e outro a caixa de conversa cai na reserva
+(o Claude) em vez de dar erro — então a troca pode ser feita sem avisar ninguém.
+
+**O TEMPO, e o que já está feito:** `--run-budget` **está ligado** (ver a seção acima), derivado de
+`HERMES_TIMEOUT_S`, e a espera saiu de dentro da requisição web (`/chat-async` + `/resultado/<id>`).
+Os números da corrente de tempos continuam os da tabela acima e do topo de `servidor.py` — **não
+mexa em um sem conferir a corrente inteira**, e lembre que o orçamento do agente é *derivado* do
+teto do processo: mudar `HERMES_TIMEOUT_S` move os dois juntos, de propósito.
+
+**Uma trava que ficou de fora:** o serviço roda como root, porque os perfis do Hermes estão em
+`/root/.hermes`. Se um dia esses perfis mudarem para um diretório próprio, vale mudar o `User=` da
+unidade junto — é a diferença entre um abuso da ponte alcançar o Hermes e alcançar a máquina.

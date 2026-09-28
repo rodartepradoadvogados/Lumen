@@ -1,20 +1,40 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarDays, Inbox, Scale, Landmark, BarChart3 } from "lucide-react";
+import { CalendarDays, Scale, Landmark, BarChart3, Headset, FileSignature } from "lucide-react";
 import type { OfficeModules } from "@/lib/officeModules";
 
 // Modelo de navegação do rail (components/NavRail.tsx) + abas de seção
 // (components/PageSectionTabs.tsx, no topo do conteúdo — substitui o antigo painel lateral de
 // 190px, components/SectionPanel.tsx, removido no redesenho Modernist) — ver proposta de
 // remodelação do portal aprovada em 2026-08-08 e documento 02 do handoff do redesenho. Em vez de
-// categorias com sub-abas que expandiam sozinhas na barra lateral, são 6 SEÇÕES (uma por ícone
-// do rail), cada uma com uma lista curta de itens.
+// categorias com sub-abas que expandiam sozinhas na barra lateral, são 4 SEÇÕES (uma por ícone
+// do rail), cada uma com uma lista curta de itens, MAIS dois ícones "portais" fora de qualquer
+// seção (RAIL_STANDALONE, abaixo).
 //
 // ATÉ 2026-09-16 "Publicações" aparecia em DUAS seções (Comunicação e Jurídico), apontando para a
-// MESMA rota /publicacoes. O diagnóstico do redesign mediu o efeito: seis ícones entregavam cinco
-// destinos, clicar em "Jurídico" abria literalmente a mesma tela que "Comunicação", e a mesma URL
-// renderizava abas diferentes conforme a porta de entrada — estado invisível (`preferred`)
-// decidindo navegação visível. A entrada duplicada saiu de Jurídico; a rota continua alcançável
-// por Comunicação, pelo badge do rail e pelo Painel.
+// MESMA rota /publicacoes — a entrada duplicada saiu de Jurídico, e a seção "Comunicação" (Inbox)
+// concentrou Publicações, Contatos e o item fundido de Atendimento.
+//
+// REORGANIZAÇÃO DO RAIL — pedido do dono, 24/09/2026 (três pedidos, uma mudança só):
+//
+//   1. Publicações passa a viver em JURÍDICO, como primeira sub-aba — a seção "Comunicação"
+//      (Inbox) deixou de fazer sentido com só dois dos três itens restando nela.
+//   2. Contatos passa a viver em GESTÃO, e a ORDEM da seção Gestão passou a ser fixada pelo dono:
+//      Configurações, Conexões, Contatos, Produtividade, Relatórios — nesta ordem exata.
+//   3. Atendimento (que já estava fundido num item só, ver comentário mais abaixo) e
+//      Peticionamento (que já morava em Jurídico, com layout e permissão PRÓPRIOS) SAEM de
+//      qualquer seção e viram os dois ícones "portais" do rail — RAIL_STANDALONE — porque os dois
+//      "abrem abas novas, e são funcionalidades caras ao Lúmen" (nunca a navegação em-página do
+//      resto do rail).
+//
+// Com isso a seção "Comunicação" (SectionKey "comunicacao") DEIXOU DE EXISTIR — o rail passou de
+// 6 ícones (Painel + 5 seções) + Ajustes fixo no pé, para: logo (que também é o link do Painel,
+// sem ícone duplicado ao lado), 4 seções (Agenda, Jurídico, Financeiro, Gestão), separador, os
+// dois ícones-portal (Atendimento, Peticionamento) — e SEM Ajustes fixo no pé (duplicava Gestão,
+// que agora abre direto em Configurações, seu primeiro item). Ver components/NavRail.tsx.
+//
+// NENHUM ITEM MUDOU DE URL. A régua de acesso de cada item (adminOnly/moduleKey/atendimentoOnly/
+// abrirEmNovaAba) viajou junto com ele — mover um item de seção não pode alargar nem estreitar
+// quem o enxerga, só reorganizar onde ele aparece (ver lib/testes/navegacaoRail.teste.ts).
 //
 // subItems (herdado do modelo antigo) continua existindo só para os dois itens que não têm
 // nenhuma navegação própria dentro da página de destino (Relatórios e Configurações, ambos
@@ -31,14 +51,49 @@ export type SubNavItem = {
 export type SectionPanelItem = {
   href: string;
   label: string;
+  /**
+   * RÓTULO CURTO, só para o rail. Medido no Chromium com a Inter de verdade (12px, peso 600,
+   * tracking-wide): o <nav> do rail tem 112px de largura e `px-2`, então sobram 96px para o texto,
+   * que é `whitespace-nowrap` — o que não cabe é CORTADO, não dobra de linha.
+   *
+   *   Atendimento     90,9px  cabe
+   *   Comunicação     92,7px  cabia por 3,3px — e foi o que causou a barra de rolagem horizontal
+   *                           que o dono viu em 17/09
+   *   Peticionamento 110,3px  ESTOURA em 14px
+   *
+   * Por isso este campo existe: `label` continua sendo o nome inteiro (é o que a busca ⌘K mostra,
+   * e é como o produto chama a aba em todo lugar), e o rail desenha este aqui quando houver.
+   */
+  rotuloCurto?: string;
   adminOnly?: boolean;
+  /** Item do Atendimento: qualquer um dos três níveis menos "nenhum". */
+  atendimentoOnly?: boolean;
+  /** Item do Atendimento que exige ver o escritório INTEIRO — o funil comercial. */
+  atendimentoTotal?: boolean;
   moduleKey?: keyof OfficeModules;
   subParam?: string;
   subDefaultValue?: string;
   subItems?: SubNavItem[];
+  /**
+   * ABRE EM ABA NOVA DO NAVEGADOR — decisão do dono para o Peticionamento (ver
+   * app/peticionamento/layout.tsx): "sensação de sair do Lúmen", nunca a navegação em-página
+   * (router.push/openTab do components/TabsProvider.tsx) que troca só o conteúdo desta MESMA
+   * aba/processo — fechar ou usar a aba de destino não pode interferir em nada no uso do Lúmen.
+   * Quem consome este item (PageSectionTabs, GlobalSearch) precisa renderizar `<a target="_blank"
+   * rel="noopener">` de verdade para este, nunca passar pelo mecanismo comum de clique único/
+   * duplo clique dos demais itens.
+   */
+  abrirEmNovaAba?: boolean;
+  /**
+   * Ícone PRÓPRIO do item — usado só pelos dois itens de RAIL_STANDALONE abaixo (Atendimento,
+   * Peticionamento), que são ícones do rail por si mesmos, fora de qualquer SectionDef (que já
+   * carrega o próprio `icon` para o ícone da seção). Os demais itens (dentro de RAIL_SECTIONS)
+   * não precisam disto: eles só aparecem como aba de texto em PageSectionTabs/GlobalSearch.
+   */
+  icon?: LucideIcon;
 };
 
-export type SectionKey = "agenda" | "comunicacao" | "juridico" | "financeiro" | "gestao";
+export type SectionKey = "agenda" | "juridico" | "financeiro" | "gestao";
 
 export type SectionDef = {
   key: SectionKey;
@@ -59,26 +114,18 @@ export const RAIL_SECTIONS: SectionDef[] = [
     ],
   },
   {
-    key: "comunicacao",
-    label: "Comunicação",
-    // Inbox no lugar do balão de mensagem genérico (MessagesSquare) — proposta de ícones
-    // "Editorial fino" aprovada em 2026-08: símbolo específico do que a seção faz (captação de
-    // publicações + atendimentos entrando), não um ícone de chat de qualquer SaaS.
-    icon: Inbox,
-    items: [
-      { href: "/publicacoes", label: "Publicações" },
-      { href: "/atendimento", label: "Atendimentos", moduleKey: "atendimento" },
-      { href: "/atendimento/funil", label: "Funil comercial", moduleKey: "atendimento" },
-      { href: "/contatos", label: "Contatos" },
-    ],
-  },
-  {
     key: "juridico",
     label: "Jurídico",
     // Balança no lugar da pasta genérica (Briefcase) — pasta poderia ser qualquer sistema de
     // gestão de negócio; balança só tem uma leitura possível.
     icon: Scale,
+    // Publicações passou a ser a PRIMEIRA sub-aba (pedido do dono, 24/09/2026) — antes vivia na
+    // seção "Comunicação", que deixou de existir (ver comentário no topo do arquivo). A rota não
+    // mudou (/publicacoes), e o item continua sem restrição nenhuma (nem adminOnly, nem
+    // moduleKey): estava sempre visível em Comunicação, e continua sempre visível aqui — mover de
+    // seção não alarga nem estreita quem vê.
     items: [
+      { href: "/publicacoes", label: "Publicações" },
       { href: "/processos", label: "Processos e casos" },
       { href: "/assessoria", label: "Assessoria jurídica", moduleKey: "assessoria" },
     ],
@@ -105,28 +152,12 @@ export const RAIL_SECTIONS: SectionDef[] = [
     key: "gestao",
     label: "Gestão",
     icon: BarChart3,
+    // ORDEM FIXADA PELO DONO, 24/09/2026 (da esquerda para a direita): Configurações, Conexões,
+    // Contatos, Produtividade, Relatórios. Configurações virou o PRIMEIRO item — e por isso é
+    // para onde o ícone de Gestão do rail agora navega (`section.items[0].href`), o que também é
+    // o que aposenta o antigo atalho fixo "Ajustes" no pé do rail sem perder alcance nenhum (ver
+    // components/NavRail.tsx): clicar em Gestão já abre Configurações.
     items: [
-      {
-        href: "/relatorios",
-        label: "Relatórios",
-        subParam: "secao",
-        subDefaultValue: "produtividade",
-        subItems: [
-          { label: "Personalizado", value: "personalizado" },
-          { label: "Produtividade", value: "produtividade" },
-          { label: "Processos", value: "processos" },
-          { label: "Funil Comercial", value: "funil" },
-          { label: "Publicações", value: "publicacoes" },
-          { label: "Financeiro", value: "financeiro", financeOnly: true },
-        ],
-      },
-      { href: "/produtividade", label: "Produtividade" },
-      // Rota nova do documento 04 (handoff do redesenho Modernist) — sempre visível no rail, como
-      // Configurações: a permissão de verdade (isAdmin || canConfigureIntegrations, ver
-      // lib/supportCapabilities.ts) é decidida dentro da própria página, não escondendo o link do
-      // menu (mesmo padrão que Configurações já usa — a maior parte do conteúdo dela também exige
-      // isAdmin, e o link continua aparecendo pra todo mundo).
-      { href: "/conexoes", label: "Conexões" },
       {
         href: "/configuracoes",
         label: "Configurações",
@@ -140,25 +171,101 @@ export const RAIL_SECTIONS: SectionDef[] = [
           { label: "Blog Jurídico", value: "blog", adminOnly: true },
         ],
       },
+      // Rota nova do documento 04 (handoff do redesenho Modernist) — sempre visível no rail, como
+      // Configurações: a permissão de verdade (isAdmin || canConfigureIntegrations, ver
+      // lib/supportCapabilities.ts) é decidida dentro da própria página, não escondendo o link do
+      // menu (mesmo padrão que Configurações já usa — a maior parte do conteúdo dela também exige
+      // isAdmin, e o link continua aparecendo pra todo mundo).
+      { href: "/conexoes", label: "Conexões" },
+      // Contatos passou a viver aqui (pedido do dono, 24/09/2026) — antes vivia na seção
+      // "Comunicação", que deixou de existir. Mesma rota (/contatos), mesma ausência de
+      // restrição: estava sempre visível lá, e continua sempre visível aqui.
+      { href: "/contatos", label: "Contatos" },
+      { href: "/produtividade", label: "Produtividade" },
+      {
+        href: "/relatorios",
+        label: "Relatórios",
+        subParam: "secao",
+        subDefaultValue: "produtividade",
+        subItems: [
+          { label: "Personalizado", value: "personalizado" },
+          { label: "Produtividade", value: "produtividade" },
+          { label: "Processos", value: "processos" },
+          { label: "Triagem", value: "funil" },
+          { label: "Publicações", value: "publicacoes" },
+          { label: "Financeiro", value: "financeiro", financeOnly: true },
+        ],
+      },
     ],
   },
 ];
 
+// OS DOIS ÍCONES-PORTAL DO RAIL — fora de qualquer seção (ver o comentário no topo do arquivo).
+// Atendimento e Peticionamento têm em comum exatamente o que os tira de RAIL_SECTIONS: os dois
+// SEMPRE abrem em ABA NOVA do navegador (abrirEmNovaAba — nunca a navegação em-página do resto do
+// rail) e têm layout/permissão PRÓPRIOS na própria rota (app/atendimento-central/layout.tsx,
+// app/peticionamento/layout.tsx) — o item aqui é só a PORTA de entrada do rail; a régua de acesso
+// de verdade mora na rota. Renderizados por components/NavRail.tsx como `<a target="_blank"
+// rel="noopener">`, nunca `<Link>` (ver lib/testes/navegacaoRail.teste.ts).
+export const RAIL_STANDALONE: SectionPanelItem[] = [
+  // Item fundido de Atendimento (Triagem + Atendimentos numa tela só, ver
+  // app/atendimento-central/page.tsx) — até 24/09/2026 vivia dentro da seção "Comunicação", só
+  // alcançável pela barra de sub-abas ou pela paleta ⌘K, nunca por ícone PRÓPRIO do rail. Virar
+  // ícone-portal é só um caminho novo e mais curto para o MESMO lugar — a régua de acesso não
+  // mudou nem uma vírgula: continua exigindo só `atendimentoOnly` (o portão mais baixo, igual ao
+  // antigo "Atendimentos"), nunca `atendimentoTotal` nem `adminOnly` (ver lib/acessoAtendimento.ts
+  // e o comentário histórico em lib/testes/atendimentoCentral.teste.ts sobre a Triagem).
+  {
+    href: "/atendimento-central",
+    label: "Atendimento",
+    icon: Headset,
+    moduleKey: "atendimento",
+    atendimentoOnly: true,
+    abrirEmNovaAba: true,
+  },
+  // Peticionamento — até 24/09/2026 vivia como sub-aba de Jurídico (sempre visível no menu,
+  // mesmo padrão de "Configurações": a régua de verdade é `podeAcessarAba` dentro do próprio
+  // layout, ver app/peticionamento/layout.tsx). Sem flag de visibilidade aqui — continua sempre
+  // visível no rail, exatamente como estava.
+  { href: "/peticionamento", label: "Peticionamento", rotuloCurto: "Petições", icon: FileSignature, abrirEmNovaAba: true },
+];
+
 // Financeiro (a SEÇÃO inteira) só aparece com acesso financeiro — mesmo critério de sempre
 // (isAdmin || financeAccess). Não há adminOnly/moduleKey nos outros 4: sempre visíveis.
-export function isSectionVisible(
-  section: SectionDef,
-  { hasFinanceAccess, modules }: { hasFinanceAccess: boolean; modules: OfficeModules }
-): boolean {
-  if (section.key === "financeiro") return hasFinanceAccess;
-  return section.items.some((item) => (!item.adminOnly || hasFinanceAccess) && (!item.moduleKey || modules[item.moduleKey]));
+export type ContextoDeVisibilidade = {
+  hasFinanceAccess: boolean;
+  modules: OfficeModules;
+  /** Tem alguma porta aberta no Atendimento. Ausente vale FALSO. */
+  podeAtendimento?: boolean;
+  /** Vê o Atendimento do escritório inteiro. Ausente vale FALSO. */
+  veTodoAtendimento?: boolean;
+};
+
+// Exportada (deixou de ser função privada do módulo) para RAIL_STANDALONE também poder ser
+// filtrado pelo mesmo critério dos itens de RAIL_SECTIONS — os dois ícones-portal do rail usam a
+// MESMA régua de acesso que os itens de seção sempre usaram (ver components/NavRail.tsx e
+// components/GlobalSearch.tsx), só que fora de uma SectionDef.
+export function itemVisivel(item: SectionPanelItem, ctx: ContextoDeVisibilidade): boolean {
+  if (item.adminOnly && !ctx.hasFinanceAccess) return false;
+  if (item.moduleKey && !ctx.modules[item.moduleKey]) return false;
+  // Fechado por padrão: um contexto que esqueceu de informar esconde o item em vez de mostrá-lo.
+  if (item.atendimentoOnly && ctx.podeAtendimento !== true) return false;
+  if (item.atendimentoTotal && ctx.veTodoAtendimento !== true) return false;
+  return true;
 }
 
-export function visibleSectionItems(
-  section: SectionDef,
-  { hasFinanceAccess, modules }: { hasFinanceAccess: boolean; modules: OfficeModules }
-): SectionPanelItem[] {
-  return section.items.filter((item) => (!item.adminOnly || hasFinanceAccess) && (!item.moduleKey || modules[item.moduleKey]));
+export function isSectionVisible(section: SectionDef, ctx: ContextoDeVisibilidade): boolean {
+  if (section.key === "financeiro") return ctx.hasFinanceAccess;
+  return section.items.some((item) => itemVisivel(item, ctx));
+}
+
+export function visibleSectionItems(section: SectionDef, ctx: ContextoDeVisibilidade): SectionPanelItem[] {
+  return section.items.filter((item) => itemVisivel(item, ctx));
+}
+
+/** Os itens de RAIL_STANDALONE que `ctx` autoriza ver — mesmo filtro de visibleSectionItems. */
+export function visibleStandaloneItems(ctx: ContextoDeVisibilidade): SectionPanelItem[] {
+  return RAIL_STANDALONE.filter((item) => itemVisivel(item, ctx));
 }
 
 // Deriva a seção ativa a partir do pathname — não é estado próprio (ver README da proposta:
@@ -180,7 +287,7 @@ export function sectionForPathname(pathname: string | null): SectionKey | "paine
 // Rótulo composto "Seção - Item" para as guias internas (components/TabTitleSync.tsx via
 // lib/navItems.ts:resolveTabLabel, e o chip da view "Principal" em components/GuiasBar.tsx) —
 // pedido do dono do produto: a guia mostra até o 2º nível da hierarquia (aba + sub-aba), nunca
-// mais fundo. Ex.: "/contatos/clientes" resolve pro MESMO "Comunicação - Contatos" que
+// mais fundo. Ex.: "/contatos/clientes" resolve pro MESMO "Gestão - Contatos" que
 // "/contatos" puro — "Clientes" é uma aba dentro da própria página de Contatos (3º nível), não
 // uma rota própria em RAIL_SECTIONS; o mesmo vale para `?secao=` de Relatórios/Configurações.
 //

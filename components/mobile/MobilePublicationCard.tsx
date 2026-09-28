@@ -7,7 +7,8 @@ import {
   markPublicationsRead,
   markPublicationsUnread,
 } from "@/lib/actions/publications";
-import { Badge, formatDate } from "@/components/ui";
+import { Badge } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
 import LinkPublicationMenu from "@/components/LinkPublicationMenu";
 import CopyButton from "@/components/CopyButton";
@@ -101,7 +102,9 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
           {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"}
         </Badge>
         <Badge color="navy">{pub.source}</Badge>
-        <Badge color="slate">{formatDate(pub.publishedAt)}</Badge>
+        {/* publishedAt é instante — formatDate() lia sem fuso e virava um dia errado perto da
+            meia-noite. */}
+        <Badge color="slate">{dataDeBrasilia(pub.publishedAt)}</Badge>
         {/* Indicador de agrupamento: mesmo processo capturado por mais de uma fonte (DJEN,
             Datajud, e-mail do Jusbrasil...) — clicar no card já expande e mostra todas. */}
         {hasMultiple && (
@@ -145,7 +148,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
                   <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge color="navy">{item.source}</Badge>
-                      <Badge color="slate">{formatDate(item.publishedAt)}</Badge>
+                      <Badge color="slate">{dataDeBrasilia(item.publishedAt)}</Badge>
                       {!item.read && <Badge color="gold">Não lida</Badge>}
                     </div>
                     <CopyButton

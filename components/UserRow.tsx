@@ -2,13 +2,32 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound, Link2, Copy, Check } from "lucide-react";
-import { updateUser, toggleUserActive, deleteUser, setFinanceAccess, setUserCredentials } from "@/lib/actions/settings";
+import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound, Link2, Copy, Check, PhoneIncoming, PhoneOff } from "lucide-react";
+import {
+  updateUser,
+  toggleUserActive,
+  deleteUser,
+  setFinanceAccess,
+  setRecebeTransferencia,
+  setUserCredentials,
+} from "@/lib/actions/settings";
 import { adminGenerateResetLink } from "@/lib/actions/auth";
 import { Badge } from "@/components/ui";
 import PhoneInput from "@/components/PhoneInput";
+import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
-const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
+const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista/Secretária", "Marketing", "Contador"];
+
+/**
+ * As opções do seletor, garantindo que o papel JÁ GRAVADO da pessoa esteja entre elas.
+ *
+ * "Recepcionista" virou "Recepcionista/Secretária", e quem estava cadastrado antes continua com o
+ * valor antigo no banco. Sem isto, o seletor abriria mostrando "Advogado" para a recepcionista —
+ * e bastaria alguém salvar o formulário sem reparar para a pessoa virar advogada de verdade.
+ */
+function opcoesDePapel(papelAtual: string): string[] {
+  return ROLE_OPTIONS.includes(papelAtual) ? ROLE_OPTIONS : [papelAtual, ...ROLE_OPTIONS];
+}
 
 type User = {
   id: string;
@@ -23,6 +42,7 @@ type User = {
   active: boolean;
   isAdmin: boolean;
   financeAccess: boolean;
+  recebeTransferencia: boolean;
 };
 
 export default function UserRow({ user, canManage }: { user: User; canManage: boolean }) {
@@ -118,6 +138,15 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
     });
   }
 
+  function handleToggleTransferencia() {
+    setError(null);
+    startTransition(async () => {
+      const result = await setRecebeTransferencia(user.id, !user.recebeTransferencia);
+      if (result.error) setError(result.error);
+      router.refresh();
+    });
+  }
+
   function handleToggleActive() {
     setError(null);
     startTransition(async () => {
@@ -144,7 +173,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           <input name="name" defaultValue={user.name} required placeholder="Nome" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
           <input name="email" type="email" defaultValue={user.email} required placeholder="E-mail" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
           <select name="role" defaultValue={user.role} className="cfg-input bg-sf border border-regua text-tx">
-            {ROLE_OPTIONS.map((r) => (
+            {opcoesDePapel(user.role).map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
@@ -174,7 +203,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
 
   if (linkOpen) {
     const expiresLabel = linkResult
-      ? new Date(linkResult.expiresAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+      ? new Date(linkResult.expiresAt).toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
       : null;
     return (
       <div className="px-5 py-3 space-y-2 bg-sf-apoio">
@@ -306,6 +335,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
       <Badge color={user.active ? "green" : "slate"}>{user.active ? "Ativo" : "Inativo"}</Badge>
       {user.isAdmin && <Badge color="gold">Admin</Badge>}
       {!user.isAdmin && user.financeAccess && <Badge color="green">Financeiro</Badge>}
+      {user.recebeTransferencia && <Badge color="blue">Recebe leads</Badge>}
       {credSuccess && <Badge color="green">Acesso definido</Badge>}
       {canManage && (
         <button
@@ -329,6 +359,26 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
       {canManage && (
         <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
           <Pencil size={14} />
+        </button>
+      )}
+      {/* O RODÍZIO DE LEADS fica fora do bloco "!user.isAdmin" abaixo, e não por descuido: sócio é
+          advogado do escritório e a fila de caso triado é de advogados. Num escritório de dois
+          sócios e nenhum empregado, esconder este botão do sócio deixaria a fila vazia para sempre
+          e nenhum lead do WhatsApp chegaria a ninguém — sem nenhuma mensagem de erro dizendo por
+          quê. É diferente de Financeiro/inativar/excluir, que continuam bloqueados entre sócios
+          porque são irreversíveis ou travam o acesso de outro administrador. */}
+      {canManage && (
+        <button
+          onClick={handleToggleTransferencia}
+          disabled={pending}
+          data-tip={user.recebeTransferencia ? "Tirar do rodízio de leads do WhatsApp" : "Incluir no rodízio de leads do WhatsApp"}
+          className={`p-1.5 transition-colors disabled:opacity-40 rounded-md ${
+            user.recebeTransferencia
+              ? "text-marca-tx hover:text-aviso hover:bg-aviso-bg"
+              : "text-tx-3 hover:text-marca-tx hover:bg-marca-bg"
+          }`}
+        >
+          {user.recebeTransferencia ? <PhoneIncoming size={14} /> : <PhoneOff size={14} />}
         </button>
       )}
       {canManage && !user.isAdmin && (

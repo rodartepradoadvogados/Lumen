@@ -1,6 +1,7 @@
 import { FilePlus, FileText, ArrowUp, ArrowDown, CircleCheck, MessageSquare, Bell, Clock, Gavel } from "lucide-react";
 import { EmptyState } from "@/components/ui";
 import type { CaseTimelineEvent } from "@/lib/caseTimeline";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 // Chip 20×20, raio 4px, ícone 11px — DESIGN-SYSTEM.md §6. Cada tipo de evento tem cor própria;
 // "publicacao" ainda se divide em Andamento x Publicação/intimação pelo texto do título, porque
@@ -20,7 +21,7 @@ const ANDAMENTO_STYLE = { icon: Gavel, bg: "bg-sf-apoio", text: "text-tx-2" };
 
 function formatEventDate(iso: string) {
   const d = new Date(iso);
-  return `${d.toLocaleDateString("pt-BR")} · ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${dataDeBrasilia(d)} · ${horaDeBrasilia(d)}`;
 }
 
 // 3º painel fixo da Visão Geral do Processo (320px, ao lado de Dados do processo/Partes e

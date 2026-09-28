@@ -5,24 +5,10 @@
 // mobile afirmava "mesmo mapa" (achado A47 da revisão gauntlet). Um módulo só, importado nas duas
 // telas, elimina a possibilidade de voltarem a divergir.
 
-export const STAGES = ["NOVO", "QUALIFICACAO", "PROPOSTA", "FECHADO", "PERDIDO"];
-export const stageLabels: Record<string, string> = {
-  NOVO: "Novo",
-  QUALIFICACAO: "Qualificação",
-  PROPOSTA: "Proposta",
-  FECHADO: "Fechado",
-  PERDIDO: "Perdido",
-};
-// Remapeado por significado, não por posição: Novo = neutro (ainda sem opinião), Qualificação =
-// --acao (em andamento), Proposta = --aviso (aguardando decisão do cliente), Fechado =
-// --concluido, Perdido = --urgente (KPI negativo, DESIGN-SYSTEM.md §2).
-export const stageColor: Record<string, string> = {
-  NOVO: "var(--tx-3)",
-  QUALIFICACAO: "var(--acao)",
-  PROPOSTA: "var(--aviso)",
-  FECHADO: "var(--concluido)",
-  PERDIDO: "var(--urgente)",
-};
+// OS ESTÁGIOS VÊM DE lib/funil.ts, e não de uma cópia aqui. Havia duas listas — esta e a da
+// Triagem — e a diferença entre elas só apareceria quando um estágio novo sumisse de um relatório
+// sem erro nenhum. O relatório e a tela têm de contar a mesma história.
+export { stageOptions as STAGES, stageLabels, stageDot as stageColor } from "@/lib/funil";
 
 export const CASE_STATUS_ORDER = ["ATIVO", "SUSPENSO", "ENCERRADO", "ARQUIVADO"];
 export const caseStatusLabels: Record<string, string> = {

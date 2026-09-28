@@ -7,7 +7,8 @@ import {
   markPublicationsUnread,
   setPublicationTriageStatus,
 } from "@/lib/actions/publications";
-import { Badge, formatDate } from "@/components/ui";
+import { Badge } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import PeticionarButton from "@/components/PeticionarButton";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
@@ -171,7 +172,9 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
             {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}
           </Badge>
           <Badge color="navy">{pub.source}</Badge>
-          <Badge color="slate">{formatDate(pub.publishedAt)}</Badge>
+          {/* publishedAt é instante — formatDate() lia sem fuso e virava um dia errado perto da
+              meia-noite; dataDeBrasilia() força o fuso do escritório. */}
+          <Badge color="slate">{dataDeBrasilia(pub.publishedAt)}</Badge>
           {pub.lawyerTag && <Badge color="gold">{pub.lawyerTag}</Badge>}
           {!group.allRead && <Badge color="gold">Não lida</Badge>}
           {group.items.some((i) => i.deadlineGenerated) && <Badge color="green">Compromisso gerado</Badge>}
@@ -198,7 +201,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
               <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge color="navy">{item.source}</Badge>
-                  <Badge color="slate">{formatDate(item.publishedAt)}</Badge>
+                  <Badge color="slate">{dataDeBrasilia(item.publishedAt)}</Badge>
                   <Badge color={item.kind === "PUBLICACAO" ? "blue" : "gold"}>
                     {item.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}
                   </Badge>

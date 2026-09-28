@@ -15,7 +15,7 @@ import { createCaseSubfolder } from "@/lib/actions/driveFolders";
 import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel, isRecursoQueEscalaInstancia } from "@/lib/documentTypes";
 import { formatoArquivo } from "@/lib/fileExtension";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
-import { formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
 import RecursoEscalaPrompt from "@/components/processo/RecursoEscalaPrompt";
 import { type SortOption, SORT_OPTIONS, sortByOption, useViewModePreference } from "@/lib/attachmentControls";
@@ -577,7 +577,10 @@ export default function AttachmentList({
                     {taskTag(a)}
                   </span>
                 )}
-                <span className="shrink-0 text-etiqueta text-tx-2">{formatDate(a.updatedAt ?? a.createdAt)}</span>
+                {/* updatedAt/createdAt são instantes (ver comentário de Attachment.updatedAt no
+                    schema — "Enviado em" precisa refletir quando o anexo mudou de verdade) —
+                    formatDate() lia sem fuso e virava um dia errado perto da meia-noite. */}
+                <span className="shrink-0 text-etiqueta text-tx-2">{dataDeBrasilia(a.updatedAt ?? a.createdAt)}</span>
                 <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
                   <button
                     onClick={() => setEditingId(editingId === a.id ? null : a.id)}
@@ -652,7 +655,7 @@ export default function AttachmentList({
                     )}
                   </td>
                   {taskOptions && taskOptions.length > 0 && <td className="py-2 pr-3 text-tx-2">{taskTag(a)}</td>}
-                  <td className="py-2 pr-3 text-tx-2 whitespace-nowrap">{formatDate(a.updatedAt ?? a.createdAt)}</td>
+                  <td className="py-2 pr-3 text-tx-2 whitespace-nowrap">{dataDeBrasilia(a.updatedAt ?? a.createdAt)}</td>
                   <td className="py-2 pr-3 text-tx-2">{a.uploadedBy?.name || "—"}</td>
                   <td className="py-2">
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">

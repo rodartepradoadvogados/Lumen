@@ -129,8 +129,13 @@ export type PixAutomaticoAuthorizationResult = {
 };
 
 /**
- * Cria a autorização de Pix Automático (o cliente escaneia o QR Code/copia-e-cola devolvido
- * aqui uma única vez, no app do próprio banco, pra autorizar o débito recorrente).
+ * O núcleo da chamada de autorização de Pix Automático, SEM nenhuma persistência — só a ida à
+ * Asaas e a resposta traduzida. Extraído de dentro de `createPixAutomaticoAuthorization` (que
+ * gravava direto em `Subscription`, hardcoded) para o módulo pago de campanhas (Frente B da
+ * especificação de campanhas) poder pedir uma autorização SEM que o resultado seja escrito na
+ * tabela errada — `AssinaturaModuloCampanhas`/`CampanhaSlotPago` não são `Subscription`, e o
+ * `subscription.id` usado ali como `contractId` também não faz sentido fora daquele fluxo. Quem
+ * chama esta função decide, no próprio código, onde persistir `authorizationId`.
  *
  * ATENÇÃO — endpoint/payload ainda NÃO confirmados de ponta a ponta contra a documentação
  * oficial (a página https://docs.asaas.com/reference/criar-uma-autorizacao-pix-automatico
@@ -138,23 +143,17 @@ export type PixAutomaticoAuthorizationResult = {
  * possível confirmar por busca indireta, não pela doc completa). O que já foi confirmado, por
  * aparecer de forma consistente em três buscas independentes: os campos do corpo são
  * `customerId` (não `customer`) e `frequency` (não `cycle`), e existe um `contractId` opcional
- * pra correlacionar com nosso próprio registro (usamos o id da Subscription). O restante — nome
- * exato do campo de valor, formato da resposta (nome do campo do QR Code/imagem) — segue sendo
- * inferência a partir do padrão geral da API Asaas, mesmo padrão de honestidade já usado em
- * lib/btg.ts. PRECISA ser validado contra o Sandbox real antes de produção, ajustando conforme
- * o erro que a API devolver na primeira tentativa.
+ * pra correlacionar com nosso próprio registro. O restante — nome exato do campo de valor,
+ * formato da resposta (nome do campo do QR Code/imagem) — segue sendo inferência a partir do
+ * padrão geral da API Asaas, mesmo padrão de honestidade já usado em lib/btg.ts. PRECISA ser
+ * validado contra o Sandbox real antes de produção, ajustando conforme o erro que a API devolver
+ * na primeira tentativa.
  */
-export async function createPixAutomaticoAuthorization(
-  subscription: SubscriptionForAsaas,
-  office: OfficeForAsaas
+async function criarAutorizacaoPixAutomaticaNaAsaas(
+  office: OfficeForAsaas,
+  input: { value: number; frequency: "MONTHLY" | "SEMIANNUALLY"; description: string; contractId: string }
 ): Promise<PixAutomaticoAuthorizationResult> {
   const asaasCustomerId = await getOrCreateAsaasCustomer(office);
-
-  // "MONTHLY"/"SEMIANNUALLY" batem com os valores de ciclo já confirmados em
-  // docs.asaas.com/docs/criando-uma-assinatura (WEEKLY/BIWEEKLY/MONTHLY/QUARTERLY/
-  // SEMIANNUALLY/YEARLY) — não confirmado se `frequency` aqui usa exatamente esse mesmo
-  // vocabulário (pode ser algo tipo "MONTHLY" mesmo, mas confira no Sandbox).
-  const frequency = subscription.billingCycle === "SEMESTRAL" ? "SEMIANNUALLY" : "MONTHLY";
 
   const authorization = await asaasFetch<{
     id: string;
@@ -163,16 +162,11 @@ export async function createPixAutomaticoAuthorization(
     method: "POST",
     body: JSON.stringify({
       customerId: asaasCustomerId,
-      contractId: subscription.id,
-      value: calcularValorCobranca(subscription),
-      frequency,
-      description: `Assinatura Lúmen — ${office.name}`,
+      contractId: input.contractId,
+      value: input.value,
+      frequency: input.frequency,
+      description: input.description,
     }),
-  });
-
-  await prisma.subscription.update({
-    where: { id: subscription.id },
-    data: { pixAuthorizationId: authorization.id, pixAuthorizationStatus: "PENDENTE" },
   });
 
   return {
@@ -180,6 +174,53 @@ export async function createPixAutomaticoAuthorization(
     qrCode: authorization.pixQrCode?.payload ?? null,
     qrCodeImage: authorization.pixQrCode?.encodedImage ?? null,
   };
+}
+
+/**
+ * Cria a autorização de Pix Automático da ASSINATURA BASE do Lúmen (o cliente escaneia o QR
+ * Code/copia-e-cola devolvido aqui uma única vez, no app do próprio banco, pra autorizar o
+ * débito recorrente) e grava o resultado em `Subscription` — o comportamento de sempre,
+ * inalterado. Para outro produto que precise de Pix Automático (ex.: módulo pago de campanhas),
+ * use `criarAutorizacaoPixAutomaticaAvulsa` abaixo, que faz a MESMA chamada sem essa gravação.
+ */
+export async function createPixAutomaticoAuthorization(
+  subscription: SubscriptionForAsaas,
+  office: OfficeForAsaas
+): Promise<PixAutomaticoAuthorizationResult> {
+  // "MONTHLY"/"SEMIANNUALLY" batem com os valores de ciclo já confirmados em
+  // docs.asaas.com/docs/criando-uma-assinatura (WEEKLY/BIWEEKLY/MONTHLY/QUARTERLY/
+  // SEMIANNUALLY/YEARLY) — não confirmado se `frequency` aqui usa exatamente esse mesmo
+  // vocabulário (pode ser algo tipo "MONTHLY" mesmo, mas confira no Sandbox).
+  const frequency = subscription.billingCycle === "SEMESTRAL" ? "SEMIANNUALLY" : "MONTHLY";
+
+  const result = await criarAutorizacaoPixAutomaticaNaAsaas(office, {
+    value: calcularValorCobranca(subscription),
+    frequency,
+    description: `Assinatura Lúmen — ${office.name}`,
+    contractId: subscription.id,
+  });
+
+  await prisma.subscription.update({
+    where: { id: subscription.id },
+    data: { pixAuthorizationId: result.authorizationId, pixAuthorizationStatus: "PENDENTE" },
+  });
+
+  return result;
+}
+
+/**
+ * A MESMA chamada de Pix Automático acima, para quem não é a assinatura base do Lúmen — hoje só
+ * o módulo pago de campanhas (`lib/actions/campanhasCobranca.ts`), que tem seu PRÓPRIO valor
+ * (mensalidade do módulo ou preço do slot extra, nunca `Subscription.monthlyFee`) e sua PRÓPRIA
+ * tabela para persistir o `authorizationId` — nunca `Subscription`. Sempre mensal: nem o módulo
+ * nem o slot extra têm ciclo semestral (§2 da especificação de campanhas só fala em "recorrente
+ * mensal").
+ */
+export async function criarAutorizacaoPixAutomaticaAvulsa(
+  office: OfficeForAsaas,
+  input: { value: number; description: string; contractId: string }
+): Promise<PixAutomaticoAuthorizationResult> {
+  return criarAutorizacaoPixAutomaticaNaAsaas(office, { ...input, frequency: "MONTHLY" });
 }
 
 // ---------------------------------------------------------------------------

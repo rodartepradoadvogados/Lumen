@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getStorageConnectionStatus } from "@/lib/storageProvider";
 import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import SecaoRecolhivel from "@/components/SecaoRecolhivel";
 import { FinanceStatusBadge } from "@/lib/financeStatus";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
@@ -78,7 +79,10 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
 
       <Card className="p-4 space-y-2.5">
         <Field label="Honorário mensal" value={`${formatCurrency(assessoria.monthlyFee)} · vence dia ${assessoria.dueDay}`} tabular />
-        <Field label="Início do contrato" value={formatDate(assessoria.startDate)} />
+        {/* startDate nasce de now() na criação da Assessoria (nunca há input de data pra ele
+            hoje) — é instante, não um dia escolhido; formatDate() lia sem fuso e virava um dia
+            errado perto da meia-noite. */}
+        <Field label="Início do contrato" value={dataDeBrasilia(assessoria.startDate)} />
         {assessoria.planningNotes && (
           <div className="pt-1">
             <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-1">Planejamento</p>
@@ -169,7 +173,8 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
             {assessoria.linkedAttendances.map((a) => (
               <Link key={a.id} href={`/m/atendimento/${a.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-sf-apoio">
                 <p className="text-sm font-medium text-tx truncate">{a.subject}</p>
-                <span className="text-corpo text-tx-2 shrink-0">{formatDate(a.createdAt)}</span>
+                {/* createdAt é instante — mesmo motivo do "Início do contrato" acima. */}
+                <span className="text-corpo text-tx-2 shrink-0">{dataDeBrasilia(a.createdAt)}</span>
               </Link>
             ))}
           </div>

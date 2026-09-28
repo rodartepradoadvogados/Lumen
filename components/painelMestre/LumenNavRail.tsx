@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, Building2, Wallet, Users, Activity, ShieldCheck, Scale, Tag, Menu, X, Bot } from "lucide-react";
+import { LayoutDashboard, Building2, Wallet, Users, Activity, ShieldCheck, Scale, Tag, Menu, X, Bot, Radio, MessageCircle } from "lucide-react";
 import LumenMark from "@/components/LumenMark";
 
 type NavItem = { label: string; href: string; icon: LucideIcon; comingSoon?: boolean };
@@ -25,6 +25,7 @@ const GROUPS: NavGroup[] = [
       { label: "Cockpit", href: "/painel-mestre", icon: LayoutDashboard },
       { label: "Escritórios", href: "/painel-mestre/escritorios", icon: Building2 },
       { label: "Preços", href: "/painel-mestre/precos", icon: Tag },
+      { label: "Campanhas", href: "/painel-mestre/campanhas", icon: Radio },
     ],
   },
   {
@@ -40,7 +41,11 @@ const GROUPS: NavGroup[] = [
       { label: "Produto e robôs", href: "/painel-mestre/produto", icon: Activity },
       { label: "Cofre de acesso", href: "/painel-mestre/cofre", icon: ShieldCheck },
       { label: "Confiança e LGPD", href: "/painel-mestre/confianca", icon: Scale },
-      { label: "Hermes Agent", href: "/painel-mestre/hermes", icon: Bot },
+      { label: "Lúmen Agent", href: "/painel-mestre/hermes", icon: Bot },
+      // F7 — o agente do Painel Mestre: perguntas operacionais da EQUIPE DA LÚMEN sobre a
+      // plataforma. Não confundir com "Lúmen Agent" acima, que é o painel de administração do
+      // agente QUE ATENDE O ESCRITÓRIO-CLIENTE (Hermes) — públicos e propósitos diferentes.
+      { label: "Agente do Painel", href: "/painel-mestre/agente", icon: MessageCircle },
     ],
   },
 ];

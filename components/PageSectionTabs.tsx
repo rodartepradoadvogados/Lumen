@@ -18,10 +18,14 @@ import type { OfficeModules } from "@/lib/officeModules";
 export default function PageSectionTabs({
   section,
   hasFinanceAccess,
+  podeAtendimento = false,
+  veTodoAtendimento = false,
   modules,
 }: {
   section: SectionKey | "painel" | null;
   hasFinanceAccess: boolean;
+  podeAtendimento?: boolean;
+  veTodoAtendimento?: boolean;
   modules: OfficeModules;
 }) {
   const pathname = usePathname();
@@ -54,7 +58,7 @@ export default function PageSectionTabs({
   // qualquer seção com um item só). Antes ela sumia, e o conteúdo da tela saltava 40px para
   // cima ao entrar no Painel e 40px para baixo ao sair — parte da mesma instabilidade que a
   // largura única resolve: o quadro da página não se mexe entre navegações.
-  const items = def ? visibleSectionItems(def, { hasFinanceAccess, modules }) : [];
+  const items = def ? visibleSectionItems(def, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento }) : [];
   if (!def || items.length < 2) {
     return <div className="h-10 shrink-0 border-b-2 border-regua-forte bg-sf" aria-hidden="true" />;
   }
@@ -62,6 +66,23 @@ export default function PageSectionTabs({
   return (
     <div className="h-10 shrink-0 flex items-center gap-4 px-4 md:px-6 border-b-2 border-regua-forte bg-sf overflow-x-auto scrollbar-thin">
       {items.map((item) => {
+        // O Peticionamento (e qualquer item futuro marcado assim) nunca passa pelo mecanismo de
+        // clique único/duplo-clique acima: é uma <a target="_blank"> de verdade, aba NOVA do
+        // navegador — nunca troca o conteúdo desta aba (ver lib/navSections.ts:abrirEmNovaAba).
+        // Nunca fica "ativo": navegar lá dentro não muda o pathname desta aba.
+        if (item.abrirEmNovaAba) {
+          return (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noopener"
+              className="shrink-0 h-full flex items-center text-sm border-b-2 -mb-0.5 transition-colors font-normal text-tx-2 border-transparent hover:text-tx"
+            >
+              {item.label}
+            </a>
+          );
+        }
         const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
         return (
           <Link

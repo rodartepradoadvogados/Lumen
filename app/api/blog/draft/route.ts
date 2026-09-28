@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getPlatformOffice } from "@/lib/officeModules";
+import { areaValida, validarFontes, limitesValidos, ehDuplicata } from "@/lib/blogRegras";
+import { sendBlogDraftNotificationEmails } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
 const VALID_TYPES = ["NOTICIA", "ANALISE"];
+const VALID_ORIGENS = ["ROBO_ROUTINE", "API_MANUAL", "ROBO_HERMES"];
 
 // Gera um slug em kebab-case sem acentos a partir do título, com um sufixo
 // curto para evitar colisão entre matérias com títulos parecidos/iguais.
@@ -22,18 +25,6 @@ function slugify(title: string): string {
     .replace(/^-+|-+$/g, "");
   const suffix = crypto.randomUUID().replace(/-/g, "").slice(0, 6);
   return `${base || "materia"}-${suffix}`;
-}
-
-// Normaliza um título para comparação de duplicata: mesma lógica de acentos/
-// caixa da slugify, mas sem sufixo aleatório nem limite de tamanho.
-function normalizeTitle(title: string): string {
-  return title
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "")
-    .trim()
-    .replace(/\s+/g, " ");
 }
 
 // Recebe rascunhos de matérias produzidos pelo robô de conteúdo EXTERNO
@@ -100,6 +91,7 @@ export async function POST(req: NextRequest) {
     summary?: unknown;
     content?: unknown;
     sources?: unknown;
+    origem?: unknown;
   };
 
   const title = typeof data.title === "string" ? data.title.trim() : "";
@@ -120,12 +112,30 @@ export async function POST(req: NextRequest) {
   }
 
   const type = typeof data.type === "string" && VALID_TYPES.includes(data.type) ? data.type : "NOTICIA";
+  const origem = typeof data.origem === "string" && VALID_ORIGENS.includes(data.origem) ? data.origem : "API_MANUAL";
 
-  let sources: string | null = null;
-  if (Array.isArray(data.sources)) {
-    const cleaned = data.sources.filter((s): s is string => typeof s === "string" && s.trim().length > 0).map((s) => s.trim());
-    if (cleaned.length > 0) sources = cleaned.join("\n");
+  const incomingSources: string[] = Array.isArray(data.sources)
+    ? data.sources.filter((s): s is string => typeof s === "string" && s.trim().length > 0).map((s) => s.trim())
+    : [];
+
+  // Endurecimento do servidor (docs/agentes/robo-news-juridico-firecrawl.md, Parte A3): a partir
+  // daqui a rota RECUSA área fora da lista, limites estourados ou fontes insuficientes — não é
+  // mais o robô/quem chama que decide sozinho se a matéria está apta a entrar na fila de revisão.
+  if (!areaValida(area)) {
+    return NextResponse.json({ error: `área inválida: "${area}" não está na lista de áreas do blog.` }, { status: 400 });
   }
+
+  const limites = limitesValidos({ title, summary, content });
+  if (!limites.ok) {
+    return NextResponse.json({ error: limites.motivo }, { status: 400 });
+  }
+
+  const fontes = validarFontes(incomingSources);
+  if (!fontes.ok) {
+    return NextResponse.json({ error: fontes.motivo }, { status: 400 });
+  }
+
+  const sources = incomingSources.join("\n");
 
   // Trava de duplicata no servidor: não depende do robô externo lembrar de
   // checar antes de publicar (ele já faz isso via GET, mas essa é uma segunda
@@ -133,7 +143,7 @@ export async function POST(req: NextRequest) {
   // o título normalizado bater com algo dos últimos 60 dias, em qualquer
   // status (inclusive REJEITADO — não reenviar o que já foi recusado), ou se
   // alguma fonte citada já foi usada em outra matéria (mesmo fato, título
-  // reescrito de outro jeito).
+  // reescrito de outro jeito). Regra em lib/blogRegras.ts (ehDuplicata).
   // TODO(multi-tenant): este endpoint autentica o robô externo via um único
   // BLOG_ROBOT_SECRET global, sem qualquer sinal de PARA QUAL escritório a
   // matéria se destina. Enquanto o Blog Jurídico for recurso exclusivo do
@@ -155,17 +165,9 @@ export async function POST(req: NextRequest) {
     select: { id: true, slug: true, title: true, sources: true, status: true, createdAt: true },
   });
 
-  const incomingSources: string[] = Array.isArray(data.sources)
-    ? data.sources.filter((s): s is string => typeof s === "string" && s.trim().length > 0).map((s) => s.trim())
-    : [];
-  const normalizedIncomingTitle = normalizeTitle(title);
-
-  const duplicate = recentPosts.find((p) => {
-    if (normalizeTitle(p.title) === normalizedIncomingTitle) return true;
-    if (incomingSources.length === 0 || !p.sources) return false;
-    const existingSources = p.sources.split("\n");
-    return incomingSources.some((s) => existingSources.includes(s));
-  });
+  const duplicate = recentPosts.find((p) =>
+    ehDuplicata({ title, sources: incomingSources }, [{ title: p.title, sources: p.sources ? p.sources.split("\n") : [] }])
+  );
 
   if (duplicate) {
     return NextResponse.json(
@@ -195,8 +197,15 @@ export async function POST(req: NextRequest) {
       summary,
       content,
       sources,
+      origem,
       status: "AGUARDANDO_REVISAO",
     },
+  });
+
+  // Aviso por e-mail (Parte A6) — disparado depois de criar, sem bloquear a resposta ao robô:
+  // erro de e-mail (ou EMAIL_* ausente) não muda o 201, só fica registrado no log.
+  sendBlogDraftNotificationEmails(office.id, post.title, post.area, post.summary).catch((e) => {
+    console.error("[blog/draft] falha ao enviar aviso de rascunho novo:", e);
   });
 
   return NextResponse.json({ id: post.id, slug: post.slug, status: post.status }, { status: 201 });

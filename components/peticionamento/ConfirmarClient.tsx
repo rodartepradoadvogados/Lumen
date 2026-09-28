@@ -1,0 +1,139 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { confirmarTriagemEGerar } from "@/lib/actions/peticionamento";
+
+type Resumo = {
+  contextoDescricao: string;
+  materiaNome: string | null;
+  /** TODAS as matérias marcadas, na ordem — a primeira é a principal (pedido do dono, 22/09/2026). */
+  materias: string[];
+  tipoPeca: string | null;
+  tipoPecaOutro: string | null;
+  fatos: string;
+  pedidos: string[];
+  prazoFatal: string | null;
+  prazoPreclusivo: boolean;
+  documentos: string[];
+  teses: string[];
+};
+
+export function ConfirmarClient({ sessaoId, resumo }: { sessaoId: string; resumo: Resumo }) {
+  const router = useRouter();
+  const [pendente, iniciar] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+
+  function confirmar() {
+    setErro(null);
+    iniciar(async () => {
+      const resultado = await confirmarTriagemEGerar(sessaoId);
+      if ("error" in resultado) {
+        // Contexto grande demais tem tela própria (especificação §8) — os demais erros ficam
+        // aqui mesmo, visíveis, nunca escondidos atrás de um redirecionamento silencioso.
+        //
+        // A DECISÃO VEM DE UM CAMPO (`contextoExcedido`), não de procurar as palavras "contexto"
+        // e "exced" dentro da frase do erro. A leitura do texto era uma amarra invisível: bastava
+        // reescrever a mensagem de recusa — que é justamente o que esta entrega fez, para ela
+        // passar a dizer ao advogado o que fazer — e o advogado ficaria preso nesta tela com um
+        // parágrafo de erro, sem os botões de saída que a tela de limite oferece.
+        if (resultado.contextoExcedido) {
+          router.push(`/peticionamento/${sessaoId}/excedido`);
+          return;
+        }
+        setErro(resultado.error);
+        return;
+      }
+      // A GERAÇÃO NÃO TERMINOU AQUI — ela COMEÇOU. Desde que a espera saiu de dentro da
+      // requisição web (ver lib/peticionamentoGeracaoAssincrona.ts), esta ação volta assim que o
+      // pedido é entregue ao agente; quem acompanha a redação é a tela de minuta, que já sabe
+      // mostrar o andamento e dizer que a aba pode ser fechada.
+      //
+      // O DESTINO É O MESMO DE ANTES, de propósito: um caminho só para o advogado, dê a geração
+      // dois segundos ou os quinze minutos que o teto de hoje permite (TETO_DA_GERACAO_MS).
+      router.push(`/peticionamento/${sessaoId}/minuta`);
+    });
+  }
+
+  const linha = (rotulo: string, valor: React.ReactNode, corrigirHref: string) => (
+    <div className="triage-row">
+      <div className="k">{rotulo}</div>
+      <div className="v">{valor}</div>
+      <button className="edit" onClick={() => router.push(corrigirHref)}>
+        Corrigir →
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="modal-triage" style={{ maxWidth: 760 }}>
+      {erro && (
+        <div className="callout callout-danger" style={{ marginBottom: 16 }}>
+          {erro}
+        </div>
+      )}
+      <p className="gate-note">O agente vai indicar a fonte de cada precedente citado e nunca decide sozinho a estratégia processual — só sugere; a decisão continua sendo sua.</p>
+      <div className="triage-summary">
+        {linha("Contexto", resumo.contextoDescricao, `/peticionamento/${sessaoId}/contexto`)}
+        {linha(
+          resumo.materias.length > 1 ? "Matérias" : "Matéria",
+          resumo.materias.length ? (
+            <div className="chips">
+              {resumo.materias.map((m, i) => (
+                <span className="chip" key={m} title={i === 0 ? "Matéria principal — define a estrutura da peça" : undefined}>
+                  {i === 0 && resumo.materias.length > 1 ? `${m} (principal)` : m}
+                </span>
+              ))}
+            </div>
+          ) : (
+            "(não escolhida)"
+          ),
+          `/peticionamento/${sessaoId}/contexto`,
+        )}
+        {linha("Tipo de peça", resumo.tipoPeca === "Outra" ? resumo.tipoPecaOutro || "Outra" : resumo.tipoPeca ?? "(o agente vai tentar inferir)", `/peticionamento/${sessaoId}/wizard`)}
+        {linha("Fatos", resumo.fatos || "(vazio)", `/peticionamento/${sessaoId}/wizard`)}
+        {linha(
+          "Pedidos",
+          <div className="chips">
+            {resumo.pedidos.length ? resumo.pedidos.map((p) => <span className="chip" key={p}>{p}</span>) : "(nenhum)"}
+          </div>,
+          `/peticionamento/${sessaoId}/wizard`,
+        )}
+        {resumo.prazoFatal &&
+          linha(
+            "Prazo",
+            resumo.prazoPreclusivo ? (
+              <>
+                <span className="mono">{resumo.prazoFatal}</span> · <strong>preclusivo</strong> — vai ganhar tópico próprio no documento gerado
+              </>
+            ) : (
+              <span className="mono">{resumo.prazoFatal}</span>
+            ),
+            `/peticionamento/${sessaoId}/wizard`,
+          )}
+        {linha("Documentos", resumo.documentos.length ? resumo.documentos.join(", ") : "(nenhum)", `/peticionamento/${sessaoId}/documentos`)}
+        {linha(
+          "Teses",
+          <div className="chips">{resumo.teses.length ? resumo.teses.map((t) => <span className="chip" key={t}>{t}</span>) : "(nenhuma)"}</div>,
+          `/peticionamento/${sessaoId}/wizard`,
+        )}
+      </div>
+      <div className="modal-actions-triage">
+        <button className="btn btn-ghost" onClick={() => router.push(`/peticionamento/${sessaoId}/wizard`)}>
+          Corrigir no questionário
+        </button>
+        <div className="right">
+          <button className="btn btn-ghost" onClick={() => router.push(`/peticionamento/${sessaoId}/documentos`)}>
+            Cancelar
+          </button>
+          <button className="btn btn-primary" onClick={confirmar} disabled={pendente}>
+            {/* "Enviando" e não "Gerando": o que acontece enquanto este botão está desabilitado é a
+                entrega do pedido ao agente, que leva segundos. A redação em si é acompanhada na
+                tela seguinte — dizer "Gerando…" aqui faria a tela prometer o que ela não faz. */}
+            {pendente ? "Enviando ao agente…" : "Confirmar e gerar minuta"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

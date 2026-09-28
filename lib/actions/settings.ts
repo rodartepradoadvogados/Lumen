@@ -13,6 +13,7 @@ import { syncRoboParaSite, type RoboBridgeResult } from "@/lib/roboBridge";
 import { getCurrentUser } from "@/lib/currentUser";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { validarNomeacao } from "@/lib/driveNaming";
+import { validarAtuacao } from "@/lib/atuacaoDoEscritorio";
 import { getAppUrl } from "@/lib/appUrl";
 import { enqueueNotification } from "@/lib/notificationOutbox";
 import { drainSpecificNotifications } from "@/lib/notificationOutboxDrain";
@@ -87,6 +88,38 @@ export async function salvarNomeacaoDrive(data: { pastaMae: string; prefixo: str
   });
   revalidatePath("/configuracoes");
   revalidatePath("/configuracoes/relatorio-pastas");
+  return {};
+}
+
+// Como este escritório atua, escrito por ele mesmo para o AGENTE DE IA consultar (ver
+// Office.descricaoAtuacao no schema e lib/atuacaoDoEscritorio.ts).
+//
+// `canConfigureIntegrations` e não `isAdmin` puro: este texto é configuração da integração com o
+// agente — a mesma família de setStorageProvider/runDjenConnectionTest acima —, e o suporte da
+// Lúmen entra mascarado justamente para configurar integração do escritório-cliente (ver o
+// comentário inteiro em lib/supportCapabilities.ts).
+//
+// O TETO RECUSA, NUNCA TRUNCA: quem digitou 4.100 caracteres recebe de volta a frase dizendo
+// quantos sobram, e o que estava gravado antes continua intacto. Um corte silencioso aqui faria
+// o administrador acreditar ter escrito uma coisa e o agente ler outra, sem nada na tela contando
+// a diferença. Texto em branco APAGA (grava null) — é como o escritório volta ao estado "ainda
+// não escreveu", que a ferramenta sabe dizer ao agente.
+export async function salvarAtuacaoDoEscritorio(texto: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+  if (!canConfigureIntegrations(viewer)) {
+    return { error: "Apenas administradores podem alterar a descrição de atuação do escritório." };
+  }
+
+  const limpo = texto.trim();
+  const erro = validarAtuacao(limpo);
+  if (erro) return { error: erro };
+
+  await prisma.office.update({
+    where: { id: viewer.officeId },
+    data: { descricaoAtuacao: limpo || null },
+  });
+  revalidatePath("/configuracoes");
   return {};
 }
 
@@ -300,6 +333,31 @@ export async function setFinanceAccess(id: string, financeAccess: boolean): Prom
   revalidatePath("/configuracoes");
   revalidatePath("/painel");
   revalidatePath("/alertas");
+  return {};
+}
+
+/**
+ * Quem entra no rodízio de leads do WhatsApp.
+ *
+ * DIFERENTE de setFinanceAccess em dois pontos, e os dois de propósito:
+ *
+ *   - SÓCIO PODE SER MARCADO. Sócio é advogado do escritório, e a fila de casos triados é de
+ *     advogados (ver lib/filaDeTransferencia.ts: PAPEIS_ADVOGADO inclui "sócio"). Num escritório de
+ *     dois sócios e nenhum empregado — que é o caso do escritório onde isto nasceu — bloquear o
+ *     sócio deixaria a fila permanentemente vazia e nenhum lead chegaria a ninguém.
+ *   - A MARCA NASCE DESLIGADA e não é um direito, é uma escala. Ninguém entra no rodízio por
+ *     omissão: receber lead fora de hora, sem ter combinado, é o tipo de coisa que faz uma equipe
+ *     perder a confiança no sistema todo.
+ */
+export async function setRecebeTransferencia(id: string, recebeTransferencia: boolean): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas administradores definem quem recebe transferências." };
+  const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!user) return { error: "Usuário não encontrado." };
+  if (recebeTransferencia && !user.active) return { error: "Pessoa inativa não pode receber transferências." };
+  await prisma.user.update({ where: { id }, data: { recebeTransferencia } });
+  revalidatePath("/configuracoes");
+  revalidatePath("/atendimento");
   return {};
 }
 

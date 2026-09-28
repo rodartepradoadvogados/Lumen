@@ -14,6 +14,7 @@ import PainelDividido from "@/components/PainelDividido";
 import TaskDetailModal from "@/components/TaskDetailModal";
 import { classificarPrazo, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/lib/dueStatus";
 import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 type TaskData = {
   id: string;
@@ -97,8 +98,8 @@ function ymd(d: Date) {
 function completedLabel(t: TaskData): string | null {
   if (!t.completedBy || !t.completedAt) return null;
   const d = new Date(t.completedAt);
-  const date = d.toLocaleDateString("pt-BR");
-  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const date = dataDeBrasilia(d);
+  const time = horaDeBrasilia(d);
   return `Concluído por ${t.completedBy.name} em ${date} às ${time}`;
 }
 

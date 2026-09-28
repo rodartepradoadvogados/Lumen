@@ -23,7 +23,9 @@ const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE
 // Revisitar se blogAccess for concedido a mais de um Office (achado A34 da revisão gauntlet).
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const office = await getPlatformOffice();
-  const post = office ? await prisma.blogPost.findFirst({ where: { slug: params.slug, officeId: office.id } }) : null;
+  // excluidaEm: null — matéria excluída (botão "excluir" em /configuracoes) não deve gerar
+  // metadata de página nem aparecer indexada, mesmo continuando PUBLICADO no banco.
+  const post = office ? await prisma.blogPost.findFirst({ where: { slug: params.slug, officeId: office.id, excluidaEm: null } }) : null;
   if (!post || post.status !== "PUBLICADO") return { title: "Matéria não encontrada | Lúmen" };
   const title = `${post.title} | Blog Jurídico Lúmen`;
   return {
@@ -54,9 +56,9 @@ function dominioDe(url: string): string {
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  // Ver nota acima em generateMetadata sobre o filtro por officeId.
+  // Ver nota acima em generateMetadata sobre o filtro por officeId e por excluidaEm.
   const office = await getPlatformOffice();
-  const post = office ? await prisma.blogPost.findFirst({ where: { slug: params.slug, officeId: office.id } }) : null;
+  const post = office ? await prisma.blogPost.findFirst({ where: { slug: params.slug, officeId: office.id, excluidaEm: null } }) : null;
 
   if (!post || post.status !== "PUBLICADO") {
     notFound();
@@ -75,7 +77,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
   } as const;
   const mesmaArea = office
     ? await prisma.blogPost.findMany({
-        where: { officeId: office.id, status: "PUBLICADO", area: post.area, slug: { not: post.slug } },
+        where: { officeId: office.id, status: "PUBLICADO", excluidaEm: null, area: post.area, slug: { not: post.slug } },
         orderBy: { publishedAt: "desc" },
         take: 2,
         select: camposDaFicha,
@@ -87,6 +89,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           where: {
             officeId: office.id,
             status: "PUBLICADO",
+            excluidaEm: null,
             slug: { notIn: [post.slug, ...mesmaArea.map((p) => p.slug)] },
           },
           orderBy: { publishedAt: "desc" },

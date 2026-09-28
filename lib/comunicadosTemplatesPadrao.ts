@@ -42,6 +42,14 @@ export const DEFAULT_TEMPLATES: Record<NotificationEvent, { subject: string; bod
     subject: "Audiência em menos de 24h — {{processo}}",
     bodyHtml: "<p>O processo {{processo}}, do cliente {{cliente}}, tem audiência marcada para {{prazo}} — menos de 24h.</p><p>{{teor}}</p>",
   },
+  // O RESUMO INTEIRO NÃO VEM AQUI. O vocabulário de variáveis é fechado (7 nomes, ver
+  // lib/emailTemplateRender.ts) e o valor de cada uma é escapado como TEXTO — um resumo de trinta
+  // linhas chegaria num parágrafo só, sem quebra nenhuma. O resumo inteiro vai pelo WhatsApp, que
+  // é onde ele é lido; este e-mail é o registro, e o botão leva à conversa no Lúmen.
+  LEAD_TRANSFERIDO: {
+    subject: "Lead novo para você — {{cliente}}",
+    bodyHtml: "<p>A triagem do WhatsApp terminou e este lead ficou com você.</p>\n<p>{{teor}}</p>",
+  },
   HONORARIO_RECEBIDO: {
     subject: "Honorário recebido — {{cliente}}",
     bodyHtml: "<p>Um honorário do cliente {{cliente}} foi recebido.</p><p>{{teor}}</p>",

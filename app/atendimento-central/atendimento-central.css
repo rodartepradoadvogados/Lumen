@@ -1,0 +1,183 @@
+/* ============================================================================
+   CENTRAL DE ATENDIMENTO — tokens dos três planos.
+
+   Hex extraídos LITERALMENTE do mockup aprovado pelo dono
+   (.../atendimento-mockup/index.html, "Tela B") — ver PROPOSTA.md §2/§3 desse mockup para a
+   conta de cada valor, e CRITICA.md para os defeitos que a versão final já corrigiu (não
+   reintroduzir: chanfro no cabeçalho da lista, superfície de trabalho sem largura máxima, sub-aba
+   padrão que não é a primeira, rótulos em --tx-ghost contra fundo claro demais).
+
+   Mesmo lugar que a paleta do Peticionamento ocupa em app/peticionamento/peticionamento.css:
+   TODO hex desta tela mora AQUI, nunca solto num componente ou numa classe utilitária.
+
+   TRÊS PLANOS, da mais funda para a mais alta:
+   - MOLDURA   (--frame-*)  navegação: barra superior, cabeçalho de abas/sub-abas, cabeçalho de
+     cada lista. FIXA nos dois temas — nunca redeclarada no bloco `.dark` abaixo. É a peça central
+     do desenho aprovado: por ser sempre a mesma cor, ela ancora a tela como "onde estou",
+     independente do tema do conteúdo (mesma composição do Telegram Web / Digisac que o dono deu
+     como referência).
+   - LISTA     (--list-*)   coluna de escaneamento: linhas da fila, de recusados, da lista de
+     Atendimentos. Muda de tom com o tema.
+   - TRABALHO  (--work-*)   onde se age: conversa, quadro do funil, trilho de detalhe. Muda de
+     tom com o tema.
+
+   O ALTERNADOR DE TEMA DESTA TELA é o MESMO da casca do Lúmen (lib/theme.ts, classe `.dark` no
+   <html>) — de propósito, e diferente do Peticionamento (que tem `data-theme` próprio,
+   independente do resto do site). Motivo: esta tela HOSPEDA componentes de produção que já
+   existem (Conversa.tsx, TrilhoDoAtendimento.tsx, FilaDeEspera.tsx, QuadroDoFunil.tsx,
+   RecusadosParaAnalise.tsx, RecusarLeadPainel.tsx, RelogioDoAtendimento.tsx, QuemEEsteNumero.tsx)
+   e nenhum deles foi reescrito para esta tela — todos usam as classes Tailwind globais
+   (bg-sf/text-tx/border-regua/...) que já respondem SÓ à classe `.dark`. Um alternador próprio
+   aqui deixaria a moldura/lista/trabalho num tema e os componentes hospedados no outro, fora de
+   sincronia. Por isso esta tela reaproveita o próprio components/ThemeToggle.tsx (variante
+   "cromo", a mesma do rail e do blog — chrome que nunca retematiza), em vez de um alternador
+   próprio: ele troca a MESMA classe `.dark` do <html>, com a MESMA chave THEME_KEY — a tela lê e
+   escreve a preferência de tema do site inteiro, não uma preferência própria.
+   ============================================================================ */
+
+.atd-central {
+  /* MOLDURA — fixa. Não existe (e não deve passar a existir) uma segunda declaração destes oito
+     tokens em nenhum lugar deste arquivo: é isso que prova, em código, que a moldura não muda de
+     tom com o tema.
+
+     F5.5 (POLISH) — `--frame-accent`/`--frame-accent-strong`/`--frame-accent-bg` mais saturados.
+     Pedido do dono: "o fundo azul do atendimento está muito pálido [...] ficou meio parecendo sem
+     profissionalismo". O sotaque de #7fa8c9 tinha pouca saturação contra o `--frame-bg` quase
+     preto — lia como um azul-bebê desbotado, não como o acento intencional de um app de mensagens
+     (a referência do próprio mockup aprovado é Telegram Web/Digisac). O tom novo é MAIS SATURADO;
+     CONFERIDO (luminância relativa WCAG): o contraste contra `--frame-bg` (#090d14) cai de
+     7,73:1 para 5,94:1 — ainda bem acima do piso de 4,5:1 desta casa, com folga real, então a
+     saturação era a variável livre para resolver "pálido" sem chegar perto de arriscar
+     legibilidade. */
+  --frame-bg: #090d14;
+  --frame-bg-raised: #0e131c;
+  --frame-border: #202838;
+  --frame-border-strong: #2a3446;
+  --frame-tx-0: #e7eaed;
+  --frame-tx-1: #aab1ba;
+  --frame-tx-2: #838d97;
+  --frame-tx-ghost: #3d434b;
+  --frame-accent: #569ad2;
+  --frame-accent-strong: #2c5170;
+  --frame-accent-bg: rgba(91, 147, 196, 0.14);
+  --frame-accent-tx: #eef4f8;
+  --frame-danger: #c07268;
+  --frame-danger-bg: rgba(192, 114, 104, 0.13);
+
+  /* LISTA e TRABALHO — valores do TEMA CLARO aqui, porque este seletor sem `.dark` na frente é o
+     que vale por padrão (mesma convenção de app/globals.css: claro em `:root`, escuro em
+     `.dark`). O bloco `.dark .atd-central` logo abaixo troca só estes tokens — nunca os de cima.
+
+     F5.5 (POLISH) — a raiz do "pálido" era SATURAÇÃO, não luminosidade. Medido: `--list-bg` velho
+     (#d7dce4) tinha só ~19% de saturação a 87% de luminosidade — um cinza quase neutro com uma
+     pitada de azul, não um tom desenhado de propósito; ao lado do `--work-bg` branco, lia como o
+     branco tivesse manchado, não como uma coluna própria (mesma composição de referência do
+     mockup — Telegram Web/Digisac — que usa um cinza-azulado NÍTIDO para a lista, não um lavado).
+     A correção SOBE a saturação (até ~58% em `--list-bg`) mantendo a luminosidade PARECIDA — em
+     azul isso é possível porque o canal azul pesa pouco na luminância percebida (fórmula WCAG), e
+     é o que preserva o contraste do texto sem escurecer nada.
+     CONFERIDO, não estimado (script à parte, luminância relativa WCAG): `--tx-3` (a tinta mais
+     clara do sistema, a que primeiro reprova) mede 4,65:1 sobre o `--list-bg` novo, 5,27:1 sobre
+     `--list-bg-hover` e 5,57:1 sobre `--work-bg-raised` — os três acima do piso de 4,5:1 que
+     PRODUCT.md fixa para texto normal, com folga. `--atd-border`/`--atd-border-strong` não levam
+     texto em cima (são só filete entre planos), então não precisam da mesma régua. */
+  /* ── POR QUE ESTAS SUPERFÍCIES SÃO NEUTRAS, E NÃO AZUIS (24/09/2026) ────────────────────────
+   *
+   * O dono reclamou duas vezes desta tela, com um mês de diferença: primeiro "pálido", depois
+   * "azul claro pouco profissional". São a MESMA causa, não duas. A lista fica encostada num
+   * branco puro (--work-bg, S=0%) com claridade parecida, e o olho discrimina MATIZ em
+   * luminosidade próxima muito melhor que claridade pura — então pouco azul lê como branco
+   * manchado e muito azul lê como pastel. Saturar nunca ia resolver, em direção nenhuma.
+   *
+   * A primeira correção subiu --list-bg de 19% para 58% de saturação. Ela mediu contraste (que
+   * continuou acima do piso) e concluiu que era segura. CONTRASTE E SOBRIEDADE SÃO EIXOS
+   * DIFERENTES: contraste mede luminosidade entre texto e fundo, não se um fundo de um terço da
+   * tela virou cor de marca. Saiu de "lavado demais" para "corado demais" pulando o meio.
+   *
+   * O meio é a régua que o resto do Lúmen já usa: --papel, --ficha-alt, --linha e --linha-forte
+   * (app/globals.css) vivem todos entre 16 e 17% de saturação, variando só a claridade. Estes
+   * tokens passaram a ficar entre 15 e 18%. O contraste de --tx-3 MELHOROU nos três:
+   * 4,65 -> 5,31 | 5,27 -> 5,83 | 5,57 -> 5,99.
+   *
+   * O TELEGRAM, que o dono deu como referência, foi lido no código-fonte (telegramdesktop, temas
+   * oficiais day/night), não de memória: no tema claro, a lista de conversas e a área de trabalho
+   * são o MESMO branco puro, e o hover é cinza de saturação ZERO. O azul de marca existe num papel
+   * só — estado ativo e selecionado —, nunca preenchendo um painel. Era exatamente o inverso do
+   * que esta tela fazia.
+   *
+   * Por isso --frame-accent SOBE (47% -> 58%): com as superfícies quietas, o acento pode
+   * finalmente ser a única cor com intenção na tela, que é o que "manter só a barra superior"
+   * pedia. Contraste dele sobre o fundo da moldura: 6,44 para 1.
+   *
+   * O TEMA ESCURO NÃO FOI TOCADO: ele já usa uma disciplina só (25-27%, variando claridade). */
+  --list-bg: #e1e5ea;
+  --list-bg-hover: #edeff2;
+  --work-bg: #ffffff;
+  --work-bg-raised: #f0f2f4;
+  --atd-border: #cad0d8;
+  --atd-border-strong: #a6b0bf;
+  --atd-shadow-card: 0 8px 20px rgba(20, 23, 27, 0.1), 0 2px 6px rgba(20, 23, 27, 0.08);
+
+  /* A LARGURA MÁXIMA DA SUPERFÍCIE DE LEITURA (etapa 3) — a conversa.
+     Ela se esticava até a largura da tela: em monitor grande, a mensagem que saiu ficava encostada
+     numa borda e a que chegou na outra, com um palmo de vazio no meio, e o olho perdia o fio.
+     (O CRITICA.md do mockup aprovado já listava "superfície de trabalho sem largura máxima" entre
+     os defeitos a não reintroduzir — esta era a reincidência dele.)
+
+     O NÚMERO NÃO É NOVO: são os mesmos 1040px de `.peticionamento .content`
+     (app/peticionamento/peticionamento.css), a superfície de trabalho da outra aba que abre em aba
+     própria. Duas telas irmãs com medidas de leitura diferentes seriam duas casas.
+
+     É TOKEN, e não `max-w-[1040px]` solto no JSX, pela mesma razão dos tokens de cor acima: a
+     medida desta tela mora nesta folha, num lugar só. Não muda com o tema — por isso está aqui, ao
+     lado da moldura, e não redeclarada no bloco `.dark`. E é ALINHADA À ESQUERDA (sem margem
+     automática), como `.peticionamento .content`: o canto onde o olho volta para reler fica no
+     lugar quando a janela muda de tamanho. */
+  --atd-largura-leitura: 1040px;
+
+  color-scheme: light;
+}
+
+.dark .atd-central {
+  /* Os três primeiros valores são DERIVADOS, não literais do CSS-fonte do Peticionamento — a
+     "Ardósia fria" original (--bg-0..--bg-3) não tem degrau suficiente para separar lista e
+     trabalho visivelmente (medido no mockup: ~1,1:1 entre planos, abaixo do que o olho registra
+     como "degrau"). Os três escalam a MESMA razão de matiz de --bg-3 (28:35:48) por um fator
+     maior, preservando o azul-frio e abrindo a distância — a conta completa (por que cada fator,
+     e os dois métodos testados e descartados antes) está em PROPOSTA.md §0.4/§2.2 do mockup
+     aprovado. `--work-bg-raised` em particular NÃO é um valor solto: é este token, aqui, ao lado
+     dos outros — é o que a etapa 1 pedia explicitamente para não deixar "número mágico" nenhum. */
+  /* ── O ESCURO TAMBÉM SAI DO AZUL (25/09/2026) ──────────────────────────────────────────────
+   *
+   * ERRO MEU, e vale escrito: em 24/09 o tema CLARO foi trazido para a régua neutra da casa e o
+   * escuro ficou como estava, porque as duas avaliações disseram que ele "já usava uma disciplina
+   * só". Usava mesmo — uma disciplina de 26%, que é disciplinada E azul. O dono trabalha no tema
+   * escuro, olhou a tela e disse, com razão, que não tinha mudado nada. Disciplina não era o
+   * pedido; tirar o azul era.
+   *
+   * Saturação de ~26% para ~14%, matiz fixo em 218 (o mesmo de --frame-bg), variando só a
+   * claridade — a mesma gramática que o tema claro passou a usar.
+   *
+   * DOIS DEFEITOS CORRIGIDOS DE CARONA, os dois MEDIDOS e os dois anteriores a esta entrega:
+   *
+   *   1. --list-bg-hover e --work-bg eram A MESMA COR (#283245): a linha sob o cursor tinha
+   *      exatamente o tom do fundo da conversa. Agora L=16,5% e L=14,1%.
+   *   2. Três superfícies REPROVAVAM o piso de 4,5:1 com --tx-3, em silêncio, porque só quem
+   *      escolhe o tema escuro via:
+   *         --list-bg-hover   4,34 -> 4,94
+   *         --work-bg         4,34 -> 5,37
+   *         --work-bg-raised  3,63 -> 4,54
+   *
+   * O TELEGRAM, no tema escuro, faz o mesmo: a janela é S=30%, mas a área da CONVERSA — onde se
+   * lê — é #24292e, S=12%. A cor fica na moldura e no que está ativo, não na superfície de
+   * leitura. */
+  --list-bg: #181b20;
+  --list-bg-hover: #242930;
+  --work-bg: #1f2229;
+  --work-bg-raised: #2a2f37;
+  --atd-border: #272c34;
+  --atd-border-strong: #353b46;
+  --atd-shadow-card: 0 8px 20px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.35);
+
+  color-scheme: dark;
+}

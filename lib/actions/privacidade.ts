@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { revalidatePath } from "next/cache";
+import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
 // Documento 07 (Fase 4 — Privacidade e LGPD): trilha de auditoria (AuditEvent, ver PR19/lib/
 // actions/mask.ts) e pedido do titular (DataSubjectRequest, LGPD art. 18).
@@ -63,7 +64,7 @@ export async function exportarTrilha(aba: "REVELACAO" | "EXPORTACAO" | "EXCLUSAO
   const header = ["Data/hora", "Quem", "O que", "Registro afetado", "Campo", "Motivo"];
   const linhas = rows.map((r) =>
     [
-      new Date(r.createdAt).toLocaleString("pt-BR"),
+      new Date(r.createdAt).toLocaleString("pt-BR", { timeZone: FUSO_DO_ESCRITORIO }),
       r.actorName,
       r.kind,
       r.entityType && r.entityId ? `${r.entityType}:${r.entityId}` : "",

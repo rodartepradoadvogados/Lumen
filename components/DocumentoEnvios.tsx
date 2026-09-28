@@ -25,9 +25,9 @@ import {
 } from "@/lib/documentoEnvios";
 import { looseIncludes } from "@/lib/textNormalize";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
-import { formatDate } from "@/components/ui";
 import PhoneInput, { type PhoneValue } from "@/components/PhoneInput";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 // Botão + modal + histórico "Enviar E-mail/WhatsApp" — genérico o bastante para servir tanto a
 // aba Protocolos de um Processo quanto a aba "Pareceres, Processos e Casos" de uma Assessoria
@@ -38,7 +38,7 @@ import { DEFAULT_COUNTRY } from "@/lib/countries";
 // ProtocoloLote.protocoladoEm) — formata com hora local, mesmo padrão de TaskDetailModal.tsx.
 function formatEnviadoEm(iso: string): string {
   const d = new Date(iso);
-  return `${formatDate(d)} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${dataDeBrasilia(d)} às ${horaDeBrasilia(d)}`;
 }
 
 // Serve tanto Attachment (Processo) quanto AssessoriaDocumento (Assessoria) — os dois models têm

@@ -161,6 +161,27 @@ model Office {
   // travar o suporte antes de existir onde aprovar.
   supportAccessPolicy String @default("AUTO") // AUTO | APROVACAO
 
+  // COMO ESTE ESCRITÓRIO ATUA, escrito pelo próprio escritório em Configurações → Geral, para o
+  // AGENTE DE IA consultar (ferramenta `consultar_perfil_do_escritorio`, lib/assistantTools.ts).
+  //
+  // O QUE É: texto corrido, em português, sobre áreas de atuação, perfil de cliente, tipo de
+  // trabalho que o escritório faz e o que ele deliberadamente NÃO faz — o que um advogado recém-
+  // chegado precisaria ouvir na primeira semana. Serve ao agente para orientar vocabulário, foco
+  // e encaminhamento quando ele redige ou responde.
+  //
+  // O QUE NÃO É: (1) não é instrução ao agente — o texto é DADO, chega ao modelo neutralizado e
+  // cercado (ver lib/atuacaoDoEscritorio.ts), e uma ordem escrita aqui dentro é para ser relatada,
+  // nunca obedecida; (2) não é configuração de comportamento da atendente do WhatsApp, que tem
+  // campo próprio (WhatsappConfig.agenteInstrucoes) e É lida como instrução de verdade — não
+  // confundir os dois; (3) não é texto de peça, marketing ou timbrado: nada daqui é copiado para
+  // dentro de um documento gerado; (4) não é lugar de dado de cliente, número de processo ou
+  // segredo — é lido por qualquer pergunta feita ao agente, por qualquer pessoa do escritório.
+  //
+  // TETO: LIMITE_DA_ATUACAO (lib/atuacaoDoEscritorio.ts), dito na tela e RECUSADO na gravação —
+  // nunca truncado em silêncio. Nulo = escritório que ainda não escreveu, estado normal: a
+  // ferramenta responde isso com todas as letras, em vez de deixar o agente supor a atuação.
+  descricaoAtuacao String?
+
   users                   User[]
   notices                 Notice[]
   loginSessions           LoginSession[]
@@ -178,6 +199,7 @@ model Office {
   mentions                Mention[]
   attendances             Attendance[]
   whatsappMessages        WhatsappMessage[]
+  transcricoesDeAudio     TranscricaoDeAudio[]
   emailMessages           EmailMessage[]
   attachments             Attachment[]
   documentTemplates       DocumentTemplate[]
@@ -214,6 +236,8 @@ model Office {
   driveSyncIssues         DriveSyncIssue[]
   blockedProcessNumbers   BlockedProcessNumber[]
   alertDismissals         AlertDismissal[]
+  assistantSessions       AssistantSession[]
+  assistantAuditLogs      AssistantAuditLog[]
   integrationRuns         IntegrationRun[]
   apiKeys                 ApiKey[]
   auditEvents             AuditEvent[]
@@ -251,6 +275,22 @@ model Office {
 
   // Modelos salvos do Relatório Personalizado — ver model RelatorioModelo mais abaixo.
   relatorioModelos RelatorioModelo[]
+  campanhas        Campanha[]
+  motivosDeRecusa  MotivoDeRecusa[]
+  recusas          RecusaDeAtendimento[]
+
+  // Os parâmetros que dizem QUANDO a Ana pode recusar sozinha — ver lib/parametrosDaAna.ts.
+  parametrosDeRecusa ParametrosDeRecusa?
+  criteriosDeRecusa  CriterioDeRecusa[]
+
+  // Aba de Peticionamento — ver bloco de models PeticionamentoSessao/PeticionamentoMateria mais
+  // abaixo.
+  peticionamentoMaterias PeticionamentoMateria[]
+  peticionamentoSessoes  PeticionamentoSessao[]
+
+  // Módulo pago de campanhas — ver o bloco de models perto de Campanha mais abaixo.
+  assinaturaModuloCampanhas AssinaturaModuloCampanhas?
+  campanhaSlotsPagos        CampanhaSlotPago[]
 }
 
 // Catálogo de planos (Painel Mestre → Preços) — 5 linhas fixas (Standard/Silver/Gold/Diamond/Sob
@@ -296,20 +336,36 @@ model ModulePrice {
 // ============ EQUIPE ============
 
 model User {
-  id            String   @id @default(cuid())
-  name          String
-  email         String   @unique
-  username      String?
-  passwordHash  String?
-  role          String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
-  oab           String?
-  phone         String?
-  phoneDdi      String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
-  color         String   @default("#0f1f3d") // cor de identificação em cards/agenda
-  isAdmin       Boolean  @default(false) // sócios/donos do escritório: aprovam exclusões, gerenciam equipe e acesso ao financeiro
-  financeAccess Boolean  @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  id           String  @id @default(cuid())
+  name         String
+  email        String  @unique
+  username     String?
+  passwordHash String?
+  role         String  @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
+  oab          String?
+  phone        String?
+  phoneDdi     String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
+  color        String  @default("#0f1f3d") // cor de identificação em cards/agenda
+  isAdmin      Boolean @default(false) // sócios/donos do escritório: aprovam exclusões, gerenciam equipe e acesso ao financeiro
+
+  // RECEBE LEAD TRANSFERIDO PELA ATENDENTE DE IA. Nasce DESLIGADO para todo mundo, inclusive para
+  // quem já estava cadastrado: ligar sozinho mandaria conversa de cliente para o telefone de
+  // alguém que não pediu isso. Quem liga é o administrador, pessoa por pessoa.
+  //
+  // A POSIÇÃO NA FILA É `createdAt`: ordem de cadastro, como o dono definiu — quem entra depois
+  // vai para o fim, sem ninguém ter que renumerar nada.
+  recebeTransferencia Boolean @default(false)
+
+  // Quando esta pessoa recebeu, pela última vez, a frase automática explicando que o número do
+  // atendimento não conversa com o escritório (ver lib/avisoDeLead.ts: FRASE_AO_COLEGA). Existe
+  // porque o aviso de lead chega pelo MESMO número por onde os clientes falam, e responder a um
+  // aviso é o primeiro reflexo de qualquer pessoa — sem esta marca, ou o robô explica a mesma
+  // coisa a cada mensagem, ou cala para sempre e quem escrever daqui a seis meses conclui que o
+  // número quebrou.
+  avisoAutomaticoEm DateTime?
+  financeAccess     Boolean   @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
+  active            Boolean   @default(true)
+  createdAt         DateTime  @default(now())
 
   // Dono(a) da PLATAFORMA Lúmen (Jairo e Rodrigo) — nada a ver com isAdmin (que é por
   // escritório). Só quem tem isPlatformOwner=true enxerga e acessa /painel-mestre, e só esse
@@ -364,6 +420,10 @@ model User {
   mentions                    Mention[]
   publicationReads            PublicationRead[]
   attendances                 Attendance[]            @relation("AttendanceResponsible")
+  recusasQueFez               RecusaDeAtendimento[]   @relation("RecusaAutor")
+  recusasQueReverteu          RecusaDeAtendimento[]   @relation("RecusaRevisor")
+  recusasQueArquivou          RecusaDeAtendimento[]   @relation("RecusaArquivista")
+  atendimentosQueDevolveu     Attendance[]            @relation("AtendenteDevolvidoPor")
   attachments                 Attachment[]
   documentTemplates           DocumentTemplate[]
   deletionRequested           DeletionRequest[]       @relation("DeletionRequestedBy")
@@ -381,12 +441,16 @@ model User {
   notificationOutbox          NotificationOutbox[]
   microsoftCredentials        MicrosoftCredential[]
   blogPostsReviewed           BlogPost[]              @relation("BlogPostReviewer")
+  blogPostsExcluidos          BlogPost[]              @relation("BlogPostExcluidoPor")
+  blogPostsAgendados          BlogPost[]              @relation("BlogPostAgendador")
   emailsSent                  EmailMessage[]          @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]            @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[]   @relation("AssessoriaDocumentoUploadedBy")
   pareceresCriados            Parecer[]               @relation("ParecerCreatedBy")
   blockedProcessNumbers       BlockedProcessNumber[]
   alertDismissals             AlertDismissal[]
+  assistantSessions           AssistantSession[]
+  assistantAuditLogs          AssistantAuditLog[]
 
   // Termos de vigilância que este usuário cadastrou (ver model TermoVigilancia mais abaixo) —
   // só para exibir "criado por" na tela, não afeta quem enxerga o termo (isso é por officeId).
@@ -422,6 +486,16 @@ model User {
   // Pendências do Atendimento (Fase 5) atribuídas a esta pessoa como responsável — ver model
   // AtendimentoPendencia mais abaixo.
   atendimentoPendenciasResponsible AtendimentoPendencia[] @relation("AtendimentoPendenciaResponsible")
+
+  // Aba de Peticionamento — três papéis distintos de propósito (quem criou a matéria do
+  // escritório, quem criou a sessão, quem confirmou uma exportação), mesmo raciocínio de
+  // payablesResponsible/payablesAsPayee acima: nunca a mesma pessoa por acaso.
+  peticionamentoMateriasCriadas        PeticionamentoMateria[]    @relation("PeticionamentoMateriaCriadoPor")
+  peticionamentoSessoesCriadas         PeticionamentoSessao[]     @relation("PeticionamentoSessaoCriadoPor")
+  peticionamentoSessoesAprovadas       PeticionamentoSessao[]     @relation("PeticionamentoSessaoAprovadaPor")
+  peticionamentoExportacoesConfirmadas PeticionamentoExportacao[] @relation("PeticionamentoExportacaoConfirmadoPor")
+  peticionamentoCitacoesConfirmadas    PeticionamentoCitacao[]    @relation("PeticionamentoCitacaoConfirmadaPor")
+  peticionamentoCitacoesExcluidas      PeticionamentoCitacao[]    @relation("PeticionamentoCitacaoExcluidaPor")
 
   @@unique([officeId, username])
 }
@@ -1091,7 +1165,7 @@ model Mention {
 // ============ ATENDIMENTO (setor de atendimento / triagem) ============
 
 model Attendance {
-  id              String   @id @default(cuid())
+  id              String  @id @default(cuid())
   clientName      String
   contact         String? // legado: telefone/e-mail juntos em texto livre (formulários antigos, mantido sem migração destrutiva)
   contactPhone    String? // telefone do contato, separado do e-mail (clientEmail abaixo)
@@ -1099,10 +1173,93 @@ model Attendance {
   subject         String
   area            String? // matéria
   description     String? // descrição detalhada do que precisa
-  channel         String   @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
-  status          String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO | RASCUNHO
-  notes           String?
-  createdAt       DateTime @default(now())
+  channel         String  @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
+  status          String  @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO | RASCUNHO
+
+  // ── O ATENDENTE DE IA, NESTA CONVERSA ───────────────────────────────────────────────────────
+  //
+  // A chave é POR CONVERSA, e não só por escritório, porque foi assim que o dono descreveu: o
+  // atendente responde onde está marcado para responder. Marcar no meio de uma conversa passa a
+  // valer da próxima pergunta em diante — e há um botão à parte para responder à última pergunta
+  // que ficou sem resposta, quando é isso que se quer.
+  //
+  // `false` é o padrão, e é de propósito: uma conversa nova com cliente de verdade não começa
+  // sendo respondida por máquina sem alguém ter decidido isso.
+  agenteResponde Boolean @default(false)
+
+  // QUANDO UM HUMANO ASSUMIU. A partir daqui o atendente não fala mais NESTA conversa. Era
+  // definitivo — nem religar a chave trazia a Ana de volta — porque o cliente que recebe resposta
+  // de gente e depois de máquina percebe na hora com o que estava falando, e a confiança não
+  // volta. O DONO DECIDIU O CONTRÁRIO: agora existe `devolverAtendenteResponde`
+  // (lib/actions/attendance.ts), um ato deliberado — botão próprio, com confirmação — que zera
+  // este campo e é o que faz `deveResponder` (lib/agenteAtendimento.ts) voltar a permitir
+  // resposta, da PRÓXIMA mensagem do cliente em diante. Continua não sendo a CHAVE que se religa
+  // sozinha: é preciso decidir de novo, e o rastro de quem decidiu fica em `agenteDevolvidoEm` /
+  // `agenteDevolvidoPorId`, logo abaixo.
+  //
+  // O QUE SE PERDE, e é bom estar escrito: devolver ZERA este campo, porque é o valor nulo aqui
+  // que `deveResponder` exige para a Ana voltar a falar. Com isso some a data em que o humano
+  // assumiu da primeira vez — as colunas de baixo guardam a DEVOLUÇÃO, não a assunção. Se um dia
+  // essa memória fizer falta (ex.: medir quanto tempo a conversa ficou com gente), o caminho é
+  // uma tabela de auditoria à parte, e não empilhar mais colunas escalares aqui.
+  agenteSilenciadoEm DateTime?
+
+  // A CONVERSA VOLTOU PARA A ANA depois de silenciada. Só existe porque `devolverAtendenteResponde`
+  // zera `agenteSilenciadoEm` acima — sem este par de colunas, aquela decisão não deixaria rastro
+  // nenhum, e "por que a Ana está respondendo de novo aqui?" é pergunta que o dono vai fazer.
+  // Colunas NOVAS e anuláveis, de propósito: a esmagadora maioria das conversas nunca chega a ser
+  // devolvida, e nulo aqui é o estado normal, não uma pendência.
+  agenteDevolvidoEm    DateTime?
+  agenteDevolvidoPorId String?
+  agenteDevolvidoPor   User?     @relation("AtendenteDevolvidoPor", fields: [agenteDevolvidoPorId], references: [id])
+
+  // DE QUAL CAMPANHA VEIO. Gravado quando o atendimento nasce, porque só a primeira mensagem
+  // carrega a origem — depois dela não há mais de onde tirar.
+  campanhaId String?
+  campanha   Campanha? @relation(fields: [campanhaId], references: [id])
+
+  // O que o anúncio mandou junto, guardado cru. Serve para casar a campanha, e serve para
+  // descobrir depois por que uma conversa NÃO casou com nenhuma.
+  anuncioSourceUrl String?
+  anuncioSourceId  String?
+  anuncioTitulo    String?
+
+  // O prazo dos documentos obrigatórios. Quem escreve às onze da noite sem a negativa do plano em
+  // mãos não é lead desqualificado — é lead sem o papel naquele instante.
+  prazoDocumentosAte DateTime?
+
+  // Por que foi recusado, quando foi. Separado de propósito: "não tinha o documento agora" e
+  // "não quer pagar" não podem virar a mesma estatística, senão o número não diz nada.
+  motivoDeRecusa String?
+
+  // QUANDO E POR QUE FOI TRANSFERIDO. `transferidoPor` guarda o gatilho (RISCO, PEDIDO, ROTEIRO,
+  // FORA_DO_ESCOPO, TETO) — é o que permite saber, daqui a um mês, se os leads estão chegando ao
+  // advogado por triagem concluída ou por terem estourado o teto de mensagens. As duas coisas
+  // pedem providências opostas.
+  transferidoEm  DateTime?
+  transferidoPor String?
+
+  // ── O RELÓGIO DE QUINZE MINUTOS ────────────────────────────────────────────────────────────
+  //
+  // `prazoDeRespostaAte` é o instante em que o dono da vez perde a vez — quinze minutos DE
+  // EXPEDIENTE depois de a conversa ter chegado a ele (ver lib/filaDeTransferencia.ts:
+  // somarMinutosDeExpediente). O prazo é GRAVADO, e não recalculado a cada leitura: a conta é uma
+  // caminhada para a frente, muito mais simples de escrever e de provar do que medir um intervalo
+  // de expediente entre duas datas quaisquer — e mudar o expediente amanhã não reescreve o prazo
+  // dos leads de hoje. Nulo quando o relógio parou (alguém respondeu) ou nunca começou.
+  prazoDeRespostaAte DateTime?
+
+  // Quem JÁ TEVE A VEZ neste lead, por id, separado por vírgula. Guardar a lista (e não um
+  // contador de voltas) é o que impede o lead de voltar à mesma pessoa quando alguém entra ou sai
+  // da fila no meio do caminho — é aí que um contador erra, porque o tamanho da fila mudou embaixo
+  // dele.
+  filaJaTentou String?
+
+  // A VOLTA FECHOU e ninguém atendeu. Carimbado uma vez só, e é o que faz o repasse parar de
+  // tentar: sem ele o cron giraria o mesmo lead para sempre, avisando todo mundo a cada rodada.
+  semRespostaEm DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
 
   // Funil comercial (CRM de captação) — eixo independente do status operacional acima
   stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO
@@ -1117,6 +1274,21 @@ model Attendance {
   lostReason     String?
   nextContactAt  DateTime? // data do próximo contato/follow-up
   stageChangedAt DateTime? // quando o estágio comercial mudou pela última vez
+
+  // ── O QUE A ANA DECIDIU SEM PODER DECIDIR SOZINHA ──────────────────────────────────────────
+  //
+  // A PROPOSTA DE RECUSA. Fora dos contornos que o escritório escreveu (ver lib/parametrosDaAna.ts)
+  // a Ana não encerra: ela transfere e deixa aqui, em uma frase, por que acha que o escritório não
+  // deveria pegar o caso. ESTE TEXTO NUNCA SAI PARA O CLIENTE — é nota interna, e a mesma marca que
+  // o traz é retirada da mensagem antes do envio.
+  propostaDeRecusa   String?
+  propostaDeRecusaEm DateTime?
+
+  // A ESPERA DO DOCUMENTO, que NÃO é recusa. Preenchido quando a Ana pediu um documento sem o qual
+  // o escritório não analisa: o atendimento fica guardado até esta data em vez de ser encerrado.
+  // Falta de papel é "ainda não", nunca "não".
+  documentoAte      DateTime?
+  documentoPendente String?
 
   // Honorário PRETENDIDO (Fase 5) — forma de cobrança que o advogado pretende propor ao lead,
   // capturada já na triagem para não ser redigitada na conversão em Processo (ver
@@ -1175,6 +1347,7 @@ model Attendance {
   emailMessages    EmailMessage[]
   driveSyncIssues  DriveSyncIssue[]
   pendencias       AtendimentoPendencia[]
+  recusas          RecusaDeAtendimento[]
   // Anotações pessoais (painel global "Anotações", chip "Atendimento") vinculadas a este
   // Attendance — model separado de Case, não confundir com o legado Case.type = "ATENDIMENTO".
   anotacoes        Anotacao[]
@@ -1223,20 +1396,92 @@ model AtendimentoPendencia {
 // ============ WHATSAPP (mensagens da integração com a Cloud API da Meta) ============
 
 model WhatsappMessage {
-  id           String     @id @default(cuid())
-  attendanceId String
-  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  direction    String // "IN" (do cliente) | "OUT" (do escritório)
-  body         String
-  waMessageId  String?    @unique // id da mensagem na Meta (dedupe)
-  status       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
-  fromNumber   String? // telefone do cliente (E.164)
-  createdAt    DateTime   @default(now())
+  id                           String     @id @default(cuid())
+  attendanceId                 String
+  attendance                   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  direction                    String // "IN" (do cliente) | "OUT" (do escritório)
+  // Quem escreveu a mensagem de saída: o atendente de IA ou uma pessoa. É o que permite marcar a
+  // conversa com "respondido pelo atendente" na tela, e é o que faz a regra do silêncio funcionar
+  // — a resposta da máquina não pode calar a própria máquina.
+  porAgente                    Boolean    @default(false)
+  // TRUE só na frase fixa de "recebi seu áudio" (lib/confirmacaoDeAudio.ts). Achado real (não
+  // teórico — reproduzido e corrigido depois de um relatório): sem esta marca, a própria
+  // confirmação virava "a última mensagem", e a checagem "a última tem que ser do cliente" (mais
+  // abaixo, e em lib/atendenteResponde.ts) fechava a porta para a RESPOSTA DE VERDADE que viria
+  // depois da transcrição — a Ana prometia responder e nunca respondia. Esta marca deixa
+  // `atendenteResponde` ignorar a confirmação automática ao decidir se há uma pergunta pendente,
+  // sem abrir mão da trava para qualquer OUTRA mensagem de saída (inclusive uma resposta anterior
+  // de verdade da própria Ana, que continua bloqueando corretamente — só a confirmação some).
+  confirmacaoAutomaticaDeAudio Boolean    @default(false)
+  body                         String
+  waMessageId                  String?    @unique // id da mensagem na Meta (dedupe)
+  status                       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
+  fromNumber                   String? // telefone do cliente (E.164)
+  createdAt                    DateTime   @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
+  // A TRANSCRIÇÃO DO ÁUDIO (quando esta mensagem É um áudio) — ver o modelo TranscricaoDeAudio
+  // logo abaixo, e o comentário nele sobre por que é um registro próprio, e não um campo aqui.
+  transcricao TranscricaoDeAudio?
+
   @@index([officeId, attendanceId, createdAt])
+}
+
+// ============ TRANSCRIÇÃO DE ÁUDIO DO WHATSAPP (ouvir, sem virar mensagem) ============
+//
+// REGISTRO PRÓPRIO — não um campo `interna: Boolean` em WhatsappMessage, e não uma WhatsappMessage
+// nova. DECISÃO DE PROJETO, não implementação provisória: uma mensagem marcada como "interna"
+// depende de TODO `where` que lê WhatsappMessage lembrar de excluí-la — e basta UM esquecimento no
+// caminho de SAÍDA (sendWhatsappText, atendenteResponde, qualquer relatório futuro que percorra
+// mensagens) para a transcrição ir parar no WhatsApp do cliente. Um registro que não É mensagem
+// não tem como ser enviado por engano: nenhum código que manda mensagem para o WhatsApp sabe que
+// este modelo existe, e não precisa saber.
+//
+// 1:1 com a WhatsappMessage do áudio (`@unique` em whatsappMessageId) — cada áudio recebido tem no
+// máximo uma transcrição, e o relacionamento nasce/atualiza pelo `upsert` em lib/transcricao.ts.
+model TranscricaoDeAudio {
+  id                String          @id @default(cuid())
+  whatsappMessageId String          @unique
+  whatsappMessage   WhatsappMessage @relation(fields: [whatsappMessageId], references: [id], onDelete: Cascade)
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  // PENDENTE (baixando o áudio / esperando o serviço) | PRONTA (texto abaixo preenchido) | FALHOU
+  // (erro abaixo preenchido — inclusive quando TRANSCRICAO_URL/TRANSCRICAO_TOKEN não estão
+  // configurados: ver lib/transcricaoDeAudio.ts:ERRO_TRANSCRICAO_NAO_CONFIGURADA — "não configurado"
+  // NÃO é um quarto estado, é um MOTIVO de falha, para a tela e o agente sempre terem uma resposta
+  // honesta em só três estados possíveis).
+  status String  @default("PENDENTE")
+  // O que a Ana lê no lugar da mensagem de áudio (lib/atendenteResponde.ts) e o que a tela mostra
+  // na bolha, para quem tem acesso ao atendimento — nunca enviado ao cliente por nenhum caminho.
+  texto  String?
+  // Motivo da falha, em linguagem de gente. NUNCA o corpo bruto da resposta do serviço de
+  // transcrição: um serviço mal configurado pode ecoar de volta o que recebeu (inclusive o
+  // cabeçalho Authorization), e aquele valor é o TOKEN — ver lib/transcricaoDeAudio.ts:lerRespostaDeTranscricao.
+  erro   String?
+
+  // ONDE O ÁUDIO FICA GUARDADO DE VERDADE — o MESMO arquivo que processarMidiaRecebida (F5) já
+  // sobe pro Drive/OneDrive/Dropbox do escritório, gravado aqui na hora em que o upload termina.
+  // A TRANSCRIÇÃO É ASSÍNCRONA (fora do pedido do webhook — ver lib/transcricaoAssincrona.ts e o
+  // comentário em app/api/transcricao/processar/route.ts) e por isso não tem mais o Buffer em
+  // mãos quando chega a hora de transcrever: a URL de mídia da Meta já expirou a essa altura. Em
+  // vez de guardar o áudio duas vezes (ou arriscar um segundo download da Meta/Evolution, que pode
+  // já ter descartado o arquivo), o processo assíncrono BAIXA DO DRIVE — que não expira — usando
+  // estes dois campos. `null` quando o upload pro Drive falhou: sem cópia durável, a transcrição
+  // não tem de onde ler, e falha honestamente (ver ERRO_ARQUIVO_INDISPONIVEL).
+  storageProvider String?
+  storageFileId   String?
+
+  criadoEm    DateTime  @default(now())
+  concluidoEm DateTime? // quando virou PRONTA ou FALHOU (nulo enquanto PENDENTE)
+
+  @@index([officeId])
+  // A rede de segurança por cron (app/api/cron/transcricoes-pendentes) varre por status +
+  // antiguidade — este índice é o que faz essa varredura não custar um full scan da tabela.
+  @@index([status, criadoEm])
 }
 
 // ============ E-MAIL (resposta ao cliente via Gmail da conta Google do próprio advogado) ============
@@ -1265,11 +1510,11 @@ model EmailMessage {
 // ============ ANEXOS (referência ao repositório de arquivos conectado — Drive/OneDrive/etc.) ============
 
 model Attachment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   driveUrl  String
-  docType   String   @default("OUTRO") // ver lib/documentTypes.ts
-  createdAt DateTime @default(now())
+  docType   String    @default("OUTRO") // ver lib/documentTypes.ts
+  createdAt DateTime  @default(now())
   // Data da última alteração do ARQUIVO NO DRIVE (não de um campo deste registro) — nulo até a
   // primeira vez que alguém volta pra aba do Lúmen depois de abrir o documento (ver
   // refreshAttachmentModifiedDate, lib/actions/attachments.ts, chamada pelo listener de "focus"
@@ -1674,6 +1919,19 @@ model GoogleCredential {
   folderId          String?
   templatesFolderId String?
   generatedFolderId String?
+
+  // Saúde da varredura de publicações DESTA caixa. Antes destes três campos, a falha de uma caixa
+  // só existia no retorno efêmero do botão "Sincronizar agora": o cron descartava, nada ficava
+  // gravado, e a lista de Conexões mostrava a caixa como saudável mesmo com o token morto há
+  // dias — foi assim que a caixa de um dos sócios ficou em invalid_grant sem ninguém notar.
+  // lastSyncAt é também a MARCA D'ÁGUA do `after:` do Gmail (ver lib/jusbrasilEmailSync.ts):
+  // antes a janela vinha da publicação mais recente do ESCRITÓRIO, de qualquer fonte (DJEN, DOU,
+  // PNCP...), então ficava sempre "hoje" e o atraso de uma caixa que voltava depois de dias
+  // derrubada nunca era buscado.
+  lastSyncAt        DateTime? // última varredura BEM-SUCEDIDA desta caixa
+  lastSyncError     String?   // null = saudável; preenchido = precisa de atenção (ex.: reconectar)
+  lastSyncErrorAt   DateTime?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -1738,13 +1996,632 @@ model DropboxCredential {
 // escritório é o NÚMERO de telefone (phoneNumberId + accessToken), cadastrado aqui.
 // phoneNumberId é único globalmente (é a Meta quem atribui) — é ele que o webhook usa pra
 // descobrir a qual escritório uma mensagem recebida pertence (ver lib/whatsapp.ts).
+// ============ CAMPANHAS DE TRÁFEGO PAGO ============
+//
+// O escritório anuncia no Instagram/Facebook, a pessoa clica em "Enviar mensagem" e cai no
+// WhatsApp do escritório. A primeira mensagem dessa conversa carrega, no protocolo do WhatsApp,
+// de onde ela veio — e é esse dado que liga a conversa a esta campanha.
+//
+// SÓ A PRIMEIRA MENSAGEM traz essa origem. Por isso a campanha é gravada no ATENDIMENTO na hora
+// em que ele nasce, e não reconsultada a cada mensagem: a partir da segunda, não há mais de onde
+// tirar.
+//
+// POR QUE ISTO É UMA TABELA E NÃO UM CAMPO DE TEXTO. Porque cada campanha tem roteiro próprio,
+// documentos próprios e motivos de recusa próprios — e porque o escritório vai cadastrar várias,
+// e trocá-las sem chamar ninguém.
+// ── O CATÁLOGO DE MOTIVOS DE RECUSA ───────────────────────────────────────────────────────────
+//
+// Dois andares numa tabela só. `officeId` nulo é motivo-padrão da Lúmen, cadastrado no Painel
+// Mestre; `officeId` preenchido é a camada daquele escritório.
+//
+// O ESCRITÓRIO NÃO GUARDA CÓPIA DO PADRÃO. Enquanto ele não editar, não existe linha dele nenhuma
+// — ele aponta para o padrão, e por isso recebe a correção quando a Lúmen arruma uma frase. A
+// linha da camada só nasce quando ele EDITA ou DESATIVA, e aí ela carrega `baseId`. A alternativa
+// que parece mais simples (copiar tudo na primeira seleção) faz o catálogo apodrecer em silêncio.
+//
+// DESATIVAR EM VEZ DE APAGAR, quando há padrão atrás: excluir e "voltar ao padrão" são a mesma
+// coisa vista de dois lados, e se a exclusão fosse definitiva o botão de voltar não teria para
+// onde voltar. O que o escritório criou sozinho (sem `baseId`) some de verdade quando ele exclui.
+//
+// A regra inteira, com os porquês e os testes, está em lib/motivosDeRecusa.ts.
+model MotivoDeRecusa {
+  id String @id @default(cuid())
+
+  // Nulo = padrão da plataforma (Painel Mestre). Preenchido = camada deste escritório.
+  officeId String?
+  office   Office? @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // Preenchido só na camada do escritório, quando ela é a versão dele de um padrão.
+  baseId  String?
+  base    MotivoDeRecusa?  @relation("MotivoBase", fields: [baseId], references: [id], onDelete: Cascade)
+  versoes MotivoDeRecusa[] @relation("MotivoBase")
+
+  // A frase que vai para a carta que o lead lê. Uma frase, não um parágrafo.
+  rotulo    String
+  // Nota interna: quando usar este motivo. Nunca sai para o lead.
+  descricao String?
+
+  // Some das telas de quem desativou — da plataforma, para todos; do escritório, só para ele.
+  desativado Boolean @default(false)
+  ordem      Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId])
+  @@index([baseId])
+}
+
+// ── OS PARÂMETROS DE RECUSA DA ANA ────────────────────────────────────────────────────────────
+//
+// Quatro eixos, e eles NÃO são quatro coisas iguais. Três desenham o CONTORNO DO ESCRITÓRIO —
+// matéria que ele não aceita, comarca fora do alcance, valor de causa abaixo do mínimo — e são
+// fatos que não dependem do mérito de caso nenhum: ou a causa é trabalhista e o escritório não faz
+// trabalhista, ou não é. É por isso que a Ana pode encerrar sozinha quando bate num deles, e é o
+// único lugar onde ela encerra sozinha.
+//
+// O QUARTO NÃO É RECUSA. Documento que falta é ESPERA COM DATA: o escritório não está dizendo não,
+// está dizendo "sem isto eu não consigo olhar". Tratar falta de documento como recusa transformaria
+// em "não" definitivo o que é só um "ainda não" — e o lead que ia mandar a carteira de trabalho na
+// segunda receberia uma carta de recusa no domingo.
+//
+// FORA DO CASO ÓBVIO, A ANA SÓ PROPÕE. Se o caso não bate exatamente num dos três contornos, ela
+// não encerra: transfere com a proposta anotada, e quem decide é gente. A regra inteira, com os
+// porquês e os testes, está em lib/parametrosDaAna.ts.
+//
+// E NADA DISTO REVOGA OS LIMITES DUROS (lib/agenteAtendimento.ts): a Ana não discute mérito e não
+// promete resultado nem para recusar. "O escritório não atua nesta matéria" é contorno; "o seu caso
+// não tem chance" é mérito, e ela não diz.
+
+model ParametrosDeRecusa {
+  id String @id @default(cuid())
+
+  officeId String @unique
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // EM CENTAVOS, e nulo quando o escritório não usa este critério — que é diferente de zero. Zero
+  // seria "aceito causa de zero real", e o padrão precisa ser "não tenho piso", senão um escritório
+  // que nunca abriu esta tela passaria a recusar por um valor que ninguém escolheu.
+  valorMinimoDaCausa Int?
+
+  // A ESPERA DO DOCUMENTO, em dias corridos. Corridos e não úteis porque a conta é dita ao cliente
+  // no WhatsApp ("até dia 5") e ninguém conta dia útil de cabeça para conferir uma data que uma
+  // máquina falou.
+  diasParaODocumento Int @default(15)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CriterioDeRecusa {
+  id String @id @default(cuid())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // MATERIA | COMARCA | DOCUMENTO. Os três numa tabela só porque são a mesma coisa do ponto de
+  // vista da tela e do banco — uma linha de texto que o escritório acrescenta, edita e remove.
+  eixo  String
+  valor String
+  ordem Int    @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([officeId, eixo])
+}
+
+// ── A RECUSA DE UM LEAD ───────────────────────────────────────────────────────────────────────
+//
+// Recusar não é descartar: o lead sai das listas ativas (Attendance.status = "RECUSADO"), continua
+// existindo e volta para a fila se alguém se convencer de que a recusa foi errada. Por isso cada
+// recusa é uma LINHA, e não um campo no atendimento — um lead pode ser recusado, recuperado e
+// recusado de novo, e o histórico disso é o que o escritório precisa ter para se defender.
+//
+// O MOTIVO É CONGELADO NO TEXTO. `motivoId` aponta para o catálogo, mas `motivoTexto` guarda a
+// frase como ela era no dia. O catálogo muda; a carta que o lead recebeu, não — e é a carta que
+// vale como prova.
+model RecusaDeAtendimento {
+  id String @id @default(cuid())
+
+  attendanceId String
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  motivoId    String?
+  motivoTexto String
+  // Nota interna de quem recusou. Nunca sai para o lead.
+  observacao  String?
+
+  // Quem decidiu. `porAgente` é a Ana recusando sozinha no caso óbvio (fora da matéria da
+  // campanha) — e é o que permite, depois, medir se ela está recusando bem.
+  recusadaPorId String?
+  recusadaPor   User?    @relation("RecusaAutor", fields: [recusadaPorId], references: [id])
+  porAgente     Boolean  @default(false)
+  recusadaEm    DateTime @default(now())
+
+  // ── A CARTA ──────────────────────────────────────────────────────────────────────────────
+  // O endereço público é único por recusa e impossível de adivinhar: um link sequencial deixaria
+  // qualquer um passear pelas recusas do escritório trocando um número.
+  token     String    @unique
+  // Quando UMA PESSOA mandou o link. Não é automático de propósito: a recusa é o momento mais
+  // delicado da relação, e é o único lugar onde a máquina mandando sozinha não economiza nada.
+  enviadaEm DateTime?
+  // A primeira vez que o lead abriu, e quantas vezes ao todo. É o que vale como prova de ciência
+  // — mais do que o envio, e sem exigir um clique de "li e entendi" que metade não daria.
+  abertaEm  DateTime?
+  aberturas Int       @default(0)
+
+  // ── O RADAR ──────────────────────────────────────────────────────────────────────────────
+  // A data opcional de voltar a olhar. "Não tinha a negativa em março" pede data; "não quer
+  // pagar" só pede memória.
+  revisitaEm DateTime?
+
+  // EM_ANALISE (na fila de recusados) | ARQUIVADA (virou histórico) | REVERTIDA (voltou à fila).
+  estado String @default("EM_ANALISE")
+
+  // Quem desfez ou arquivou, e quando. Registrado porque reverter uma recusa é decidir pegar um
+  // caso, e agora isso tem mais de um autor possível (sócio E recepção).
+  revertidaPorId String?
+  revertidaPor   User?     @relation("RecusaRevisor", fields: [revertidaPorId], references: [id])
+  revertidaEm    DateTime?
+  arquivadaPorId String?
+  arquivadaPor   User?     @relation("RecusaArquivista", fields: [arquivadaPorId], references: [id])
+  arquivadaEm    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId, estado])
+  @@index([attendanceId])
+}
+
+model Campanha {
+  id String @id @default(cuid())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // 1 · Identificação
+  nome     String // nome interno, só o escritório vê
+  ativa    Boolean   @default(false) // nasce desligada: campanha meio preenchida não atende ninguém
+  inicioEm DateTime?
+  fimEm    DateTime?
+
+  // 2 · O gatilho. Os dois podem coexistir — o link identifica, o texto é o palpite de reserva.
+  sourceUrl     String? // o link de origem do anúncio, como chega no protocolo
+  textoDoClique String? // o texto que já vem escrito quando a pessoa clica
+  rede          String? // INSTAGRAM | FACEBOOK | OUTRA — só para o escritório se orientar
+
+  // 3 · O objeto
+  area         String
+  sobre        String // uma frase: do que esta campanha trata
+  foraDoEscopo String @default("FORMULARIO") // FORMULARIO | ACOLHE
+
+  // 4 · A conversa
+  primeiraMensagem String
+  tetoDeMensagens  Int    @default(12)
+
+  // 6 · O desfecho
+  mensagemDeTransferencia String
+  destino                 String @default("AUTOMATICO") // ADVOGADOS | RECEPCAO | AUTOMATICO
+
+  // 7 · Motivos de recusa. Lista livre: as opções prontas vivem no código (lib/campanhas.ts) e o
+  // escritório acrescenta as dele à mão — foi o que o dono pediu.
+  motivosDeRecusa String[] @default([])
+
+  perguntas    CampanhaPergunta[]
+  documentos   CampanhaDocumento[]
+  atendimentos Attendance[]
+
+  // Preenchido só quando esta campanha ocupa um SLOT PAGO (a partir da 2ª ativa
+  // simultaneamente — ver AssinaturaModuloCampanhas mais abaixo). A 1ª campanha ativa no
+  // momento não precisa de slot: já está coberta pela mensalidade do módulo.
+  slotPago CampanhaSlotPago?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId, ativa])
+}
+
+model CampanhaPergunta {
+  id         String   @id @default(cuid())
+  campanhaId String
+  campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  ordem      Int
+  texto      String
+
+  @@index([campanhaId, ordem])
+}
+
+model CampanhaDocumento {
+  id          String   @id @default(cuid())
+  campanhaId  String
+  campanha    Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  ordem       Int
+  nome        String // o nome que o leigo entende, não o jurídico
+  paraQue     String? // para que serve — pedir sem explicar parece burocracia
+  // SEM ESTE, O LEAD NÃO AVANÇA. Tem 48h para mandar; passado o prazo, vai para o formulário.
+  obrigatorio Boolean  @default(false)
+
+  @@index([campanhaId, ordem])
+}
+
+// ============================================================================
+// MÓDULO PAGO DE CAMPANHAS — Frente A (dados + regras puras) da especificação fechada com o
+// dono (entrevista /grill-me). UI, cobrança via Asaas, webhook de pagamento e alerta de memória
+// da VPS do Hermes são frentes separadas; aqui só entra o que se prova sem tela e sem rede.
+//
+// O DESENHO EM TRÊS MODELS, e por que não é um só:
+//   AssinaturaModuloCampanhas — a assinatura em si (1 por escritório): destrava o módulo.
+//   PerfilCampanhaHermes      — o perfil PRÓPRIO do Hermes que a assinatura destrava, treinável
+//                               pelo escritório e reaproveitado entre campanhas (não é 1 por
+//                               campanha — por isso não pendura em Campanha, e sim em
+//                               AssinaturaModuloCampanhas).
+//   CampanhaSlotPago          — o direito de ter MAIS DE UMA campanha ativa ao mesmo tempo: só
+//                               existe a partir da 2ª campanha simultânea, e uma linha por
+//                               campanha que precisou dele (a 1ª não precisa, é de graça dentro
+//                               da mensalidade — ver comentário em Campanha.slotPago acima).
+// As regras de estado, carência e preço vivem em lib/moduloCampanhas.ts, PURAS (sem Prisma) — os
+// campos abaixo são só onde o resultado delas é lido e gravado.
+// ============================================================================
+
+model AssinaturaModuloCampanhas {
+  id       String @id @default(cuid())
+  officeId String @unique // um módulo por escritório — não existe "duas assinaturas" concorrentes
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  // ATIVO | CARENCIA | DESATIVADO — texto livre, como o resto do schema (nunca enum de banco,
+  // pelo mesmo motivo de sempre: `db push` sem gerar migration). Este campo é o ÚLTIMO valor
+  // GRAVADO por quem processa a cobrança (frente C/D, ao confirmar pagamento ou rodar a rotina
+  // diária de carência) — a fonte da verdade de "está em dia ou não" é sempre RECALCULADA a
+  // partir de `vencimento` por lib/moduloCampanhas.ts, que nunca deixa um texto desconhecido
+  // virar "ativo" (fail-closed: vira "desativado", o estado mais seguro para quem cobra e para
+  // quem seria alvo de mensagem de campanha).
+  estado String @default("ATIVO")
+
+  iniciadoEm DateTime @default(now()) // quando o escritório assinou o módulo
+
+  // Próximo vencimento da MENSALIDADE do módulo — não confundir com o vencimento de um slot
+  // extra, que é por campanha (ver CampanhaSlotPago.entradaEmCarenciaEm). A cada pagamento
+  // confirmado, quem processa o webhook empurra este campo um ciclo à frente.
+  vencimento DateTime
+
+  // Escolhida pelo escritório no pop-up de solicitação, ANTES da aprovação (§6.2 da
+  // especificação): BOLETO | PIX_QRCODE | PIX_AUTOMATICO — mesmo vocabulário de
+  // Subscription.paymentMethod, mas um campo à parte porque o escritório pode escolher uma
+  // forma diferente para o módulo de campanhas da que já usa na assinatura base do Lúmen.
+  formaDePagamento String?
+
+  // Preenchida no instante em que `vencimento` foi ultrapassado sem pagamento confirmado — é o
+  // relógio de onde os 10 DIAS CORRIDOS de carência (§7) começam a contar. Nula enquanto em dia;
+  // volta a nula assim que o pagamento é confirmado, para o PRÓXIMO atraso (se houver) contar do
+  // zero — carência não acumula de um ciclo para o outro.
+  entradaEmCarenciaEm DateTime?
+
+  // FRENTE B — RÉGUA DE CARÊNCIA (§7). O dia de calendário (fuso do escritório, formato
+  // "AAAA-MM-DD" de lib/horaDeBrasilia.ts:diaDeBrasilia) em que o último aviso diário automático
+  // (e-mail + WhatsApp + notificação interna + reenvio do boleto) foi disparado para ESTA
+  // assinatura. Guarda "um aviso por dia, não um por execução do cron": rodar a régua duas vezes
+  // no mesmo dia lê o mesmo valor aqui e não dispara de novo (ver
+  // lib/campanhasCobranca.ts:deveEnviarAvisoHoje). Nulo enquanto em dia (nada a avisar) e volta a
+  // nulo quando o pagamento é confirmado, pelo mesmo motivo de entradaEmCarenciaEm — o PRÓXIMO
+  // atraso conta do zero.
+  ultimoAvisoDiarioEm String?
+
+  // Referência da cobrança em aberto do CICLO ATUAL da mensalidade na Asaas — o que a régua
+  // diária REENVIA (a régua nunca gera uma cobrança nova por dia; a Asaas tem uma só por ciclo,
+  // criada em lib/actions/campanhasCobranca.ts:gerarCobrancaMensalidade). Nulos até a primeira
+  // cobrança do ciclo ser criada; voltam a nulo a cada novo ciclo, para o próximo reenvio apontar
+  // para a cobrança certa, não para a do mês passado.
+  cobrancaAsaasId    String?
+  cobrancaBoletoUrl  String?
+  cobrancaPixPayload String? // "copia e cola" do Pix QR Code dinâmico do ciclo atual, se a forma escolhida for PIX_QRCODE
+
+  perfil PerfilCampanhaHermes?
+  slots  CampanhaSlotPago[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PerfilCampanhaHermes {
+  id String @id @default(cuid())
+
+  assinaturaId String                    @unique // 1 perfil por assinatura — não é 1 por campanha (§1)
+  assinatura   AssinaturaModuloCampanhas @relation(fields: [assinaturaId], references: [id], onDelete: Cascade)
+
+  // O nome do perfil no Hermes (ver lib/hermesPonte.ts para a convenção de nomes hoje em vigor —
+  // "um perfil por escritório" é o desenho final, e é para lá que este slug aponta assim que a
+  // frente de provisionamento existir). Nulo até `provisionarNoHermes` confirmar, porque o slug
+  // só existe depois de provisionado — não adivinhamos um valor antes disso.
+  slug String? @unique
+
+  // O treinamento em si: a MESMA tela/campo de instruções que o escritório já usa hoje (§5),
+  // aplicado a este perfil — não é uma tela nova. NUNCA é apagado ao desativar: é assim que "§7 —
+  // desativar não apaga o treinamento" fica estruturalmente impossível de violar por acidente.
+  // Não existe, neste schema, nenhum campo de "instruções ao desativar" que sobrescreva este —
+  // a única ação disponível é trocar `estado`, e lib/moduloCampanhas.ts nunca lê este campo para
+  // decidir se o perfil responde ou não.
+  instrucoes String @default("")
+
+  // PROVISIONADO | DESATIVADO — os dois únicos estados do perfil em si (§1). Fail-closed na
+  // leitura, como o estado da assinatura acima: lib/moduloCampanhas.ts nunca trata um valor
+  // desconhecido como perfil no ar. DESATIVADO não é "nunca provisionado" — é "chegou a
+  // responder, a carência esgotou, e o `instrucoes` acima continua intacto para reativar quando
+  // o escritório voltar a pagar" (§7).
+  estado String @default("DESATIVADO")
+
+  provisionadoEm DateTime? // quando `provisionarNoHermes` confirmou o perfil no ar
+  desativadoEm   DateTime? // quando a carência esgotou e o perfil parou de responder (§7)
+
+  // FRENTE B — REATIVAÇÃO APÓS DESATIVAÇÃO. Verdadeiro quando o escritório pagou DEPOIS de
+  // esgotada a carência (perfil já DESATIVADO): a assinatura volta a `estado: "ATIVO"`, mas o
+  // perfil PERMANECE `DESATIVADO` aqui — reprovisionar de verdade no Hermes é a Frente C, e
+  // marcar `estado: "PROVISIONADO"` sem o perfil estar de fato no ar mentiria para
+  // perfilPodeResponder (lib/moduloCampanhas.ts), que passaria a liberar mensagem para um perfil
+  // que não existe na VPS. Este campo é só o REGISTRO de "precisa subir de novo" que a Frente C
+  // consome e desliga ao confirmar o reprovisionamento; pagar DURANTE a carência (perfil nunca
+  // chegou a ser desativado) nunca liga este campo.
+  precisaReprovisionar Boolean @default(false)
+
+  // ============================================================================
+  // FRENTE C — O PROVISIONAMENTO EM SI (§3). `precisaReprovisionar` acima é só a INTENÇÃO,
+  // gravada pelo caminho de pagamento (Frente B); os campos abaixo são o que o caminho de
+  // NOVA TENTATIVA (lib/actions/provisionamentoCampanhas.ts, chamado pelo cron
+  // app/api/cron/campanhas-provisionamento) grava a cada rodada — nunca um silêncio que pareça
+  // sucesso. Ver a nota técnica que desenhou isto: `provisionarNoHermes` é uma chamada HTTP de
+  // até 120s, sem fila e sem estado intermediário própria — o estado intermediário É este aqui.
+  // ============================================================================
+
+  // O instante em que `precisaReprovisionar` virou true (pagamento confirmado, aguardando subir
+  // no Hermes) — a PRIMEIRA das duas datas que tornam o SLA de provisionamento MEDÍVEL (a segunda
+  // é `provisionadoEm`, acima). Gravado por lib/actions/campanhasCobranca.ts:
+  // confirmarPagamentoMensalidade, junto com `precisaReprovisionar: true` (mesmo instante, mesma
+  // escrita — não é uma segunda régua). Nulo enquanto não há nada pendente; volta a nulo SÓ
+  // quando o provisionamento é confirmado (o intervalo já foi medido nesse momento) — continua
+  // preenchido mesmo depois de `provisionamentoFalhouDefinitivamente` virar true, porque a espera
+  // real do escritório não parou só porque a régua automática desistiu de tentar sozinha.
+  aguardandoProvisionamentoDesde DateTime?
+
+  // Quantas tentativas JÁ RODARAM neste ciclo (reinicia para 0 a cada novo
+  // `precisaReprovisionar: true`) — o número que decide quando parar (ver
+  // LIMITE_DE_TENTATIVAS_DE_PROVISIONAMENTO em lib/provisionamentoCampanhas.ts).
+  numeroDeTentativasDeProvisionamento Int @default(0)
+
+  ultimaTentativaDeProvisionamentoEm DateTime?
+  // O motivo LEGÍVEL da última falha (FalhaDoHermes.motivo, incluindo o prefixo "DEMORA:" quando
+  // for o caso) — para a tela (Frente D) mostrar "falhou, tentando de novo: <motivo>" em vez de
+  // um silêncio. Limpo (null) assim que uma tentativa tem sucesso.
+  ultimoErroDeProvisionamento        String?
+
+  // Verdadeiro depois que o número de tentativas acima esgotou
+  // LIMITE_DE_TENTATIVAS_DE_PROVISIONAMENTO — é o que faz a régua PARAR de tentar (nunca em
+  // loop eterno) e é o que já disparou o e-mail para Jairo e Rodrigo. `precisaReprovisionar`
+  // continua true (o perfil ainda não subiu), mas este campo é o sinal de "já desistiu sozinho,
+  // só um novo pagamento confirmado (que zera os dois campos acima) reabre a tentativa".
+  provisionamentoFalhouDefinitivamente Boolean @default(false)
+
+  // O registro de CADA tentativa (quando, resultado, motivo da falha) — nunca sobrescrito, ao
+  // contrário dos campos "última tentativa" acima (que são só o resumo mais rápido de ler).
+  tentativasDeProvisionamento PerfilCampanhaProvisionamentoTentativa[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Uma linha por TENTATIVA de provisionamento (§3, Frente C) — o "cada tentativa grava o que
+// aconteceu" da nota técnica. Nunca apagada nem sobrescrita: é o histórico completo, para quando
+// alguém precisar entender por que um perfil demorou para subir (ou nunca subiu). O resumo mais
+// rápido de ler (a última tentativa, o motivo, se já falhou definitivamente) fica em
+// PerfilCampanhaHermes mesmo, para a tela não precisar agregar esta tabela toda vez.
+model PerfilCampanhaProvisionamentoTentativa {
+  id String @id @default(cuid())
+
+  perfilId String
+  perfil   PerfilCampanhaHermes @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  // A posição desta tentativa DENTRO DO CICLO ATUAL (1ª, 2ª, 3ª...) — espelha
+  // PerfilCampanhaHermes.numeroDeTentativasDeProvisionamento no momento em que rodou; reinicia a
+  // cada novo ciclo de `precisaReprovisionar`, não é um contador global do perfil.
+  numero Int
+
+  // SUCESSO | FALHA — fail-closed na leitura, como o resto do schema: um texto desconhecido
+  // nunca deveria aparecer aqui (só estas duas strings são gravadas), mas quem ler não deve
+  // supor sucesso por omissão.
+  resultado String
+
+  // Preenchido só quando resultado = FALHA — o `FalhaDoHermes.motivo` de lib/hermesPonte.ts, que
+  // já distingue DEMORA (o Hermes não respondeu a tempo) de queda de verdade. Nulo em SUCESSO.
+  motivo String?
+
+  ocorridaEm DateTime @default(now())
+
+  @@index([perfilId, ocorridaEm])
+}
+
+model CampanhaSlotPago {
+  id String @id @default(cuid())
+
+  // Denormalizado de propósito (a assinatura e a campanha já levam até o escritório) — mesmo
+  // padrão de AccessRequest.officeId: é o painel mestre listando/filtrando slots POR
+  // ESCRITÓRIO que precisa disto direto, sem atravessar duas relações a cada consulta.
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  assinaturaId String
+  assinatura   AssinaturaModuloCampanhas @relation(fields: [assinaturaId], references: [id], onDelete: Cascade)
+
+  // A campanha que ocupa este slot. Único porque uma campanha ocupa NO MÁXIMO um slot pago —
+  // nunca existiu campanha "básica" para migrar (§8), então toda Campanha de um escritório com
+  // módulo pago que não seja a 1ª ativa no momento passa por aqui.
+  campanhaId String   @unique
+  campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+
+  // SOLICITADO → APROVADO → ATIVO → FINALIZADO (§6), mais RECUSADO — a especificação não
+  // descreve recusa, mas o painel mestre precisa poder negar um pedido sem apagar o registro
+  // dele. Fail-closed: lib/moduloCampanhas.ts nunca conta um estado desconhecido como slot
+  // ativo ao calcular quantas campanhas simultâneas pagas existem agora.
+  estado String @default("SOLICITADO")
+
+  // Escolhida no mesmo pop-up de solicitação (§6.2), ANTES da aprovação — pode ser diferente da
+  // forma de pagamento da mensalidade do módulo (mesma razão de
+  // AssinaturaModuloCampanhas.formaDePagamento).
+  formaDePagamento String?
+
+  solicitadoEm DateTime @default(now())
+
+  // Quem aprovou e quando (§6.3-6.4). QUALQUER PlatformMember com login no painel mestre serve —
+  // a especificação é explícita em NÃO implementar permissão granular agora ("login no painel
+  // mestre já é suficiente"; PlatformRole.canManageBilling e afins não são checados aqui). Este
+  // par é só o REGISTRO de quem clicou, nunca um portão de autorização por papel.
+  aprovadoPorId String?
+  aprovadoPor   PlatformMember? @relation(fields: [aprovadoPorId], references: [id])
+  aprovadoEm    DateTime?
+
+  ativadoEm    DateTime? // início da cobrança recorrente mensal deste slot (§6.5)
+  finalizadoEm DateTime? // a cobrança do slot para aqui (§2) — e a numeração relativa (§6.1)
+  // deixa de contar este slot como ativo a partir deste instante, sem precisar apagar a linha
+
+  // FRENTE B — LACUNA DE SCHEMA DA FRENTE A, PREENCHIDA AQUI. lib/moduloCampanhas.ts trata a
+  // carência do módulo e a do slot como "a mesma função, dois relógios diferentes" (ver o teste
+  // de mesmo nome em lib/testes/moduloCampanhas.teste.ts) — mas só AssinaturaModuloCampanhas
+  // tinha um `vencimento` para alimentar esse relógio; o slot só tinha `entradaEmCarenciaEm`
+  // (quando a carência dele COMEÇOU), sem nenhum campo do PRÓXIMO vencimento para calcular se
+  // ela já deveria ter começado. Sem este campo, a régua diária (lib/campanhasCobranca.ts) não
+  // tem como saber quando a cobrança mensal do slot venceu — nasce nulo até `ativadoEm` (a
+  // aprovação cria a primeira cobrança e preenche o primeiro vencimento) e cada pagamento
+  // confirmado empurra este campo um ciclo à frente, exatamente como
+  // AssinaturaModuloCampanhas.vencimento.
+  vencimento DateTime?
+
+  // Mesma carência de 10 dias corridos do módulo base (§7), mas com relógio PRÓPRIO: um slot
+  // pode ficar inadimplente enquanto a mensalidade do módulo está em dia, e vice-versa — as duas
+  // cobranças são independentes (§6.6 remete à mesma REGRA, não ao mesmo relógio).
+  entradaEmCarenciaEm DateTime?
+
+  // Mesmo par de campos de AssinaturaModuloCampanhas, um nível abaixo (por slot): guarda o dia
+  // do último aviso diário (evita reenviar duas vezes no mesmo dia) e a referência da cobrança
+  // do ciclo atual na Asaas, para a régua reenviar em vez de gerar cobrança nova.
+  ultimoAvisoDiarioEm String?
+  cobrancaAsaasId     String?
+  cobrancaBoletoUrl   String?
+  cobrancaPixPayload  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId, estado])
+}
+
+// Preço configurável do módulo pago de campanhas — MESMO padrão de ModulePrice acima (uma linha
+// por parâmetro, `preco` nasce nulo). A especificação marca os dois valores como EM ABERTO (§2):
+// NENHUM R$ é inventado aqui — o painel mestre preenche depois, e lib/moduloCampanhas.ts trata
+// preço nulo como uma OMISSÃO EXPLÍCITA para quem pergunta (nunca R$ 0,00, que mentiria para o
+// cliente sobre o módulo ser de graça).
+model CampanhaPrecoParametro {
+  chave     String   @id // MENSALIDADE_MODULO | SLOT_EXTRA
+  label     String // rótulo que a tela do painel mestre mostra ao lado do campo
+  preco     Float?
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// ALERTA DE MEMÓRIA DA VPS DO HERMES (§4 da especificação de campanhas — Frente C). MESMO
+// padrão de CampanhaPrecoParametro acima: uma linha só, chave fixa (funciona como singleton sem
+// inventar uma segunda convenção de "linha única" no schema), e o número nasce NULO.
+//
+// A especificação marca o limiar como EM ABERTO — "valor numérico exato... não foi decidido". O
+// dono NÃO decidiu o número, e nulo aqui significa literalmente isso: o alerta fica DESLIGADO até
+// alguém preencher, nunca um "padrão razoável" inventado que pareceria uma decisão de negócio que
+// ninguém tomou (ver lib/alertaMemoriaHermes.ts:situacaoDeMemoria, que trata limiar nulo como
+// `dispara: false` sempre, com motivo legível).
+// ============================================================================
+model AlertaMemoriaHermesParametro {
+  chave String @id @default("LIMIAR_MEMORIA_LIVRE_KB")
+
+  // RAM disponível + swap livre da MÁQUINA (não de um perfil — ver
+  // lib/hermesPonte.ts:memoriaDaMaquina), somadas, em KB. Abaixo (ou igual) disto dispara o
+  // alerta. NÍVEL ÚNICO — a especificação é explícita: não existem dois patamares de "atenção" e
+  // "crítico", só ligado/desligado.
+  limiarKB Int?
+
+  // Mesmo padrão de AssinaturaModuloCampanhas.ultimoAvisoDiarioEm: o dia de calendário (fuso do
+  // escritório, formato "AAAA-MM-DD") do último alerta disparado — "um alerta por dia, não um
+  // por execução do cron" (ver lib/campanhasCobranca.ts:deveEnviarAvisoHoje, reaproveitada por
+  // lib/alertaMemoriaHermes.ts:deveAlertarMemoriaHoje).
+  ultimoAlertaDiarioEm String?
+
+  updatedAt DateTime @updatedAt
+}
+
 model WhatsappConfig {
-  id            String   @id @default(cuid())
-  phoneNumberId String   @unique
+  id String @id @default(cuid())
+
+  // A CHAVE QUE LIGA UMA MENSAGEM AO ESCRITÓRIO. Na Cloud API da Meta é o phone_number_id; na
+  // Evolution é o NOME DA INSTÂNCIA. O nome do campo ficou o da Meta porque mudá-lo renomearia a
+  // coluna em produção sem necessidade — o que ele guarda é "o identificador do número naquele
+  // provedor", e é assim que resolveOfficeIdByPhoneNumberId o usa nos dois casos.
+  phoneNumberId String  @unique
   accessToken   String
   displayPhone  String? // só para exibição em Configurações (ex: "+55 62 99999-0000")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+
+  // META = Cloud API oficial. EVOLUTION = Evolution API (WhatsApp Web), auto-hospedada.
+  // O padrão é META para não mudar o comportamento de nenhuma configuração já existente.
+  provider String @default("META")
+
+  // Só para EVOLUTION: onde a instância vive, a chave da API e o segredo que ELA devolve no
+  // cabeçalho do webhook. Sem o segredo o webhook recusa tudo — mesma regra fail-closed do
+  // WHATSAPP_APP_SECRET da Meta: uma porta de entrada sem prova de origem é um jeito de injetar
+  // lead falso no CRM de um escritório.
+  baseUrl       String?
+  apiKey        String?
+  webhookSecret String?
+
+  // ── O AGENTE NO WHATSAPP ────────────────────────────────────────────────────────────────
+  // Desligado por padrão, e é de propósito: ligar isto faz o escritório responder cliente
+  // sozinho, e mensagem enviada não volta. Quem liga é gente, com um clique consciente.
+  agenteAtivo Boolean @default(false)
+
+  // `agenteTodos = false` + lista vazia = não responde a ninguém. Também de propósito: o estado
+  // inseguro ("responde todo mundo") nunca é o padrão nem o resultado de um campo esquecido.
+  agenteTodos   Boolean @default(false)
+  agenteNumeros String  @default("") // E.164 separados por vírgula
+
+  // COMO O ATENDENTE SE CHAMA para o cliente do escritório. Cada escritório dá o seu: atender
+  // como "Lúmen" entregaria que há um sistema de terceiro no meio da conversa, e o cliente está
+  // falando com o escritório, não com o nosso produto.
+  agenteNome String?
+
+  // O treinamento de nicho DESTE escritório (direito médico, previdenciário, trabalhista…).
+  // Mora aqui, e não no perfil do Hermes na máquina, para o escritório treinar o próprio agente
+  // pela tela — é o que torna o módulo vendável sem alguém entrar por SSH a cada cliente novo.
+  agenteInstrucoes String?
+
+  // O EXPEDIENTE. O relógio de 15 minutos da transferência só corre dentro dele — sem isso, um
+  // lead que escreve à meia-noite faz a fila inteira rodar antes de alguém acordar, e a pendência
+  // que deveria chamar atenção chega já velha.
+  // Dias: "1,2,3,4,5" (1 = segunda). Horas em "HH:MM". Enquanto o escritório não preencher, vale
+  // o padrão seg–sex 8h–18h, que é o que a maioria pratica.
+  expedienteDias   String @default("1,2,3,4,5")
+  expedienteInicio String @default("08:00")
+  expedienteFim    String @default("18:00")
+
+  // O FUSO, e ele não é detalhe. O servidor roda em UTC; "08:00" sem fuso são 05:00 em Goiânia.
+  // Sem isto, o relógio da transferência correria de madrugada e ficaria parado de dia — e o
+  // sintoma ("o lead da manhã não foi repassado") não apontaria para cá de jeito nenhum.
+  // O Brasil tem quatro fusos, então o padrão é o de Brasília e cada escritório ajusta o seu.
+  fusoHorario String @default("America/Sao_Paulo")
+
+  // ONDE A FILA PAROU. Rodízio precisa lembrar de quem foi o último; sem isto, toda transferência
+  // voltaria ao primeiro da lista e o rodízio viraria cascata.
+  ultimoAdvogadoId String?
+  ultimaRecepcaoId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   officeId String @unique
   office   Office @relation(fields: [officeId], references: [id])
@@ -2536,6 +3413,83 @@ model AlertDismissal {
   @@index([officeId])
 }
 
+// ============ ASSISTENTE (chat interno com IA, por escritório) ============
+//
+// O chat do assistente era EFÊMERO: o front reenviava o histórico inteiro a cada pergunta e nada
+// ficava gravado. Funciona para uma pergunta solta e falha em tudo o mais — fechar a aba perdia a
+// conversa, trocar de aparelho perdia a conversa, e não havia como o escritório saber o que foi
+// perguntado sobre os dados dele.
+//
+// A SESSÃO É DO USUÁRIO, não do escritório. Um advogado perguntando sobre a estratégia de um caso
+// não está escrevendo um documento do escritório; os colegas não devem ler aquilo. O `officeId`
+// existe para o isolamento entre inquilinos (e para o Painel Mestre contar uso), não para dar
+// acesso cruzado: toda leitura filtra por userId E officeId.
+model AssistantSession {
+  id        String   @id @default(cuid())
+  officeId  String
+  office    Office   @relation(fields: [officeId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  titulo    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // O id da MESMA conversa do lado do Hermes, quando e ele quem responde (ver lib/hermesPonte.ts).
+  // O Hermes guarda o proprio contexto na maquina dele e o retoma por este id; aqui ficam as
+  // mensagens legiveis, que sao o que a tela mostra e o que a auditoria consulta. Sao dois
+  // registros da mesma conversa, e e de proposito: se o servidor do Hermes for reinstalado, o
+  // historico do escritorio continua aqui.
+  hermesSessionId String?
+
+  mensagens AssistantMessage[]
+
+  @@index([userId, updatedAt])
+  @@index([officeId, updatedAt])
+}
+
+// O conteúdo vai como JSON (texto) porque uma mensagem do Claude não é uma string: ela é uma
+// lista de blocos (texto, uso de ferramenta, resultado de ferramenta). Guardar só o texto jogaria
+// fora justamente o que prova de onde veio a resposta.
+model AssistantMessage {
+  id        String           @id @default(cuid())
+  sessionId String
+  session   AssistantSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  papel     String // "user" | "assistant"
+  conteudo  String
+  createdAt DateTime         @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+// REGISTRO DE USO — imutável, por escritório.
+//
+// Duas funções numa tabela só, e isso é decisão, não economia:
+//
+//   1. LGPD. O escritório precisa poder provar o que foi consultado sobre os dados dele, por
+//      quem e quando. Nada aqui é atualizado ou apagado pelo produto — só inserido e lido.
+//   2. LIMITE DE USO. Contar as linhas do último minuto para um escritório responde "quantas
+//      requisições ele já fez", que é exatamente o que um limitador precisa saber. Em ambiente
+//      serverless um contador em memória não serve: cada instância teria o seu, e o limite
+//      valeria por instância em vez de por escritório.
+//
+// `ferramenta` é nulo na linha da pergunta e preenchido na linha de cada consulta ao banco — é o
+// que permite responder "esta resposta veio de onde".
+model AssistantAuditLog {
+  id         String   @id @default(cuid())
+  officeId   String
+  office     Office   @relation(fields: [officeId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  sessionId  String?
+  acao       String // "PERGUNTA" | "FERRAMENTA" | "RECUSA_LIMITE"
+  ferramenta String?
+  detalhe    String?
+  createdAt  DateTime @default(now())
+
+  @@index([officeId, createdAt])
+  @@index([userId, createdAt])
+}
+
 // ============ BLOG JURÍDICO (público, por escritório) ============
 //
 // Alimentado por um robô de conteúdo EXTERNO (projeto Claude Code autônomo, fora
@@ -2554,7 +3508,7 @@ model BlogPost {
   content        String // corpo da matéria, pode ser markdown simples
   sources        String? // URLs das fontes usadas, uma por linha (texto simples)
   imageUrl       String? // preenchido manualmente pelo admin antes de publicar
-  status         String    @default("AGUARDANDO_REVISAO") // AGUARDANDO_REVISAO | PUBLICADO | REJEITADO
+  status         String    @default("AGUARDANDO_REVISAO") // AGUARDANDO_REVISAO | AGENDADO | PUBLICADO | REJEITADO
   rejectedReason String?
   reviewedById   String?
   reviewedBy     User?     @relation("BlogPostReviewer", fields: [reviewedById], references: [id])
@@ -2563,12 +3517,45 @@ model BlogPost {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  /// AGENDAMENTO (docs/agentes/robo-news-juridico-firecrawl.md, Parte A4) — admin escolhe uma
+  /// data/hora futura em vez de publicar na hora; o cron blog-publicar-agendadas passa a
+  /// PUBLICADO quando `agendadaPara` vence. Campos aditivos e anuláveis, seguros para
+  /// `prisma db push` — mesmo padrão de excluidaEm/excluidaPorId abaixo.
+  agendadaPara  DateTime?
+  agendadaPorId String?
+  agendadaPor   User?     @relation("BlogPostAgendador", fields: [agendadaPorId], references: [id])
+
+  /// ORIGEM da matéria — quem a criou, para diferenciar selo "Robô" na tela e, no futuro,
+  /// permitir métricas por fonte. "ROBO_ROUTINE" (skill lumen-robo-juridico via POST /api/blog/draft),
+  /// "API_MANUAL" (POST sem o campo, ou enviado por outra ferramenta), "ROBO_HERMES" (Parte C,
+  /// ainda não implementada) ou null (matéria legada, criada antes deste campo existir).
+  origem String?
+
+  /// EXCLUSÃO (pedido do dono, 24/09/2026 — botão "excluir" na matéria cadastrada pelo
+  /// escritório, tanto em revisão pendente quanto já publicada).
+  ///
+  /// SOFT-DELETE, nunca DELETE físico — mesmo padrão de PeticionamentoCitacao.excluidaEm: a
+  /// linha continua existindo (auditoria, e o dedup do robô de conteúdo em
+  /// app/api/blog/draft/route.ts, que olha os últimos 60 dias por título/fonte independente de
+  /// status, continua enxergando o assunto como já tratado). Todo ponto de leitura que existe
+  /// para MOSTRAR a matéria (admin em /configuracoes, público em /blog e /blog/[slug], sitemap,
+  /// a checagem de foto vinculada a post público) passa a exigir `excluidaEm: null` — sem isso
+  /// a matéria "excluída" continuaria visível em algum desses lugares.
+  ///
+  /// Coluna SÓ ACRESCENTADA e anulável: `prisma db push` roda depois do build em produção, e
+  /// remover/renomear coluna existente apagaria dado — aqui não há coluna nenhuma sendo
+  /// removida, só duas novas, nulas por padrão (nenhuma matéria já cadastrada é afetada).
+  excluidaPorId String?
+  excluidaPor   User?     @relation("BlogPostExcluidoPor", fields: [excluidaPorId], references: [id])
+  excluidaEm    DateTime?
+
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
   @@unique([officeId, slug])
   @@index([officeId, status, publishedAt])
   @@index([officeId, area])
+  @@index([status, agendadaPara])
 }
 
 // ============ BIBLIOTECA DE FOTOS ============
@@ -2853,6 +3840,12 @@ model PlatformMember {
   accessApprovals AccessRequest[]  @relation("AccessRequestApprover")
   accessSessions  AccessSession[]
   auditEntries    AccessAuditLog[]
+
+  // Slots de campanha simultânea paga que este membro aprovou (§6.4 da especificação de
+  // campanhas) — ver CampanhaSlotPago.aprovadoPor.
+  campanhaSlotsAprovados  CampanhaSlotPago[]
+  conversasNoPainelMestre PainelMestreConversa[]
+  perguntasNoPainelMestre PainelMestreTurno[]
 }
 
 model PlatformRole {
@@ -3393,4 +4386,455 @@ model EmailTemplate {
   office   Office @relation(fields: [officeId], references: [id])
 
   @@unique([officeId, event])
+}
+
+// ============ PETICIONAMENTO (aba de peticionamento, perfil Hermes "peticionamento-lumen") ============
+//
+// Fonte da verdade de produto: especificacao-peticionamento-lumen.md (entrevista fechada com o
+// dono) + os mockups aprovados em .../mockups-peticionamento/ (decisions.md e
+// contrato-com-o-agente.md). Este bloco guarda só o ESTADO da sessão de peticionamento — as
+// regras de negócio (o que é mínimo, que combinação de contexto é proibida, quem pode exportar,
+// como se monta o nome do arquivo) vivem em módulos PUROS sob lib/peticionamento*.ts, testados
+// em lib/testes/, nunca aqui.
+
+// Matéria adicionada por UM escritório específico ("+ Adicionar matéria" da tela de contexto).
+// Decisão do dono, literal: uma matéria nova vale só para aquele escritório, nunca vira opção
+// global do Lúmen — por isso não existe tabela "matéria global editável", só esta, sempre presa
+// a um officeId. A lista global (matérias "do Lúmen") continua vivendo em código
+// (lib/peticionamentoMateria.ts), sem tabela — não muda por escritório.
+model PeticionamentoMateria {
+  id          String   @id @default(cuid())
+  officeId    String
+  office      Office   @relation(fields: [officeId], references: [id])
+  nome        String
+  criadoPorId String?
+  criadoPor   User?    @relation("PeticionamentoMateriaCriadoPor", fields: [criadoPorId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([officeId, nome])
+  @@index([officeId])
+}
+
+// Uma sessão de peticionamento — do primeiro passo (contexto) até a minuta editável. Nasce ao
+// abrir a aba e é salva automaticamente a cada mudança (seção 7 da especificação: "contexto
+// preenchido pela metade e abandonado é salvo automaticamente como rascunho reaproveitável,
+// nunca perdido ao fechar a aba").
+model PeticionamentoSessao {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  criadoPorId String
+  criadoPor   User   @relation("PeticionamentoSessaoCriadoPor", fields: [criadoPorId], references: [id])
+
+  // A TRAVA DE CLIENTE mora aqui: nula numa sessão avulsa (sem vínculo, seção 10 da
+  // especificação); preenchida no primeiro vínculo escolhido, e todo vínculo seguinte precisa
+  // pertencer a este MESMO cliente (validado em lib/peticionamentoContexto.ts antes de qualquer
+  // escrita — nunca só na tela). Não é preferência de organização, é sigilo profissional (seção
+  // 8): dois clientes diferentes nunca coexistem numa sessão.
+  clienteId   String?
+  clienteNome String?
+
+  // Vínculos escolhidos nesta sessão — ids em JSON, não relação de banco. De propósito: um
+  // processo/atendimento/assessoria apagado depois não pode deixar esta sessão com uma foreign
+  // key quebrada, e a trava de mesmo cliente já foi validada no momento da escolha (ver acima),
+  // não depende de o banco garantir isso por relação.
+  vinculoCaseIds       Json    @default("[]")
+  vinculoAttendanceIds Json    @default("[]")
+  vinculoAssessoriaIds Json    @default("[]")
+  // Quando há mais de um vínculo, qual delas é a "pasta principal" para salvar anexo e minuta
+  // final (seção 10) — formato "case:<id>" | "attendance:<id>" | "assessoria:<id>".
+  pastaPrincipal       String?
+  // ADEQUAÇÃO 21/09/2026: marca que o advogado JÁ decidiu vincular algo OU escolheu avulsa
+  // explicitamente — sem este flag, uma sessão "avulsa de propósito" e uma sessão que ninguém
+  // tocou ainda ficam com o MESMO estado gravado (vínculos todos vazios), e a lista de rascunhos
+  // (lib/peticionamentoPasso.ts) não teria como saber se o passo "contexto" já foi decidido.
+  contextoDecidido     Boolean @default(false)
+
+  // Matéria — do Lúmen (lib/peticionamentoMateria.ts) ou do escritório (PeticionamentoMateria
+  // acima); materiaEhDoEscritorio só marca QUAL das duas listas, nunca muda o tratamento do
+  // agente (contrato-com-o-agente.md §1: "não distinga o tratamento entre as duas").
+  materiaNome           String?
+  materiaEhDoEscritorio Boolean @default(false)
+  /// CONTRATO DE SCHEMA 22/09/2026 (pedido do dono: "precisa de permitir marcar mais de uma
+  /// matéria"). Um caso de sucessões que também é tributário não é um caso de uma matéria só, e
+  /// obrigar a escolher uma fazia o advogado mentir para o formulário.
+  ///
+  /// `materiaNome` acima NÃO morre e NÃO vira legado silencioso: ele continua sendo a matéria
+  /// PRINCIPAL (a primeira escolhida) — é o que as sessões já gravadas têm, é o que a lista de
+  /// rascunhos mostra numa linha só, e é o que o prompt usa como matéria-cabeça. `materiasNomes`
+  /// é a lista COMPLETA, incluindo a principal, na ordem em que foram marcadas.
+  ///
+  /// Quem escrever precisa manter os dois em pé ao mesmo tempo, sempre: gravar a lista e gravar
+  /// a primeira em materiaNome, na MESMA transação. Uma sessão antiga (materiasNomes vazia,
+  /// materiaNome preenchida) tem de ser lida como "uma matéria só" sem nenhum passo de migração
+  /// — leitura fail-open para o dado que já existe.
+  materiasNomes         Json    @default("[]")
+
+  // Tipo de peça — lista fechada da seção 9, ou "Outra" com texto livre em tipoPecaOutro.
+  // tipoPecaInferido marca quando NINGUÉM escolheu e o sistema tentou inferir pelo andamento do
+  // vínculo (contrato-com-o-agente.md §1) — precisa aparecer na nota de destaque, nunca em
+  // silêncio.
+  tipoPeca         String?
+  tipoPecaOutro    String?
+  tipoPecaInferido Boolean @default(false)
+
+  // ADEQUAÇÃO 21/09/2026, espec. §7: a PRIMEIRA pergunta da sessão, antes até do contexto —
+  // Petição | Contrato | Parecer | Notificação Extrajudicial (lib/peticionamentoCategoriaPeca.ts).
+  // Não confundir com `tipoPeca` acima: aquele é a sublista (Inicial, Contestação, Réplica...)
+  // que só faz sentido QUANDO categoriaPeca é "Petição".
+  categoriaPeca String?
+
+  // ADEQUAÇÃO 21/09/2026, espec. §8: a natureza do procedimento é DEDUZIDA a partir do vínculo
+  // (lib/peticionamentoNatureza.ts), nunca perguntada do zero — mas a dedução nunca é silenciosa:
+  // naturezaMotivo é o texto explicativo mostrado na tela ("processo judicial, porque..."), e
+  // naturezaConfirmadaManualmente marca quando o advogado corrigiu a dedução (em vez de aceitá-la
+  // por omissão). Recalculada a cada mudança de vínculo — ver alternarVinculo/definirSessaoAvulsa.
+  naturezaProcedimento          String?
+  naturezaMotivo                String?
+  naturezaConfirmadaManualmente Boolean @default(false)
+
+  // O MÍNIMO PARA GERAR (decisão do dono): fatos + pedidos. Os demais campos abaixo são
+  // enriquecimento — a ausência deles nunca bloqueia a geração (ver lib/peticionamentoMinimo.ts).
+  fatos                 String?
+  pedidos               Json      @default("[]")
+  prazoFatal            DateTime?
+  /// CONTRATO DE SCHEMA 22/09/2026 (pedido do dono): se o prazo é PRECLUSIVO, ele deixa de ser
+  /// um lembrete administrativo e passa a ser um fato jurídico da peça — "se marcar preclusivo, o
+  /// prazo precisa ganhar tópico próprio no documento a ser gerado".
+  ///
+  /// Portanto isto NÃO é enfeite de formulário: quando true, o prazo entra no pedido ao agente
+  /// como seção própria, e o agente é instruído a tratá-lo como preclusivo. Falso por omissão —
+  /// nunca presuma preclusão que ninguém marcou, porque errar para esse lado assusta o cliente e
+  /// errar para o outro perde o prazo. Quem marca é o advogado, sempre.
+  prazoPreclusivo       Boolean   @default(false)
+  valorCausa            String?
+  descumprimentoLiminar String?
+  teses                 Json      @default("[]")
+  observacoes           String?
+
+  // Documentos JÁ existentes no Lúmen, selecionados para esta sessão (ids de Attachment, sem
+  // relação de banco pelo mesmo motivo do vínculo acima). Os anexos NOVOS desta sessão vivem em
+  // PeticionamentoAnexo, abaixo.
+  documentosExistentesIds Json @default("[]")
+
+  // CONTEXTO (wizard em andamento) | AGUARDANDO_CONFIRMACAO (modal de triagem aberto) |
+  // GERANDO | GERADA | FALHA_GERACAO | EXPORTADA.
+  status String @default("CONTEXTO")
+
+  // Seção 8: nunca trunca em silêncio. Preenchido quando o contexto foi resumido automaticamente
+  // (o que foi condensado) ou bloqueado (o que falta decidir) — null quando o contexto sempre
+  // coube inteiro.
+  contextoResumoAviso     String?
+  contextoBloqueadoMotivo String?
+
+  // O que o agente devolveu (contrato-com-o-agente.md §2): corpo completo da minuta já com o
+  // fecho literal garantido por código (lib/peticionamentoFecho.ts) — nunca confiado só ao
+  // modelo. As três listas abaixo alimentam a nota de destaque obrigatória
+  // (lib/peticionamentoNotaObrigatoria.ts), montada pelo SISTEMA, nunca copiada do texto livre
+  // que o modelo escreveu.
+  minutaTexto               String?
+  /// CONTRATO DE SCHEMA 23/09/2026 (etapa A do editor de minuta: folha A4, régua e barra de
+  /// formatação). A FORMATAÇÃO da minuta — HTML — mora AQUI, nunca em `minutaTexto` acima.
+  ///
+  /// Por que uma coluna nova em vez de trocar o conteúdo daquela: `minutaTexto` é texto PURO e
+  /// quatro coisas dependem disso — o fecho literal (lib/peticionamentoFecho.ts, reconferido em
+  /// toda gravação), a IDENTIDADE de cada citação e a trava do "li e revisei"
+  /// (normalizarTextoCitacao/hashDeTexto em lib/peticionamentoCitacoes.ts), a divisão em
+  /// parágrafos do Word (lib/peticionamentoDocx.ts, que corta por `\n{2,}` e por `\n`) e a
+  /// pergunta "já existe minuta?" (lib/peticionamentoPasso.ts). HTML naquela coluna quebraria as
+  /// quatro em silêncio.
+  ///
+  /// NULO É ESTADO LEGÍTIMO, e significa exatamente "esta minuta ainda não foi formatada": toda
+  /// sessão gerada antes desta entrega tem null aqui, e a tela SEMEIA a folha a partir do texto
+  /// puro (lib/peticionamentoMinutaFormatada.ts: htmlParaAbrirAFolha) sem reescrever
+  /// `minutaTexto`. Abrir uma minuta antiga e não mexer em nada não muda uma vírgula do corpo.
+  ///
+  /// QUEM GRAVA AQUI grava `minutaTexto` na MESMA transação, e o texto puro é sempre DERIVADO
+  /// deste HTML por textoPuroDaMinutaHtml — nunca recebido em paralelo da tela. É essa derivação
+  /// única que impede as duas representações de divergirem.
+  minutaFormatadaHtml       String?
+  /// ETAPA B do editor (prévia com o timbrado): as MARGENS DA FOLHA que o advogado ajustou na
+  /// régua, em milímetro — { topoMm, direitaMm, baseMm, esquerdaMm }. Antes elas viviam só no
+  /// estado da tela e voltavam ao padrão a cada recarga.
+  ///
+  /// NULO É ESTADO LEGÍTIMO, e significa "ninguém mexeu na régua desta minuta": a folha usa a
+  /// margem do timbrado do escritório e, sem timbrado, a padrão (a conciliação é uma função só,
+  /// lib/peticionamentoPaginaA4.ts:margensDaFolha). Toda sessão anterior a esta entrega é null e
+  /// continua exportando exatamente como antes. Não faz parte do corpo: gravar aqui não toca
+  /// `minutaTexto` nem `minutaFormatadaHtml`.
+  minutaMargensMm           Json?
+  notaRiscos                Json    @default("[]")
+  jurisprudenciaCitada      Json    @default("[]")
+  documentosBaseConsultados Json    @default("[]")
+  // PRIORIDADE 1 (relatório da entrega "peticionamento lê documentos"): documento que NÃO pôde
+  // ser lido (formato não suportado, PDF escaneado sem texto, falha ao baixar do Drive) — nunca
+  // entra em documentosBaseConsultados, e a tela/nota obrigatória precisam dizer QUAIS ficaram de
+  // fora e por quê, nunca só omitir. Formato: [{ nome: string; motivo: string }].
+  documentosNaoLidos        Json    @default("[]")
+
+  hermesSessionId String?
+  geradoEm        DateTime?
+
+  /// CONTRATO DE SCHEMA 22/09/2026 — A GERAÇÃO QUE NÃO CABE NUMA REQUISIÇÃO WEB.
+  ///
+  /// O teto duro da Vercel é de 300 segundos. Uma peça a partir de um processo de dezenas de
+  /// páginas pode legitimamente precisar de mais, e em produção o Hermes foi MORTO aos 240s com o
+  /// agente ainda escrevendo — o trabalho inteiro (e o custo) perdido por causa do relógio de uma
+  /// requisição HTTP. Por isso a geração deixou de ser "esperar" e passou a ser um TRABALHO COM
+  /// NOME: o Lúmen dispara na ponte, recebe um identificador, e volta na hora.
+  ///
+  /// `hermesTarefaId` é esse identificador, do lado da PONTE (servidor-hermes/servidor.py,
+  /// `POST /chat-async`). NÃO CONFUNDIR com `hermesSessionId` acima, que é a conversa do lado do
+  /// HERMES e sobrevive entre gerações: a tarefa é de UMA geração só e morre quando ela termina.
+  ///
+  /// QUEM MEXER AQUI É OBRIGADO A MANTER EM PÉ, ao mesmo tempo:
+  ///
+  ///   · os três campos andam JUNTOS com `status = "GERANDO"`. Gravar GERANDO sem `hermesTarefaId`
+  ///     cria uma sessão que ninguém consegue colher: ela fica na tela "gerando" até o prazo
+  ///     máximo e só então vira falha — o advogado esperando por nada;
+  ///   · `geracaoIniciadaEm` é o relógio da rede de segurança por cron
+  ///     (app/api/cron/minutas-pendentes). Sem ele, uma sessão de aba fechada nunca é varrida;
+  ///   · `geracaoDocumentosLidos` é a lista de nomes dos documentos que FORAM LIDOS e ENVIADOS
+  ///     nesta geração. Ela tem de ser gravada no DISPARO, e não na colheita, porque quem colhe
+  ///     pode ser o cron, noutra requisição, sem nada do que foi montado em memória. É ela que
+  ///     filtra a declaração do agente contra o que de fato foi lido — sem ela, um nome alucinado
+  ///     entraria em `documentosBaseConsultados` e a nota obrigatória mentiria ao juiz.
+  ///
+  /// Os três são limpos quando a geração é colhida (GERADA) ou desiste (FALHA_GERACAO): uma
+  /// tarefa que já foi colhida não pode ser colhida de novo, e deixá-la gravada seria um convite.
+  hermesTarefaId         String?
+  geracaoIniciadaEm      DateTime?
+  geracaoDocumentosLidos Json      @default("[]")
+
+  /// CONTRATO DE SCHEMA 23/09/2026 — A MEDIÇÃO QUE SUBSTITUI O NÚMERO INVENTADO.
+  ///
+  /// Quanto ESTA geração levou, em milissegundos, do disparo até a minuta gravada. Gravado UMA vez,
+  /// na mesma reivindicação atômica que grava a minuta (`gravarMinutaGerada`), e nunca depois.
+  ///
+  /// POR QUE ELE EXISTE. A tela de geração precisa dizer quanto tempo isto costuma levar, e o dono
+  /// pediu a frase "de x a 15 minutos". NINGUÉM MEDIU esse x — e número inventado numa tela é o que
+  /// esta casa mais evita (é o mesmo motivo pelo qual a tela de geração não mostra porcentagem).
+  /// Então o sistema MEDE: com medições suficientes, a tela mostra a faixa real DESTE escritório
+  /// (lib/peticionamentoTempoDeGeracao.ts); sem elas, fala só do teto e não inventa piso nenhum.
+  ///
+  /// NULO É ESTADO LEGÍTIMO, e quem lê tem de tratá-lo: as sessões geradas antes desta entrega não
+  /// têm medição, e uma geração cujo relógio de início se perdeu (`geracaoIniciadaEm` nulo) NÃO
+  /// recebe um número chutado a partir de `updatedAt` — ficaria "medido" sem ter sido medido.
+  geracaoDuracaoMs Int?
+
+  /// CONTRATO DE SCHEMA 23/09/2026 — O QUE FAZ O ALERTA DA CENTRAL SUMIR SOZINHO.
+  ///
+  /// Quando alguém abriu a tela da minuta DEPOIS de a geração terminar (com sucesso ou com falha).
+  /// Gravado pela própria página (app/peticionamento/[id]/minuta/page.tsx), no mesmo lugar em que
+  /// ela já grava `passoAtual` a cada navegação.
+  ///
+  /// É O CORTE DO ALERTA "minuta pronta" (lib/alerts.ts): o alerta existe enquanto isto é nulo.
+  /// Assim o advogado que gera cinco minutas num dia vê cinco alertas e cada um SOME quando ele
+  /// abre aquela minuta — sem botão de dispensar, porque existe uma ação que resolve o alerta, e
+  /// a ação é justamente abrir o que ficou pronto.
+  ///
+  /// NÃO PODE SER GRAVADO NO ESTADO GERANDO: a tela da minuta é a MESMA que mostra o andamento da
+  /// geração, e marcá-la como vista enquanto o agente ainda redige apagaria o alerta antes de ele
+  /// nascer — o advogado de aba fechada nunca saberia que a peça ficou pronta.
+  minutaVistaEm DateTime?
+
+  /// CONTRATO DE SCHEMA 23/09/2026 — A APROVAÇÃO FINAL, SEPARADA DO "LI E REVISEI" DE CADA CITAÇÃO.
+  ///
+  /// Passo distinto (pedido do dono), "Aprovar minuta / gerar peça": grava QUEM aprovou e QUANDO,
+  /// só depois de a régua de lib/peticionamentoAprovacao.ts (avaliarAprovacaoDeMinuta) confirmar
+  /// que TODAS as citações ativas estão confirmadas e NENHUMA é bloqueante (molde, ou sem fonte
+  /// oficial — ver lib/peticionamentoIdentificadorDeJulgado.ts e a graduação de fonte do Passo 4
+  /// da skill pesquisa-jurisprudencia). A ação que grava isto NÃO exporta nem imprime nada — isso
+  /// é de outra etapa; este par de campos só registra a decisão já tomada.
+  ///
+  /// NULO É ESTADO LEGÍTIMO (minuta ainda não aprovada), e uma edição no corpo da minuta DEPOIS de
+  /// aprovada zera os dois de volta (lib/actions/peticionamento.ts:atualizarCorpoDaMinuta) — pelo
+  /// mesmo motivo que editar já desfaz a confirmação de cada citação cujo texto mudou: ninguém
+  /// aprovou um texto que ainda não existia.
+  minutaAprovadaEm    DateTime?
+  minutaAprovadaPorId String?
+  minutaAprovadaPor   User?     @relation("PeticionamentoSessaoAprovadaPor", fields: [minutaAprovadaPorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// O passo em que a pessoa parou, GRAVADO a cada navegação. Antes disto o passo era deduzido
+  /// do que já estava preenchido — acertava quase sempre, e "quase sempre" numa tela que promete
+  /// retomar de onde parou é o suficiente para a promessa soar falsa quando erra.
+  passoAtual String?
+
+  anexos      PeticionamentoAnexo[]
+  exportacoes PeticionamentoExportacao[]
+  citacoes    PeticionamentoCitacao[]
+
+  @@index([officeId, criadoPorId])
+  @@index([officeId, status])
+  /// A rede de segurança por cron varre por `status` + `geracaoIniciadaEm` e ATRAVESSA os
+  /// escritórios (uma sessão em GERANDO tem de terminar seja de quem for) — por isso o índice
+  /// NÃO começa por officeId, ao contrário dos dois acima.
+  @@index([status, geracaoIniciadaEm])
+}
+
+// Anexo NOVO desta sessão (upload — seção 10 da especificação), distinto dos documentos que já
+// existiam no Lúmen (esses ficam só como id em PeticionamentoSessao.documentosExistentesIds).
+model PeticionamentoAnexo {
+  id       String               @id @default(cuid())
+  sessaoId String
+  sessao   PeticionamentoSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  nome          String
+  driveUrl      String?
+  storageFileId String?
+  tamanhoBytes  Int?
+
+  // ÓRFÃOS desde 23/09/2026 — NENHUM código lê ou grava mais estes dois campos. A ação que os
+  // gravava (`marcarConversaoMarkdown`, lib/actions/peticionamento.ts) nunca convertia nada de
+  // verdade: só registrava a escolha do advogado atrás de um selo "✓ Convertido em Markdown" que
+  // afirmava um trabalho que não tinha acontecido — o dono decidiu tirar o botão da tela, e a
+  // ação junto (o agente já lê o conteúdo real de cada documento por outro caminho, ver
+  // carregarDocumentosDaSessaoComTexto em lib/actions/peticionamento.ts). Os campos continuam
+  // aqui porque o build de produção roda `prisma db push`, e tirar coluna apagaria dado real da
+  // base de produção sem ganho nenhum — remover exige migração pensada, não esta entrega.
+  markdownConvertido Boolean @default(false)
+  markdownRecusado   Boolean @default(false)
+
+  // Ao fim da sessão, o sistema oferece promover este anexo a anexo oficial do processo/caso
+  // (seção 10) — nada é apagado automaticamente se recusado, ele só continua em "peticionamento/".
+  promovidoOficial Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessaoId])
+}
+
+// O REGISTRO da trava técnica de exportação (seção 5): quem confirmou o checkbox de ciência e
+// quando — nos metadados do próprio .docx (lib/peticionamentoDocx.ts) E aqui, para auditoria do
+// escritório sobreviver mesmo que o arquivo gerado seja perdido/editado depois.
+model PeticionamentoExportacao {
+  id       String               @id @default(cuid())
+  sessaoId String
+  sessao   PeticionamentoSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  confirmadoPorId String
+  confirmadoPor   User     @relation("PeticionamentoExportacaoConfirmadoPor", fields: [confirmadoPorId], references: [id])
+  confirmadoEm    DateTime @default(now())
+
+  arquivoNome      String
+  driveUrl         String?
+  timbradoAplicado Boolean
+
+  createdAt DateTime @default(now())
+
+  @@index([sessaoId])
+}
+
+// ============================================================================
+// CONTRATO DE SCHEMA DA FILA (22/09/2026) — escrito de uma vez, de propósito.
+//
+// Quatro frentes da fila do dono precisavam de banco: validação de citação uma a uma, histórico
+// do agente do Painel Mestre, registro de quem perguntou o quê, e o passo real de um rascunho.
+// Cada uma ia rodar num agente diferente, e três agentes editando este arquivo ao mesmo tempo se
+// atropelam — o client gerado é compartilhado. Em vez de enfileirar as quatro por causa disso, o
+// schema foi definido AQUI, uma vez, e as frentes passam a ser independentes entre si.
+//
+// Efeito colateral bom: o modelo de dados fica coerente porque foi pensado junto, em vez de três
+// desenhos parecidos inventados em paralelo.
+// ============================================================================
+
+/// Uma citação de jurisprudência dentro de uma minuta, e a confirmação individual dela.
+///
+/// O SISTEMA NÃO VERIFICA NADA: ele não sabe se o precedente existe. O que esta tabela sustenta é
+/// a única garantia possível hoje — que ninguém poderá dizer que não viu cada citação antes de a
+/// peça sair. Por isso `confirmadaPorId` e `confirmadaEm` são o coração dela, e por isso existe
+/// `hashDoTexto`: editar a minuta depois de confirmar tem de INVALIDAR a confirmação da citação
+/// que mudou, senão a confirmação passa a valer para um texto que ninguém leu.
+model PeticionamentoCitacao {
+  id       String               @id @default(cuid())
+  sessaoId String
+  sessao   PeticionamentoSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  /// EMENTA (o agente citou como precedente estruturado) | TRECHO (referência solta no corpo do
+  /// texto — estas são as mais perigosas, porque hoje escapam inteiras da lista de jurisprudência).
+  tipo  String @default("EMENTA")
+  texto String
+
+  /// Os links da dupla validação, para o advogado conferir. Nulos quando o agente não informou —
+  /// e "não informou" é um fato a mostrar na tela, nunca um silêncio.
+  fonteUrl           String?
+  fonteSecundariaUrl String?
+
+  /// Impressão do texto no momento da confirmação. Se o texto mudar, a confirmação não vale mais.
+  hashDoTexto String?
+
+  confirmadaPorId String?
+  confirmadaPor   User?     @relation("PeticionamentoCitacaoConfirmadaPor", fields: [confirmadaPorId], references: [id])
+  confirmadaEm    DateTime?
+
+  /// EXCLUSÃO (pedido do dono, 23/09/2026 — botão "excluir" no quadro "Citações desta minuta").
+  ///
+  /// SOFT-DELETE, nunca DELETE físico: `sincronizarCitacoes` recalcula a lista inteira a cada
+  /// carregamento a partir de `jurisprudenciaCitada` + `minutaTexto` (lib/peticionamentoCitacoes.ts).
+  /// Se a linha fosse apagada de verdade, e o texto de origem (ementa estruturada, ou trecho ainda
+  /// presente no corpo) continuasse existindo, a MESMA identidade (tipo + texto normalizado)
+  /// ressuscitaria sozinha na sincronização seguinte — o botão "excluir" pareceria funcionar por um
+  /// instante e a citação voltaria ao abrir a tela de novo.
+  ///
+  /// Com o soft-delete, a identidade continua "vista" pela sincronização (que não mexe numa linha
+  /// cujo texto/links não mudaram, excluída ou não), então a citação some da lista de confirmação
+  /// sem reaparecer sozinha. Excluir o REGISTRO nunca apaga o texto da minuta — se o trecho
+  /// continuar no corpo, a tela precisa dizer isso (ver listarCitacoesParaValidacao).
+  excluidaPorId String?
+  excluidaPor   User?     @relation("PeticionamentoCitacaoExcluidaPor", fields: [excluidaPorId], references: [id])
+  excluidaEm    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessaoId, tipo])
+}
+
+/// Uma conversa com o agente do Painel Mestre. Hoje o histórico morre quando a aba fecha.
+model PainelMestreConversa {
+  id String @id @default(cuid())
+
+  membroId String
+  membro   PlatformMember @relation(fields: [membroId], references: [id], onDelete: Cascade)
+
+  titulo String?
+  turnos PainelMestreTurno[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([membroId, updatedAt])
+}
+
+/// Um turno da conversa — e, ao mesmo tempo, o REGISTRO de quem perguntou o quê.
+///
+/// As duas coisas na mesma tabela de propósito: uma trilha de auditoria que vive separada do
+/// histórico diverge dele no primeiro dia em que alguém apagar uma conversa. Aqui, quem lê o
+/// histórico e quem audita leem a mesma linha.
+model PainelMestreTurno {
+  id         String               @id @default(cuid())
+  conversaId String
+  conversa   PainelMestreConversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+
+  /// Quem perguntou. Guardado no turno, e não só na conversa, porque é o registro de auditoria:
+  /// ele tem de responder "quem perguntou isto", não "de quem é a conversa onde isto apareceu".
+  membroId String
+  membro   PlatformMember @relation(fields: [membroId], references: [id])
+
+  /// user | assistant
+  papel String
+  texto String
+
+  /// Nomes das ferramentas que o agente usou para responder este turno. É o que torna a auditoria
+  /// útil: não só o que foi perguntado, mas o que foi de fato consultado para responder.
+  ferramentasUsadas Json @default("[]")
+
+  createdAt DateTime @default(now())
+
+  @@index([conversaId, createdAt])
+  @@index([membroId, createdAt])
 }

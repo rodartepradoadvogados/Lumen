@@ -21,7 +21,8 @@ import { useUndoToast } from "@/components/UndoToastProvider";
 import CopyButton from "@/components/CopyButton";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import PeticionarButton from "@/components/PeticionarButton";
-import { formatDate, formatCalendarDate } from "@/components/ui";
+import { formatCalendarDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { CalendarClock, FilePlus2, UserPlus, Archive, Search, Layers, Ban, CheckCheck } from "lucide-react";
 import type { PublicationGroup } from "@/lib/publicationGrouping";
 import { matchesPublicationChip, type PublicationChipKey } from "@/lib/publicationChips";
@@ -448,7 +449,9 @@ function FilaCard({
           )}
           {!group.allRead && <span className="ml-1.5 text-marca-tx">· não triada</span>}
         </span>
-        <span className="font-display text-etiqueta text-tx-3 shrink-0 tabular-nums">{formatDate(pub.publishedAt)}</span>
+        {/* publishedAt é instante (quando o diário publicou) — formatDate() lia sem fuso e virava
+            um dia errado perto da meia-noite; dataDeBrasilia() força o fuso do escritório. */}
+        <span className="font-display text-etiqueta text-tx-3 shrink-0 tabular-nums">{dataDeBrasilia(pub.publishedAt)}</span>
       </div>
       <p className="text-sm text-tx mt-1 line-clamp-2">{pub.content}</p>
       {pub.case ? (
@@ -490,7 +493,7 @@ function Teor({
     <div className="flex-1 flex flex-col min-h-0 bg-sf">
       <div className="px-6 pt-5 pb-4 border-b border-regua shrink-0">
         <p className="font-display text-etiqueta font-bold uppercase tracking-[0.12em] text-tx-2">
-          {pub.source} · {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"} · {formatDate(pub.publishedAt)}
+          {pub.source} · {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"} · {dataDeBrasilia(pub.publishedAt)}
           {assignedToName && <> · responsável: {assignedToName}</>}
         </p>
         <h2 className="text-2xl font-extrabold text-tx mt-1">
@@ -523,7 +526,7 @@ function Teor({
             <div key={item.id} className={group.items.length > 1 ? "border-t-2 border-regua-forte pt-4 first:border-t-0 first:pt-0" : ""}>
               {group.items.length > 1 && (
                 <p className="font-display text-etiqueta font-bold uppercase tracking-[0.12em] text-tx-2 mb-1.5">
-                  {item.source} · {formatDate(item.publishedAt)}
+                  {item.source} · {dataDeBrasilia(item.publishedAt)}
                 </p>
               )}
               <p className="text-corpo leading-[1.6] text-tx whitespace-pre-wrap">{item.content}</p>

@@ -10,6 +10,7 @@ import { syncReceivableStatus } from "@/lib/actions/financeiro";
 import { valorLiquido } from "@/lib/financeCalc";
 import { isUserInOffice, isCaseInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";
+import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
 export async function listAssessorias() {
   const user = await getCurrentUser();
@@ -60,7 +61,12 @@ async function buildAssessoria(data: CreateAssessoriaInput): Promise<{ error?: s
   try {
     driveFolderId = await getOrCreateAssessoriaCompanyFolder(client.name, user.officeId);
   } catch (err) {
-    console.error(`[assessoria] falha ao criar pasta no Drive para "${client.name}" (office ${user.officeId}):`, err);
+    // NÃO registre o objeto de erro inteiro aqui. O erro do cliente do Google (gaxios) carrega
+    // `config.data` com o REFRESH TOKEN da conta em texto limpo — foi assim que um token do Drive
+    // deste escritório acabou legível no registro da Vercel. A mensagem basta para diagnosticar
+    // (`invalid_grant`, `403`, `quota`), e é o que sobra de útil sem virar vazamento. Perde-se a
+    // pilha de chamadas; é troca consciente.
+    console.error(`[assessoria] falha ao criar pasta no Drive para "${client.name}" (office ${user.officeId}):`, mensagemDeErro(err));
     driveFolderId = null;
   }
 
@@ -434,7 +440,12 @@ export async function retryAssessoriaDriveFolder(assessoriaId: string): Promise<
     const driveFolderId = await getOrCreateAssessoriaCompanyFolder(assessoria.client.name, user.officeId);
     await prisma.assessoria.update({ where: { id: assessoriaId }, data: { driveFolderId } });
   } catch (err) {
-    console.error(`[assessoria] retry de pasta no Drive falhou para "${assessoria.client.name}" (office ${user.officeId}):`, err);
+    // NÃO registre o objeto de erro inteiro aqui. O erro do cliente do Google (gaxios) carrega
+    // `config.data` com o REFRESH TOKEN da conta em texto limpo — foi assim que um token do Drive
+    // deste escritório acabou legível no registro da Vercel. A mensagem basta para diagnosticar
+    // (`invalid_grant`, `403`, `quota`), e é o que sobra de útil sem virar vazamento. Perde-se a
+    // pilha de chamadas; é troca consciente.
+    console.error(`[assessoria] retry de pasta no Drive falhou para "${assessoria.client.name}" (office ${user.officeId}):`, mensagemDeErro(err));
     return { error: "Não foi possível criar a pasta agora. Verifique se o armazenamento em nuvem está conectado (Configurações) e tente de novo." };
   }
 

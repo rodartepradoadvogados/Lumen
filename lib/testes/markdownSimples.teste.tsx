@@ -66,6 +66,69 @@ const MINUTOS: { palavras: number; esperado: number }[] = [
   { palavras: 1000, esperado: 5 },
 ];
 
+
+// ── Tabelas ─────────────────────────────────────────────────────────────────────────────────
+// O agente responde em tabela sempre que a resposta tem mais de uma coluna. Sem isto, as linhas
+// caíam num parágrafo só e a tela virava uma parede de barras verticais.
+CASOS.push(
+  {
+    nome: "tabela com cabeçalho e separação",
+    entrada: "| Data | Processo |\n|------|----------|\n| 18/09 | 0372559-35 |\n| 16/09 | 5249838-95 |",
+    esperado:
+      '<div class="md-tabela"><table><thead><tr><th>Data</th><th>Processo</th></tr></thead>' +
+      "<tbody><tr><td>18/09</td><td>0372559-35</td></tr><tr><td>16/09</td><td>5249838-95</td></tr></tbody></table></div>",
+  },
+  {
+    nome: "tabela com separação alinhada (|:--:|)",
+    entrada: "| A | B |\n|:---|---:|\n| 1 | 2 |",
+    esperado:
+      '<div class="md-tabela"><table><thead><tr><th>A</th><th>B</th></tr></thead>' +
+      "<tbody><tr><td>1</td><td>2</td></tr></tbody></table></div>",
+  },
+  {
+    nome: "célula faltando não derruba a linha",
+    entrada: "| A | B | C |\n|---|---|---|\n| 1 | 2 |",
+    esperado:
+      '<div class="md-tabela"><table><thead><tr><th>A</th><th>B</th><th>C</th></tr></thead>' +
+      "<tbody><tr><td>1</td><td>2</td><td></td></tr></tbody></table></div>",
+  },
+  {
+    nome: "link dentro da célula",
+    entrada: "| Processo |\n|---|\n| [0372559-35](/processos/abc) |",
+    esperado:
+      '<div class="md-tabela"><table><thead><tr><th>Processo</th></tr></thead>' +
+      '<tbody><tr><td><a href="/processos/abc">0372559-35</a></td></tr></tbody></table></div>',
+  },
+  {
+    nome: "frase com barra vertical no meio NÃO vira tabela",
+    entrada: "o prazo é 10 | 20 dias",
+    esperado: "<p>o prazo é 10 | 20 dias</p>",
+  },
+  {
+    nome: "tabela termina onde o texto volta",
+    entrada: "| A |\n|---|\n| 1 |\n\ndepois disso",
+    esperado:
+      '<div class="md-tabela"><table><thead><tr><th>A</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table></div>' +
+      "<p>depois disso</p>",
+  },
+  // ── Links internos ────────────────────────────────────────────────────────────────────────
+  {
+    nome: "link para dentro do Lúmen abre na mesma aba",
+    entrada: "veja o [processo](/processos/abc123)",
+    esperado: '<p>veja o <a href="/processos/abc123">processo</a></p>',
+  },
+  {
+    nome: "link externo continua abrindo em aba nova",
+    entrada: "veja o [TJGO](https://tjgo.jus.br)",
+    esperado: '<p>veja o <a href="https://tjgo.jus.br" target="_blank" rel="noopener noreferrer">TJGO</a></p>',
+  },
+  {
+    nome: "link protocolo-relativo NÃO é tratado como interno",
+    entrada: "[fora](//exemplo.com/x)",
+    esperado: '<p><a href="//exemplo.com/x" target="_blank" rel="noopener noreferrer">fora</a></p>',
+  },
+);
+
 let falhas = 0;
 for (const caso of CASOS) {
   let obtido: string;

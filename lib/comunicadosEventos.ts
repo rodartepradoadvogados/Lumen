@@ -27,6 +27,12 @@ export const PER_EVENT_EVENTOS = {
   ANDAMENTO_PROCESSUAL: "Andamento processual",
   TAREFA_DELEGADA: "Tarefa delegada a mim",
   CONVITE_EQUIPE: "Convite de equipe",
+  // O lead que o atendente do WhatsApp terminou de triar e a fila mandou para mim. Mora no Bloco
+  // 3 (canal/cadência configuráveis) e não entre os break-through porque o aviso de verdade já
+  // sai pelo WhatsApp, na hora, fora desta fila — isto aqui é o push e o e-mail que ficam de
+  // registro. Quem desligar não fica sem o lead: o relógio de 15 minutos é que garante que a
+  // conversa não dorme, e ele não olha para esta preferência.
+  LEAD_TRANSFERIDO: "Lead transferido para mim",
 } as const;
 export type PerEventEvento = keyof typeof PER_EVENT_EVENTOS;
 
@@ -77,5 +83,9 @@ export const DEFAULT_PER_EVENT: PerEventConfig = {
   ANDAMENTO_PROCESSUAL: { canal: "IN_APP", cadencia: "DIARIO" },
   TAREFA_DELEGADA: { canal: "PUSH", cadencia: "NA_HORA" },
   CONVITE_EQUIPE: { canal: "EMAIL", cadencia: "NA_HORA" },
+  // PUSH/NA_HORA pela mesma razão de TAREFA_DELEGADA: lead é trabalho que chegou agora. "Só
+  // amanhã no resumo" é a configuração errada para a única coisa neste sistema que tem prazo de
+  // validade medido em minutos.
+  LEAD_TRANSFERIDO: { canal: "PUSH", cadencia: "NA_HORA" },
 };
 export const DEFAULT_BREAKTHROUGH: BreakthroughEvento[] = ["PRAZO_HOJE", "AUDIENCIA_24H"];

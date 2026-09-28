@@ -7,6 +7,7 @@ import { Users, Target, Newspaper, Wallet, Scale, Info, SlidersHorizontal } from
 import RelatorioPersonalizadoView from "@/components/relatorios/RelatorioPersonalizadoView";
 import { valorLiquido, saldoEmAberto, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
 import { groupCasesByMateria } from "@/lib/caseMaterias";
+import { somaEstimadaOuOmissao } from "@/lib/valorEstimado";
 import { STAGES, stageLabels, stageColor, CASE_STATUS_ORDER, caseStatusLabels, caseStatusColor, triageLabels, triageColor } from "@/lib/relatoriosLabels";
 
 export const dynamic = "force-dynamic";
@@ -319,15 +320,21 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
   );
 }
 
-async function FunilSection({ start, end, officeId }: { start: Date; end: Date; officeId: string }) {
+async function FunilSection({ start, end, officeId, isAdmin }: { start: Date; end: Date; officeId: string; isAdmin: boolean }) {
   const attendances = await prisma.attendance.findMany({
     where: { officeId, status: { not: "ARQUIVADO" }, createdAt: { gte: start, lt: end } },
   });
 
+  // Soma por estágio é indicador (projeção de receita futura), não registro — passa pela régua
+  // de administrador em lib/valorEstimado.ts em vez de somar `estimatedValue` direto.
   const stageTotals = STAGES.map((s) => {
     const items = attendances.filter((a) => (STAGES.includes(a.stage) ? a.stage : "NOVO") === s);
-    return { stage: s, count: items.length, sum: items.reduce((x, a) => x + (a.estimatedValue || 0), 0) };
+    return { stage: s, count: items.length, somaEstimada: somaEstimadaOuOmissao(items.map((a) => a.estimatedValue), { isAdmin }) };
   });
+  // Todos os estágios compartilham o mesmo `isAdmin`, então a omissão (quando existe) é igual em
+  // todos — calculada uma única vez, pela mesma régua, para explicar por que a soma não aparece.
+  const somaEstimadaVazia = somaEstimadaOuOmissao([], { isAdmin });
+  const omissaoValorEstimado = somaEstimadaVazia.omitido ? somaEstimadaVazia : null;
   const maxStageCount = Math.max(0, ...stageTotals.map((s) => s.count));
   const closed = stageTotals.find((s) => s.stage === "FECHADO")?.count ?? 0;
   const lost = stageTotals.find((s) => s.stage === "PERDIDO")?.count ?? 0;
@@ -369,13 +376,16 @@ async function FunilSection({ start, end, officeId }: { start: Date; end: Date; 
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
           <div>
-            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Quantidade e valor estimado por estágio</p>
-            <div className="space-y-3">
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1">Quantidade e valor estimado por estágio</p>
+            {omissaoValorEstimado && (
+              <p className="text-xs italic text-tx-3 mb-2">{omissaoValorEstimado.motivo}</p>
+            )}
+            <div className="space-y-3 mt-2">
               {stageTotals.map((s) => (
                 <HBar
                   key={s.stage}
                   label={stageLabels[s.stage]}
-                  display={`${s.count}${s.sum > 0 ? ` · ${formatCurrency(s.sum)}` : ""}`}
+                  display={`${s.count}${!s.somaEstimada.omitido && s.somaEstimada.total > 0 ? ` · ${formatCurrency(s.somaEstimada.total)}` : ""}`}
                   value={s.count}
                   max={maxStageCount}
                   color={stageColor[s.stage]}
@@ -702,7 +712,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
       {secao === "personalizado" && <RelatorioPersonalizadoView />}
       {secao === "produtividade" && <ProdutividadeSection start={start} end={end} months={months} officeId={viewer.officeId} />}
       {secao === "processos" && <ProcessosSection start={start} end={end} officeId={viewer.officeId} />}
-      {secao === "funil" && <FunilSection start={start} end={end} officeId={viewer.officeId} />}
+      {secao === "funil" && <FunilSection start={start} end={end} officeId={viewer.officeId} isAdmin={Boolean(viewer.isAdmin)} />}
       {secao === "publicacoes" && <PublicacoesSection start={start} end={end} months={months} officeId={viewer.officeId} />}
       {secao === "financeiro" && hasFinanceAccess && <FinanceiroSection start={start} end={end} months={months} now={now} officeId={viewer.officeId} />}
     </div>

@@ -1,5 +1,6 @@
-import { Card, Badge, EmptyState, formatDate } from "@/components/ui";
+import { Card, Badge, EmptyState } from "@/components/ui";
 import { Radar } from "lucide-react";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 type Termo = {
   id: string;
@@ -40,7 +41,9 @@ export default function MobileCaseVigilanciaTab({ termos }: { termos: Termo[] })
                   <p className="text-sm font-medium text-tx truncate">{t.termo}</p>
                   <p className="text-corpo text-tx-2">
                     {TIPO_LABELS[t.tipo] || t.tipo}
-                    {t.ultimoHitAt ? ` · último alerta em ${formatDate(t.ultimoHitAt)}` : ""}
+                    {/* ultimoHitAt é o instante em que o robô achou o termo — formatDate() lia
+                        sem fuso e virava um dia errado perto da meia-noite. */}
+                    {t.ultimoHitAt ? ` · último alerta em ${dataDeBrasilia(t.ultimoHitAt)}` : ""}
                   </p>
                 </div>
                 <Badge color={t.ativo ? "green" : "slate"}>{t.ativo ? "Ativo" : "Inativo"}</Badge>

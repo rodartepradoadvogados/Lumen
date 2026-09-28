@@ -5,6 +5,7 @@ import { PageHeader, Card, EmptyState } from "@/components/ui";
 import UserRow from "@/components/UserRow";
 import { createUser } from "@/lib/actions/settings";
 import { getCurrentUser } from "@/lib/currentUser";
+import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +14,15 @@ export const dynamic = "force-dynamic";
 // depender de CSS que pode não estar carregado.
 const fieldCls = "border border-regua-forte px-3 py-2 text-sm bg-sf text-tx";
 
-export default async function EquipePage() {
+export default async function EquipePage({ searchParams }: { searchParams: { q?: string } }) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
-  const users = await prisma.user.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } });
+  // Ver o comentário de `q` em contatos/advogados: é o link do nome dentro do atendimento.
+  const q = (searchParams.q || "").trim();
+  const users = await prisma.user.findMany({
+    where: { officeId: viewer.officeId, ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}) },
+    orderBy: { name: "asc" },
+  });
   const isAdmin = !!viewer.isAdmin;
 
   async function submitUser(formData: FormData) {
@@ -40,6 +46,8 @@ export default async function EquipePage() {
       </Link>
       <PageHeader title="Equipe" subtitle={`${users.length} membro(s)`} />
 
+      {q && <FiltradoPorNome q={q} href="/contatos/equipe" total={users.length} />}
+
       <Card>
         {users.length === 0 ? (
           <EmptyState title="Nenhum membro cadastrado" />
@@ -59,7 +67,7 @@ export default async function EquipePage() {
               <option value="Sócio">Sócio</option>
               <option value="Estagiário">Estagiário</option>
               <option value="Financeiro">Financeiro</option>
-              <option value="Recepcionista">Recepcionista</option>
+              <option value="Recepcionista/Secretária">Recepcionista/Secretária</option>
               <option value="Marketing">Marketing</option>
               <option value="Contador">Contador</option>
             </select>

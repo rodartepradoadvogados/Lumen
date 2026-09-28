@@ -125,3 +125,21 @@ export async function isPlatformStaff(): Promise<boolean> {
   if (viewer?.isPlatformOwner) return true;
   return Boolean(await getPlatformMember());
 }
+
+export type DonoDaPlataforma = { id: string; name: string; email: string };
+
+/**
+ * Jairo e Rodrigo — os `User.isPlatformOwner = true` do Rodarte Prado. MESMA query de
+ * app/api/admin/setup-lumen/route.ts (que usa isPlatformOwner para virar os dois em PlatformMember
+ * de papel SOCIO); aqui ela serve aos alertas TÉCNICOS de operação da máquina do Hermes (módulo
+ * pago de campanhas, Frente C: provisionamento que esgotou as tentativas — §3 — e memória da VPS
+ * — §4), que a especificação nomeia como indo para "Jairo e Rodrigo Prado", não para qualquer
+ * PlatformMember futuro de papel menor que a equipe do Lúmen venha a ter.
+ */
+export async function donosDaPlataforma(): Promise<DonoDaPlataforma[]> {
+  const owners = await prisma.user.findMany({
+    where: { isPlatformOwner: true, active: true },
+    select: { id: true, name: true, email: true },
+  });
+  return owners.filter((o) => o.email);
+}

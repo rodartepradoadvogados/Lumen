@@ -3,13 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Newspaper, Calendar, Plus, Briefcase, DollarSign } from "lucide-react";
+import { Newspaper, Calendar, Plus, Briefcase } from "lucide-react";
+import IconeAgente from "@/components/IconeAgente";
 import MobileNewEntitySheet from "@/components/mobile/MobileNewEntitySheet";
+import MobileAssistente from "@/components/mobile/MobileAssistente";
 import type { OfficeModules } from "@/lib/officeModules";
 
 // Cinco abas fixas (documento 08 do handoff do redesenho — Fase 4, PWA): Publicações, Agenda,
-// "+" central (Novo Atendimento), Processo, Financeiro (resumo) — substitui as cinco antigas
-// (Início/Agenda/Alertas/Publicações/Menu).
+// "+" central (Novo Atendimento), Processo e — desde 19/09/2026 — o Lúmen Agent, que tomou o
+// lugar do Financeiro (ver a nota na lista abaixo).
 //
 // Início e Menu (Mais) NÃO desaparecem — nada se perde, só saem do destaque da barra fixa (troca
 // de escopo pedida pelo dono do projeto: seguir as 5 abas do documento, mas sem tirar acesso a
@@ -30,17 +32,35 @@ const items = [
   // produto: "o botão de + tinha que dar a opção de escolher o que adicionar".
   { href: null, label: "", Icon: Plus, badge: null, central: true },
   { href: "/m/processos", label: "Processo", Icon: Briefcase, badge: null },
-  { href: "/m/financeiro", label: "R$", Icon: DollarSign, badge: null },
+  // O LÚMEN AGENT ENTRA NO LUGAR DO FINANCEIRO (pedido do dono, 19/09/2026).
+  //
+  // A barra tem cinco lugares e todos estavam ocupados. O financeiro saiu daqui porque JÁ SE
+  // CHEGA A ELE PELO MENU (/m/mais) — continua a um toque, só deixa de gastar um dos cinco
+  // lugares fixos. O agente não tinha nenhum caminho no celular: a caixa flutuante do portal não
+  // é montada neste layout, então no aplicativo ele simplesmente não existia.
+  //
+  // Bronze (--guia-ativa) e não bordô: bordô é a cor de AÇÃO da casa, e já está no "+" central
+  // ao lado. Dois quadrados bordô na mesma barra disputariam a atenção um com o outro.
+  { href: null, label: "Antonella", Icon: null, badge: null, agente: true },
 ];
 
-export default function MobileBottomNav({ agendaBadgeCount = 0, modules }: { agendaBadgeCount?: number; modules: OfficeModules }) {
+export default function MobileBottomNav({
+  agendaBadgeCount = 0,
+  modules,
+  userName = "",
+}: {
+  agendaBadgeCount?: number;
+  modules: OfficeModules;
+  userName?: string;
+}) {
   const pathname = usePathname();
   const [newEntityOpen, setNewEntityOpen] = useState(false);
+  const [assistenteOpen, setAssistenteOpen] = useState(false);
 
   return (
     <>
     <nav className="fixed bottom-0 inset-x-0 h-[76px] bg-sf border-t-2 border-regua-forte flex items-center z-40">
-      {items.map(({ href, label, Icon, badge, central }) => {
+      {items.map(({ href, label, Icon, badge, central, agente }) => {
         const active = href !== null && (pathname === href || pathname.startsWith(`${href}/`));
         const badgeCount = badge === "agenda" ? agendaBadgeCount : 0;
 
@@ -59,6 +79,31 @@ export default function MobileBottomNav({ agendaBadgeCount = 0, modules }: { age
             </button>
           );
         }
+
+        if (agente) {
+          return (
+            <button
+              key="agente"
+              type="button"
+              onClick={() => setAssistenteOpen(true)}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5"
+              aria-label="Abrir a Antonella"
+            >
+              <span className="flex items-center justify-center h-8 w-8 rounded-full border border-guia-ativa">
+                {/* A lente sai em bordô dentro do círculo bronze: é o único ponto da barra onde
+                    as duas cores da casa se encontram, e é o que faz o botão ser reconhecido
+                    antes de a pessoa ler "Agent". */}
+                <IconeAgente size={18} className="text-guia-ativa" acento="var(--acao)" />
+              </span>
+              <span className="text-corpo font-medium leading-none text-guia-ativa">{label}</span>
+            </button>
+          );
+        }
+
+        // O botão do agente é o único item sem ícone da biblioteca (ele tem desenho próprio), e
+        // já saiu acima. Esta guarda existe para o compilador saber disso — e para uma aba nova
+        // que alguém acrescente sem ícone falhar aqui, calada, em vez de derrubar a barra toda.
+        if (!Icon) return null;
 
         return (
           <Link key={href} href={href as string} className="flex-1 flex flex-col items-center justify-center gap-0.5">
@@ -86,6 +131,7 @@ export default function MobileBottomNav({ agendaBadgeCount = 0, modules }: { age
       })}
     </nav>
     <MobileNewEntitySheet open={newEntityOpen} onClose={() => setNewEntityOpen(false)} modules={modules} />
+    <MobileAssistente aberto={assistenteOpen} aoFechar={() => setAssistenteOpen(false)} userName={userName} />
     </>
   );
 }

@@ -3,11 +3,14 @@ import { notFound } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
+import { Card, Badge, EmptyState } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { Plus, Search } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
+import { filtroDoAtendimento, podeVerAtendimentos, veTodoOAtendimento } from "@/lib/acessoAtendimento";
+import NovaConversaModal from "@/components/atendimento/NovaConversaModal";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +40,12 @@ export default async function MobileAtendimento({
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
+  // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
+  // `notFound` e não uma tela de "sem permissão": quem não pode ver não precisa saber que existe.
+  if (!podeVerAtendimentos(viewer)) notFound();
+
+  // Mesmo motivo do site: a contagem é DELE, e o rótulo tem de dizer isso.
+  const soOsMeus = !veTodoOAtendimento(viewer);
 
   const q = (searchParams.q || "").trim();
 
@@ -45,6 +54,8 @@ export default async function MobileAtendimento({
   // caixa, não acento).
   const baseFilters: Prisma.AttendanceWhereInput = {
     officeId: viewer.officeId,
+    // O recorte por dono vai na CONSULTA — ver a nota igual em app/(app)/atendimento/page.tsx.
+    ...filtroDoAtendimento(viewer, viewer.id),
     // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
     // na aba própria "Rascunhos" — mesma regra da lista desktop.
     status: searchParams.status || { not: "RASCUNHO" },
@@ -81,15 +92,22 @@ export default async function MobileAtendimento({
     <div className="p-4 space-y-4 animate-fade-in">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-tx">Atendimento</h1>
-          <p className="text-sm text-tx-2">{totalCount} registro(s)</p>
+          <h1 className="text-xl font-bold text-tx">{soOsMeus ? "Suas demandas" : "Atendimento"}</h1>
+          <p className="text-sm text-tx-2">
+            {totalCount} {soOsMeus ? "repassado(s) a você" : "registro(s)"}
+          </p>
         </div>
-        <Link
-          href="/m/atendimento/novo"
-          className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-2 shrink-0"
-        >
-          <Plus size={14} /> Novo
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <Link
+            href="/m/atendimento/novo"
+            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-2"
+          >
+            <Plus size={14} /> Novo
+          </Link>
+          {/* F5.5 — "iniciar conversa" é diferente de "novo atendimento": aquele registra um
+              contato (qualquer canal), este manda a primeira mensagem de verdade pelo WhatsApp. */}
+          <NovaConversaModal />
+        </div>
       </div>
 
       <TiraDeGuias className="-mx-4 px-4">
@@ -144,7 +162,9 @@ export default async function MobileAtendimento({
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-corpo text-tx-2">{formatDate(a.createdAt)}</p>
+                  {/* createdAt é instante — formatDate() lia sem fuso e virava um dia errado
+                      perto da meia-noite. */}
+                  <p className="text-corpo text-tx-2">{dataDeBrasilia(a.createdAt)}</p>
                   {a.responsible && <p className="text-corpo text-tx-2 mt-0.5">{a.responsible.name}</p>}
                 </div>
               </Link>

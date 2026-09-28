@@ -129,7 +129,7 @@ export function useAnotacoes(): AnotacoesContextValue {
 }
 
 // Versão tolerante para componentes que existem tanto dentro quanto fora da árvore do provider
-// (hoje só o ClaudeAssistantWidget, que não é montado no app mobile — lá não há
+// (hoje só o AssistenteWidget, que não é montado no app mobile — lá não há
 // AnotacoesProvider nenhum). Devolve null em vez de lançar, para não derrubar quem só quer o
 // deslocamento visual quando o contexto existir.
 export function useAnotacoesOptional(): AnotacoesContextValue | null {

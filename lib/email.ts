@@ -6,6 +6,7 @@ import { getOAuthClient } from "@/lib/googleDrive";
 import { getMicrosoftAccessToken } from "@/lib/microsoftGraph";
 import { escapeHtml } from "@/lib/htmlEscape";
 import { describeMentionLocation, mentionCommentInclude } from "@/lib/mentions";
+import { getAppUrl } from "@/lib/appUrl";
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -555,6 +556,170 @@ export async function sendOfficeSuspendedEmail(to: string, officeName: string): 
 }
 
 // ============================================================================
+// Módulo pago de campanhas — cobrança e carência (Frente B da especificação de campanhas, §7).
+// Mesmo estilo/tom dos três e-mails de cobrança acima (sendPaymentReminderEmail/
+// sendOverdueReminderEmail/sendOfficeSuspendedEmail) — reaproveitando pixHtmlBlock —, só que
+// para a mensalidade/slot do MÓDULO DE CAMPANHAS, não a mensalidade base do Lúmen. Chamados por
+// lib/actions/campanhasCobranca.ts, nunca direto por uma tela.
+// ============================================================================
+
+/** Disparado UMA VEZ POR DIA durante os 10 dias corridos de carência (lib/campanhasCobranca.ts:
+ * deveEnviarAvisoHoje decide o "uma vez por dia" — este e-mail em si não tem trava própria). */
+export async function sendCampanhaCarenciaEmail(
+  to: string,
+  officeName: string,
+  descricaoDaCobranca: string,
+  valor: number,
+  diasRestantesDeCarencia: number,
+  opts?: PixEmailOpts & { boletoUrl?: string | null }
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const amountLabel = valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const prazoLabel =
+    diasRestantesDeCarencia <= 0
+      ? "hoje é o último dia antes do perfil de campanha ser desativado"
+      : `faltam ${diasRestantesDeCarencia} dia${diasRestantesDeCarencia === 1 ? "" : "s"} até o perfil de campanha ser desativado`;
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">MÓDULO DE CAMPANHAS — PAGAMENTO EM ATRASO</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">${descricaoDaCobranca} do escritório <strong>${officeName}</strong> está em atraso.</p>
+      <p style="font-size:14px;color:#14161a;">Valor: <strong>${amountLabel}</strong></p>
+      <p style="font-size:14px;color:#14161a;font-weight:700;">${prazoLabel}.</p>
+      ${pixHtmlBlock(opts)}
+      ${
+        opts?.boletoUrl
+          ? `<p style="text-align:center;margin:24px 0;"><a href="${opts.boletoUrl}" style="background:#181b1f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
+          : ""
+      }
+      <p style="font-size:13px;color:#585c63;">Se o pagamento já foi feito, pode ignorar este lembrete — a confirmação pode levar algumas horas para refletir aqui.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`, to, subject: `Módulo de Campanhas em atraso — Lúmen — ${officeName}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+/** Disparado UMA VEZ, no instante em que a carência de 10 dias se esgota e o perfil de campanha
+ * é desativado (§7/§8) — nunca repetido diariamente depois disso. */
+export async function sendCampanhaDesativadaEmail(to: string, officeName: string): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">MÓDULO DE CAMPANHAS DESATIVADO</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">O perfil de campanha do escritório <strong>${officeName}</strong> foi desativado após 10 dias corridos sem confirmação de pagamento — ele parou de responder e de disparar mensagens, e qualquer campanha em andamento foi interrompida.</p>
+      <p style="font-size:14px;color:#14161a;">O treinamento configurado para o perfil continua salvo. Ao regularizar o pagamento, o perfil volta a subir com o mesmo treinamento — nada precisa ser refeito.</p>
+      <p style="font-size:13px;color:#585c63;">Entre em contato com o Rodarte Prado Advogados para regularizar a situação.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`, to, subject: `Perfil de campanha desativado — Lúmen — ${officeName}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+// ============================================================================
+// ALERTAS TÉCNICOS DA MÁQUINA DO HERMES (Frente C do módulo pago de campanhas) — só para Jairo e
+// Rodrigo (lib/platformMember.ts:donosDaPlataforma), nunca para o escritório-cliente: o
+// escritório não opera a VPS e não pode fazer nada com um "provisionamento esgotou as
+// tentativas" ou "memória da máquina baixa". Reusa `sendSimpleEmail` seria possível, mas os dois
+// avisos têm conteúdo estruturado o bastante (motivo técnico, contagem de tentativas) para
+// justificar um template próprio, no MESMO estilo visual dos dois e-mails acima.
+// ============================================================================
+
+/** §3 — disparado quando o provisionamento de um perfil de campanha esgota as tentativas
+ * (LIMITE_DE_TENTATIVAS_DE_PROVISIONAMENTO, ver lib/provisionamentoCampanhas.ts). */
+export async function sendProvisionamentoFalhouEmail(
+  to: string,
+  officeName: string,
+  tentativas: number,
+  motivo: string,
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">PROVISIONAMENTO DE CAMPANHA — FALHOU DEFINITIVAMENTE</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">O perfil de campanha do escritório <strong>${officeName}</strong> não subiu no Hermes depois de <strong>${tentativas} tentativas</strong>. O pagamento foi confirmado, mas o perfil segue fora do ar — a régua automática parou de tentar.</p>
+      <p style="font-size:14px;color:#14161a;">Motivo da última tentativa: <strong>${motivo}</strong></p>
+      <p style="font-size:13px;color:#585c63;">Verifique a máquina do Hermes (espaço, memória, o serviço da ponte de pé) e, se corrigir o problema, reabra o provisionamento pelo painel mestre.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject: `Provisionamento de campanha falhou — Lúmen — ${officeName}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+/** §4 — disparado quando a memória livre (RAM disponível + swap livre) da VPS do Hermes cruza o
+ * limiar configurado. NÍVEL ÚNICO: não existe uma versão "crítica" mais grave deste e-mail. */
+export async function sendAlertaMemoriaHermesEmail(
+  to: string,
+  livreKB: number,
+  limiarKB: number,
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const livreMB = (livreKB / 1024).toFixed(0);
+  const limiarMB = (limiarKB / 1024).toFixed(0);
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">MEMÓRIA DA VPS DO HERMES</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">A memória livre da máquina do Hermes (RAM disponível + swap livre) caiu para <strong>${livreMB} MB</strong>, abaixo do limiar configurado de <strong>${limiarMB} MB</strong>.</p>
+      <p style="font-size:13px;color:#585c63;">Sem teto rígido de escritórios/perfis por enquanto — este é só o aviso de que a máquina está apertada. Vale olhar o que está consumindo memória e considerar liberar espaço ou aumentar a máquina.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject: `Memória baixa na VPS do Hermes — Lúmen`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+// ============================================================================
 // Resumo diário por e-mail (7h, cron em app/api/cron/resumo-diario) — pessoal por advogado,
 // bem diferente de buildDailyAgendaHtml/sendDailyAgendaEmail acima (que é por ESCRITÓRIO
 // inteiro e só vai pros administradores): aqui todo usuário ativo recebe o PRÓPRIO resumo —
@@ -768,4 +933,69 @@ export async function sendDailyDigestEmails(officeId?: string): Promise<{ sent: 
   }
 
   return { sent, failed };
+}
+
+// ============================================================================
+// Robô de conteúdo jurídico — aviso de rascunho novo (docs/agentes/robo-news-juridico-firecrawl.md,
+// Parte A6). Disparado por POST /api/blog/draft logo depois de criar o rascunho, SEM bloquear a
+// resposta ao chamador (robô externo): erro de e-mail não muda o 201, só fica registrado.
+// ============================================================================
+
+/** Um e-mail a cada admin com `blogAccess` do escritório interno (`getPlatformOffice`), avisando
+ * de uma matéria nova aguardando revisão. Usa `sendSimpleEmail` (SMTP-only, sem a cascata de
+ * contas conectadas reservada a e-mail crítico) — sem EMAIL_*, não envia e segue quieto, mesmo
+ * padrão dos demais avisos deste arquivo. */
+export async function sendBlogDraftNotificationEmails(
+  officeId: string,
+  title: string,
+  area: string,
+  summary: string,
+): Promise<{ sent: number; reason?: string }> {
+  // A permissão de ver o Blog é do ESCRITÓRIO (Office.blogAccess), não por usuário — quem chama
+  // já resolveu officeId como o escritório interno (getPlatformOffice); todo admin ativo dele
+  // recebe o aviso, mesmo critério de quem pode revisar (assertBlogAdmin em lib/actions/blog.ts).
+  const admins = await prisma.user.findMany({
+    where: { officeId, isAdmin: true, active: true },
+    select: { email: true },
+  });
+  if (admins.length === 0) {
+    // Achado em 27/09/2026: o rascunho é criado normalmente (201) mesmo quando isto acontece —
+    // o chamador (POST /api/blog/draft) só via `.catch()` numa promise que NUNCA rejeita aqui,
+    // então "nenhum admin encontrado" ficava invisível nos logs da Vercel. Logar aqui, e não só
+    // devolver o motivo, é o que torna essa causa investigável sem acesso direto ao banco.
+    console.error(`[blog/draft] aviso de rascunho novo não enviado: nenhum administrador ativo em officeId=${officeId}.`);
+    return { sent: 0, reason: "nenhum administrador ativo cadastrado neste escritório." };
+  }
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">BLOG JURÍDICO</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">Uma nova matéria está aguardando revisão no blog jurídico.</p>
+      <p style="font-size:14px;color:#14161a;"><strong>Área:</strong> ${escapeHtml(area)}</p>
+      <p style="font-size:14px;color:#3d4045;">${escapeHtml(summary)}</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${getAppUrl()}/configuracoes?secao=blog&blogTab=revisao" style="background:#181b1f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Revisar agora</a>
+      </p>
+    </div>
+  </div>`;
+
+  let sent = 0;
+  const falhas: string[] = [];
+  for (const admin of admins) {
+    const r = await sendSimpleEmail(admin.email, `Blog: nova matéria aguardando revisão: ${title}`, html);
+    if (r.sent) sent++;
+    else falhas.push(`${admin.email}: ${r.reason ?? "motivo desconhecido"}`);
+  }
+  if (sent === 0) {
+    // Mesma lógica do log acima: sem isto, uma falha de SMTP específica deste envio (ex.: e-mail
+    // rejeitado, timeout) some sem deixar rastro — o botão "Testar" de Conexões usa a mesma
+    // configuração, mas não passa pelo MESMO código nem pelos MESMOS destinatários.
+    console.error(`[blog/draft] aviso de rascunho novo falhou para todos os administradores: ${falhas.join(" | ")}`);
+    return { sent: 0, reason: "falha ao enviar para todos os administradores (ver logs)." };
+  }
+  return { sent };
 }

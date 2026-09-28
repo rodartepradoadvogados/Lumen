@@ -10,6 +10,7 @@ import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInO
 import { resolvePublicationGroupForOffice } from "@/lib/publicationResolution";
 import { sanitizeRichTextHtml } from "@/lib/richText";
 import { effectiveCaseClients, effectiveCaseParties, joinCaseNames } from "@/lib/caseParties";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 async function assertTaskRelationsInOffice(
   data: { caseId?: string; attendanceId?: string; responsibleId?: string; columnId?: string },
@@ -301,6 +302,8 @@ export async function searchCasesForDelegation(query: string, judicial: boolean)
 export async function searchAttendancesForDelegation(query: string): Promise<{ id: string; label: string }[]> {
   const viewer = await getCurrentUser();
   if (!viewer) return [];
+  // Vincular uma tarefa a um atendimento exige poder ver o atendimento.
+  if (!podeVerAtendimentos(viewer)) return [];
   const q = query.trim();
   if (!q) return [];
   const attendances = await prisma.attendance.findMany({

@@ -104,6 +104,8 @@ abrir a Vercel toda vez).
 | Variável | Para que serve | Onde obter/rotacionar |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Assistente do produto (`/api/assistente`) | console.anthropic.com |
+| `FIRECRAWL_API_KEY` | Busca na web e leitura de páginas públicas (`lib/firecrawl.ts`, só servidor; fail-closed) | firecrawl.dev → Dashboard → API Keys |
+| `TYPESAFE_JEV_KEY` | API da TypeSafe (julgamentos tipados: classificação, pontuação, extração) — ainda sem uso no código; só no servidor | console.typesafe.ai/keys (não é chave do OpenRouter) |
 
 ## Legado / migração pontual
 

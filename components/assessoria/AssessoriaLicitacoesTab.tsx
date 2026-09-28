@@ -8,7 +8,8 @@ import {
   addLicitacaoTask,
   type getAssessoriaDetail,
 } from "@/lib/actions/assessoria";
-import { Badge, EmptyState, formatCurrency, formatCalendarDate, formatDate } from "@/components/ui";
+import { Badge, EmptyState, formatCurrency, formatCalendarDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { authorDisplayName } from "@/lib/authorDisplay";
 import { Plus, Pencil, X, ChevronRight, Paperclip } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
@@ -497,7 +498,9 @@ export default function AssessoriaLicitacoesTab({
                       <div>
                         <p className="text-sm">
                           <span className="font-semibold text-tx">{authorName}</span>{" "}
-                          <span className="text-etiqueta text-tx-2">{formatDate(cm.createdAt)}</span>
+                          {/* createdAt do comentário é instante — formatDate() lia sem fuso e
+                              virava um dia errado perto da meia-noite. */}
+                          <span className="text-etiqueta text-tx-2">{dataDeBrasilia(cm.createdAt)}</span>
                         </p>
                         <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                       </div>

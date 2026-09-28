@@ -14,7 +14,7 @@ import { getDjenTargets } from "@/lib/djenSync";
 import { isBtgConnected } from "@/lib/btg";
 import { getAppUrl } from "@/lib/appUrl";
 import { listApiKeys } from "@/lib/actions/apiKeys";
-import { formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import AccessRestrictedNotice from "@/components/AccessRestrictedNotice";
 import ApiKeysManager from "@/components/conexoes/ApiKeysManager";
 import ConexoesView, { type ConexaoGrupo, type ConexaoItem, type IntegrationRunRow } from "@/components/conexoes/ConexoesView";
@@ -25,7 +25,7 @@ import CopyButton from "@/components/CopyButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
 import StorageProviderPicker from "@/components/StorageProviderPicker";
 import NomeacaoDriveForm from "@/components/NomeacaoDriveForm";
-import WhatsappConfigForm from "@/components/WhatsappConfigForm";
+import ConexaoWhatsapp from "@/components/whatsapp/ConexaoWhatsapp";
 import JusbrasilEmailsManager from "@/components/JusbrasilEmailsManager";
 import MigrarPastaMaeButton from "@/components/MigrarPastaMaeButton";
 import MigrarPastasLegadasButton from "@/components/MigrarPastasLegadasButton";
@@ -426,7 +426,9 @@ export default async function ConexoesPage({
                     {webhookEvents.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-2">
                         <span>{e.eventType}</span>
-                        <span className="text-xs text-tx-2 tabular-nums">{formatDate(e.createdAt)}</span>
+                        {/* createdAt do evento de webhook é instante — formatDate() lia sem fuso
+                            e virava um dia errado perto da meia-noite. */}
+                        <span className="text-xs text-tx-2 tabular-nums">{dataDeBrasilia(e.createdAt)}</span>
                       </li>
                     ))}
                   </ul>
@@ -442,7 +444,8 @@ export default async function ConexoesPage({
           estado: btgConnected ? "ok" : "off",
           estadoTexto: btgConnected ? "ativo" : "não configurado",
           contexto: btgConnected
-            ? `Conectado${btgConnection ? ` — token expira em ${formatDate(btgConnection.expiresAt)}` : ""}`
+            // expiresAt é o instante de expiração do token OAuth — mesmo motivo do createdAt acima.
+            ? `Conectado${btgConnection ? ` — token expira em ${dataDeBrasilia(btgConnection.expiresAt)}` : ""}`
             : "Conciliação administrada pela plataforma (Painel Mestre) — ainda não conectado.",
         },
       ],
@@ -508,15 +511,31 @@ export default async function ConexoesPage({
         {
           id: "WHATSAPP",
           nome: "WhatsApp",
-          descricao: "Envia e recebe mensagens de clientes pela Cloud API da Meta.",
+          descricao: "Envia e recebe mensagens de clientes — pela Cloud API da Meta ou lendo um QR code, para o número que a Meta não aceita.",
           estado: whatsappConfig ? "ok" : "off",
-          estadoTexto: whatsappConfig ? "ativo" : "não configurado",
+          // "CONFIGURADO", e não "ativo". O Lúmen sabe que existe um endereço e uma chave
+          // guardados; ele NÃO sabe, sem ir ao servidor a cada carregamento desta página, se há
+          // um celular conectado do outro lado. Dizer "ativo" ao lado de "Nenhum número conectado
+          // ainda" era o cartão se contradizendo na mesma linha — e quem lê acredita no rótulo,
+          // não na frase. Quem sabe o estado de verdade é a tela do QR, que pergunta ao servidor.
+          estadoTexto: whatsappConfig ? "configurado" : "não configurado",
           // Documento 04 pede o estado "aviso" com os dias restantes até o token expirar — o
           // schema (WhatsappConfig) não guarda validade de token nenhuma hoje, então esse terceiro
           // estado fica pendente de uma coluna nova (fora do escopo desta PR — mudança de schema
           // tem PR própria).
           contexto: whatsappConfig?.displayPhone ? `Número: ${whatsappConfig.displayPhone}` : "Nenhum número conectado ainda.",
-          extra: <WhatsappConfigForm connected={Boolean(whatsappConfig)} displayPhone={whatsappConfig?.displayPhone ?? null} />,
+          // SÓ CAMPO SEGURO ATRAVESSA. `whatsappConfig` é a linha inteira, e ela guarda
+          // accessToken, apiKey e webhookSecret — passar o objeto por conveniência mandaria os
+          // três para dentro do HTML servido ao navegador. Por isso cada prop é nomeada à mão.
+          extra: (
+            <ConexaoWhatsapp
+              providerAtual={whatsappConfig?.provider ?? null}
+              metaConectado={whatsappConfig?.provider !== "EVOLUTION" && Boolean(whatsappConfig)}
+              evolutionConfigurado={whatsappConfig?.provider === "EVOLUTION" && Boolean(whatsappConfig.baseUrl)}
+              displayPhone={whatsappConfig?.displayPhone ?? null}
+              endereco={whatsappConfig?.baseUrl ?? null}
+            />
+          ),
         },
       ],
     },
@@ -538,7 +557,7 @@ export default async function ConexoesPage({
         {
           id: "MCP",
           nome: "Servidores MCP",
-          descricao: "Ferramentas externas que o assistente (ClaudeAssistantWidget) pode chamar em nome do escritório.",
+          descricao: "Ferramentas externas que o assistente (AssistenteWidget) pode chamar em nome do escritório.",
           estado: "off",
           estadoTexto: "não configurado",
           // Disclosure explícita: hoje não existe NENHUM servidor MCP administrável no projeto —

@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 import { listOfficeDocumentTypes } from "@/lib/actions/documentTypes";
 import { effective as effectiveStatus } from "@/lib/financeQuery";
@@ -13,6 +14,14 @@ import { effective as effectiveStatus } from "@/lib/financeQuery";
 // migração pro Lúmen) e adaptado aqui para filtrar tudo por officeId, já que o Lúmen é
 // multi-tenant. Anexos/documentos entram só como link (o arquivo em si continua no Drive/
 // OneDrive) — ver comentário em cada aba de anexos abaixo.
+//
+// DUAS FUNÇÕES DE DATA NESTE ARQUIVO, DE PROPÓSITO. Esta rota roda inteira no servidor (Node),
+// que em produção não está no fuso de Brasília — então qualquer formatação sem fuso aqui erra
+// pelo relógio do servidor, não do escritório, e o erro é permanente, não só perto da meia-noite.
+// `dataDeBrasilia()` vai em createdAt/publishedAt/startDate — instantes de verdade, quando algo
+// ACONTECEU. `formatDate()` continua em dueDate/paidDate/date — dias de calendário gravados como
+// meia-noite UTC (vencimento, data de pagamento escolhida, data do documento): forçar Brasília
+// nesses jogaria a data um dia pra trás.
 export const dynamic = "force-dynamic";
 
 function sheetFrom(rows: Record<string, unknown>[], headers: string[]) {
@@ -131,7 +140,7 @@ export async function GET() {
         "Parte Adversa": c.opposingPartyName || "",
         "Papel Parte Adversa": c.opposingPartyRole || "",
         Descrição: c.description || "",
-        "Criado em": formatDate(c.createdAt),
+        "Criado em": dataDeBrasilia(c.createdAt),
       })),
       casesHeaders
     ),
@@ -151,7 +160,7 @@ export async function GET() {
         "Estágio Comercial": a.stage,
         "Valor Estimado": a.estimatedValue ?? "",
         Responsável: a.responsible?.name || "",
-        "Criado em": formatDate(a.createdAt),
+        "Criado em": dataDeBrasilia(a.createdAt),
       })),
       attendancesHeaders
     ),
@@ -171,7 +180,7 @@ export async function GET() {
         Hora: t.dueTime || "",
         "Vinculado a": t.case?.title || t.attendance?.subject || "",
         Responsável: t.responsible?.name || "",
-        "Criado em": formatDate(t.createdAt),
+        "Criado em": dataDeBrasilia(t.createdAt),
       })),
       tasksHeaders
     ),
@@ -226,7 +235,7 @@ export async function GET() {
         Tipo: p.kind,
         Fonte: p.source,
         Conteúdo: p.content,
-        "Publicado em": formatDate(p.publishedAt),
+        "Publicado em": dataDeBrasilia(p.publishedAt),
         "Nº Processo": p.processNumberRaw || "",
         "Processo vinculado": p.case?.title || "",
         "Cliente vinculado": p.client?.name || "",
@@ -244,7 +253,7 @@ export async function GET() {
       assessorias.map((a) => ({
         Cliente: a.client.name,
         Status: a.status,
-        "Início do Contrato": formatDate(a.startDate),
+        "Início do Contrato": dataDeBrasilia(a.startDate),
         "Honorário Mensal": a.monthlyFee,
         "Dia Vencimento": a.dueDay,
         Responsável: a.responsible?.name || "",
@@ -267,7 +276,7 @@ export async function GET() {
         Link: a.driveUrl,
         "Vinculado a": a.case?.title || a.attendance?.subject || "",
         "Enviado por": a.uploadedBy?.name || "",
-        "Criado em": formatDate(a.createdAt),
+        "Criado em": dataDeBrasilia(a.createdAt),
       })),
       attachmentsHeaders
     ),

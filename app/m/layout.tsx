@@ -16,6 +16,8 @@ import OfficeSuspendedNotice from "@/components/OfficeSuspendedNotice";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { getAlertsCount, getAgendaBadgeCount } from "@/lib/alerts";
 import { getOfficeModules } from "@/lib/officeModules";
+import { recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
+import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +68,7 @@ export default async function MobileLayout({ children }: { children: React.React
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
   const [totalAlerts, agendaBadgeCount, sessionSeconds, modules] = await Promise.all([
-    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
+    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id), podeAcessarAba(user)),
     // Compromissos que vencem HOJE (mesmo critério do reforço "Hoje" do Painel) — alimenta a
     // bolinha da aba "Agenda" na barra inferior (documento 08).
     getAgendaBadgeCount(user.officeId),
@@ -98,7 +100,10 @@ export default async function MobileLayout({ children }: { children: React.React
             daqui — agora é só logo/nome do escritório + Alertas/Tema, pra bater com a proposta
             de Início nova; Perfil segue acessível por Menu (Mais). */}
         <header className="min-h-[52px] shrink-0 bg-gaveta border-b border-gaveta-linha text-gaveta-tinta flex items-center justify-between gap-2 px-4 py-2">
-          <Link href="/m" className="flex items-center gap-2 min-w-0">
+          {/* min-h-[44px]: media 42px, dois a menos que o piso de toque do app. Achado pelo
+              guard de tela (scripts/verificar-telas.mjs) na primeira passagem dele — a varredura
+              do F6 não o alcançou porque ele está no LAYOUT, não numa rota. */}
+          <Link href="/m" className="flex items-center gap-2 min-w-0 min-h-[44px]">
             <LumenMark size={24} />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
@@ -152,7 +157,7 @@ export default async function MobileLayout({ children }: { children: React.React
 
       <main className="pb-20 min-h-screen max-w-md mx-auto">{children}</main>
 
-      <MobileBottomNav agendaBadgeCount={agendaBadgeCount} modules={modules} />
+      <MobileBottomNav agendaBadgeCount={agendaBadgeCount} modules={modules} userName={user.name} />
       <InstallPrompt />
     </div>
     </UndoToastProvider>

@@ -44,6 +44,7 @@ import {
   BellRing,
   BadgeCheck,
   Building2,
+  Smartphone,
 } from "lucide-react";
 
 // Taxonomia única de tipos de documento, usada tanto pelos Anexos de Processo/Caso/Atendimento
@@ -209,6 +210,11 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "RELATORIO", label: "Relatório", icon: ClipboardList },
       { key: "PRINT", label: "Prints diversos", icon: ImageIcon },
       { key: "OUTRO_COMPROBATORIO", label: "Outro documento comprobatório do direito", icon: FileCheck },
+      // F5 — mídia (imagem/documento/áudio/vídeo) que chegou pelo WhatsApp e subiu pro Drive
+      // sozinha, sem ninguém escolher um tipo (ver lib/whatsapp.ts:processarMidiaRecebida). Tipo
+      // próprio em vez de cair em OUTRO: separa, no filtro da lista de Anexos, o que o cliente
+      // mandou pelo WhatsApp do que alguém do escritório escolheu e classificou à mão.
+      { key: "MIDIA_WHATSAPP", label: "Mídia do WhatsApp", icon: Smartphone },
       { key: "OUTRO", label: "Outros documentos", icon: FileText },
     ],
   },

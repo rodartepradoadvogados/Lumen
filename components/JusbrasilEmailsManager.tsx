@@ -12,10 +12,33 @@ export type EmailAccountRow = {
   syncJusbrasil: boolean;
   userId: string | null;
   ownerName: string | null;
+  // Saúde da varredura desta caixa (GoogleCredential.lastSyncAt/lastSyncError). Sem isto a lista
+  // mostrava toda caixa conectada como se estivesse funcionando, inclusive uma com o token morto
+  // há dias — a falha só aparecia no retorno do botão "Sincronizar agora" e desaparecia.
+  lastSyncAt: Date | null;
+  lastSyncError: string | null;
 };
 
 const BTN = "inline-flex items-center gap-1.5 h-7 border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx text-xs font-semibold px-3 transition-colors";
 const BTN_DISABLED = "inline-flex items-center gap-1.5 h-7 border-2 border-regua text-tx-3 text-xs font-semibold px-3 opacity-50 cursor-not-allowed";
+
+// Uma caixa pode estar conectada e, ainda assim, sem varrer nada há dias. Dizer quando foi a
+// última varredura BEM-SUCEDIDA é o que separa "está funcionando" de "está calada".
+function textoDaVarredura(row: EmailAccountRow): string {
+  if (!row.lastSyncAt) return "ainda não varrida — a primeira busca cobre os últimos 7 dias";
+  const horas = Math.floor((Date.now() - new Date(row.lastSyncAt).getTime()) / (60 * 60 * 1000));
+  if (horas < 1) return "varrida agora há pouco";
+  if (horas < 24) return `varrida há ${horas}h`;
+  const dias = Math.floor(horas / 24);
+  return `sem varrer há ${dias} dia(s) — a varredura roda de hora em hora, então algo está errado`;
+}
+
+function StatusDaCaixa({ row }: { row: EmailAccountRow }) {
+  if (row.lastSyncError) {
+    return <p className="text-etiqueta text-atencao mt-1">{row.lastSyncError}</p>;
+  }
+  return <p className="text-etiqueta text-tx-3 mt-1">{textoDaVarredura(row)}</p>;
+}
 
 function rowLabel(row: EmailAccountRow): string {
   if (row.isPrimaryDrive) return "Conta do Google Drive do escritório";
@@ -63,14 +86,17 @@ export default function JusbrasilEmailsManager({
       <div>
         <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em] mb-2">Meu e-mail para publicações</h3>
         {ownRow ? (
-          <div className="flex items-center justify-between gap-2 border border-regua px-3 py-2">
-            <span className="flex items-center gap-2 text-sm text-tx min-w-0">
-              <Mail size={14} className="text-tx-3 shrink-0" />
-              <span className="truncate">{ownRow.accountEmail}</span>
-            </span>
-            <button type="button" disabled={pending} onClick={() => remover(ownRow.id, ownRow.accountEmail)} className="text-xs font-semibold text-atencao hover:underline disabled:opacity-50 shrink-0">
-              Remover
-            </button>
+          <div className="border border-regua px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-sm text-tx min-w-0">
+                <Mail size={14} className="text-tx-3 shrink-0" />
+                <span className="truncate">{ownRow.accountEmail}</span>
+              </span>
+              <button type="button" disabled={pending} onClick={() => remover(ownRow.id, ownRow.accountEmail)} className="text-xs font-semibold text-atencao hover:underline disabled:opacity-50 shrink-0">
+                Remover
+              </button>
+            </div>
+            <StatusDaCaixa row={ownRow} />
           </div>
         ) : (
           <a href="/api/google/connect?mode=jusbrasil" className={BTN}>
@@ -111,21 +137,24 @@ export default function JusbrasilEmailsManager({
       ) : (
         <div className="flex flex-col gap-1.5">
           {emails.map((row) => (
-            <div key={row.id} className="flex items-center justify-between gap-2 border border-regua px-3 py-2">
-              <span className="flex items-center gap-2 text-sm text-tx min-w-0">
-                <Mail size={14} className="text-tx-3 shrink-0" />
-                <span className="truncate">{row.accountEmail}</span>
-                <span className="text-xs text-tx-3 truncate">· {rowLabel(row)}</span>
-              </span>
-              {row.isPrimaryDrive ? (
-                <span title='Troque pelo botão "Reconectar Google (Drive)" acima' className="text-xs text-tx-3 shrink-0">
-                  fixo
+            <div key={row.id} className="border border-regua px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 text-sm text-tx min-w-0">
+                  <Mail size={14} className="text-tx-3 shrink-0" />
+                  <span className="truncate">{row.accountEmail}</span>
+                  <span className="text-xs text-tx-3 truncate">· {rowLabel(row)}</span>
                 </span>
-              ) : (
-                <button type="button" disabled={pending} onClick={() => remover(row.id, row.accountEmail)} className="text-xs font-semibold text-atencao hover:underline disabled:opacity-50 shrink-0">
-                  Remover
-                </button>
-              )}
+                {row.isPrimaryDrive ? (
+                  <span title='Troque pelo botão "Reconectar Google (Drive)" acima' className="text-xs text-tx-3 shrink-0">
+                    fixo
+                  </span>
+                ) : (
+                  <button type="button" disabled={pending} onClick={() => remover(row.id, row.accountEmail)} className="text-xs font-semibold text-atencao hover:underline disabled:opacity-50 shrink-0">
+                    Remover
+                  </button>
+                )}
+              </div>
+              <StatusDaCaixa row={row} />
             </div>
           ))}
         </div>

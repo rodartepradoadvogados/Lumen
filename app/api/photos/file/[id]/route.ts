@@ -30,8 +30,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   // app/blog/[slug]/page.tsx, precisa carregar essa imagem pra um visitante anônimo). Fora esse
   // caso, exige sessão com o MESMO officeId da foto — mesmo padrão de toda outra rota que serve
   // arquivo por id (ex.: app/api/assessoria/documentos/[id]/route.ts).
+  // excluidaEm: null — matéria excluída (botão "excluir" em /configuracoes) deixa de contar
+  // como post público: a foto volta a exigir sessão, mesmo padrão de qualquer foto não vinculada.
   const linkedToPublicPost = await prisma.blogPost.findFirst({
-    where: { imageUrl: photoFileUrl(photo.id), status: "PUBLICADO" },
+    where: { imageUrl: photoFileUrl(photo.id), status: "PUBLICADO", excluidaEm: null },
     select: { id: true },
   });
   if (!linkedToPublicPost) {

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import clsx from "clsx";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 // FILETE LATERAL DELIBERADO — o detector acusa `side-tab` aqui e a acusação fica em pé de
 // propósito, sem ignore de arquivo (que silenciaria todo achado futuro deste arquivo, inclusive
@@ -83,7 +84,7 @@ function EstadoDot({ estado }: { estado: ConexaoEstado }) {
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
-  return `${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${dataDeBrasilia(d)} ${horaDeBrasilia(d)}`;
 }
 
 const RUN_STATUS_TEXT: Record<IntegrationRunRow["status"], string> = { OK: "text-concluido", ERRO: "text-atencao", AVISO: "text-aviso" };

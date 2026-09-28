@@ -14,6 +14,7 @@ import UserRow from "@/components/UserRow";
 import AddUserForm from "@/components/AddUserForm";
 import TimbradoForm from "@/components/TimbradoForm";
 import NomeacaoDriveForm from "@/components/NomeacaoDriveForm";
+import AtuacaoDoEscritorioForm from "@/components/AtuacaoDoEscritorioForm";
 import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
 import ImportManualModal from "@/components/ImportManualModal";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
@@ -21,19 +22,30 @@ import TaskTypePointsManager from "@/components/TaskTypePointsManager";
 import WorkflowsManager from "@/components/WorkflowsManager";
 import BlogReviewManager from "@/components/BlogReviewManager";
 import BlogPublishedManager from "@/components/BlogPublishedManager";
+import BlogScheduledManager from "@/components/BlogScheduledManager";
 import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersManager";
 import BankAccountsManager from "@/components/BankAccountsManager";
 import HolidaysManager from "@/components/HolidaysManager";
 import InstallAppButton from "@/components/InstallAppButton";
-import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell } from "lucide-react";
+import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell, Bot, MessageSquare } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
+import AtendentePainel, { type CampanhaNaLista } from "@/components/atendente/AtendentePainel";
 import ModulesManager from "@/components/ModulesManager";
 import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
 import OfficeBillingSummary from "@/components/OfficeBillingSummary";
 import { PASTA_MAE_PADRAO, PREFIXO_PADRAO } from "@/lib/driveNaming";
+import MotivosDeRecusaPanel from "@/components/atendimento/MotivosDeRecusaPanel";
+import ParametrosDaAnaPanel from "@/components/atendimento/ParametrosDaAnaPanel";
+import { lerParametros } from "@/lib/actions/parametrosDaAna";
+import { DIAS_PARA_O_DOCUMENTO_PADRAO } from "@/lib/parametrosDaAna";
+import { motivosDoEscritorio } from "@/lib/motivosDeRecusa";
+import { transcricaoConfigurada } from "@/lib/transcricao";
+import { normalizarEstadoDaAssinatura, normalizarEstadoDoPerfil, diasCorridosVencidos, DIAS_DE_CARENCIA, precoAMostrar, quantasCampanhasAtivasAgora, type EstadoDoSlot } from "@/lib/moduloCampanhas";
+import { situacaoDoProvisionamento } from "@/lib/provisionamentoCampanhas";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +109,12 @@ const SECOES = [
   { key: "geral", label: "Geral", requires: "none" },
   { key: "workflows", label: "Workflows", requires: "admin" },
   { key: "blog", label: "Blog Jurídico", requires: "admin" },
+  // Atendente de IA: só aparece para quem tem o módulo WhatsApp, porque é o módulo que paga por
+  // ele — e uma aba que existe só para dizer "contrate" é propaganda dentro da configuração.
+  { key: "atendente", label: "Atendente", requires: "admin" },
+  // Atendimento: como o escritório RECUSA um lead. Gated pelo módulo de Atendimento, e não pelo
+  // de WhatsApp: recusar acontece também num atendimento aberto à mão, pelo telefone.
+  { key: "atendimento", label: "Atendimento", requires: "admin" },
   // Fase 3 (Asaas) — autoatendimento: qualquer admin do próprio escritório vê a PRÓPRIA
   // cobrança (ciclo, forma de pagamento, Pix/QR pendente, histórico de faturas). Nada aqui
   // exige ser platform owner — quem configura isso é o Painel Mestre (aba "Cobrança &
@@ -110,6 +128,8 @@ const SECAO_ICONS = {
   geral: SlidersHorizontal,
   workflows: Workflow,
   blog: Newspaper,
+  atendente: Bot,
+  atendimento: MessageSquare,
   cobranca: CreditCard,
 } as const;
 
@@ -122,7 +142,8 @@ const STORAGE_LABELS: Record<string, string> = {
 };
 
 const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
-const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
+const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista/Secretária", "Marketing", "Contador"];
+
 
 export default async function ConfiguracoesPage({
   searchParams,
@@ -148,8 +169,11 @@ export default async function ConfiguracoesPage({
     workflowTemplates,
     blogPendingRaw,
     blogPublishedRaw,
+    blogScheduledRaw,
     photosRaw,
     modules,
+    atendente,
+    campanhasRaw,
     blogAccess,
     office,
     ownBilling,
@@ -174,12 +198,42 @@ export default async function ConfiguracoesPage({
         orderBy: { createdAt: "asc" },
         include: { steps: { orderBy: { order: "asc" } } },
       }),
-      prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
-      prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
+      // `excluidaEm: null` nas duas — matéria excluída (botão "excluir", pedido do dono
+      // 24/09/2026) some das duas listas do admin, mesmo padrão do público em app/blog/*.
+      prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO", excluidaEm: null }, orderBy: { createdAt: "asc" } }),
+      prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO", excluidaEm: null }, orderBy: { publishedAt: "desc" } }),
+      // Aba "Agendamento" (Parte A5, renomeada de "Agendadas" a pedido do dono em 26/09/2026 —
+      // "Agendadas" sozinho fazia parecer que era ali que se agendava) — ordenada pela mais
+      // PRÓXIMA de publicar primeiro.
+      prisma.blogPost.findMany({ where: { officeId, status: "AGENDADO", excluidaEm: null }, orderBy: { agendadaPara: "asc" } }),
       prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
       getOfficeModules(officeId),
+      // O atendente e as campanhas: só admin vê a aba, mas a consulta é barata e roda junto das
+      // outras — condicionar faria a página ter dois caminhos para o mesmo estado.
+      prisma.whatsappConfig.findUnique({
+        where: { officeId },
+        select: {
+          agenteNome: true,
+          agenteInstrucoes: true,
+          agenteAtivo: true,
+          agenteTodos: true,
+          agenteNumeros: true,
+          expedienteDias: true,
+          expedienteInicio: true,
+          expedienteFim: true,
+        },
+      }),
+      prisma.campanha.findMany({
+        where: { officeId },
+        orderBy: { createdAt: "desc" },
+        include: {
+          perguntas: { select: { texto: true }, orderBy: { ordem: "asc" } },
+          documentos: { select: { nome: true, paraQue: true, obrigatorio: true }, orderBy: { ordem: "asc" } },
+          _count: { select: { atendimentos: true } },
+        },
+      }),
       hasBlogAccess(officeId),
-      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, timbradoUrl: true, timbradoNomeArquivo: true, timbradoFormato: true, drivePastaMae: true, drivePrefixo: true } }),
+      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, timbradoUrl: true, timbradoNomeArquivo: true, timbradoFormato: true, drivePastaMae: true, drivePrefixo: true, descricaoAtuacao: true } }),
       getOwnOfficeBilling(),
       // Bloqueio é por usuário — cada advogado só vê (e só pode reverter) os próprios bloqueios.
       prisma.blockedProcessNumber.findMany({
@@ -205,6 +259,12 @@ export default async function ConfiguracoesPage({
     createdAt: p.createdAt.toISOString(),
   }));
   const isAdmin = viewer?.isAdmin ?? false;
+  // Quem edita a atuação do escritório: a MESMA régua das demais configurações de integração
+  // (lib/supportCapabilities.ts) — admin do escritório ou suporte da Lúmen mascarado, que entra
+  // justamente para configurar integração do cliente. O cartão em si é visível a todo mundo do
+  // escritório (ler o que o agente lê é transparência, igual a "Acessos da Lúmen" acima); só o
+  // campo é que fica somente-leitura para quem não pode editar.
+  const podeConfigurar = canConfigureIntegrations(viewer);
 
   const taskTypePointsRows = TASK_TYPES_ORDER.map((type) => {
     const found = taskTypePoints.find((p) => p.type === type);
@@ -212,8 +272,104 @@ export default async function ConfiguracoesPage({
   });
 
   const requestedSecao = searchParams.secao || "geral";
+
+  // ── Módulo pago de campanhas (Frente D, §1) — GATEADO por isAdmin && modules.whatsapp E pela
+  // ABA PEDIDA (diferente de `atendente`/`campanhasRaw` acima, que a casa já busca em toda
+  // navegação por serem tabelas antigas e baratas): três tabelas NOVAS só valem a pena buscar
+  // quando a pessoa está de fato olhando a aba que as usa — sem isso, um admin com WhatsApp veria
+  // Financeiro, Equipe ou Geral quebrarem por causa de uma tabela do módulo de campanhas, que ele
+  // nem abriu. Tudo aqui é LEITURA: as regras são das Frentes A/B/C (lib/moduloCampanhas.ts,
+  // lib/provisionamentoCampanhas.ts), nunca recalculadas.
+  const podeVerModuloDeCampanhas = isAdmin && modules.whatsapp && requestedSecao === "atendente";
+  const [assinaturaCampanhas, precoParametrosRaw, slotsPorCampanha] = podeVerModuloDeCampanhas
+    ? await Promise.all([
+        prisma.assinaturaModuloCampanhas.findUnique({
+          where: { officeId },
+          include: { perfil: true, slots: { select: { estado: true } } },
+        }),
+        prisma.campanhaPrecoParametro.findMany({ where: { chave: { in: ["MENSALIDADE_MODULO", "SLOT_EXTRA"] } } }),
+        prisma.campanhaSlotPago.findMany({ where: { officeId }, select: { campanhaId: true, estado: true } }),
+      ])
+    : [null, [], []];
+  const estadoDoSlotPorCampanhaId = new Map(slotsPorCampanha.map((s) => [s.campanhaId, s.estado as EstadoDoSlot]));
+
+  // O formato da tela é o mesmo do formulário, para editar não precisar traduzir nada: o item da
+  // lista É o rascunho que abre no wizard.
+  const campanhas: CampanhaNaLista[] = campanhasRaw.map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    ativa: c.ativa,
+    inicioEm: c.inicioEm ? c.inicioEm.toISOString().slice(0, 10) : null,
+    fimEm: c.fimEm ? c.fimEm.toISOString().slice(0, 10) : null,
+    sourceUrl: c.sourceUrl ?? "",
+    textoDoClique: c.textoDoClique ?? "",
+    rede: c.rede ?? "INSTAGRAM",
+    area: c.area,
+    sobre: c.sobre,
+    foraDoEscopo: c.foraDoEscopo,
+    primeiraMensagem: c.primeiraMensagem,
+    tetoDeMensagens: c.tetoDeMensagens,
+    perguntas: c.perguntas.map((x) => ({ texto: x.texto })),
+    documentos: c.documentos.map((x) => ({ nome: x.nome, paraQue: x.paraQue ?? "", obrigatorio: x.obrigatorio })),
+    mensagemDeTransferencia: c.mensagemDeTransferencia,
+    destino: c.destino,
+    motivosDeRecusa: c.motivosDeRecusa,
+    leads: c._count.atendimentos,
+    estadoDoSlot: estadoDoSlotPorCampanhaId.get(c.id) ?? null,
+  }));
+
+  const parametrosDePreco = {
+    mensalidadeModulo: precoParametrosRaw.find((p) => p.chave === "MENSALIDADE_MODULO")?.preco ?? null,
+    precoSlotExtra: precoParametrosRaw.find((p) => p.chave === "SLOT_EXTRA")?.preco ?? null,
+  };
+  const estadosDosSlotsExistentes = (assinaturaCampanhas?.slots.map((s) => s.estado) ?? []) as EstadoDoSlot[];
+  const slotsExtrasAtivosAgora = estadosDosSlotsExistentes.filter((e) => e === "SOLICITADO" || e === "APROVADO" || e === "ATIVO").length;
+  const precoDoModulo = precoAMostrar(parametrosDePreco, slotsExtrasAtivosAgora);
+  const quantasCampanhasAtivas = quantasCampanhasAtivasAgora({
+    campanhaBaseAtiva: campanhas.some((c) => c.ativa && !c.estadoDoSlot),
+    estadosDosSlots: estadosDosSlotsExistentes,
+  });
+  const estadoDaAssinaturaCampanhas = assinaturaCampanhas ? normalizarEstadoDaAssinatura(assinaturaCampanhas.estado) : null;
+  const diasRestantesDeCarenciaCampanhas =
+    estadoDaAssinaturaCampanhas === "CARENCIA"
+      ? DIAS_DE_CARENCIA - diasCorridosVencidos(assinaturaCampanhas!.vencimento, new Date())
+      : null;
+  const situacaoDoPerfilDeCampanha = assinaturaCampanhas?.perfil
+    ? situacaoDoProvisionamento({
+        estaProvisionado: normalizarEstadoDoPerfil(assinaturaCampanhas.perfil.estado) === "PROVISIONADO",
+        precisaReprovisionar: assinaturaCampanhas.perfil.precisaReprovisionar,
+        numeroDeTentativas: assinaturaCampanhas.perfil.numeroDeTentativasDeProvisionamento,
+        falhouDefinitivamente: assinaturaCampanhas.perfil.provisionamentoFalhouDefinitivamente,
+        ultimoErro: assinaturaCampanhas.perfil.ultimoErroDeProvisionamento,
+      })
+    : null;
+
+  // Os dois andares do catálogo de motivos, resolvidos para este escritório (ver
+  // lib/motivosDeRecusa.ts). Só lido quando a seção existe: uma consulta a mais numa tela que
+  // renderiza a cada navegação é lentidão que ninguém vê de onde vem.
+  const motivosDoCatalogo =
+    isAdmin && modules.atendimento
+      ? motivosDoEscritorio(
+          await prisma.motivoDeRecusa.findMany({
+            where: { OR: [{ officeId: null }, { officeId: viewer.officeId }] },
+            select: { id: true, officeId: true, baseId: true, rotulo: true, descricao: true, desativado: true, ordem: true },
+            orderBy: { ordem: "asc" },
+          }),
+          viewer.officeId,
+        )
+      : [];
+
+  // Os parâmetros que dizem quando a Ana pode encerrar sozinha (ver lib/parametrosDaAna.ts). Mesma
+  // regra do catálogo acima: só lidos quando a seção existe.
+  const parametrosDaAna =
+    isAdmin && modules.atendimento
+      ? await lerParametros(viewer.officeId)
+      : { valorMinimoDaCausa: null, diasParaODocumento: DIAS_PARA_O_DOCUMENTO_PADRAO, criterios: [] };
+
   const availableSecoes = SECOES.filter((s) => {
     const allowed = s.requires === "none" ? true : isAdmin;
+    if (s.key === "atendente") return allowed && modules.whatsapp;
+    if (s.key === "atendimento") return allowed && modules.atendimento;
     return allowed && (s.key !== "blog" || blogAccess);
   });
   const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
@@ -383,7 +539,13 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && blogAccess && secao === "blog" && (() => {
         const blogTab =
-          searchParams.blogTab === "publicadas" ? "publicadas" : searchParams.blogTab === "fotos" ? "fotos" : "revisao";
+          searchParams.blogTab === "publicadas"
+            ? "publicadas"
+            : searchParams.blogTab === "agendadas"
+              ? "agendadas"
+              : searchParams.blogTab === "fotos"
+                ? "fotos"
+                : "revisao";
         return (
           <>
             <div className="flex gap-2 flex-wrap">
@@ -396,6 +558,16 @@ export default async function ConfiguracoesPage({
                 }`}
               >
                 Revisão Pendente {blogPendingRaw.length > 0 && `(${blogPendingRaw.length})`}
+              </Link>
+              <Link
+                href="/configuracoes?secao=blog&blogTab=agendadas"
+                className={`text-xs font-semibold px-3.5 py-1.5 transition-colors ${
+                  blogTab === "agendadas"
+                    ? "bg-acao text-acao-tx"
+                    : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
+                }`}
+              >
+                Agendamento ({blogScheduledRaw.length})
               </Link>
               <Link
                 href="/configuracoes?secao=blog&blogTab=publicadas"
@@ -423,7 +595,7 @@ export default async function ConfiguracoesPage({
               <Card>
                 <CardHeader
                   title="Revisão de Publicação Definitiva"
-                  subtitle="Rascunhos enviados pelo robô de conteúdo jurídico — revise, edite se necessário, adicione a imagem e confirme para publicar"
+                  subtitle="Rascunhos enviados pelo robô de conteúdo jurídico — revise, edite se necessário, adicione a imagem e confirme para publicar ou agende"
                 />
                 <BlogReviewManager
                   posts={blogPendingRaw.map((p) => ({
@@ -436,9 +608,26 @@ export default async function ConfiguracoesPage({
                     content: p.content,
                     sources: p.sources,
                     imageUrl: p.imageUrl,
+                    origem: p.origem,
                     createdAt: p.createdAt.toISOString(),
                   }))}
                   photos={photos}
+                />
+              </Card>
+            ) : blogTab === "agendadas" ? (
+              <Card>
+                <CardHeader title="Agendamento" subtitle="Matérias com publicação confirmada para um horário futuro — o cron publica sozinho quando vencer. Para agendar uma matéria nova, use o botão “Agendar…” na aba “Revisão Pendente”." />
+                <BlogScheduledManager
+                  posts={blogScheduledRaw.map((p) => ({
+                    id: p.id,
+                    slug: p.slug,
+                    title: p.title,
+                    area: p.area,
+                    type: p.type,
+                    origem: p.origem,
+                    imageUrl: p.imageUrl,
+                    agendadaPara: p.agendadaPara ? p.agendadaPara.toISOString() : null,
+                  }))}
                 />
               </Card>
             ) : blogTab === "publicadas" ? (
@@ -590,6 +779,20 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
+      {/* O texto que o AGENTE DE IA consulta para saber como este escritório trabalha (ver
+          Office.descricaoAtuacao e a ferramenta consultar_perfil_do_escritorio). Visível a
+          qualquer pessoa do escritório — quem não pode editar ainda deve poder LER o que o agente
+          lê —, editável só por quem configura integração. */}
+      {secao === "geral" && (
+      <Card>
+        <CardHeader
+          title="Atuação do escritório"
+          subtitle="O que o agente de IA lê para entender em que este escritório atua"
+        />
+        <AtuacaoDoEscritorioForm atuacao={office?.descricaoAtuacao ?? ""} podeEditar={podeConfigurar} />
+      </Card>
+      )}
+
       {isAdmin && secao === "geral" && (
       <Card>
         <CardHeader
@@ -620,7 +823,7 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && secao === "equipe" && (
       <Card>
-        <CardHeader title="Equipe (usuários)" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais de acesso e conceda/revogue acesso ao Financeiro`} />
+        <CardHeader title="Equipe (usuários)" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais, conceda acesso ao Financeiro e escolha quem entra no rodízio de leads do WhatsApp`} />
         <div className="divide-y divide-regua">
           {users.map((u) => (
             <UserRow key={u.id} user={u} canManage={isAdmin} />
@@ -716,6 +919,66 @@ export default async function ConfiguracoesPage({
         <HolidaysManager holidays={holidays} />
       </Card>
       </>
+      )}
+
+      {isAdmin && secao === "atendimento" && (
+        <Card>
+          <CardHeader
+            title="Motivos de recusa"
+            subtitle="A lista que aparece quando um lead é recusado — e que vai, em uma frase, para a carta que ele recebe"
+          />
+          <div className="p-5">
+            <MotivosDeRecusaPanel motivos={motivosDoCatalogo} podeEditar={isAdmin} />
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "atendimento" && (
+        <Card>
+          <CardHeader
+            title="Quando a atendente recusa sozinha"
+            subtitle="O contorno do escritório: a matéria que ele não faz, a comarca fora do alcance e o valor mínimo. Fora disso, ela não encerra — propõe"
+          />
+          <div className="p-5">
+            <ParametrosDaAnaPanel parametros={parametrosDaAna} podeEditar={isAdmin} />
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "atendente" && (
+        <Card>
+          <CardHeader
+            title="Atendente de IA no WhatsApp"
+            subtitle="Como a atendente conversa com quem escreve para o escritório, e o roteiro de cada campanha"
+          />
+          <div className="p-5">
+            <AtendentePainel
+              temWhatsapp={Boolean(atendente)}
+              geral={{
+                agenteNome: atendente?.agenteNome ?? "",
+                agenteInstrucoes: atendente?.agenteInstrucoes ?? "",
+                agenteAtivo: atendente?.agenteAtivo ?? false,
+                agenteTodos: atendente?.agenteTodos ?? false,
+                agenteNumeros: atendente?.agenteNumeros ?? "",
+                expedienteDias: atendente?.expedienteDias ?? "1,2,3,4,5",
+                expedienteInicio: atendente?.expedienteInicio ?? "08:00",
+                expedienteFim: atendente?.expedienteFim ?? "18:00",
+              }}
+              campanhas={campanhas}
+              transcricao={{ configurada: transcricaoConfigurada(), url: process.env.TRANSCRICAO_URL || null }}
+              moduloDeCampanhas={{
+                assinado: Boolean(assinaturaCampanhas),
+                estadoDaAssinatura: estadoDaAssinaturaCampanhas,
+                diasRestantesDeCarencia: diasRestantesDeCarenciaCampanhas,
+                situacaoDoPerfil: situacaoDoPerfilDeCampanha,
+                instrucoesDoPerfil: assinaturaCampanhas?.perfil?.instrucoes ?? "",
+                quantasCampanhasAtivas,
+                precoDoModulo,
+                precoSlotExtraConfigurado: parametrosDePreco.precoSlotExtra != null,
+              }}
+            />
+          </div>
+        </Card>
       )}
 
       {isAdmin && secao === "workflows" && (

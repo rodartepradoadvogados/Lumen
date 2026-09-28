@@ -1,0 +1,15 @@
+[Unit]
+Description=Confere a ponte do Hermes de dois em dois minutos
+
+[Timer]
+# Dois minutos: tempo suficiente para nao brigar com uma pergunta demorada em andamento (o teto
+# de uma pergunta e 110s) e curto o bastante para ninguem ficar meia hora sem agente sem que a
+# maquina tente se consertar sozinha.
+OnBootSec=2min
+OnUnitActiveSec=2min
+# Sem folga aleatoria: o disparo e barato e previsivel, e um horario certo facilita ler o
+# journalctl depois.
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

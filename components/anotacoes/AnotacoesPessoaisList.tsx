@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { deleteAnotacao } from "@/lib/actions/anotacoes";
-import { EmptyState, formatDate, formatCalendarDate } from "@/components/ui";
+import { EmptyState, formatCalendarDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 export type AnotacaoListItem = { id: string; content: string; referenceDate: string; createdAt: string };
 
@@ -63,7 +64,10 @@ export default function AnotacoesPessoaisList({ anotacoes }: { anotacoes: Anotac
             // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{ __html: a.content }}
           />
-          <p className="mt-2 text-etiqueta text-tx-3">Criada em {formatDate(a.createdAt)}</p>
+          {/* createdAt é o instante da criação, não um dia de calendário escolhido (esse é
+              referenceDate, acima) — formatDate() lia sem fuso e virava um dia errado perto da
+              meia-noite; dataDeBrasilia() força o fuso do escritório. */}
+          <p className="mt-2 text-etiqueta text-tx-3">Criada em {dataDeBrasilia(a.createdAt)}</p>
         </div>
       ))}
     </div>

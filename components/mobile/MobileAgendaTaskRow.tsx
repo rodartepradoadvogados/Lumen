@@ -8,6 +8,7 @@ import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
 import TaskDetailModal from "@/components/TaskDetailModal";
 import { classificarPrazo, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/lib/dueStatus";
 import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 type MobileAgendaTask = {
   id: string;
@@ -69,8 +70,8 @@ export default function MobileAgendaTaskRow({ t }: { t: MobileAgendaTask }) {
         {t.responsibleName && <p className="text-corpo text-tx-2 mt-0.5">{t.responsibleName}</p>}
         {done && t.completedByName && t.completedAt && (
           <p className="text-corpo text-tx-3 mt-0.5">
-            Concluído por {t.completedByName} em {new Date(t.completedAt).toLocaleDateString("pt-BR")} às{" "}
-            {new Date(t.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            Concluído por {t.completedByName} em {dataDeBrasilia(new Date(t.completedAt))} às{" "}
+            {horaDeBrasilia(new Date(t.completedAt))}
           </p>
         )}
       </button>

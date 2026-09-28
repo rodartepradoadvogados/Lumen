@@ -10,5 +10,9 @@ export const attendanceStatusLabels: Record<string, string> = {
   EM_TRIAGEM: "Em Triagem",
   CONVERTIDO: "Convertido",
   ARQUIVADO: "Arquivado",
+  // RECUSADO não é um status que se escolhe num seletor: ele é posto pelo ato de recusar (ver
+  // lib/actions/recusaDoLead.ts) e tirado pelo ato de desfazer. Está aqui só para que as telas
+  // saibam escrevê-lo — um status sem rótulo aparece como o valor cru do banco.
+  RECUSADO: "Recusado",
   RASCUNHO: "Rascunho",
 };

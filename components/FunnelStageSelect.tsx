@@ -10,6 +10,9 @@ import { stageOptions, stageLabels } from "@/lib/funil";
 
 const colors: Record<string, string> = {
   NOVO: "bg-aviso-bg text-aviso border-aviso",
+  // Aguardando é a coluna de chamar atenção — mesma família de aviso do Novo, um tom acima,
+  // porque ela quer dizer "alguém precisa olhar ISTO", e não "chegou agora".
+  AGUARDANDO: "bg-aviso-bg text-aviso border-aviso font-bold",
   QUALIFICACAO: "bg-sf-apoio text-fonte-pje border-fonte-pje",
   PROPOSTA: "bg-marca-bg text-marca-tx border-marca-tx",
   FECHADO: "bg-concluido-bg text-concluido border-concluido",

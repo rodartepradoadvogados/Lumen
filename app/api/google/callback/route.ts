@@ -19,14 +19,27 @@ export async function GET(request: NextRequest) {
   // aceitava um `code` de qualquer origem. Ver lib/oauthState.ts.
   const verified = verifyAndConsumeOAuthState(request.nextUrl.searchParams.get("state"));
   if (!verified) {
-    return NextResponse.redirect(new URL("/conexoes?google=erro&msg=state", request.url));
+    // "msg=state" era ilegível para quem usa o sistema. A causa quase sempre é uma destas duas, e
+    // a mensagem agora diz as duas: o cookie do nonce dura 10 minutos (lib/oauthState.ts), e o
+    // fluxo precisa começar e terminar no MESMO endereço e navegador.
+    const msg =
+      "A autorização expirou ou começou em outro endereço/navegador. O consentimento do Google precisa ser concluído em menos de 10 minutos, na mesma janela em que você começou. Tente novamente.";
+    return NextResponse.redirect(new URL(`/conexoes?google=erro&msg=${encodeURIComponent(msg)}`, request.url));
   }
 
   try {
     if (verified.mode === "jusbrasil") {
       // Conexão pessoal — documento 04: "Conexões" é só integração do escritório, conta pessoal
       // vive em /perfil (ver comentário em app/(app)/perfil/page.tsx).
-      if (!user?.active) return NextResponse.redirect(new URL("/perfil", request.url));
+      if (!user?.active) {
+        // COM mensagem. Antes este caminho redirecionava calado: quem voltasse do Google sem
+        // sessão (fluxo iniciado em outro endereço do Lúmen, ou cookie vencido no meio do
+        // consentimento) caía numa tela de Perfil normal achando que havia reconectado, enquanto
+        // o refresh_token morto continuava no banco dando invalid_grant a cada ciclo do cron.
+        const msg =
+          "Sua sessão do Lúmen não chegou junto com a resposta do Google, então a reconexão NÃO foi salva. Abra o Lúmen pelo endereço oficial, confirme que está logado e clique em Reconectar de novo.";
+        return NextResponse.redirect(new URL(`/perfil?google=erro&msg=${encodeURIComponent(msg)}`, request.url));
+      }
       await saveJusbrasilTokensFromCode(code, user.id, user.officeId);
       return NextResponse.redirect(new URL("/perfil?google=conectado", request.url));
     }

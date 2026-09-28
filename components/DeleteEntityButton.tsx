@@ -6,7 +6,9 @@ import { Trash2, X } from "lucide-react";
 import { requestDeletion, requestDeletionScoped, type DeletionScope, type DeletionResult } from "@/lib/actions/deletion";
 import { formatCurrency } from "@/components/ui";
 
-type EntityType = "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE" | "HONORARIO_LANCAMENTO";
+// ATTENDANCE não existe mais aqui — ver o comentário em lib/actions/deletion.ts sobre por que a
+// exclusão de atendimento saiu (pedido do dono: risco de perder a única cópia da conversa).
+type EntityType = "TASK" | "CASE" | "PAYABLE" | "RECEIVABLE" | "HONORARIO_LANCAMENTO";
 
 // Só relevante para entityType RECEIVABLE/PAYABLE — de qual dos três agrupamentos existentes esta
 // linha faz parte (ver DeletionScope/performDeleteScoped em lib/actions/deletion.ts), calculado

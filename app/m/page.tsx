@@ -17,7 +17,6 @@ import {
   CalendarClock,
   Gavel,
   Stethoscope,
-  Phone,
   Briefcase,
   Bell,
   Newspaper,
@@ -32,6 +31,10 @@ import {
   Building2,
   type LucideIcon,
 } from "lucide-react";
+import { podeVerAtendimentos, recorteDosAlertasDeAtendimento, filtroDoAtendimento } from "@/lib/acessoAtendimento";
+import { quemEstaEsperando } from "@/lib/esperaDoAtendimento";
+import MobileAtendimentosCard from "@/components/mobile/MobileAtendimentosCard";
+import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 
 // Ordem de urgência pra escolher os alertas da prévia da Início — mesma leitura de severidade
 // da Central de Alertas (DESIGN-SYSTEM.md §8), só usada aqui pra ordenar, não pra pintar nada
@@ -80,7 +83,7 @@ export default async function MobileHome() {
       : Promise.resolve([]),
     // Lista completa (não só a contagem) — alimenta tanto o número do atalho quanto a prévia
     // dos alertas mais urgentes logo abaixo, sem precisar de uma segunda consulta.
-    user ? getAlerts(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin) : Promise.resolve([]),
+    user ? getAlerts(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id), podeAcessarAba(user)) : Promise.resolve([]),
     user ? prisma.assessoria.count({ where: { status: "ATIVA", officeId: user.officeId } }) : Promise.resolve(0),
     user ? prisma.case.count({ where: { officeId: user.officeId, status: "ATIVO" } }) : Promise.resolve(0),
     // Divisão judicial/administrativo do atalho "Processos" abaixo — duas contagens leves a mais
@@ -100,6 +103,17 @@ export default async function MobileHome() {
 
   const firstName = user?.name.split(" ")[0] ?? "";
   const modules = user ? await getOfficeModules(user.officeId) : { financeiro: false, whatsapp: false, atendimento: false, assessoria: false };
+  // Administrador ou recepção. Sem isso, o cartão de Atendimento não existe nesta tela.
+  // Aqui vale para os DOIS níveis: o advogado da escala abre a tela dele por este cartão.
+  const podeAtendimento = podeVerAtendimentos(user);
+  // Quem está esperando resposta. Só é consultado quando o cartão vai de fato aparecer: numa tela
+  // inicial, uma consulta a mais que ninguém vê é uma tela mais lenta para todo mundo.
+  const atendimentos =
+    modules.atendimento && podeAtendimento && user
+      ? await quemEstaEsperando(user.officeId, filtroDoAtendimento(user, user.id), user.id, new Date(), 30)
+      : null;
+  const esperando = atendimentos ? atendimentos.lista.filter((q) => q.esperandoHa !== null).length : 0;
+
   const showFinance = modules.financeiro && Boolean(user?.isAdmin || user?.financeAccess);
   const saldoMes = showFinance && user ? await getMonthlyNetFlow(user.officeId) : null;
   // Blog Jurídico não é um módulo contratável — é recurso da própria plataforma, hoje só do
@@ -136,7 +150,18 @@ export default async function MobileHome() {
             remodelação: bordô é a cor de AÇÃO em toda a Início, dourado sai dos cartões (só o
             item ativo da barra inferior continua dourado, por decisão à parte, ver
             components/mobile/MobileBottomNav.tsx). */}
-        <div className={modules.atendimento ? "grid grid-cols-2 gap-3" : ""}>
+        {/* ATENDIMENTOS VEM ANTES DE TUDO, e ocupa a largura inteira. Quem abre o app quer saber
+            se tem gente esperando; criar um atendimento novo é o que se faz uma vez por dia, e por
+            isso virou o ícone de 44×44 no canto do cabeçalho do cartão. */}
+        {atendimentos && (
+          <MobileAtendimentosCard
+            lista={atendimentos.lista.slice(0, 3)}
+            abertos={atendimentos.abertos}
+            esperando={esperando}
+          />
+        )}
+
+        <div>
           <HubCard
             title="Novo Compromisso"
             subtitle="Tarefa, prazo, audiência ou perícia"
@@ -149,22 +174,13 @@ export default async function MobileHome() {
               { href: "/m/agenda?novo=1&tipo=PERICIA", label: "Perícia", icon: Stethoscope },
             ]}
           />
-          {modules.atendimento && (
-            <Link href="/m/atendimento/novo" className="block h-full">
-              <Card className="p-4 h-full">
-                <TileBadge icon={Phone} tone="bordo" />
-                <p className="text-sm font-bold text-tx mt-2.5">Novo Atendimento</p>
-                <p className="text-corpo text-tx-2 mt-0.5">Abrir caso ou contato</p>
-              </Card>
-            </Link>
-          )}
         </div>
 
         {/* Prévia real dos alertas mais urgentes — não é mais um link repetindo o mesmo número
             do sino e da aba de baixo: mostra o que de fato está pendente, pra decidir se vale
             abrir sem precisar entrar. Card largo (não tile) de propósito: uma lista de verdade
             não cabe direito no formato compacto dos atalhos de "Acompanhar" abaixo. */}
-        <Link href="/m/alertas" className="flex items-center justify-between gap-2 px-1">
+        <Link href="/m/alertas" className="flex items-center justify-between gap-2 px-1 min-h-[44px]">
           <span className="flex items-center gap-1.5 text-corpo font-bold uppercase tracking-wide text-tx-2">
             <Bell size={12} strokeWidth={1.5} /> Central de Alertas
             {/* Mesmo glow reservado do portal (app/globals.css, ".live-dot") — indicador "isto

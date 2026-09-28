@@ -13,6 +13,7 @@ import type { AlertItem } from "@/lib/alerts";
 // - conta a pagar/receber (vencida ou sem vencimento) -> card de baixa/recebimento
 // - prazo vencido (tarefa/evento/audiência/perícia) -> card do compromisso
 // - menção / follow-up -> navega direto (href já aponta para o lugar certo)
+// - alerta com `abrirEmNovaAba` (os dois de geração de minuta) -> ABA NOVA do navegador
 export default function AlertRow({
   alert,
   className,
@@ -73,6 +74,22 @@ export default function AlertRow({
         </button>
         {modal === "task" && <TaskDetailModal taskId={entityId} onClose={() => setModal(null)} />}
       </>
+    );
+  }
+
+  // ABA NOVA DE VERDADE, e não `<Link>`: o Peticionamento é uma aba separada do navegador por
+  // PRIORIDADE 0 do dono, e há suíte guardando isso (lib/testes/peticionamentoAbaNova.teste.ts).
+  //
+  // `<Link>` e `router.push` trocam o conteúdo da MESMA aba: o alerta de minuta pronta tiraria o
+  // Lúmen da frente e levaria a aba principal para dentro do peticionamento — exatamente o que
+  // aquela entrega proibiu. Só `<a target="_blank" rel="noopener">` abre um contexto novo de
+  // verdade; e o `rel="noopener"` é obrigatório, senão a aba nova ganha `window.opener` para a aba
+  // do Lúmen e pode navegá-la/fechá-la por trás.
+  if (alert.abrirEmNovaAba) {
+    return (
+      <a href={alert.href} target="_blank" rel="noopener" className={className}>
+        {children}
+      </a>
     );
   }
 

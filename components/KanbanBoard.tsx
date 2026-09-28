@@ -10,6 +10,7 @@ import { classificarPrazo, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/
 import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
 import { Check, MessageSquare } from "lucide-react";
 import clsx from "clsx";
+import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 export type TaskCardData = {
   id: string;
@@ -111,7 +112,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
   const [justCompleted, setJustCompleted] = useState(false);
   const completedTip =
     done && task.completedBy && task.completedAt
-      ? `Concluído por ${task.completedBy.name} em ${new Date(task.completedAt).toLocaleDateString("pt-BR")} às ${new Date(task.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+      ? `Concluído por ${task.completedBy.name} em ${dataDeBrasilia(new Date(task.completedAt))} às ${horaDeBrasilia(new Date(task.completedAt))}`
       : null;
 
   return (

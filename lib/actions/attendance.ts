@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendWhatsappText } from "@/lib/whatsapp";
+import { silenciarAtendente, atendenteResponde } from "@/lib/atendenteResponde";
 import { sendEmailReply } from "@/lib/gmailSend";
 import { renameDriveFolder, moveDriveFile, getProcessosRootFolderId, getCasosRootFolderId } from "@/lib/storageProvider";
 import { naturezaOf } from "@/lib/caseNatureza";
@@ -12,6 +13,14 @@ import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/of
 import { getOfficeModules } from "@/lib/officeModules";
 import { normalizeForCompare } from "@/lib/textNormalize";
 import { createAttendancePendencias, type PendenciaInput } from "@/lib/actions/attendancePendencias";
+import { podeVerAtendimentos, veTodoOAtendimento, filtroDoAtendimento, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
+import { recorteDaConversa } from "@/lib/conversaDaCentral";
+import { prazoAutomaticoDeFollowUp } from "@/lib/followUpAutomatico";
+import { assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoLead";
+import { composePhoneWithDdi } from "@/lib/documentoEnvios";
+import { somenteDigitos } from "@/lib/whatsappEvolution";
+import { agendaDoEscritorio } from "@/lib/identificarNumero";
+import type { TipoDeContato, ContatoConhecido } from "@/lib/quemEEsteNumero";
 
 async function assertAttendanceRelationsInOffice(
   data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
@@ -50,9 +59,33 @@ type CreateAttendanceInput = {
   pendencias?: PendenciaInput[];
 };
 
+// A REGRA DO DONO, APLICADA EM TODA AÇÃO E NÃO SÓ NA TELA. Esconder o menu é decoração: uma
+// Server Action é um endereço HTTP, e quem souber o nome dela a chama sem passar por tela
+// nenhuma. Por isso a trava repete-se em cada função deste arquivo, logo depois de saber quem
+// está do outro lado e antes de qualquer consulta ao banco.
+/**
+ * O responsável de um atendimento criado à mão.
+ *
+ * Quem só vê os PRÓPRIOS atendimentos fica como responsável do que abre, sempre — mesmo que o
+ * formulário mande outro nome ou nenhum. Sem isto, o advogado abriria um atendimento manual e ele
+ * SUMIRIA no instante em que fosse salvo: o recorte por dono o esconderia dele mesmo, e o botão
+ * "Novo atendimento" que acabamos de lhe dar seria um botão que engole o trabalho.
+ *
+ * Escolher o responsável continua sendo de quem enxerga o escritório inteiro — é escala, e escala
+ * é de quem organiza.
+ */
+function responsavelDoNovoAtendimento(
+  viewer: { id: string; isAdmin: boolean; role: string | null; recebeTransferencia: boolean },
+  escolhido: string | null | undefined,
+): string | null {
+  if (!veTodoOAtendimento(viewer)) return viewer.id;
+  return escolhido || null;
+}
+
 export async function createAttendance(data: CreateAttendanceInput): Promise<{ id: string; newClientId?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
   if (!(await getOfficeModules(viewer.officeId)).atendimento) {
     throw new Error("O módulo Atendimento não está incluído no plano deste escritório.");
   }
@@ -93,10 +126,14 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<{ i
       area: data.area || null,
       description: data.description || null,
       channel: data.channel,
-      responsibleId: data.responsibleId || null,
+      responsibleId: responsavelDoNovoAtendimento(viewer, data.responsibleId),
       estimatedValue: data.estimatedValue ?? null,
       leadSource: data.leadSource || null,
-      nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
+      // FOLLOW-UP AUTOMÁTICO (F5.5): quando a pessoa não escolheu uma data de próximo contato na
+      // janela de criação, o atendimento não nasce sem follow-up nenhum — ganha o prazo automático
+      // do estágio inicial (NOVO, sempre — este formulário não escolhe estágio). Ver a regra
+      // central em lib/followUpAutomatico.ts.
+      nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : prazoAutomaticoDeFollowUp("NOVO", new Date()),
       stageChangedAt: new Date(),
       assessoriaId: data.assessoriaId || null,
       officeId: viewer.officeId,
@@ -128,6 +165,7 @@ export async function checkOpposingPartyConflict(
   if (q.length < 3) return [];
   const viewer = await getCurrentUser();
   if (!viewer) return [];
+  if (!podeVerAtendimentos(viewer)) return [];
   const target = normalizeForCompare(q);
 
   const [byParty, byLegacyField] = await Promise.all([
@@ -156,8 +194,9 @@ export async function checkOpposingPartyConflict(
 export async function markAttendanceResponded(attendanceId: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
   await prisma.attendance.updateMany({
-    where: { id: attendanceId, officeId: viewer.officeId, firstResponseAt: null },
+    where: { id: attendanceId, officeId: viewer.officeId, firstResponseAt: null, ...filtroDoAtendimento(viewer, viewer.id) },
     data: { firstResponseAt: new Date() },
   });
   revalidatePath(`/atendimento/${attendanceId}`);
@@ -173,6 +212,7 @@ export async function saveAttendanceDraft(
 ): Promise<{ id: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
   if (!(await getOfficeModules(viewer.officeId)).atendimento) {
     throw new Error("O módulo Atendimento não está incluído no plano deste escritório.");
   }
@@ -189,7 +229,7 @@ export async function saveAttendanceDraft(
       area: data.area || null,
       description: data.description || null,
       channel: data.channel || "WHATSAPP",
-      responsibleId: data.responsibleId || null,
+      responsibleId: responsavelDoNovoAtendimento(viewer, data.responsibleId),
       estimatedValue: data.estimatedValue ?? null,
       leadSource: data.leadSource || null,
       nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
@@ -219,6 +259,8 @@ export async function searchClients(
   if (!q) return [];
   const viewer = await getCurrentUser();
   if (!viewer) return [];
+  // Busca de cliente da janela de novo atendimento — lista vazia, que é o "não achei" dela.
+  if (!podeVerAtendimentos(viewer)) return [];
   const clients = await prisma.client.findMany({
     where: { name: { contains: q, mode: "insensitive" }, officeId: viewer.officeId },
     select: { id: true, name: true, phone: true, phoneDdi: true, email: true },
@@ -243,6 +285,7 @@ export async function updateClientQualification(
 ): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   await prisma.client.updateMany({
     where: { id: clientId, officeId: viewer.officeId },
@@ -267,7 +310,8 @@ export async function updateClientQualification(
 export async function updateAttendanceStatus(id: string, status: string) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
-  await prisma.attendance.updateMany({ where: { id, officeId: viewer.officeId }, data: { status } });
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
+  await prisma.attendance.updateMany({ where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) }, data: { status } });
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${id}`);
   revalidatePath("/m/atendimento");
@@ -280,13 +324,35 @@ export async function updateAttendanceStatus(id: string, status: string) {
 export async function updateAttendanceSubject(id: string, subject: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
   const trimmed = subject.trim();
   if (!trimmed) return { error: "Preencha o assunto." };
 
-  const existing = await prisma.attendance.findFirst({ where: { id, officeId: viewer.officeId }, select: { id: true } });
+  const existing = await prisma.attendance.findFirst({
+    where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
+    select: { id: true, subject: true, driveFolderId: true },
+  });
   if (!existing) return { error: "Atendimento não encontrado." };
 
   await prisma.attendance.update({ where: { id }, data: { subject: trimmed } });
+
+  // A pasta do Drive (quando já existe — ver getOrCreateAttendanceFolder em lib/googleDrive.ts)
+  // é nomeada com o assunto ("Lúmen - Atendimentos/{assunto}"), do mesmo jeito que
+  // convertAttendanceToCase já renomeia ao virar Processo/Caso. Editar o assunto à mão tinha o
+  // mesmo efeito sem o mesmo cuidado: a pasta ficava com o nome velho pra sempre. Aqui só
+  // RENOMEIA — nunca cria pasta nova (quem decide se um atendimento ganha pasta é o primeiro
+  // anexo, não a edição do texto) e nunca troca o driveFolderId (o id é o que amarra tudo no
+  // banco; o nome é só rótulo).
+  if (existing.driveFolderId && trimmed !== existing.subject) {
+    try {
+      await renameDriveFolder(existing.driveFolderId, trimmed, viewer.officeId);
+    } catch {
+      // Best-effort, igual ao renomeio de convertAttendanceToCase: um escritório sem Drive
+      // conectado (ou uma chamada que falhe) não pode impedir a correção do assunto — a pasta
+      // fica com o nome antigo até a próxima tentativa, mas o atendimento é atualizado normalmente.
+    }
+  }
+
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${id}`);
   revalidatePath("/m/atendimento");
@@ -299,6 +365,7 @@ export async function updateAttendanceSubject(id: string, subject: string): Prom
 export async function setAttendanceStage(id: string, stage: string, lostReason?: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
 
   // Motivo da perda passou a ser OBRIGATÓRIO (Fase 5) — é o que alimenta o relatório de captação.
   // Quem chama isto para PERDIDO precisa já ter coletado o motivo antes (ver
@@ -308,13 +375,25 @@ export async function setAttendanceStage(id: string, stage: string, lostReason?:
     return { error: "Informe o motivo da perda antes de mover para Perdido." };
   }
 
+  // FOLLOW-UP AUTOMÁTICO (F5.5) — só PREENCHE quando ainda não há data nenhuma; nunca sobrescreve
+  // uma data que já existe, seja ela manual ou automática de uma passagem anterior por este mesmo
+  // atendimento. Por isso o `findFirst` antes do `updateMany`: sem ler o valor atual não dá para
+  // saber se há vazio para preencher. Ver a regra central em lib/followUpAutomatico.ts.
+  const atual = await prisma.attendance.findFirst({
+    where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
+    select: { nextContactAt: true },
+  });
+  if (!atual) return { error: "Atendimento não encontrado." };
+
+  const agora = new Date();
   await prisma.attendance.updateMany({
-    where: { id, officeId: viewer.officeId },
+    where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
     data: {
       stage,
-      stageChangedAt: new Date(),
+      stageChangedAt: agora,
       // motivo só é gravado (ou limpo) quando o estágio é PERDIDO
       lostReason: stage === "PERDIDO" ? lostReason!.trim() : null,
+      nextContactAt: atual.nextContactAt ?? prazoAutomaticoDeFollowUp(stage, agora),
       // não mexe no `status` operacional: os dois eixos são independentes
     },
   });
@@ -341,8 +420,9 @@ export async function updateAttendanceCommercial(
 ) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
   await prisma.attendance.updateMany({
-    where: { id, officeId: viewer.officeId },
+    where: { id, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) },
     data: {
       estimatedValue: data.estimatedValue ?? null,
       leadSource: data.leadSource || null,
@@ -359,16 +439,128 @@ export async function updateAttendanceCommercial(
   revalidatePath("/alertas");
 }
 
+// ===== O atendente de IA, nesta conversa =====
+
+/**
+ * Liga ou desliga o atendente NESTA conversa.
+ *
+ * Ligar vale da PRÓXIMA mensagem do cliente em diante — foi assim que o dono descreveu, e é o
+ * comportamento seguro: marcar a chave no meio de uma conversa não faz o atendente sair
+ * respondendo sozinho uma pergunta que alguém já pode estar redigindo. Para responder à última
+ * pergunta que ficou pendente, existe `responderUltimaPergunta`, que é um ato deliberado.
+ */
+export async function definirAtendenteResponde(
+  attendanceId: string,
+  responde: boolean,
+): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+
+  const atendimento = await prisma.attendance.findFirst({
+    where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) },
+    select: { agenteSilenciadoEm: true },
+  });
+  if (!atendimento) return { error: "Atendimento não encontrado." };
+
+  // Esta CHAVE continua recusando religar depois que alguém assumiu, e a recusa continua
+  // explícita: uma chave que aceita ser ligada e depois não faz nada é pior que uma chave que diz
+  // não. O dono pediu uma SAÍDA para essa situação, e ela existe — mas é `devolverAtendenteResponde`,
+  // logo abaixo, uma ação nomeada e com confirmação própria, não este mesmo botão aceitando `true`
+  // de novo.
+  if (atendimento.agenteSilenciadoEm && responde) {
+    return {
+      error: "Uma pessoa do escritório já respondeu nesta conversa — o atendente não volta a falar aqui.",
+    };
+  }
+
+  await prisma.attendance.update({ where: { id: attendanceId }, data: { agenteResponde: responde } });
+  revalidatePath(`/atendimento/${attendanceId}`);
+  return {};
+}
+
+/**
+ * DEVOLVE a conversa para a Ana depois que um humano assumiu.
+ *
+ * O dono decidiu reverter a trava de `definirAtendenteResponde` acima: religar não era permitido
+ * porque "uma chave que aceita ser ligada e depois não faz nada é pior que uma chave que diz não"
+ * — e continua sendo, por isso esta NÃO é aquela chave voltando a aceitar `true`. É uma ação à
+ * parte, com nome que diz o que faz, chamada só a partir de um botão com confirmação
+ * (components/AtendenteIaControle.tsx), nunca automaticamente.
+ *
+ * O mesmo contrato de sempre se aplica: ligar vale da PRÓXIMA mensagem do cliente em diante. Esta
+ * função só grava estado — quem decide se o atendente fala é `deveResponder`, chamado no próximo
+ * webhook de mensagem recebida — então devolver no meio de uma conversa não faz a Ana sair
+ * respondendo sozinha uma pergunta que a pessoa do escritório pode estar redigindo agora. Para
+ * isso existe `responderUltimaPergunta`, ato separado e explícito, disponível logo em seguida
+ * assim que a tela deixa de mostrar o cadeado.
+ */
+export async function devolverAtendenteResponde(attendanceId: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+
+  // MESMO recorte de `definirAtendenteResponde`: id + escritório de quem pediu + recorte por
+  // dono. Quem só vê os próprios atendimentos não pode devolver um atendimento que não poderia
+  // nem listar.
+  const atendimento = await prisma.attendance.findFirst({
+    where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) },
+    select: { agenteSilenciadoEm: true },
+  });
+  if (!atendimento) return { error: "Atendimento não encontrado." };
+
+  if (!atendimento.agenteSilenciadoEm) {
+    return { error: "Esta conversa não está com um humano assumido — não há o que devolver." };
+  }
+
+  // `agenteSilenciadoEm` volta a `null`: é o que faz `deveResponder` (lib/agenteAtendimento.ts)
+  // voltar a permitir resposta. Não é apagado sem deixar rastro — `agenteDevolvidoEm` e
+  // `agenteDevolvidoPorId` (prisma/schema.prisma) guardam quando e quem decidiu, porque zerar
+  // o campo perde a memória de quando o humano tinha assumido a primeira vez.
+  await prisma.attendance.update({
+    where: { id: attendanceId },
+    data: {
+      agenteSilenciadoEm: null,
+      agenteResponde: true,
+      agenteDevolvidoEm: new Date(),
+      agenteDevolvidoPorId: user.id,
+    },
+  });
+  revalidatePath(`/atendimento/${attendanceId}`);
+  return {};
+}
+
+/** Faz o atendente responder AGORA à última mensagem do cliente, mesmo com a chave desligada. */
+export async function responderUltimaPergunta(attendanceId: string): Promise<{ error?: string; motivo?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+
+  const existe = await prisma.attendance.findFirst({
+    where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) },
+    select: { id: true },
+  });
+  if (!existe) return { error: "Atendimento não encontrado." };
+
+  const r = await atendenteResponde(attendanceId, { forcar: true });
+  if (!r.respondeu) return { error: `O atendente não respondeu: ${r.motivo}.` };
+  revalidatePath(`/atendimento/${attendanceId}`);
+  return { motivo: r.motivo };
+}
+
 // ===== WhatsApp: responder ao cliente pelo número oficial da Meta =====
 
 export async function replyWhatsapp(attendanceId: string, body: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   const text = body.trim();
   if (!text) return { error: "Digite uma mensagem antes de enviar." };
 
-  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: user.officeId } });
+  // O MESMO recorte da leitura da Central (id + escritório de quem pediu + recorte por dono): quem
+  // não poderia abrir a conversa não pode escrever nela.
+  const attendance = await prisma.attendance.findFirst({ where: recorteDaConversa(user, attendanceId) });
   if (!attendance) return { error: "Atendimento não encontrado." };
   if (!attendance.waPhone) return { error: "Este atendimento não tem WhatsApp vinculado." };
 
@@ -376,6 +568,11 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
   if (!result.ok) {
     return { error: result.error || "Não foi possível enviar a mensagem." };
   }
+
+  // UMA PESSOA ASSUMIU: o atendente de IA cala nesta conversa, para sempre. Vem antes de gravar
+  // a mensagem de propósito — se a gravação falhar, é melhor o atendente estar calado a mais do
+  // que a menos.
+  await silenciarAtendente(attendanceId, user.officeId);
 
   await prisma.whatsappMessage.create({
     data: {
@@ -402,13 +599,243 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
   return {};
 }
 
+// ===== WhatsApp: INICIAR conversa (F5.5, item 4) =====
+//
+// "eu só consigo responder reativamente, e não selecionar um contato ou digitar um número de
+// whatsapp para iniciar uma conversa" — pedido do dono, para o atendimento e para Clientes,
+// Advogados e Fornecedores.
+//
+// A JANELA DE 24H DA META NÃO É IGNORADA AQUI — É DEIXADA PARA A API DIZER A VERDADE. Este
+// escritório pode estar em qualquer um dos dois provedores (ver lib/whatsapp.ts): na Cloud API
+// oficial da Meta, iniciar contato com quem nunca escreveu (ou está fora da janela de 24h) exige
+// um modelo (template) pré-aprovado — ESTE PROJETO NÃO IMPLEMENTA ENVIO DE TEMPLATE, então
+// `sendWhatsappText` (mensagem de texto livre) é rejeitado pela própria Graph API nesse caso, e o
+// erro que ela devolve é o que a tela mostra — nunca um "enviado" fingido. Na Evolution (WhatsApp
+// Web / Baileys), não há essa trava da Meta: o envio funciona como mandar uma mensagem pelo
+// aplicativo, com o mesmo risco de sempre de ser um número não-oficial (ver o cabeçalho de
+// lib/whatsappEvolution.ts). NENHUM texto de tela promete "iniciar conversa" sem ressalva — ver
+// components/atendimento/NovaConversaModal.tsx.
+//
+// O ATENDIMENTO NUNCA SE PERDE, MESMO QUANDO O ENVIO FALHA: ele é criado (ou reaproveitado, se já
+// havia uma conversa aberta com este telefone) ANTES do envio, e o `id` volta mesmo em erro — quem
+// chamou pode reabrir a conversa e tentar de novo pela caixa de resposta comum, sem redigitar nada.
+
+type ResultadoDeIniciarConversa = { error?: string; id?: string; jaExistia?: boolean };
+
+/** O que os três "iniciar conversa" (contato existente, número digitado) têm em comum: achar (ou
+ * criar) o atendimento pelo telefone, mandar a primeira mensagem, e nunca inventar sucesso. */
+async function iniciarOuRetomarConversa(
+  viewer: { officeId: string; id: string; isAdmin: boolean; role: string | null; recebeTransferencia: boolean },
+  responsibleId: string | null,
+  numeroE164: string,
+  nome: string,
+  mensagem: string,
+  clientId: string | null,
+): Promise<ResultadoDeIniciarConversa> {
+  const officeId = viewer.officeId;
+
+  // JÁ HÁ CONVERSA ABERTA COM ESTE TELEFONE NESTE ESCRITÓRIO? Reaproveita — criar uma segunda
+  // conversa para o mesmo número duplicaria a Central de Atendimento e confundiria para quem lado
+  // a próxima resposta do cliente deveria ir (ingestIncomingWhatsapp também escolhe pela mais
+  // recente não arquivada, mesmo critério aqui).
+  //
+  // A REGRA DA CASA, AQUI TAMBÉM: quem só vê os próprios atendimentos (filtroDoAtendimento) não
+  // pode escrever numa conversa que não é dele só porque acertou o telefone de outra pessoa —
+  // seria agir sobre o que não poderia nem listar. Por isso a busca já sai com o recorte, e não
+  // só com officeId. Quando existe uma conversa com este telefone mas ela NÃO está no recorte de
+  // quem pediu, a segunda consulta (sem recorte) serve só para dar um erro que explica o que
+  // aconteceu, em vez de criar silenciosamente uma segunda conversa duplicada para o mesmo número.
+  const existente = await prisma.attendance.findFirst({
+    where: { officeId, waPhone: numeroE164, status: { not: "ARQUIVADO" }, ...filtroDoAtendimento(viewer, viewer.id) },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, firstResponseAt: true },
+  });
+
+  if (!existente) {
+    const deOutroDono = await prisma.attendance.findFirst({
+      where: { officeId, waPhone: numeroE164, status: { not: "ARQUIVADO" } },
+      select: { id: true },
+    });
+    if (deOutroDono) {
+      return { error: "Já existe uma conversa com este número, mas você não tem acesso a ela — peça a quem organiza o atendimento." };
+    }
+  }
+
+  const attendanceId = existente
+    ? existente.id
+    : (
+        await prisma.attendance.create({
+          data: {
+            clientName: nome,
+            subject: assuntoPadraoWhatsapp(nome),
+            channel: "WHATSAPP",
+            status: "NOVO",
+            waPhone: numeroE164,
+            clientId,
+            responsibleId,
+            stageChangedAt: new Date(),
+            officeId,
+            responseDeadline: new Date(Date.now() + 24 * 3600 * 1000),
+            // A conversa está sendo aberta PELO escritório — não há lead esperando, então o
+            // primeiro "próximo contato" automático já entra (ver lib/followUpAutomatico.ts),
+            // mesma regra de ingestIncomingWhatsapp e createAttendance.
+            nextContactAt: prazoAutomaticoDeFollowUp("NOVO", new Date()),
+          },
+        })
+      ).id;
+
+  const envio = await sendWhatsappText(officeId, numeroE164, mensagem);
+  if (!envio.ok) {
+    // O ATENDIMENTO FICA — ver o comentário de cabeçalho desta seção. Devolve o id mesmo em erro.
+    return { error: envio.error || "Não foi possível enviar a mensagem.", id: attendanceId, jaExistia: Boolean(existente) };
+  }
+
+  await prisma.whatsappMessage.create({
+    data: {
+      attendanceId,
+      direction: "OUT",
+      body: mensagem,
+      waMessageId: envio.waMessageId || null,
+      status: "SENT",
+      fromNumber: numeroE164,
+      officeId,
+    },
+  });
+  await prisma.attendance.update({
+    where: { id: attendanceId },
+    data: {
+      waLastMessageAt: new Date(),
+      firstResponseAt: existente?.firstResponseAt ?? new Date(),
+    },
+  });
+
+  revalidatePath("/atendimento");
+  revalidatePath("/atendimento-central");
+  revalidatePath(`/atendimento/${attendanceId}`);
+  revalidatePath(`/m/atendimento/${attendanceId}`);
+  return { id: attendanceId, jaExistia: Boolean(existente) };
+}
+
+/**
+ * A busca do pop-up "Iniciar conversa" — clientes, advogados PARCEIROS e fornecedores com
+ * telefone cadastrado, pelo nome. Reaproveita `agendaDoEscritorio` (lib/identificarNumero.ts), a
+ * mesma varredura que "Quem é este número" já usa para o caminho inverso (telefone → nome).
+ *
+ * ADVOGADO ADVERSO NUNCA APARECE AQUI. Iniciar contato com a parte adversa de um processo em
+ * curso não é "abrir uma conversa de atendimento" — é abordagem indevida a quem está representado,
+ * a mesma ressalva de servidor-hermes/skills/follow-up-inteligente/SKILL.md. Quem precisa falar
+ * com um advogado adverso fala pelos autos, não pelo botão desta tela.
+ */
+export async function buscarContatosParaConversa(query: string): Promise<ContatoConhecido[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const viewer = await getCurrentUser();
+  if (!viewer) return [];
+  if (!podeVerAtendimentos(viewer)) return [];
+
+  const alvo = normalizeForCompare(q);
+  const agenda = await agendaDoEscritorio(viewer.officeId);
+  return agenda
+    .filter((c) => c.tipo !== "equipe")
+    .filter((c) => !(c.tipo === "advogado" && (c.detalhe || "").startsWith("Advogado adverso")))
+    .filter((c) => c.telefone && normalizeForCompare(c.nome).includes(alvo))
+    .slice(0, 15);
+}
+
+/**
+ * Inicia (ou retoma) uma conversa de WhatsApp com um contato JÁ CADASTRADO — o telefone e o nome
+ * vêm do PRÓPRIO CADASTRO, nunca do que o formulário mandar, porque o cadastro já reconferiu o
+ * escritório (cliente/advogado/fornecedor são todos consultados com `officeId: viewer.officeId`
+ * no `where`) e confiar no nome/telefone que o cliente do navegador mandasse abriria a porta para
+ * escrever em nome de outro escritório só trocando o `id` na chamada.
+ */
+export async function iniciarConversaComContato(
+  tipo: TipoDeContato,
+  contatoId: string,
+  mensagem: string
+): Promise<ResultadoDeIniciarConversa> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+  if (!(await getOfficeModules(viewer.officeId)).atendimento) {
+    return { error: "O módulo Atendimento não está incluído no plano deste escritório." };
+  }
+  const texto = mensagem.trim();
+  if (!texto) return { error: "Escreva a primeira mensagem." };
+
+  let nome: string;
+  let telefone: string | null;
+  let phoneDdi: string | null;
+  let clientId: string | null = null;
+
+  if (tipo === "cliente") {
+    const c = await prisma.client.findFirst({ where: { id: contatoId, officeId: viewer.officeId }, select: { name: true, phone: true, phoneDdi: true } });
+    if (!c) return { error: "Cliente não encontrado." };
+    ({ name: nome, phone: telefone, phoneDdi } = c);
+    clientId = contatoId;
+  } else if (tipo === "advogado") {
+    const l = await prisma.lawyer.findFirst({ where: { id: contatoId, officeId: viewer.officeId }, select: { name: true, phone: true, phoneDdi: true, side: true } });
+    if (!l) return { error: "Advogado não encontrado." };
+    if (l.side === "ADVERSO") return { error: "Este contato é a parte adversa de um processo — não é possível iniciar conversa por aqui." };
+    ({ name: nome, phone: telefone, phoneDdi } = l);
+  } else {
+    const s = await prisma.supplier.findFirst({ where: { id: contatoId, officeId: viewer.officeId }, select: { name: true, phone: true, phoneDdi: true } });
+    if (!s) return { error: "Fornecedor não encontrado." };
+    ({ name: nome, phone: telefone, phoneDdi } = s);
+  }
+
+  if (!telefone?.trim()) return { error: `${nome} não tem telefone cadastrado.` };
+  const numeroE164 = somenteDigitos(composePhoneWithDdi(phoneDdi, telefone));
+  if (numeroE164.length < 10) return { error: "O telefone cadastrado parece incompleto." };
+
+  return iniciarOuRetomarConversa(
+    viewer,
+    responsavelDoNovoAtendimento(viewer, undefined),
+    numeroE164,
+    nome,
+    texto,
+    clientId
+  );
+}
+
+/**
+ * Inicia uma conversa com um número digitado à mão — quando a pessoa não está em cadastro nenhum
+ * do escritório. Mesmo nível de confiança no telefone/nome que `createAttendance` já dá ao
+ * "Cadastrar novo cliente" da janela de Novo Atendimento: dado digitado por quem já passou pelo
+ * login e pela trava de módulo, não um dado de fora.
+ */
+export async function iniciarConversaComNumero(input: {
+  nome: string;
+  telefone: string;
+  ddi: string;
+  mensagem: string;
+}): Promise<ResultadoDeIniciarConversa> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+  if (!(await getOfficeModules(viewer.officeId)).atendimento) {
+    return { error: "O módulo Atendimento não está incluído no plano deste escritório." };
+  }
+
+  const nome = input.nome.trim();
+  if (!nome) return { error: "Informe o nome da pessoa." };
+  const texto = input.mensagem.trim();
+  if (!texto) return { error: "Escreva a primeira mensagem." };
+
+  const numeroE164 = somenteDigitos(composePhoneWithDdi(input.ddi, input.telefone));
+  if (numeroE164.length < 10) return { error: "Digite um telefone válido, com DDD." };
+
+  return iniciarOuRetomarConversa(viewer, responsavelDoNovoAtendimento(viewer, undefined), numeroE164, nome, texto, null);
+}
+
 // ===== E-mail: responder ao cliente usando a conta Google do próprio advogado logado =====
 
 export async function updateAttendanceClientEmail(attendanceId: string, clientEmail: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
   const email = clientEmail.trim();
-  await prisma.attendance.updateMany({ where: { id: attendanceId, officeId: viewer.officeId }, data: { clientEmail: email || null } });
+  await prisma.attendance.updateMany({ where: { id: attendanceId, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) }, data: { clientEmail: email || null } });
   revalidatePath(`/atendimento/${attendanceId}`);
   return {};
 }
@@ -416,12 +843,13 @@ export async function updateAttendanceClientEmail(attendanceId: string, clientEm
 export async function replyEmail(attendanceId: string, subject: string, body: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  if (!podeVerAtendimentos(user)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
 
   const subjectText = subject.trim();
   const bodyText = body.trim();
   if (!subjectText || !bodyText) return { error: "Preencha o assunto e a mensagem antes de enviar." };
 
-  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: user.officeId } });
+  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: user.officeId, ...filtroDoAtendimento(user, user.id) } });
   if (!attendance) return { error: "Atendimento não encontrado." };
   if (!attendance.clientEmail) return { error: "Este atendimento não tem e-mail do cliente cadastrado." };
 
@@ -471,10 +899,11 @@ export async function convertAttendanceToCase(
 ) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
 
   // Escopo por escritório logo na busca do atendimento: impede que alguém converta um
   // atendimento de OUTRO escritório só por conhecer/adivinhar o id.
-  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: viewer.officeId } });
+  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) } });
   if (!attendance) throw new Error("Atendimento não encontrado.");
 
   // Client/Case criados a partir daqui usam o officeId do PRÓPRIO atendimento (não o do viewer)

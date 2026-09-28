@@ -3,7 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { updateLicitacaoStatus, addLicitacaoTask, type getAssessoriaDetail } from "@/lib/actions/assessoria";
-import { Card, Badge, EmptyState, formatCurrency, formatCalendarDate, formatDate } from "@/components/ui";
+import { Card, Badge, EmptyState, formatCurrency, formatCalendarDate } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { authorDisplayName } from "@/lib/authorDisplay";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { Pencil, Paperclip } from "lucide-react";
@@ -210,7 +211,9 @@ export default function MobileLicitacaoDetail({
                   <Icon size={15} className="shrink-0 text-tx-2" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-tx truncate">{a.name}</p>
-                    <p className="text-corpo text-tx-2 mt-0.5">{getDocumentTypeLabel(a.docType)} · {formatDate(a.createdAt)}</p>
+                    {/* createdAt é instante — formatDate() lia sem fuso e virava um dia errado
+                        perto da meia-noite. */}
+                    <p className="text-corpo text-tx-2 mt-0.5">{getDocumentTypeLabel(a.docType)} · {dataDeBrasilia(a.createdAt)}</p>
                   </div>
                   {licitacao.tasks.length > 0 && (
                     <span className="text-etiqueta font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2 shrink-0">
@@ -245,7 +248,7 @@ export default function MobileLicitacaoDetail({
                 <div className="min-w-0">
                   <p className="text-sm">
                     <span className="font-semibold text-tx">{authorName}</span>{" "}
-                    <span className="text-corpo text-tx-2">{formatDate(cm.createdAt)}</span>
+                    <span className="text-corpo text-tx-2">{dataDeBrasilia(cm.createdAt)}</span>
                   </p>
                   <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                 </div>

@@ -8,12 +8,16 @@ import ModuleDisabledNotice from "@/components/ModuleDisabledNotice";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getOfficeModules } from "@/lib/officeModules";
 import { ArrowLeft } from "lucide-react";
+import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
 export default async function MobileNewAttendancePage() {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
+  // A REGRA DO DONO: o Atendimento é de administrador e da recepção, e de mais ninguém.
+  // `notFound` e não uma tela de "sem permissão": quem não pode ver não precisa saber que existe.
+  if (!podeVerAtendimentos(viewer)) notFound();
   const modules = await getOfficeModules(viewer.officeId);
   if (!modules.atendimento) {
     return <ModuleDisabledNotice moduleName="Atendimento" />;

@@ -1,6 +1,8 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { pendenciaKindLabel } from "@/lib/pendencias";
+import { resumoDoLead } from "@/lib/leadNoSino";
 import { describeMentionLocation, mentionCommentInclude } from "@/lib/mentions";
 
 // Carência antes de cobrar ciência de uma delegação: um dia útil de folga, para o alerta ser
@@ -35,7 +37,35 @@ export type AlertItem = {
     | "PENDENCIA_ATENDIMENTO_VENCIDA"
     // Fase 5 — prazo de resposta ao lead (Attendance.responseDeadline) estourou sem nenhuma
     // primeira resposta registrada (Attendance.firstResponseAt) — "lead sem retorno é lead perdido".
-    | "RESPOSTA_PRAZO_ESTOURADO";
+    | "RESPOSTA_PRAZO_ESTOURADO"
+    // ── OS DOIS AVISOS DE LEAD (relógio de 15 minutos, ver lib/filaDeTransferencia.ts) ───────
+    // O lead foi repassado a alguém e o relógio está correndo: ninguém respondeu ainda.
+    // `prazoDeRespostaAte` é nulo assim que alguém responde, então ele sozinho já é a pergunta
+    // "tem gente esperando?" — não é preciso reler a conversa para saber.
+    | "LEAD_TRANSFERIDO"
+    // A volta da fila fechou e ninguém respondeu no prazo (Attendance.semRespostaEm). O estrago
+    // já aconteceu; este aviso existe para que ele não passe despercebido também.
+    | "LEAD_SEM_RESPOSTA"
+    // ── OS DOIS AVISOS DA GERAÇÃO DE MINUTA (pedido do dono, 23/09/2026) ─────────────────────
+    //
+    // "isso tem que ocorrer, e, só clicar na notificação da central de alertas, deve levar para a
+    // segunda aba aberta de peticionamento, que deve abrir na página da minuta gerada."
+    //
+    // A geração saiu de dentro da requisição web e pode levar até quinze minutos — e a tela diz ao
+    // advogado que ele PODE FECHAR A ABA. Uma promessa dessas exige um lugar onde a notícia
+    // chegue depois: sem estes dois avisos, "pode fechar a aba" viraria "descubra sozinho, mais
+    // tarde, entrando na lista de rascunhos".
+    //
+    // NASCEM DERIVADOS DO ESTADO DA SESSÃO, como todo alerta deste arquivo — não há tabela de
+    // alertas, e não há um "criar alerta" no fim da geração. Isso não é economia: quem colhe a
+    // geração pode ser a tela OU o cron (lib/peticionamentoGeracaoAssincrona.ts), e um alerta
+    // criado num dos dois caminhos seria um alerta esquecido no outro.
+    | "MINUTA_PRONTA"
+    // E A FALHA TAMBÉM AVISA. Silêncio numa falha é pior que um alerta a mais: o advogado que
+    // fechou a aba confiando na promessa ficaria esperando por uma peça que não vem — e uma
+    // sessão de peticionamento pode ter prazo preclusivo marcado (PeticionamentoSessao.
+    // prazoPreclusivo). Severidade ALTA por isso, contra a MÉDIA da minuta pronta.
+    | "MINUTA_FALHOU";
   title: string;
   subtitle?: string;
   date: Date;
@@ -53,7 +83,138 @@ export type AlertItem = {
   // pendências distribuídas apenas — contas e menções não usam isso): "atrasado" pinta o card
   // de bordô, "hoje" de ouro, ambos com transparência; sem data especial (vincendo) não muda.
   dueStatus?: "atrasado" | "hoje";
+  // ── SÓ OS AVISOS DE LEAD USAM O QUE SEGUE ───────────────────────────────────────────────────
+  // O sino dá a eles forma própria (ver components/SinoAlertas.tsx e lib/leadNoSino.ts): um
+  // lembrete de prazo cabe em título e subtítulo; uma pessoa esperando resposta, não.
+  /** O que a triagem apurou, já cortado para caber no aviso. */
+  resumo?: string;
+  /** Minutos de espera, quando há alguém esperando. */
+  esperandoHa?: number;
+  /** O gatilho da transferência (RISCO, PEDIDO, ROTEIRO…) — vira a linha "por que ele chegou". */
+  gatilho?: string;
+  /** Repassado a quem está olhando. Muda a sobrancelha: "para você" ou "no escritório". */
+  meu?: boolean;
+  /**
+   * O clique abre uma ABA NOVA do navegador, com `rel="noopener"` — nunca troca a tela do Lúmen.
+   *
+   * Existe por causa do Peticionamento, que é uma aba separada por PRIORIDADE 0 do dono (há suíte
+   * guardando: lib/testes/peticionamentoAbaNova.teste.ts). Um alerta de minuta pronta que
+   * navegasse a aba do Lúmen faria exatamente o que aquela entrega proibiu: o peticionamento
+   * tomando a frente do site, e o advogado perdendo a tela em que estava.
+   *
+   * POR QUE ABA NOVA E NÃO "a aba de peticionamento que já está aberta". Reaproveitar a aba
+   * existente exigiria um `target` NOMEADO, e um alvo nomeado com `rel="noopener"` não é
+   * confiável — a regra de escolha de contexto de navegação da própria especificação trata
+   * `noopener` como pedido de contexto NOVO, ignorando o nome. Trocar o `noopener` por reuso de
+   * aba devolveria à aba do peticionamento uma referência `window.opener` para a aba do Lúmen, que
+   * é a interferência que a prioridade 0 existe para impedir. Entre reaproveitar a aba e manter a
+   * separação, a separação ganha: o advogado chega na minuta certa de qualquer jeito.
+   */
+  abrirEmNovaAba?: boolean;
 };
+
+// ── OS DOIS `where` DOS AVISOS DE LEAD ────────────────────────────────────────────────────────
+//
+// DEFINIDOS UMA VEZ SÓ, e é de propósito. O sino mostra um número (getAlertsCount) e uma lista
+// (getAlerts), e as duas coisas são calculadas por caminhos separados neste arquivo. Toda vez que
+// um critério foi escrito duas vezes aqui, ele divergiu — o número dizia 6 e a gaveta mostrava 5,
+// e ninguém descobre isso olhando o código, só olhando a tela.
+/**
+ * Atendimento que já saiu de cena: não se cobra resposta de quem não está mais em aberto.
+ *
+ * RECUSADO entra aqui porque um lead recusado não pode continuar tocando o sino. Ele não sumiu —
+ * está na fila de recusados, esperando uma segunda opinião —, mas cobrar resposta dele seria
+ * cobrar o contrário do que o escritório acabou de decidir.
+ */
+const FORA_DO_ATENDIMENTO = ["ARQUIVADO", "CONVERTIDO", "RASCUNHO", "RECUSADO"];
+
+export function whereLeadTransferido(officeId: string, recorte: { responsibleId?: string }) {
+  return {
+    officeId,
+    ...recorte,
+    transferidoEm: { not: null },
+    // O relógio ainda está correndo: `prazoDeRespostaAte` é zerado assim que alguém responde.
+    prazoDeRespostaAte: { not: null },
+    // A volta já fechou — aí o aviso é o outro, e mostrar os dois seria contar a mesma conversa
+    // duas vezes no número do sino.
+    semRespostaEm: null,
+    status: { notIn: FORA_DO_ATENDIMENTO },
+  } satisfies Prisma.AttendanceWhereInput;
+}
+
+export function whereLeadSemResposta(officeId: string, recorte: { responsibleId?: string }) {
+  return {
+    officeId,
+    ...recorte,
+    semRespostaEm: { not: null },
+    status: { notIn: FORA_DO_ATENDIMENTO },
+  } satisfies Prisma.AttendanceWhereInput;
+}
+
+// ── OS DOIS `where` DOS AVISOS DE MINUTA, E O CAMINHO DO CLIQUE ───────────────────────────────
+//
+// DEFINIDOS UMA VEZ SÓ, pelo mesmo motivo escrito acima para os avisos de lead: a contagem
+// (`getAlertsCount`) e a lista (`getAlerts`) são calculadas por caminhos separados neste arquivo, e
+// todo critério escrito duas vezes aqui já divergiu — o sino dizendo 6 e a gaveta mostrando 5.
+// Ninguém descobre isso olhando o código; só olhando a tela.
+
+/**
+ * Quanto tempo um aviso de geração continua sendo NOTÍCIA na Central.
+ *
+ * TRÊS DIAS. Depois disso, "sua minuta ficou pronta" não é aviso, é arquivo — e o lugar do arquivo
+ * é a lista de rascunhos, que mostra todas as sessões do escritório com o passo de cada uma.
+ *
+ * É a janela que também impede o acúmulo: o advogado que gera cinco minutas num dia vê cinco
+ * avisos, cada um sai da Central quando ele ABRE aquela minuta (PeticionamentoSessao.minutaVistaEm),
+ * e o que ele nunca abriu sai sozinho em três dias em vez de morar lá para sempre.
+ *
+ * E ela resolve a estreia desta entrega: sem janela, TODA sessão gerada e nunca reaberta desde que
+ * o peticionamento existe viraria um aviso no primeiro deploy. Com ela, só o que é de fato recente.
+ */
+export const AVISO_DE_MINUTA_JANELA_MS = 3 * 24 * 60 * 60_000;
+
+/**
+ * A minuta ficou pronta e NINGUÉM abriu ainda.
+ *
+ * `minutaVistaEm: null` é o coração disto: é o que faz o aviso sumir sozinho quando o advogado
+ * abre a minuta, sem ele precisar dispensar nada. `status: "GERADA"` e não EXPORTADA — quem
+ * exportou já passou pela tela da minuta, por definição.
+ */
+export function whereMinutaPronta(officeId: string, agora: Date) {
+  return {
+    officeId,
+    status: "GERADA",
+    minutaVistaEm: null,
+    geradoEm: { gte: new Date(agora.getTime() - AVISO_DE_MINUTA_JANELA_MS) },
+  } satisfies Prisma.PeticionamentoSessaoWhereInput;
+}
+
+/**
+ * A geração falhou e ninguém leu o motivo ainda.
+ *
+ * O relógio aqui é `updatedAt` e não `geradoEm`: uma geração que falhou nunca gerou nada, então
+ * `geradoEm` é nulo — usá-lo deixaria a falha FORA da janela para sempre, e o aviso que mais
+ * importa (o que diz que a peça não vem) seria justamente o que nunca aparece.
+ */
+export function whereMinutaFalhou(officeId: string, agora: Date) {
+  return {
+    officeId,
+    status: "FALHA_GERACAO",
+    minutaVistaEm: null,
+    updatedAt: { gte: new Date(agora.getTime() - AVISO_DE_MINUTA_JANELA_MS) },
+  } satisfies Prisma.PeticionamentoSessaoWhereInput;
+}
+
+/**
+ * Para onde o clique leva: a página da minuta DAQUELA sessão — exatamente o que o dono pediu
+ * ("deve abrir na página da minuta gerada"), e não a lista de rascunhos nem a tela inicial da aba.
+ *
+ * Função, e não uma interpolação escrita nos dois lugares que montam o aviso: um href de alerta
+ * que erra o caminho manda o advogado para um 404 no meio de um prazo.
+ */
+export function hrefDaMinutaDaSessao(sessaoId: string): string {
+  return `/peticionamento/${sessaoId}/minuta`;
+}
 
 export type TodayItem = {
   id: string;
@@ -137,7 +298,37 @@ export async function getAlerts(
   officeId: string,
   includeFinance: boolean = true,
   viewerId?: string,
-  includeDriveSync: boolean = false
+  includeDriveSync: boolean = false,
+  /**
+   * Alertas de ATENDIMENTO (follow-up atrasado, pendência vencida, lead sem resposta), com o
+   * MESMO recorte da tela — ver lib/acessoAtendimento.ts.
+   *
+   * `null` significa "nenhum alerta de atendimento". Um objeto vazio `{}` significa "todos";
+   * `{ responsibleId }`, só os dessa pessoa. É o mesmo pedaço de `where` que a lista usa, e é
+   * de propósito: um alerta que escapa diz o nome de quem procurou o escritório e o assunto
+   * dela — é o conteúdo da tela vazando pela porta lateral do sino.
+   *
+   * O padrão é `null`, e não "todos" como os outros parâmetros: quem esquecer de passar esconde
+   * o alerta em vez de mostrá-lo.
+   */
+  recorteAtendimento: { responsibleId?: string } | null = null,
+  /**
+   * OS DOIS AVISOS DE GERAÇÃO DE MINUTA — e este parâmetro É o recorte de acesso deles.
+   *
+   * `true` só para quem pode ENTRAR na aba de Peticionamento (`podeAcessarAba`,
+   * lib/peticionamentoAcesso.ts). Recepção/secretaria não entra na aba nem para ver o estado vazio,
+   * e quem não pode abrir a tela não pode receber, pela porta lateral do sino, o título de uma peça
+   * com o nome do cliente dentro — é o mesmo raciocínio do recorte do Atendimento, logo acima.
+   *
+   * O PADRÃO É `false`, como `includeDriveSync` e ao contrário de `includeFinance`: quem esquecer de
+   * passar ESCONDE o alerta em vez de vazá-lo. Fail-closed é o comportamento correto de partida.
+   *
+   * NÃO HÁ recorte por AUTOR. A sessão de peticionamento é do ESCRITÓRIO: a lista de rascunhos
+   * mostra as de todos, com o nome de quem começou (`listarRascunhos`), e o colega que assume a peça
+   * é caso previsto, não exceção. Um alerta por autor esconderia do escritório a peça que ficou
+   * pronta justamente quando quem a pediu não está.
+   */
+  incluiPeticionamento: boolean = false,
 ): Promise<AlertItem[]> {
   const now = new Date();
   // dueDate é data-calendário (meia-noite) — comparar contra `now` (timestamp com hora) marca
@@ -177,6 +368,10 @@ export async function getAlerts(
     apurarReceivables,
     overduePendencias,
     overdueResponseDeadlines,
+    leadsTransferidos,
+    leadsSemResposta,
+    minutasProntas,
+    minutasFalhadas,
   ] = await Promise.all([
       prisma.task.findMany({
         where: { officeId, dueDate: { lt: hoje }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -207,10 +402,12 @@ export async function getAlerts(
       includeFinance
         ? prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
         : Promise.resolve([]),
-      prisma.attendance.findMany({
-        where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
-        orderBy: { nextContactAt: "asc" },
-      }),
+      recorteAtendimento
+        ? prisma.attendance.findMany({
+            where: { officeId, ...recorteAtendimento, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
+            orderBy: { nextContactAt: "asc" },
+          })
+        : Promise.resolve([]),
       viewerId
         ? prisma.task.findMany({
             where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null },
@@ -250,23 +447,71 @@ export async function getAlerts(
           })
         : Promise.resolve([]),
       // Fase 5 — pendências do atendimento (SOLICITAR/ENVIAR) com prazo vencido e ainda abertas.
-      prisma.atendimentoPendencia.findMany({
-        where: { officeId, status: "PENDENTE", dueDate: { lt: now } },
-        include: { attendance: { select: { id: true, clientName: true } } },
-        orderBy: { dueDate: "asc" },
-      }),
+      recorteAtendimento
+        ? prisma.atendimentoPendencia.findMany({
+            where: { officeId, status: "PENDENTE", dueDate: { lt: now }, attendance: { is: recorteAtendimento } },
+            include: { attendance: { select: { id: true, clientName: true } } },
+            orderBy: { dueDate: "asc" },
+          })
+        : Promise.resolve([]),
       // Fase 5 — prazo de resposta ao lead estourado sem primeira resposta registrada. Exclui
       // atendimentos já encerrados (arquivado/rascunho/convertido) — não faz sentido cobrar
       // resposta de um lead que já não está mais em aberto.
-      prisma.attendance.findMany({
-        where: {
-          officeId,
-          responseDeadline: { lt: now },
-          firstResponseAt: null,
-          status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] },
-        },
-        orderBy: { responseDeadline: "asc" },
-      }),
+      recorteAtendimento
+        ? prisma.attendance.findMany({
+            where: {
+              officeId,
+              ...recorteAtendimento,
+              responseDeadline: { lt: now },
+              firstResponseAt: null,
+              status: { notIn: FORA_DO_ATENDIMENTO },
+            },
+            orderBy: { responseDeadline: "asc" },
+          })
+        : Promise.resolve([]),
+      // Os dois avisos de lead. O `where` vem dos construtores lá de cima, os MESMOS que a
+      // contagem usa — ver a nota sobre o número e a lista discordando.
+      recorteAtendimento
+        ? prisma.attendance.findMany({
+            where: whereLeadTransferido(officeId, recorteAtendimento),
+            select: {
+              id: true,
+              clientName: true,
+              subject: true,
+              description: true,
+              transferidoEm: true,
+              transferidoPor: true,
+              responsibleId: true,
+              campanha: { select: { nome: true } },
+              whatsappMessages: { orderBy: { createdAt: "desc" }, take: 1, select: { direction: true, createdAt: true } },
+            },
+            orderBy: { transferidoEm: "asc" },
+          })
+        : Promise.resolve([]),
+      recorteAtendimento
+        ? prisma.attendance.findMany({
+            where: whereLeadSemResposta(officeId, recorteAtendimento),
+            select: { id: true, clientName: true, subject: true, semRespostaEm: true, campanha: { select: { nome: true } } },
+            orderBy: { semRespostaEm: "desc" },
+          })
+        : Promise.resolve([]),
+      // Os dois avisos de geração de minuta. O `where` vem dos construtores lá de cima, os MESMOS
+      // que a contagem usa. `geracaoDuracaoMs` entra na seleção porque o subtítulo diz quanto a
+      // peça levou — número MEDIDO na própria geração, nunca estimado.
+      incluiPeticionamento
+        ? prisma.peticionamentoSessao.findMany({
+            where: whereMinutaPronta(officeId, now),
+            select: { id: true, tipoPeca: true, categoriaPeca: true, clienteNome: true, geradoEm: true, geracaoDuracaoMs: true },
+            orderBy: { geradoEm: "desc" },
+          })
+        : Promise.resolve([]),
+      incluiPeticionamento
+        ? prisma.peticionamentoSessao.findMany({
+            where: whereMinutaFalhou(officeId, now),
+            select: { id: true, tipoPeca: true, categoriaPeca: true, clienteNome: true, updatedAt: true, contextoBloqueadoMotivo: true },
+            orderBy: { updatedAt: "desc" },
+          })
+        : Promise.resolve([]),
     ]);
 
   // Publicações recentes dos processos com parcela a apurar (Porta 1) — consulta separada porque
@@ -409,6 +654,44 @@ export async function getAlerts(
       dueStatus: "atrasado",
     });
   }
+  for (const l of leadsTransferidos) {
+    const ultima = l.whatsappMessages[0];
+    // Só conta como espera quando a última palavra é do cliente — o mesmo critério da fila da
+    // Triagem (lib/esperaDoAtendimento.ts). Sem isso, um lead repassado a quem já respondeu
+    // apareceria "esperando há 3 horas", que é falso e faz alguém correr à toa.
+    const esperandoHa =
+      ultima?.direction === "IN" ? Math.max(0, Math.floor((now.getTime() - ultima.createdAt.getTime()) / 60_000)) : undefined;
+    alerts.push({
+      id: `lead-transferido-${l.id}`,
+      kind: "LEAD_TRANSFERIDO",
+      title: l.clientName,
+      subtitle: l.campanha?.nome || l.subject,
+      date: l.transferidoEm ?? now,
+      href: `/atendimento/${l.id}`,
+      severity: "alta",
+      entityKind: "ATTENDANCE",
+      entityId: l.id,
+      resumo: resumoDoLead(l.description) ?? undefined,
+      esperandoHa,
+      gatilho: l.transferidoPor ?? undefined,
+      meu: Boolean(viewerId) && l.responsibleId === viewerId,
+    });
+  }
+  for (const l of leadsSemResposta) {
+    alerts.push({
+      id: `lead-sem-resposta-${l.id}`,
+      kind: "LEAD_SEM_RESPOSTA",
+      title: l.clientName,
+      subtitle: l.campanha?.nome || l.subject,
+      date: l.semRespostaEm ?? now,
+      href: `/atendimento/${l.id}`,
+      severity: "media",
+      entityKind: "ATTENDANCE",
+      entityId: l.id,
+      resumo: "Passou por todos da fila e ninguém respondeu no prazo.",
+      meu: false,
+    });
+  }
   for (const t of delegacoesSemCiencia) {
     alerts.push({
       id: `task-delegacao-sem-ciencia-${t.id}`,
@@ -465,6 +748,52 @@ export async function getAlerts(
       entityKind: "COMMENT",
       entityId: m.comment.id,
       processNumber: local.processNumber,
+    });
+  }
+
+  // ── OS DOIS AVISOS DE GERAÇÃO DE MINUTA ──────────────────────────────────────────────────────
+  //
+  // `abrirEmNovaAba` é o que respeita a prioridade 0 do dono (o Peticionamento é uma aba separada
+  // do navegador): o clique abre a minuta numa aba nova com `rel="noopener"`, sem tirar o Lúmen da
+  // frente. Ver o comentário do campo em AlertItem, e components/AlertRow.tsx, que o cumpre.
+  //
+  // SEM `entityKind`: ele existe para os alertas que abrem um MODAL no lugar de navegar (baixa de
+  // parcela, card de compromisso). Aqui navegar é o ponto inteiro.
+  for (const s of minutasProntas) {
+    const nome = s.tipoPeca ?? s.categoriaPeca ?? "Peça";
+    alerts.push({
+      id: `minuta-pronta-${s.id}`,
+      kind: "MINUTA_PRONTA",
+      title: `Minuta pronta — ${nome}${s.clienteNome ? ` · ${s.clienteNome}` : ""}`,
+      // O TEMPO VAI NO SUBTÍTULO porque ele é MEDIDO nesta geração (geracaoDuracaoMs) — e quando
+      // não houver medição (sessão de antes da medição existir), o subtítulo simplesmente não
+      // afirma tempo nenhum, em vez de arredondar um chute para parecer dado.
+      subtitle:
+        (s.geracaoDuracaoMs ? `Pronta em ${Math.max(1, Math.round(s.geracaoDuracaoMs / 60_000))} min. ` : "") +
+        "Abre na aba do Peticionamento, na minuta gerada.",
+      date: s.geradoEm ?? now,
+      href: hrefDaMinutaDaSessao(s.id),
+      severity: "media",
+      entityId: s.id,
+      abrirEmNovaAba: true,
+    });
+  }
+  for (const s of minutasFalhadas) {
+    const nome = s.tipoPeca ?? s.categoriaPeca ?? "Peça";
+    alerts.push({
+      id: `minuta-falhou-${s.id}`,
+      kind: "MINUTA_FALHOU",
+      title: `A geração da minuta falhou — ${nome}${s.clienteNome ? ` · ${s.clienteNome}` : ""}`,
+      // O MOTIVO FALADO que a geração gravou, já cortado. É a frase que diz o que aconteceu e o que
+      // fazer; o socorro não inventa causa, só diz onde ela está escrita.
+      subtitle: s.contextoBloqueadoMotivo?.slice(0, 120) ?? "Abra a sessão para ver o motivo e tentar de novo.",
+      date: s.updatedAt,
+      href: hrefDaMinutaDaSessao(s.id),
+      // ALTA, e mais alta que a da minuta pronta: aqui a peça NÃO existe, o advogado pode ter
+      // fechado a aba confiando na promessa da tela, e a sessão pode ter prazo preclusivo marcado.
+      severity: "alta",
+      entityId: s.id,
+      abrirEmNovaAba: true,
     });
   }
 
@@ -532,7 +861,37 @@ export async function getAlertsCount(
   officeId: string,
   includeFinance: boolean = true,
   viewerId?: string,
-  includeDriveSync: boolean = false
+  includeDriveSync: boolean = false,
+  /**
+   * Alertas de ATENDIMENTO (follow-up atrasado, pendência vencida, lead sem resposta), com o
+   * MESMO recorte da tela — ver lib/acessoAtendimento.ts.
+   *
+   * `null` significa "nenhum alerta de atendimento". Um objeto vazio `{}` significa "todos";
+   * `{ responsibleId }`, só os dessa pessoa. É o mesmo pedaço de `where` que a lista usa, e é
+   * de propósito: um alerta que escapa diz o nome de quem procurou o escritório e o assunto
+   * dela — é o conteúdo da tela vazando pela porta lateral do sino.
+   *
+   * O padrão é `null`, e não "todos" como os outros parâmetros: quem esquecer de passar esconde
+   * o alerta em vez de mostrá-lo.
+   */
+  recorteAtendimento: { responsibleId?: string } | null = null,
+  /**
+   * OS DOIS AVISOS DE GERAÇÃO DE MINUTA — e este parâmetro É o recorte de acesso deles.
+   *
+   * `true` só para quem pode ENTRAR na aba de Peticionamento (`podeAcessarAba`,
+   * lib/peticionamentoAcesso.ts). Recepção/secretaria não entra na aba nem para ver o estado vazio,
+   * e quem não pode abrir a tela não pode receber, pela porta lateral do sino, o título de uma peça
+   * com o nome do cliente dentro — é o mesmo raciocínio do recorte do Atendimento, logo acima.
+   *
+   * O PADRÃO É `false`, como `includeDriveSync` e ao contrário de `includeFinance`: quem esquecer de
+   * passar ESCONDE o alerta em vez de vazá-lo. Fail-closed é o comportamento correto de partida.
+   *
+   * NÃO HÁ recorte por AUTOR. A sessão de peticionamento é do ESCRITÓRIO: a lista de rascunhos
+   * mostra as de todos, com o nome de quem começou (`listarRascunhos`), e o colega que assume a peça
+   * é caso previsto, não exceção. Um alerta por autor esconderia do escritório a peça que ficou
+   * pronta justamente quando quem a pediu não está.
+   */
+  incluiPeticionamento: boolean = false,
 ): Promise<number> {
   const now = new Date();
   // Mesma correção de getAlerts acima — ver comentário lá.
@@ -566,6 +925,10 @@ export async function getAlertsCount(
     apurarReceivables,
     overduePendenciasCount,
     overdueResponseDeadlinesCount,
+    leadsTransferidosCount,
+    leadsSemRespostaCount,
+    minutasProntasCount,
+    minutasFalhadasCount,
   ] = await Promise.all([
     prisma.task.count({
       where: { officeId, dueDate: { lt: hoje }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -585,9 +948,11 @@ export async function getAlertsCount(
     includeFinance
       ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
       : Promise.resolve(0),
-    prisma.attendance.count({
-      where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
-    }),
+    recorteAtendimento
+      ? prisma.attendance.count({
+          where: { officeId, ...recorteAtendimento, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
+        })
+      : Promise.resolve(0),
     viewerId
       ? prisma.task.count({ where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null } })
       : Promise.resolve(0),
@@ -606,10 +971,21 @@ export async function getAlertsCount(
     includeFinance
       ? prisma.receivable.findMany({ where: { officeId, status: "A_APURAR", caseId: { not: null } }, select: { id: true, createdAt: true, caseId: true } })
       : Promise.resolve([]),
-    prisma.atendimentoPendencia.count({ where: { officeId, status: "PENDENTE", dueDate: { lt: now } } }),
-    prisma.attendance.count({
-      where: { officeId, responseDeadline: { lt: now }, firstResponseAt: null, status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] } },
-    }),
+    recorteAtendimento
+      ? prisma.atendimentoPendencia.count({ where: { officeId, status: "PENDENTE", dueDate: { lt: now }, attendance: { is: recorteAtendimento } } })
+      : Promise.resolve(0),
+    recorteAtendimento
+      ? prisma.attendance.count({
+          where: { officeId, ...recorteAtendimento, responseDeadline: { lt: now }, firstResponseAt: null, status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] } },
+        })
+      : Promise.resolve(0),
+    // Os MESMOS `where` da lista — ver whereLeadTransferido/whereLeadSemResposta.
+    recorteAtendimento ? prisma.attendance.count({ where: whereLeadTransferido(officeId, recorteAtendimento) }) : Promise.resolve(0),
+    recorteAtendimento ? prisma.attendance.count({ where: whereLeadSemResposta(officeId, recorteAtendimento) }) : Promise.resolve(0),
+    // Os MESMOS `where` da lista — ver whereMinutaPronta/whereMinutaFalhou. Um critério escrito de
+    // novo aqui é o número do sino discordando da gaveta, e é um defeito que só aparece na tela.
+    incluiPeticionamento ? prisma.peticionamentoSessao.count({ where: whereMinutaPronta(officeId, now) }) : Promise.resolve(0),
+    incluiPeticionamento ? prisma.peticionamentoSessao.count({ where: whereMinutaFalhou(officeId, now) }) : Promise.resolve(0),
   ]);
 
   // Mesma lógica de getAlerts() acima para as duas Portas de apuração do êxito, só contando em
@@ -645,7 +1021,11 @@ export async function getAlertsCount(
     casosComDecisaoNaoDispensados.size +
     parcelasParadas +
     overduePendenciasCount +
-    overdueResponseDeadlinesCount
+    overdueResponseDeadlinesCount +
+    leadsTransferidosCount +
+    leadsSemRespostaCount +
+    minutasProntasCount +
+    minutasFalhadasCount
   );
 }
 

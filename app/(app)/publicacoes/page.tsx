@@ -16,6 +16,7 @@ import { groupPublicationsByProcess, countUnreadPublicationGroups } from "@/lib/
 import { matchesPublicationChip, parsePublicationChip, type PublicationChipKey } from "@/lib/publicationChips";
 import { calcularPrazoSugerido } from "@/lib/prazoSugerido";
 import { Search } from "lucide-react";
+import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ const MAX_GROUPS_RENDERED = 150;
 
 function formatHora(d: Date | null | undefined): string {
   if (!d) return "—";
-  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return horaDeBrasilia(d);
 }
 
 export default async function PublicacoesPage({

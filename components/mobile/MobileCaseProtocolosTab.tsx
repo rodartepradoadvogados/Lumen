@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, Badge, EmptyState, formatCalendarDate, formatDate } from "@/components/ui";
+import { Card, Badge, EmptyState, formatCalendarDate } from "@/components/ui";
 import { ExternalLink, FolderOpen, CalendarClock, Mail, MessageCircle } from "lucide-react";
 import { getVinculoTarefa, type TarefaVinculada } from "@/lib/actions/protocolos";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 type Lote = {
   id: string;
@@ -29,8 +30,10 @@ type Envio = {
 
 // enviadoEm é timestamp de verdade — mesmo padrão de components/DocumentoEnvios.tsx
 // (versão desktop), aqui reduzido só à data (sem hora) para caber melhor na tela estreita.
+// dataDeBrasilia() (não formatDate()) porque, sendo instante, formatDate() sem fuso virava um
+// dia errado perto da meia-noite.
 function formatEnviadoEm(iso: string): string {
-  return formatDate(iso);
+  return dataDeBrasilia(iso);
 }
 
 const STATUS_LABEL: Record<string, string> = {

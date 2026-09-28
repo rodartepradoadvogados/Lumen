@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import TopBar from "@/components/TopBar";
-import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
-import HermesChatbox from "@/components/HermesChatbox";
-import { HermesProvider } from "@/components/HermesContext";
+import AssistenteWidget from "@/components/AssistenteWidget";
 import InactivityNotice from "@/components/InactivityNotice";
 import AppBadgeSync from "@/components/AppBadgeSync";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
@@ -21,6 +19,8 @@ import { getAlertsCount, getAgendaBadgeCount } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { PORTAL_THEME_INIT_SCRIPT } from "@/lib/portalTheme";
+import { podeVerAtendimentos, veTodoOAtendimento, recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
+import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
@@ -49,6 +49,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const hasFinanceAccess = user.isAdmin || user.financeAccess;
+  // Administrador ou recepção — ver lib/acessoAtendimento.ts. Decidido aqui, no servidor, e
+  // descido por prop: componente client não pode ser quem decide se um item de menu existe.
+  const podeAtendimento = podeVerAtendimentos(user);
+  const veTodoAtendimento = veTodoOAtendimento(user);
   const [unreadPublicationsRaw, totalAlerts, agendaBadgeCount, modules, blockedSet] = await Promise.all([
     prisma.publication.findMany({
       where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
@@ -58,7 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // vencidas, publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone
     // do PWA (AppBadgeSync) e o badge do item "Alertas" na Sidebar, diferente de
     // `unreadPublications` acima, que é específico da aba/menu Publicações.
-    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
+    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin, recorteDosAlertasDeAtendimento(user, user.id), podeAcessarAba(user)),
     // Compromissos de hoje MAIS os atrasados — ver getAgendaBadgeCount. (Antes: só hoje.)
     // Critério do reforço "Hoje" do Painel, ver
     // getTodayItems) — alimenta a bolinha do item "Agenda" na Sidebar. Escritório inteiro, não
@@ -87,11 +91,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <script dangerouslySetInnerHTML={{ __html: PORTAL_THEME_INIT_SCRIPT }} />
       <UndoToastProvider>
         {/* AnotacoesProvider (painel global "Anotações", faixa retrátil na borda direita) precisa
-            envolver tanto o AppShell (que renderiza o próprio painel) quanto o ClaudeAssistantWidget
+            envolver tanto o AppShell (que renderiza o próprio painel) quanto o AssistenteWidget
             (que lê o contexto só para se deslocar quando o painel está aberto — ver
             components/anotacoes/AnotacoesContext.tsx). */}
         <AnotacoesProvider>
-          <HermesProvider>
             <ServiceWorkerRegister />
             {/* AppShell (client) é quem de fato monta sidebar/topbar/faixas — aqui só resolve os dados
                 server-side de sempre e repassa como children/props. Guarda também as abas internas
@@ -99,22 +102,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <AppShell
               sidebarProps={{
                 hasFinanceAccess,
+                podeAtendimento,
+                veTodoAtendimento,
                 unreadPublications,
                 agendaBadgeCount,
                 modules,
               }}
-              topBar={<TopBar hasFinanceAccess={hasFinanceAccess} modules={modules} />}
+              topBar={<TopBar hasFinanceAccess={hasFinanceAccess} modules={modules} podeAtendimento={podeAtendimento} veTodoAtendimento={veTodoAtendimento} />}
               supportBanner={<SupportAccessBanner />}
               inactivityNotice={<InactivityNotice />}
               badgeSync={<AppBadgeSync initialCount={totalAlerts} />}
               actingBanner={user.actingAsOffice ? <ActingOfficeBanner officeName={user.actingAsOffice.name} /> : null}
-              claudeWidget={<ClaudeAssistantWidget userName={user.name} />}
-              hermesWidget={<HermesChatbox />}
+              assistenteWidget={<AssistenteWidget userName={user.name} />}
               anotacoesPanel={<AnotacoesPanel />}
             >
               {children}
             </AppShell>
-          </HermesProvider>
         </AnotacoesProvider>
       </UndoToastProvider>
     </div>
