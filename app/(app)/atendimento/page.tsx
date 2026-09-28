@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, Badge, formatDate, EmptyState } from "@/components/ui";
 import NewAttendanceModal from "@/components/NewAttendanceModal";
-import DeleteEntityButton from "@/components/DeleteEntityButton";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Filter } from "lucide-react";
@@ -153,12 +152,6 @@ export default async function AtendimentoPage({
                   <p className="text-xs text-tx-3">{formatDate(a.createdAt)}</p>
                   {a.responsible && <p className="text-xs text-tx-3 mt-0.5">{a.responsible.name}</p>}
                 </div>
-                <DeleteEntityButton
-                  entityType="ATTENDANCE"
-                  entityId={a.id}
-                  entityLabel={`${a.clientName} — ${a.subject}`}
-                  confirmMessage={`Excluir o atendimento de "${a.clientName}"?`}
-                />
               </Link>
             ))}
           </div>
