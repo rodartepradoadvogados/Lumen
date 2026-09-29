@@ -1,0 +1,327 @@
+"use client";
+
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, X } from "lucide-react";
+
+// ============================================================================
+// AS PEÇAS COMUNS DA ABA DETALHES: aviso com "Desfazer", gaveta (diálogo), bloco que abre e fecha e as
+// classes dos controles. Um só lugar para o que se repete em todo bloco — alvo de 44 px, foco visível e o
+// texto de erro em `role="alert"` saem certos em todos porque saem daqui.
+// ============================================================================
+
+// ── classes dos controles (mapas estáticos: o Tailwind só gera o que lê escrito) ────────────────────────
+export const cx = {
+  campo:
+    "min-h-11 w-full rounded-[2px] border border-atd-campo bg-sf px-3 py-2 text-capa-corpo text-tx placeholder:text-tx-3 disabled:opacity-60",
+  primario:
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-[2px] bg-acao px-4 text-corpo font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-60",
+  secundario:
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-[2px] border border-regua-forte bg-sf px-4 text-corpo font-semibold text-tx hover:bg-sf-apoio disabled:opacity-60",
+  discreto:
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-[2px] px-3 text-corpo font-semibold text-tx-2 hover:bg-sf-apoio hover:text-tx disabled:opacity-60",
+  rotulo: "block text-etiqueta font-semibold text-tx-2",
+  dica: "text-etiqueta text-tx-2",
+  erro: "text-corpo font-medium text-urgente",
+  etiqueta: "text-etiqueta font-bold uppercase tracking-wider text-tx-2",
+  chip: "inline-flex items-center rounded-[2px] border border-regua bg-sf-apoio px-2 py-0.5 text-etiqueta font-semibold text-tx-2",
+} as const;
+
+// ── avisos ──────────────────────────────────────────────────────────────────
+
+type Aviso = { id: number; texto: string; tom: "ok" | "erro"; desfazer?: () => void | Promise<void> };
+type Avisar = (a: { texto: string; tom?: "ok" | "erro"; desfazer?: () => void | Promise<void> }) => void;
+
+const ContextoDeAvisos = createContext<Avisar>(() => {});
+export const useAvisos = () => useContext(ContextoDeAvisos);
+
+/**
+ * O aviso vive numa região `aria-live` que existe SEMPRE (avisos que aparecem num nó novo nem sempre são
+ * lidos). Com "Desfazer" dura 10 s e pausa quando a pessoa toca ou põe o foco nele; sem, 5 s. Fica no pé da
+ * tela, sobre a rolagem — a aba não tem campo de digitação embaixo para ele cobrir.
+ */
+export function ProvedorDeAvisos({ children }: { children: ReactNode }) {
+  const [aviso, setAviso] = useState<Aviso | null>(null);
+  const seq = useRef(0);
+  const pausado = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const limpar = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  }, []);
+
+  const armar = useCallback(
+    (id: number, ms: number) => {
+      limpar();
+      timer.current = setTimeout(() => {
+        if (pausado.current) return armar(id, 2000);
+        setAviso((atual) => (atual && atual.id === id ? null : atual));
+      }, ms);
+    },
+    [limpar],
+  );
+
+  const avisar = useCallback<Avisar>(
+    (a) => {
+      const id = ++seq.current;
+      setAviso({ id, texto: a.texto, tom: a.tom ?? "ok", desfazer: a.desfazer });
+      armar(id, a.desfazer ? 10_000 : a.tom === "erro" ? 8_000 : 5_000);
+    },
+    [armar],
+  );
+
+  useEffect(() => limpar, [limpar]);
+
+  return (
+    <ContextoDeAvisos.Provider value={avisar}>
+      {children}
+      <div
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-avisos=""
+      >
+        {aviso && (
+          <div
+            key={aviso.id}
+            className="pointer-events-auto flex w-full max-w-md items-center gap-1 rounded-[2px] border-2 border-atd-hdr-linha bg-atd-hdr py-1 pl-4 pr-1 text-corpo text-atd-hdr-tx shadow-pop"
+            onMouseEnter={() => (pausado.current = true)}
+            onMouseLeave={() => (pausado.current = false)}
+            onFocus={() => (pausado.current = true)}
+            onBlur={() => (pausado.current = false)}
+            onTouchStart={() => (pausado.current = true)}
+          >
+            <p className="min-w-0 flex-1 py-2" data-aviso-tom={aviso.tom}>
+              {aviso.tom === "erro" ? <span className="font-semibold">Não deu certo. </span> : null}
+              {aviso.texto}
+            </p>
+            {aviso.desfazer && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const f = aviso.desfazer;
+                  setAviso(null);
+                  await f?.();
+                }}
+                className="inline-flex min-h-11 shrink-0 items-center px-3 font-bold text-atd-hdr-foco hover:underline"
+              >
+                Desfazer
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setAviso(null)}
+              aria-label="Fechar o aviso"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-atd-hdr-tx2 hover:text-atd-hdr-tx"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </div>
+    </ContextoDeAvisos.Provider>
+  );
+}
+
+// ── executar uma ação com feedback ──────────────────────────────────────────
+
+export type Operacao = {
+  fazer: () => Promise<{ error?: string } | void>;
+  /** O que se diz quando dá certo. Sem texto, a ação é silenciosa (o resultado já aparece na tela). */
+  ok?: string;
+  desfazer?: () => Promise<{ error?: string } | void>;
+};
+
+/**
+ * `rodar` faz UMA ação por vez (o botão fica desligado enquanto ela corre, então o segundo toque não
+ * repete), atualiza a tela do servidor, e conta o que houve — com "Desfazer" quando a operação sabe
+ * desfazer. Erro vira aviso E volta para quem chamou (o formulário aberto o mostra no próprio lugar).
+ */
+export function useRodar() {
+  const router = useRouter();
+  const avisar = useAvisos();
+  const [pendente, setPendente] = useState(false);
+  const emCurso = useRef(false);
+
+  const rodar = useCallback(
+    async (op: Operacao): Promise<{ ok: boolean; error?: string }> => {
+      if (emCurso.current) return { ok: false, error: "Aguarde a ação anterior terminar." };
+      emCurso.current = true;
+      setPendente(true);
+      try {
+        const r = await op.fazer();
+        if (r && r.error) {
+          avisar({ texto: r.error, tom: "erro" });
+          return { ok: false, error: r.error };
+        }
+        router.refresh();
+        if (op.ok) {
+          const desfazer = op.desfazer;
+          avisar({
+            texto: op.ok,
+            desfazer: desfazer
+              ? async () => {
+                  try {
+                    const d = await desfazer();
+                    if (d && d.error) avisar({ texto: d.error, tom: "erro" });
+                    else {
+                      router.refresh();
+                      avisar({ texto: "Desfeito." });
+                    }
+                  } catch {
+                    avisar({ texto: "Sem conexão: não foi possível desfazer. Tente de novo.", tom: "erro" });
+                  }
+                }
+              : undefined,
+          });
+        }
+        return { ok: true };
+      } catch {
+        const msg = "Sem conexão ou o servidor não respondeu. Nada foi salvo; tente de novo.";
+        avisar({ texto: msg, tom: "erro" });
+        return { ok: false, error: msg };
+      } finally {
+        emCurso.current = false;
+        setPendente(false);
+      }
+    },
+    [avisar, router],
+  );
+
+  return { rodar, pendente };
+}
+
+// ── gaveta (diálogo nativo) ─────────────────────────────────────────────────
+
+/**
+ * Diálogo de verdade (`<dialog>` + `showModal`): o navegador prende o Tab dentro dele, fecha com Esc e deixa
+ * o resto da página inerte. No celular sobe do pé como gaveta; em tela larga fica na coluna do aplicativo.
+ * O foco vai ao título ao abrir e volta ao botão que abriu ao fechar.
+ */
+export function Gaveta({
+  aberta,
+  aoFechar,
+  titulo,
+  children,
+  rodape,
+}: {
+  aberta: boolean;
+  aoFechar: () => void;
+  titulo: string;
+  children: ReactNode;
+  rodape?: ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const idTitulo = useId();
+  const tituloRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (aberta && !d.open) {
+      d.showModal();
+      tituloRef.current?.focus();
+    }
+    if (!aberta && d.open) d.close();
+  }, [aberta]);
+
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby={idTitulo}
+      onCancel={(e) => {
+        e.preventDefault();
+        aoFechar();
+      }}
+      onClick={(e) => {
+        if (e.target === ref.current) aoFechar();
+      }}
+      className="fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[92dvh] w-full max-w-md overflow-hidden border-t-2 border-regua-forte bg-sf-fundo p-0 text-tx shadow-pop backdrop:bg-grafite-900/60 open:flex open:flex-col"
+    >
+      {aberta && (
+        <>
+          <div className="flex shrink-0 items-center gap-1 border-b border-regua bg-sf py-1.5 pl-4 pr-1.5">
+            <h2 id={idTitulo} ref={tituloRef} tabIndex={-1} className="min-w-0 flex-1 text-destaque font-bold text-tx outline-none">
+              {titulo}
+            </h2>
+            <button type="button" onClick={aoFechar} aria-label="Fechar" className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-tx-2 hover:text-tx">
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">{children}</div>
+          {rodape && <div className="flex shrink-0 flex-wrap gap-2 border-t border-regua bg-sf px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">{rodape}</div>}
+        </>
+      )}
+    </dialog>
+  );
+}
+
+// ── bloco que abre e fecha ──────────────────────────────────────────────────
+
+export function BlocoRecolhivel({
+  chave,
+  titulo,
+  meta,
+  aberto,
+  aoAlternar,
+  children,
+}: {
+  chave: string;
+  titulo: string;
+  meta?: string;
+  aberto: boolean;
+  aoAlternar: (aberto: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <section id={`bloco-${chave}`} aria-labelledby={`titulo-${chave}`} className="mx-3 mt-3 scroll-mt-32 rounded-[2px] border border-regua bg-sf" data-bloco={chave}>
+      <h3 id={`titulo-${chave}`}>
+        <button
+          type="button"
+          aria-expanded={aberto}
+          aria-controls={`corpo-${chave}`}
+          onClick={() => aoAlternar(!aberto)}
+          className="flex min-h-[52px] w-full items-center gap-2 px-3 text-left"
+        >
+          <span className="min-w-0 flex-1 text-etiqueta font-bold uppercase tracking-wider text-tx-2">{titulo}</span>
+          {meta && <span className="shrink-0 text-etiqueta font-semibold tabular-nums text-tx-2">{meta}</span>}
+          <ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-tx-2 transition-transform ${aberto ? "rotate-180" : ""}`} />
+        </button>
+      </h3>
+      <div id={`corpo-${chave}`} hidden={!aberto} className="border-t border-regua px-3 pb-3 pt-3">
+        {aberto ? children : null}
+      </div>
+    </section>
+  );
+}
+
+// ── campos ──────────────────────────────────────────────────────────────────
+
+export function Campo({ rotulo, dica, erro, children, className = "" }: { rotulo: string; dica?: string; erro?: string | null; children: (ids: { id: string; descricao?: string }) => ReactNode; className?: string }) {
+  const id = useId();
+  const idDica = dica || erro ? `${id}-d` : undefined;
+  return (
+    <div className={className}>
+      <label htmlFor={id} className={cx.rotulo}>
+        {rotulo}
+      </label>
+      <div className="mt-1">{children({ id, descricao: idDica })}</div>
+      {erro ? (
+        <p id={idDica} role="alert" className={`mt-1 ${cx.erro}`}>
+          {erro}
+        </p>
+      ) : dica ? (
+        <p id={idDica} className={`mt-1 ${cx.dica}`}>
+          {dica}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Lista vazia com uma frase que diz o que fazer, e não só "nada aqui". */
+export function Vazio({ children }: { children: ReactNode }) {
+  return <p className="py-1 text-corpo text-tx-2">{children}</p>;
+}

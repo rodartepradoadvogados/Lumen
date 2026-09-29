@@ -1,6 +1,7 @@
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import CabecalhoDaConversa from "@/components/atendimento-app/CabecalhoDaConversa";
 import SemAcessoAConversa from "@/components/atendimento-app/SemAcessoAConversa";
+import PainelDaConversa from "@/components/atendimento-app/PainelDaConversa";
 import { carregarConversaDoApp } from "./dados";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function ConversaLayout({ children, params }: { children: R
     <div className="fixed inset-0 z-40 flex justify-center bg-sf-fundo">
       <div className="flex h-full w-full max-w-md flex-col border-x border-regua bg-sf-fundo">
         <CabecalhoDaConversa id={c.id} clientName={c.clientName} waPhone={c.waPhone} contactPhone={c.contactPhone} subject={c.subject} />
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <PainelDaConversa>{children}</PainelDaConversa>
       </div>
     </div>
   );

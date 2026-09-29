@@ -152,6 +152,7 @@ const config: Config = {
           "hdr-tx": "var(--atd-hdr-tx)",
           "hdr-tx2": "var(--atd-hdr-tx2)",
           "hdr-linha": "var(--atd-hdr-linha)",
+          "hdr-foco": "var(--atd-hdr-foco)",
           campo: "var(--atd-campo)",
           "ouro-texto": "var(--atd-ouro-texto)",
           "bolha-in": "var(--atd-bolha-in)",
