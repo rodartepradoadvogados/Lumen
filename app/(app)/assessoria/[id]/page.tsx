@@ -170,7 +170,7 @@ export default async function AssessoriaDetailPage({
           da mesma seção.
           A aba ativa é bronze (`--guia-ativa`), uma cor só em todas as telas — ver a nota em app/globals.css. */}
       <div className={`flex flex-wrap items-end gap-[3px] border-b-2 border-guia-ativa mb-6`}>
-        {TABS.map((t, i) => {
+        {TABS.map((t) => {
           const ativa = tab === t.key;
           return (
             <Link
@@ -183,7 +183,6 @@ export default async function AssessoriaDetailPage({
                   : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
               }`}
             >
-              <span className="opacity-70 mr-1.5 tabular-nums">{i + 1}</span>
               {t.label}
             </Link>
           );

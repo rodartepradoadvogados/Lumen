@@ -51,7 +51,7 @@ export function getAuthUrl(state?: string) {
 // Conecta a conta Google "principal" DESTE escritório (Drive/Docs + opcionalmente Jusbrasil).
 // Cada escritório tem a sua própria (isPrimaryDrive é único por officeId, não mais global) —
 // esse é um dos pontos que era hardcoded pra um único escritório no sistema original.
-export async function saveTokensFromCode(code: string, officeId: string) {
+export async function saveTokensFromCode(code: string, officeId: string): Promise<{ principalMantido: boolean }> {
   const { accountEmail, refreshToken } = await exchangeCodeForTokens(code);
 
   // A mesma conta Google não pode virar a conta principal de dois escritórios diferentes —
@@ -63,6 +63,24 @@ export async function saveTokensFromCode(code: string, officeId: string) {
   }
 
   const existingPrimary = await prisma.googleCredential.findFirst({ where: { officeId, isPrimaryDrive: true } });
+
+  // CAUSA RAIZ do invalid_grant persistente da caixa de um sócio (29/09/2026): reconectar pelo
+  // botão "Reconectar Google (Drive)" de Conexões, usando uma conta que JÁ existe neste escritório
+  // como caixa de e-mail (não principal). O ramo abaixo trocava o accountEmail da linha PRINCIPAL
+  // pelo e-mail novo — mas esse e-mail já pertencia a OUTRA linha (accountEmail é @unique), então o
+  // update estourava "Unique constraint failed on the fields: (accountEmail)", o token novo nunca
+  // era gravado e o antigo (morto) seguia dando invalid_grant a cada ciclo do cron. Nos logs da
+  // Vercel: callback de 28/09 16:04 com essa exata exceção. Aqui, se a conta já existe e não é a
+  // principal, só renovamos o token DELA e mantemos o Drive principal como está — trocar de
+  // principal exige decisão explícita, e apagar a linha alheia perderia a caixa.
+  if (existingByEmail && existingPrimary && existingByEmail.id !== existingPrimary.id) {
+    await prisma.googleCredential.update({
+      where: { id: existingByEmail.id },
+      data: { refreshToken, syncJusbrasil: true, lastSyncError: null, lastSyncErrorAt: null },
+    });
+    return { principalMantido: true };
+  }
+
   if (existingPrimary) {
     // Reconectar com uma conta Google DIFERENTE da que já era a principal: os ids de pasta salvos
     // (rootFolderId/folderId/templatesFolderId/generatedFolderId) pertencem à conta ANTIGA — sem
@@ -83,13 +101,14 @@ export async function saveTokensFromCode(code: string, officeId: string) {
         ...(trocouDeConta ? { rootFolderId: null, folderId: null, templatesFolderId: null, generatedFolderId: null } : {}),
       },
     });
-    return;
+    return { principalMantido: false };
   }
   await prisma.googleCredential.upsert({
     where: { accountEmail },
     update: { refreshToken, isPrimaryDrive: true, officeId, lastSyncError: null, lastSyncErrorAt: null },
     create: { accountEmail, refreshToken, isPrimaryDrive: true, officeId },
   });
+  return { principalMantido: false };
 }
 
 // Conecta uma conta Google adicional só para leitura de e-mail (Jusbrasil) — `userId` presente
@@ -111,7 +130,13 @@ export async function saveJusbrasilTokensFromCode(code: string, userId: string |
   if (userId) {
     const existingOwn = await prisma.googleCredential.findFirst({ where: { userId, officeId } });
     if (existingOwn && existingOwn.accountEmail !== accountEmail) {
-      await prisma.googleCredential.delete({ where: { id: existingOwn.id } });
+      // Nunca apagar a conta principal do Drive do escritório só porque este advogado trocou de
+      // e-mail pessoal: apenas desvincula dele.
+      if (existingOwn.isPrimaryDrive) {
+        await prisma.googleCredential.update({ where: { id: existingOwn.id }, data: { userId: null } });
+      } else {
+        await prisma.googleCredential.delete({ where: { id: existingOwn.id } });
+      }
     }
   }
 
