@@ -27,5 +27,11 @@ export function estaEmNoite(preferencia: PreferenciaDeTema, sistemaEscuro: boole
  * O script que roda ANTES da primeira pintura (fica dentro do #atendimento-shell, logo depois da
  * abertura da caixa) e põe a classe de Noite sem piscar o Dia. Mesma regra das funções acima —
  * o teste executa este texto e compara.
+ *
+ * ELE TAMBÉM TIRA A CLASSE `dark` DO <html>. O layout raiz (lib/theme.ts, THEME_INIT_SCRIPT) põe `dark` no
+ * <html> quando o SISTEMA está escuro ou o site foi usado em Noite (mesma origem, mesmo localStorage).
+ * O Dia do Atendimento não define paleta própria — herda a do :root —, então com `html.dark` ligado o
+ * "Dia" saía escuro e o botão parecia morto (só Dia -> Noite mudava algo, e nada). A paleta escura do app
+ * é toda da classe `atendimento-dark`; o `dark` do site não tem o que fazer aqui dentro.
  */
-export const SCRIPT_INICIAL_DO_TEMA = `(function(){try{var p=null;try{p=localStorage.getItem("${CHAVE_DO_TEMA}")}catch(e){}var s=false;try{s=window.matchMedia("(prefers-color-scheme: dark)").matches}catch(e){}var n=p==="dark"||(p==="auto"&&s);var el=document.getElementById("atendimento-shell");if(el)el.classList.toggle("atendimento-dark",n)}catch(e){}})();`;
+export const SCRIPT_INICIAL_DO_TEMA = `(function(){try{var p=null;try{p=localStorage.getItem("${CHAVE_DO_TEMA}")}catch(e){}var s=false;try{s=window.matchMedia("(prefers-color-scheme: dark)").matches}catch(e){}var n=p==="dark"||(p==="auto"&&s);var el=document.getElementById("atendimento-shell");if(el){el.classList.toggle("atendimento-dark",n);document.documentElement.classList.remove("dark")}}catch(e){}})();`;

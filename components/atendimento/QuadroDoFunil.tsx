@@ -6,6 +6,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { Badge, formatCurrency } from "@/components/ui";
 import FunnelStageSelect from "@/components/FunnelStageSelect";
+import { BotaoDeTodas, TituloDaColuna, useColunasRecolhidas } from "@/components/atendimento/ColunasRecolhiveis";
 import { setAttendanceStage } from "@/lib/actions/attendance";
 import { stageOptions, stageLabels, stageDot, ESTAGIOS_DECIDIDOS } from "@/lib/funil";
 import { somaEstimadaOuOmissao } from "@/lib/valorEstimado";
@@ -31,6 +32,12 @@ import { hrefDaConversa, type DestinoDaConversa } from "@/lib/conversaDaCentral"
 // voltava sozinho para a coluna de origem e NINGUÉM DIZIA POR QUÊ. A mensagem que explica a regra
 // existia no código e nunca era escrita na tela. Agora a coluna se mostra fechada enquanto o card
 // paira (tracejado, cursor de "não") e escreve o motivo quando a pessoa solta.
+//
+// TODAS AS COLUNAS COMEÇAM RECOLHIDAS (lib/colunasDoFunil.ts): nome, contagem e soma à vista; os cards
+// aparecem ao abrir a coluna (botão do cabeçalho, ou "Expandir todas"). A escolha fica no aparelho.
+// UMA COLUNA RECOLHIDA CONTINUA ACEITANDO SOLTAR: os ouvintes de arrastar estão na coluna inteira, e não
+// no corpo que some — soltar no cabeçalho recolhido move o card (a contagem sobe na hora). Não abre
+// sozinha ao passar: a coluna crescer no meio do gesto empurraria as vizinhas para longe do cursor.
 //
 // A BOLINHA QUE PISCA É OUTRA COISA QUE A COLUNA. Ver a nota em lib/funil.ts: a coluna é estágio
 // (alguém pôs ali), a bolinha é fato (o cliente escreveu e ninguém respondeu). Um card pode piscar
@@ -85,6 +92,7 @@ export default function QuadroDoFunil({
   destino?: DestinoDaConversa;
 }) {
   const router = useRouter();
+  const colunas = useColunasRecolhidas("central", stageOptions);
   const [, comecar] = useTransition();
   const [colunaAlvo, setColunaAlvo] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -132,6 +140,10 @@ export default function QuadroDoFunil({
     <div>
       {erro && <p className="mb-3 text-etiqueta font-medium text-urgente">{erro}</p>}
 
+      <div className="mb-3 flex justify-end">
+        <BotaoDeTodas colunas={colunas} />
+      </div>
+
       <div className="flex items-start gap-4 overflow-x-auto pb-4 quadro-empilha">
         {stageOptions.map((stage) => {
           const doEstagio = cards.filter((c) => estagioDe(c) === stage);
@@ -142,6 +154,8 @@ export default function QuadroDoFunil({
             { isAdmin },
           );
           const aceitaSoltar = stage !== "PERDIDO";
+          const aberta = colunas.aberta(stage);
+          const idDoCorpo = `corpo-funil-${stage}`;
 
           return (
             <div
@@ -170,16 +184,20 @@ export default function QuadroDoFunil({
                     : "border-dashed border-urgente"
               )}
             >
-              <div className="border-b border-regua px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: stageDot[stage] }} />
-                    <h3 className="truncate text-corpo font-semibold text-tx">{stageLabels[stage]}</h3>
-                  </div>
-                  <span className="ml-2 shrink-0 whitespace-nowrap rounded-full border border-regua bg-sf px-2 py-0.5 text-etiqueta font-semibold text-tx-2">
-                    {doEstagio.length}
-                  </span>
-                </div>
+              <div className={clsx("px-4 py-1.5", aberta && "border-b border-regua")}>
+                <TituloDaColuna
+                  aberta={aberta}
+                  aoAlternar={() => colunas.alternar(stage)}
+                  idDoCorpo={idDoCorpo}
+                  cor={stageDot[stage]}
+                  nome={stageLabels[stage]}
+                  total={doEstagio.length}
+                />
+                {!aberta && colunaAlvo === stage && (
+                  <p className="pb-1.5 text-etiqueta font-semibold text-tx-2">
+                    {aceitaSoltar ? "Solte aqui" : "Aqui não — use o seletor do card"}
+                  </p>
+                )}
                 {!somaEstimada.omitido && somaEstimada.total > 0 && (
                   <p className="mt-1 text-etiqueta text-tx-3">{formatCurrency(somaEstimada.total)} estimado</p>
                 )}
@@ -188,14 +206,14 @@ export default function QuadroDoFunil({
                     Total estimado: só para administrador
                   </p>
                 )}
-                {stage === "AGUARDANDO" && (
+                {stage === "AGUARDANDO" && aberta && (
                   <p className="mt-1 text-etiqueta leading-snug text-tx-3">
                     Quem ninguém respondeu no prazo cai aqui sozinho. Também dá para pôr à mão.
                   </p>
                 )}
               </div>
 
-              <div className="space-y-2 p-2.5">
+              <div id={idDoCorpo} hidden={!aberta} className="space-y-2 p-2.5">
                 {doEstagio.length === 0 ? (
                   <p className="py-6 text-center text-etiqueta text-tx-3">
                     {colunaAlvo !== stage
