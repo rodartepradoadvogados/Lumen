@@ -66,7 +66,16 @@ export async function resolveOfficeIdByPhoneNumberId(phoneNumberId: string): Pro
 // Envio de texto
 // ---------------------------------------------------------------------------
 
-export type SendResult = { ok: boolean; waMessageId?: string; error?: string };
+export type SendResult = {
+  ok: boolean;
+  waMessageId?: string;
+  error?: string;
+  /**
+   * true quando a falha veio SEM resposta do provedor (tempo esgotado, rede caída): a mensagem pode ter
+   * saído. Quem envia ao cliente não pode tratar isso como recusa nem reenviar às cegas.
+   */
+  incerto?: boolean;
+};
 
 // Forma parcial da resposta da Graph API (envio e erros).
 type GraphResponse = {
@@ -109,7 +118,11 @@ export async function sendWhatsappText(officeId: string, toE164: string, body: s
       );
       return { ok: true, waMessageId };
     } catch (erro) {
-      return { ok: false, error: erro instanceof FalhaDaEvolution ? erro.motivo : "falha ao enviar pela Evolution" };
+      return {
+        ok: false,
+        error: erro instanceof FalhaDaEvolution ? erro.motivo : "falha ao enviar pela Evolution",
+        incerto: erro instanceof FalhaDaEvolution ? erro.incerta : true,
+      };
     }
   }
 
@@ -146,7 +159,8 @@ export async function sendWhatsappText(officeId: string, toE164: string, body: s
     return { ok: true, waMessageId };
   } catch (e) {
     const message = e instanceof Error ? e.message : "erro de rede desconhecido";
-    return { ok: false, error: `Falha ao contatar a API do WhatsApp: ${message}` };
+    // Sem resposta da Meta: não se sabe se a mensagem saiu.
+    return { ok: false, error: `Falha ao contatar a API do WhatsApp: ${message}`, incerto: true };
   }
 }
 

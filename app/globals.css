@@ -2414,3 +2414,17 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     box-shadow: 0 0 0 2px var(--acao-light);
   }
 }
+
+/* CAMPO DE MENSAGEM DO APLICATIVO DE ATENDIMENTO: 16 px de fonte de propósito — abaixo disso o Safari do
+   iPhone dá zoom na página ao focar o campo. A escala do produto tem 15 px (`text-corpo`), então este
+   tamanho mora aqui, num lugar só. */
+.atd-campo-de-mensagem {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+/* Com o teclado virtual aberto (TelaCheiaDaConversa marca `data-teclado="on"`), a barra da Ana e as guias
+   se recolhem para sobrar conversa na tela. */
+[data-tela-da-conversa][data-teclado="on"] [data-oculta-com-teclado] {
+  display: none;
+}

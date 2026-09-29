@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { atendimentoDaRota } from "@/lib/guardaDoAtendimento";
-import { carregarPaginaDoChat } from "@/lib/mensagensDoChatDb";
+import { carregarMensagensDepois, carregarPaginaDoChat } from "@/lib/mensagensDoChatDb";
 import { lerCursor } from "@/lib/mensagensDoChat";
+import { validarPedidoDeEnvio } from "@/lib/envioDeMensagem";
+import { enviarMensagemDoApp } from "@/lib/envioDeMensagemDb";
+import { lerEstadoDoChat } from "@/lib/estadoDoChatDb";
 
 export const dynamic = "force-dynamic";
+// O envio espera o WhatsApp responder. Se o processo for cortado no meio, a reserva fica RESERVADO e o
+// aparelho mostra "sem confirmação" — é o caso que o desenho existe para tratar, sem reenviar às cegas.
+export const maxDuration = 60;
 
-// GET /api/atendimento/[id]/mensagens?antes=<cursor> — a página de mensagens ANTERIORES ao cursor (o
-// "Carregar mensagens anteriores" do chat do aplicativo). 60 por vez, da mais antiga para a mais nova.
+const SEM_CACHE = { "Cache-Control": "no-store" };
+
+// GET /api/atendimento/[id]/mensagens
+//   ?antes=<cursor>   a página de mensagens ANTERIORES ao cursor (o "Carregar mensagens anteriores").
+//   ?depois=<cursor>  o que chegou DEPOIS do cursor + o estado da conversa (a atualização a cada 15 s).
 //
 // A GUARDA VEM ANTES DE TUDO: 401 sem sessão, 403 sem acesso ao Atendimento, 404 para a conversa que
 // não é sua ou que não existe (indistinguíveis) — o recorte por dono de lib/acessoAtendimento.ts. O
@@ -17,9 +26,50 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (r.erro) return r.erro;
   const { viewer, attendance } = r;
 
+  const depois = req.nextUrl.searchParams.get("depois");
+  if (depois !== null) {
+    if (!lerCursor(depois)) return NextResponse.json({ error: "Cursor inválido" }, { status: 400 });
+    const agora = new Date();
+    const [mensagens, estado] = await Promise.all([
+      carregarMensagensDepois(attendance.id, viewer.officeId, depois, { agora }),
+      lerEstadoDoChat(attendance, viewer.officeId, agora),
+    ]);
+    return NextResponse.json({ mensagens, estado }, { headers: SEM_CACHE });
+  }
+
   const antes = req.nextUrl.searchParams.get("antes");
   if (antes !== null && !lerCursor(antes)) return NextResponse.json({ error: "Cursor inválido" }, { status: 400 });
 
   const pagina = await carregarPaginaDoChat(attendance.id, viewer.officeId, { antes });
-  return NextResponse.json(pagina, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(pagina, { headers: SEM_CACHE });
+}
+
+// POST /api/atendimento/[id]/mensagens — envia um TEXTO ao cliente pelo WhatsApp.
+//   corpo: { clientMessageId, texto, confirmouReenvio? }   (JSON)
+//
+// A GUARDA VEM ANTES DE LER O CORPO (401 / 403 / 404, sem gravar nada). O corpo só é aceito como JSON
+// (um formulário de outro site não consegue mandar `application/json` sem pedir licença ao navegador).
+// A idempotência, a janela de 24 h e "quem enviou, assumiu" moram em lib/envioDeMensagemDb.ts. Rota JSON
+// e não Server Action de propósito: o identificador de uma Server Action muda a cada deploy, e uma
+// mensagem parada na fila do aparelho falharia com "Failed to find Server Action".
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const r = await atendimentoDaRota(params.id);
+  if (r.erro) return r.erro;
+  const { viewer, attendance } = r;
+  const { officeId, id: userId } = viewer;
+
+  if (!(req.headers.get("content-type") || "").toLowerCase().startsWith("application/json")) {
+    return NextResponse.json({ ok: false, codigo: "INVALIDO", erro: "Pedido inválido." }, { status: 415, headers: SEM_CACHE });
+  }
+  let corpo: unknown;
+  try {
+    corpo = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, codigo: "INVALIDO", erro: "Pedido inválido." }, { status: 400, headers: SEM_CACHE });
+  }
+  const pedido = validarPedidoDeEnvio(corpo);
+  if (!pedido.ok) return NextResponse.json({ ok: false, codigo: "INVALIDO", erro: pedido.erro }, { status: 400, headers: SEM_CACHE });
+
+  const resposta = await enviarMensagemDoApp({ officeId, userId, attendance }, pedido);
+  return NextResponse.json(resposta.corpo, { status: resposta.status, headers: SEM_CACHE });
 }

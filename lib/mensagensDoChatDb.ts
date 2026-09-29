@@ -3,6 +3,7 @@ import {
   ORDEM_DA_PAGINA,
   TAMANHO_DA_PAGINA,
   filtroAntesDoCursor,
+  filtroDepoisDoCursor,
   lerCursor,
   paginaDeMensagens,
   prepararMensagem,
@@ -34,4 +35,18 @@ export async function carregarPaginaDoChat(
     temAnteriores: pagina.temAnteriores,
     cursorDasAnteriores: pagina.cursorDasAnteriores,
   };
+}
+
+/** As mensagens POSTERIORES ao cursor, da mais antiga para a mais nova (no máximo 200 por vez). */
+export async function carregarMensagensDepois(attendanceId: string, officeId: string, depois: string, opcoes: { agora?: Date } = {}): Promise<MensagemDoChat[]> {
+  const cursor = lerCursor(depois);
+  if (!cursor) return [];
+  const agora = opcoes.agora ?? new Date();
+  const linhas = await prisma.whatsappMessage.findMany({
+    where: { attendanceId, officeId, ...filtroDepoisDoCursor(cursor) },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: 200,
+    include: { transcricao: { select: { status: true, texto: true, erro: true } } },
+  });
+  return linhas.map((m) => prepararMensagem(m, agora));
 }

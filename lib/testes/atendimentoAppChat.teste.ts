@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { teste, igual, verdade, resumo, codigoDe } from "./executar";
-import { statusDaConversa } from "@/lib/conversasDoApp";
 import { TAMANHO_DA_PAGINA, agruparMensagensPorDia, codificarCursor, filtroAntesDoCursor, lerCursor, mesclarMensagens, paginaDeMensagens, prepararMensagem } from "@/lib/mensagensDoChat";
 
 // ============================================================================
@@ -15,15 +14,6 @@ const le = (...p: string[]) => readFileSync(join(RAIZ, ...p), "utf8");
 const AGORA = new Date(Date.UTC(2026, 8, 29, 17, 32));
 const minAtras = (n: number) => new Date(AGORA.getTime() - n * 60000);
 
-
-teste("status da conversa: quem responde e o relógio (só leitura)", () => {
-  const base = { agenteResponde: true, agenteSilenciadoEm: null, prazoDeRespostaAte: new Date(AGORA.getTime() + 3 * 60000) };
-  const a = statusDaConversa(base, "IN", AGORA, "Ana");
-  igual(a.quemResponde, "Ana responde aqui");
-  verdade(a.grave, "faltam 3 min: grave");
-  igual(statusDaConversa({ ...base, agenteSilenciadoEm: minAtras(5) }, "IN", AGORA, "Ana").quemResponde, "Atendimento humano");
-  igual(statusDaConversa({ ...base, agenteResponde: false }, "OUT", AGORA, "Ana"), { quemResponde: "Resposta automática desligada aqui", relogio: null, grave: false });
-});
 
 // ── CHAT: PAGINAÇÃO ─────────────────────────────────────────────────────────────────────────────
 
@@ -169,8 +159,10 @@ teste("nada de hex, de fonte fora da rampa nem de sombra nos arquivos novos do a
     "components/atendimento-app/ChatDaConversa.tsx",
     "components/atendimento-app/CabecalhoDaConversa.tsx",
     "components/atendimento-app/GuiasDaConversa.tsx",
-    "components/atendimento-app/AvisoSemEnvio.tsx",
-    "components/atendimento-app/StatusDaConversa.tsx",
+    "components/atendimento-app/BarraDoChat.tsx",
+    "components/atendimento-app/BolhaDaMensagem.tsx",
+    "components/atendimento-app/CompositorDoChat.tsx",
+    "components/atendimento-app/TelaCheiaDaConversa.tsx",
     "app/atendimento-app/(shell)/[id]/page.tsx",
     "app/atendimento-app/(shell)/[id]/layout.tsx",
   ];

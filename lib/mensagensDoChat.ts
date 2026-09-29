@@ -75,6 +75,13 @@ export type MensagemDoChat = {
   dia: string;
   rotuloDoDia: string;
   transcricao: { texto: string; ehConteudo: boolean } | null;
+  /**
+   * A chave que o aparelho deu à mensagem que ENVIOU (nula em toda outra): é o que faz o balão "enviando"
+   * virar o balão de verdade sem aparecer duas vezes.
+   */
+  clientMessageId: string | null;
+  /** SÓ NA TELA: a mensagem que ainda não foi confirmada pelo servidor (balão "enviando", "falhou"...). */
+  envioLocal?: { estado: "enviando" | "enviada" | "falhou" | "sem-confirmacao"; erro: string | null; podeTentarDeNovo: boolean };
 };
 
 export type LinhaDeMensagem = {
@@ -84,6 +91,7 @@ export type LinhaDeMensagem = {
   body: string;
   status: string;
   createdAt: Date;
+  clientMessageId?: string | null;
   transcricao?: TranscricaoDaMensagem;
 };
 
@@ -103,6 +111,7 @@ export function prepararMensagem(m: LinhaDeMensagem, agora: Date): MensagemDoCha
     dia: diaDeBrasilia(m.createdAt),
     rotuloDoDia: rotuloDoDia(m.createdAt, agora),
     transcricao: rotuloTranscricao,
+    clientMessageId: m.clientMessageId ?? null,
   };
 }
 
@@ -130,6 +139,17 @@ export function lerCursor(bruto: string | null | undefined): CursorDeMensagem | 
 export function filtroAntesDoCursor(c: CursorDeMensagem | null) {
   if (!c) return {};
   return { OR: [{ createdAt: { lt: c.criadoEm } }, { createdAt: c.criadoEm, id: { lt: c.id } }] };
+}
+
+/** O pedaço de `where` que traz só o que é POSTERIOR ao cursor (a atualização a cada 15 s). */
+export function filtroDepoisDoCursor(c: CursorDeMensagem) {
+  return { OR: [{ createdAt: { gt: c.criadoEm } }, { createdAt: c.criadoEm, id: { gt: c.id } }] };
+}
+
+/** O cursor da mensagem mais nova que a tela já tem (o "depois" da próxima atualização). */
+export function cursorDaMaisNova(mensagens: { id: string; criadoEm: string }[]): string | null {
+  const ultima = mensagens[mensagens.length - 1];
+  return ultima ? `${ultima.criadoEm}|${ultima.id}` : null;
 }
 
 /** A ordem da consulta paginada: do mais novo para o mais antigo, com o id como desempate. */

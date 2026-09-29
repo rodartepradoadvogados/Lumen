@@ -28,7 +28,7 @@ export default function GuiasDaConversa({ idDaConversa }: { idDaConversa: string
   }
 
   return (
-    <div role="tablist" aria-label="Seções da conversa" className="flex">
+    <div role="tablist" aria-label="Seções da conversa" data-oculta-com-teclado="" className="flex">
       {guias.map((g, i) => {
         const acesa = aberta === g.chave;
         return (
