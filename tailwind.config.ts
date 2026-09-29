@@ -75,6 +75,16 @@ const config: Config = {
         autuacao: ["1.75rem", { lineHeight: "1.15", letterSpacing: "-0.015em" }],
         tarja: ["2.5rem", { lineHeight: "1", letterSpacing: "-0.02em" }],
 
+        // ESCALA DA CAPA (homepage pública, redesenho de 29/09/2026). A Capa é vitrine e leitura, não
+        // tela de trabalho: precisa de um display fluido e de um corpo de 16px, que a rampa acima
+        // (pensada para o produto) não tem. Junto com etiqueta (12), destaque (18) e tarja (40), são
+        // OITO tamanhos no total — eram quinze. Pesos: só 400, 600 e 700.
+        "capa-display": ["clamp(2.125rem, 6.2vw, 3.75rem)", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
+        "capa-h2": ["clamp(1.625rem, 3.6vw, 2.375rem)", { lineHeight: "1.12", letterSpacing: "-0.015em" }],
+        "capa-h3": ["1.25rem", { lineHeight: "1.3", letterSpacing: "-0.005em" }],
+        "capa-corpo": ["1rem", { lineHeight: "1.6" }],
+        "capa-mini": ["0.875rem", { lineHeight: "1.5" }],
+
         xs: ["0.75rem", { lineHeight: "1.35" }],
         sm: ["0.9375rem", { lineHeight: "1.55" }],
         base: ["0.9375rem", { lineHeight: "1.55" }],

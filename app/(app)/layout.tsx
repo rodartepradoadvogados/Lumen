@@ -20,6 +20,7 @@ import { getAlertsCount, getAgendaBadgeCount } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { PORTAL_THEME_INIT_SCRIPT } from "@/lib/portalTheme";
+import PortalThemeSync from "@/components/PortalThemeSync";
 import { podeVerAtendimentos, veTodoOAtendimento, recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
 import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 
@@ -94,6 +95,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* eslint-disable-next-line react/no-danger -- PORTAL_THEME_INIT_SCRIPT é string 100%
           estática (lib/portalTheme.ts), nenhum dado de usuário entra aqui. */}
       <script dangerouslySetInnerHTML={{ __html: PORTAL_THEME_INIT_SCRIPT }} />
+      <PortalThemeSync />
       <UndoToastProvider>
         {/* AnotacoesProvider (painel global "Anotações", faixa retrátil na borda direita) precisa
             envolver tanto o AppShell (que renderiza o próprio painel) quanto o AssistenteWidget
