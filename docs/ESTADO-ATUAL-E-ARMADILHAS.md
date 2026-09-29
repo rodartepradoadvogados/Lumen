@@ -1,6 +1,6 @@
 # Estado atual do Lúmen e armadilhas conhecidas
 
-**Última atualização: 26 de setembro de 2026.**
+**Última atualização: 29 de setembro de 2026.**
 
 Este documento existe para que quem chega ao projeto — pessoa ou agente — não desfaça
 sem querer decisões tomadas por um motivo. Cada item abaixo diz **o que é**, **por que é
@@ -207,3 +207,24 @@ em computador. Defeitos que isto corrigiu e que voltam se for desfeito:
   redirecionamento é recusado pelo navegador).
 - O PWA do site (escopo "/") engloba os outros dois; em celular/tablet o layout do site herda
   o manifesto mobile (`lib/pwaManifestoDoSite.ts`).
+
+---
+
+## 12. A Capa: só promete o que o código faz, e só mede com consentimento (29/09/2026)
+
+- **Toda frase da Capa (`app/page.tsx`) tem de ter respaldo em código.** A auditoria achou
+  "conciliação bancária" (não existe importação de extrato), "prazo fatal com feriados de cada
+  tribunal" (o produto sugere prazo, com feriados nacionais, recesso forense e feriados locais
+  cadastrados), "93 tribunais" (número sem derivação) e "texto escrito pelo advogado" (a minuta é
+  redigida por IA). Saíram. `lib/testes/capa.teste.ts` trava a volta dessas frases; ao escrever uma
+  promessa nova, confira o arquivo que a sustenta antes de publicar.
+- **O Vercel Analytics só carrega com consentimento.** O aviso de cookies grava
+  `lumen_cookie_consent_v1` (`lib/cookieConsent.ts`); `AnalyticsConsentido` (montado no layout raiz)
+  só renderiza `<Analytics />` com `"todos"` e descarta eventos de quem revogou. Antes o `<Analytics />`
+  era incondicional e "Somente essenciais" não mudava nada. Consequência esperada: as visitas contadas
+  caem, e quem entra direto por `/login` ou pelo PWA, sem passar pelo aviso da Capa, nunca é medido.
+  A política de privacidade (seção 9) descreve isso: se mudar o comportamento, atualize as duas.
+- **Menu do celular:** abaixo de 640px a barra do cabeçalho é só marca + Entrar + hambúrguer. Cinco
+  filhos somavam 467px em 390px e a página rolava para o lado. Tema e "Criar conta" moram na folha do
+  menu. "Entrar" precisa continuar visível na barra (PWA, item 11).
+

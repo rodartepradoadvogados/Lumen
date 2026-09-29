@@ -29,7 +29,7 @@ const ICONS: Record<ThemeMode, typeof Sun> = {
 // lógica de leitura/persistência do tema continua só aqui, o controle segmentado só invoca
 // setMode(). O app mobile tem seu próprio toggle, decoupled deste (ver
 // components/mobile/MobileThemeToggle.tsx — 3 estados, Dia/Tarde/Noite, não 2).
-export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu" | "segmented" | "cromo" }) {
+export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu" | "segmented" | "cromo" | "folha" }) {
   const [mode, setMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
 
@@ -71,7 +71,7 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
 
   if (!mounted) {
     // Evita mismatch de hidratação até sabermos a preferência real; ocupa o mesmo espaço do botão.
-    return <span className={variant === "icon" || variant === "cromo" ? "h-9 w-9 shrink-0" : "block h-9"} aria-hidden="true" />;
+    return <span className={variant === "icon" || variant === "cromo" ? "block h-9 w-9 shrink-0" : variant === "folha" ? "block min-h-[48px] border-b border-regua" : "block h-9"} aria-hidden="true" />;
   }
 
   const Icon = ICONS[mode];
@@ -105,6 +105,23 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
         className="inline-flex items-center justify-center h-9 w-9 shrink-0 rounded-sm border border-gaveta-linha text-rail-tx hover:text-rotulo hover:bg-gaveta-fundo transition-colors duration-100 ease-out"
       >
         <Icon size={16} />
+      </button>
+    );
+  }
+
+  // Linha inteira, 48px de altura, para a folha do menu do celular (components/site/MobileNav.tsx):
+  // abaixo de `sm` o alternador sai da barra (a barra não cabe em 390px, ver SiteHeader) e mora aqui.
+  if (variant === "folha") {
+    return (
+      <button
+        type="button"
+        onClick={cycle}
+        aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
+        className="w-full min-h-[48px] flex items-center gap-3 px-6 text-corpo font-semibold text-tx border-b border-regua transition-colors duration-100 ease-out active:bg-acao-bg"
+      >
+        <Icon size={18} className="text-tx-2" />
+        Tema: {THEME_LABEL[mode]}
+        <span className="ml-auto text-etiqueta font-medium text-tx-2">Mudar para {nextLabel}</span>
       </button>
     );
   }
