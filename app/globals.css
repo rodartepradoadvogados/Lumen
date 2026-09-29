@@ -2436,6 +2436,7 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
   display: none;
 }
 
+/* A ENTRADA DE UMA ETAPA DO FORMULÁRIO DE CAMPANHA.
    Desliza da direita e some ao mesmo tempo — é o gesto de "a próxima folha chegou", e ele importa
    num formulário de sete etapas: sem movimento nenhum, trocar de etapa parece um erro de
    carregamento, e a pessoa clica de novo.
