@@ -4,23 +4,23 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { podeVerAtendimentos, veTodoOAtendimento, filtroDoAtendimento } from "@/lib/acessoAtendimento";
-import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
-import { stageOptions } from "@/lib/funil";
+import { stageOptions, faseDaUrl, filtroDeFase } from "@/lib/funil";
+import { contagensPorFase, type ContagensPorFase } from "@/lib/listaDeAtendimentos";
+import { ORDEM_POR_ATIVIDADE } from "@/lib/atividadeDoAtendimento";
 import { quemEstaEsperando } from "@/lib/esperaDoAtendimento";
 import { situacaoDaRecusa, type EstadoDaRecusa } from "@/lib/recusaDoLead";
 import { motivosParaRecusar } from "@/lib/actions/recusaDoLead";
 import { identificarNumero } from "@/lib/identificarNumero";
 import { getAppUrl } from "@/lib/appUrl";
 import {
-  hrefDaConversa,
+  hrefDaLista,
   recorteDaConversa,
   CONVERSA_FORA_DO_SEU_ALCANCE,
   FOCO_DA_RECUSA,
   ANCORA_DA_RECUSA,
 } from "@/lib/conversaDaCentral";
 import { dataDeBrasilia, dataEHoraDeBrasilia } from "@/lib/horaDeBrasilia";
-import { Badge } from "@/components/ui";
 import ThemeToggle from "@/components/ThemeToggle";
 import QuadroDoFunil, { type CardDoFunil } from "@/components/atendimento/QuadroDoFunil";
 import NovaConversaModal from "@/components/atendimento/NovaConversaModal";
@@ -30,6 +30,11 @@ import Conversa from "@/components/atendimento/Conversa";
 import TrilhoDoAtendimento from "@/components/atendimento/TrilhoDoAtendimento";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
 import RecusarLeadPainel from "@/components/atendimento/RecusarLeadPainel";
+import BotaoDaGaveta from "@/components/atendimento/BotaoDaGaveta";
+import AtalhosDaCentral from "@/components/atendimento/AtalhosDaCentral";
+import AtualizarAoVivo from "@/components/atendimento/AtualizarAoVivo";
+import SeletorDeFase from "@/components/atendimento/SeletorDeFase";
+import ListaDeConversas, { type LinhaDaLista } from "@/components/atendimento/ListaDeConversas";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import AtendenteIaControle from "@/components/AtendenteIaControle";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
@@ -87,8 +92,10 @@ export const dynamic = "force-dynamic";
 //   resto de components/atendimento/ fica para quando for tocado, para o diff desta etapa não virar
 //   um renomear de 40 arquivos.
 //
-//   O REALCE DO ITEM CLICADO quando o clicado não está nos 200 mais recentes da lista — ver o
-//   comentário na seleção, abaixo, e o `take` em carregarLista.
+//   O REALCE DO ITEM CLICADO quando o clicado não está na lista (fora dos 200 mais ativos,
+//   arquivado/recusado, fora da busca) — ver o comentário na seleção, abaixo, e o `take` em
+//   carregarLista. Desde 29/09/2026 ele vira o item à parte "Conversa aberta", e não mais uma linha
+//   fixada no topo.
 //
 // Os outros dois: o ícone "Ver a recusa" (lib/conversaDaCentral.ts, hrefDaRecusa, e a âncora do
 // painel no trilho, aqui embaixo) e os chips que quebravam linha (a faixa de sub-abas aqui; as
@@ -97,14 +104,6 @@ const ABAS = ["triagem", "atendimentos"] as const;
 type AbaCentral = (typeof ABAS)[number];
 const SUBS = ["funil", "espera", "recusados"] as const;
 type SubTriagem = (typeof SUBS)[number];
-
-const statusColors: Record<string, "amber" | "blue" | "green" | "slate"> = {
-  NOVO: "amber",
-  EM_TRIAGEM: "blue",
-  CONVERTIDO: "green",
-  ARQUIVADO: "slate",
-  RASCUNHO: "slate",
-};
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
@@ -115,7 +114,7 @@ function daysBetween(from: Date, to: Date) {
 export default async function AtendimentoCentralPage({
   searchParams,
 }: {
-  searchParams: { aba?: string; sub?: string; id?: string; status?: string; q?: string; foco?: string };
+  searchParams: { aba?: string; sub?: string; id?: string; status?: string; q?: string; foco?: string; fase?: string; arq?: string };
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
@@ -221,22 +220,39 @@ export default async function AtendimentoCentralPage({
   // ── ATENDIMENTOS — lista + a conversa selecionada. Mesmo filtro por dono de
   // app/(app)/atendimento/page.tsx (filtroDoAtendimento) — quem só vê os próprios continua só
   // vendo os próprios aqui dentro. ──────────────────────────────────────────────────────────────
-  let listaAtendimentos: Awaited<ReturnType<typeof carregarLista>> = [];
+  let listaAtendimentos: LinhaDaLista[] = [];
+  let contagens: ContagensPorFase = contagensPorFase([]);
+  let ocultos = 0;
   let idSelecionado: string | null = null;
+  let conversaAbertaForaDaLista: LinhaDaLista | null = null;
+  // O RECORTE DA LISTA vem da URL e é conferido: a fase só vale se existir em stageOptions
+  // (`?fase=xyz` = "Todas"), e "arquivados" só com `arq=1`.
+  const faseEscolhida = faseDaUrl(searchParams.fase);
+  const mostrarArquivados = searchParams.arq === "1";
+  const recorte = { fase: faseEscolhida, q: (searchParams.q || "").trim(), arquivados: mostrarArquivados };
   // O ID PEDIDO NA URL fica separado do que a tela escolheu sozinha (o primeiro da lista). É a
   // diferença entre "ninguém pediu nada ainda" e "pediram isto e a reconferência recusou" — e sem
   // guardar as duas coisas a segunda viraria a mensagem da primeira ("selecione à esquerda"), que
   // manda a pessoa fazer de novo o que ela acabou de fazer.
   const idPedido = (searchParams.id || "").trim() || null;
   if (aba === "atendimentos") {
-    listaAtendimentos = await carregarLista(viewer, searchParams.status, searchParams.q);
+    const carregada = await carregarLista(viewer, {
+      status: searchParams.status,
+      q: searchParams.q,
+      fase: faseEscolhida,
+      arquivados: mostrarArquivados,
+    });
+    listaAtendimentos = carregada.linhas;
+    contagens = carregada.contagens;
+    ocultos = carregada.ocultos;
     idSelecionado = idPedido || listaAtendimentos[0]?.id || null;
-    // ── ETAPA 3 — O REALCE DO ITEM CLICADO, quando o clicado não está nos 200.
+    // ── O LEAD ABERTO QUE ESTÁ FORA DA LISTA (etapa 3, revista no A3 do plano de 29/09/2026).
     //
-    // A lista traz os 200 mais recentes por createdAt (ver carregarLista). Um lead clicado na
-    // Triagem pode ser mais antigo que isso — e era o que acontecia: a conversa CERTA abria à
-    // direita e a esquerda ficava com o realce no primeiro da lista, ou em nada. A pessoa via a
-    // conversa que pediu e a lista dizendo que ela estava em outra.
+    // A lista traz os 200 de atividade mais recente (ver carregarLista) e respeita a busca. Um lead
+    // aberto por link — clicado na Triagem, "Ver a recusa", um endereço colado — pode estar fora
+    // dela: mais antigo que o teto, arquivado/recusado (escondidos por padrão), ou fora da busca. A
+    // conversa CERTA abre à direita; sem uma linha à esquerda a pessoa via a conversa e a lista
+    // dizendo que ela não existe.
     //
     // O CONSERTO É UMA BUSCA A MAIS, POR CHAVE PRIMÁRIA — não alargar o `take` nem tirar o
     // `orderBy`, que é o que transformaria a lista numa varredura da tabela a cada abertura de tela.
@@ -245,17 +261,18 @@ export default async function AtendimentoCentralPage({
     // E ELA PASSA PELO MESMO RECORTE DO CLIQUE (recorteDaConversa: id + escritório de quem pediu +
     // recorte por dono), porque este é um caminho de LEITURA como qualquer outro: sem isso, um id de
     // outro escritório colado na URL não abriria a conversa (essa trava está logo abaixo), mas
-    // ACRESCENTARIA à lista uma linha com o nome e o assunto de um cliente de outro escritório.
+    // ACRESCENTARIA à tela uma linha com o nome e o assunto de um cliente de outro escritório.
     // Vazamento pela lista, não pela conversa.
+    //
+    // NÃO É FIXADA NO TOPO DA LISTA. Era, e isso mentia: a lista agora é ordenada por atividade, e
+    // uma linha antiga no topo se passaria pela mais recente. Ela vira um item À PARTE, rotulado
+    // "Conversa aberta", acima da lista — o rótulo diz o que ela é em vez de dar a ela um lugar que
+    // não é dela.
     if (idPedido && !listaAtendimentos.some((a) => a.id === idPedido)) {
-      const foraDaPagina = await prisma.attendance.findFirst({
+      conversaAbertaForaDaLista = await prisma.attendance.findFirst({
         where: recorteDaConversa(viewer, idPedido),
-        select: { id: true, clientName: true, subject: true, status: true },
+        select: SELECT_DA_LINHA,
       });
-      // No TOPO, e não na posição cronológica dele: a lista está ordenada do mais recente para o
-      // mais antigo, então o lugar "correto" de um lead antigo é o fim de uma lista de 200 linhas —
-      // o realce existiria e ninguém o veria. Quem clicou está lendo esta conversa agora.
-      if (foraDaPagina) listaAtendimentos = [foraDaPagina, ...listaAtendimentos];
     }
   }
 
@@ -310,19 +327,22 @@ export default async function AtendimentoCentralPage({
   const hrefAba = (destino: AbaCentral) => `/atendimento-central?aba=${destino}`;
   const hrefSub = (destino: SubTriagem) => `/atendimento-central?aba=triagem&sub=${destino}`;
 
-  // ALTURA TRAVADA NA JANELA (h-screen), e não só piso (min-h-screen): com piso, a coluna cresce do
-  // tamanho da conversa, quem rola é a PÁGINA, e a caixa de resposta desce junto para o fim de uma
-  // conversa comprida. Com a altura travada, quem rola é a caixa da conversa (min-h-0 +
-  // overflow-y-auto) e o pé com a resposta fica à vista.
+  // ALTURA TRAVADA NA JANELA, e o DOCUMENTO NUNCA ROLA (A1, 29/09/2026). O invólucro é
+  // `.atd-central-fixa` (layout.tsx + atendimento-central.css): 100dvh, overflow clip, e html/body
+  // sem rolagem. Esta raiz só preenche ele (`h-full`). Com piso (min-h-screen), a coluna cresceria do
+  // tamanho da conversa e a caixa de resposta desceria junto; e com `h-screen` sozinho, a coluna do
+  // trilho — que era mais alta que a linha — empurrava o documento, e o cabeçalho ("Sair para o
+  // Lúmen", "Atendimento", as abas) saía da janela do PWA (877x612). Agora só regiões internas
+  // rolam: a lista, a conversa e a coluna do trilho.
   return (
-    <div className="flex h-screen flex-col bg-[var(--work-bg)]">
+    <div className="flex h-full min-h-0 flex-col bg-[var(--work-bg)]">
       {/* ── MOLDURA: barra superior ─────────────────────────────────────────────────────────── */}
-      <div className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-[var(--frame-border)] bg-[var(--frame-bg)] px-5">
+      <div className="atd-barra-topo flex h-12 shrink-0 items-center justify-between gap-4 border-b border-[var(--frame-border)] bg-[var(--frame-bg)] px-5">
         <a href="/painel" className="text-etiqueta font-semibold text-[var(--frame-tx-2)] transition-colors hover:text-[var(--frame-tx-0)]">
           ← Sair para o Lúmen
         </a>
-        <div className="flex items-center gap-3">
-          <span className="text-etiqueta text-[var(--frame-tx-2)]">{viewer.name}</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="min-w-0 truncate text-etiqueta text-[var(--frame-tx-2)]">{viewer.name}</span>
           {/* Variante "cromo": a MESMA usada pelo rail e pelo blog para uma barra que nunca
               retematiza — a moldura desta tela é fixa nos dois temas, exatamente essa superfície. */}
           <ThemeToggle variant="cromo" />
@@ -403,51 +423,65 @@ export default async function AtendimentoCentralPage({
       )}
 
       {aba === "atendimentos" && (
-        <div className="flex min-h-0 flex-1">
+        // `data-vista` só importa em janela de celular (<=760px): ver atendimento-central.css. Com `?id=`
+        // pedido na URL é a conversa; sem ele, a lista.
+        <div className="atd-corpo" data-vista={idPedido ? "conversa" : "lista"}>
+          {/* A cada 15 s, com a aba visível e sem texto digitado na resposta (components/atendimento/
+              AtualizarAoVivo.tsx). Só nesta aba: o quadro do funil da Triagem tem arrastar-e-soltar. */}
+          <AtualizarAoVivo />
+          {/* Teclado: / busca · ↑↓ conversas · F fase · Esc volta (components/atendimento/AtalhosDaCentral.tsx). */}
+          <AtalhosDaCentral />
           {/* ── COLUNA DE LISTA ─────────────────────────────────────────────────────────────── */}
-          <div className="flex w-[340px] shrink-0 flex-col border-r border-[var(--atd-border)] bg-[var(--list-bg)]">
+          <div className="atd-lista">
             <div className="shrink-0 border-b border-[var(--frame-border)] bg-[var(--frame-bg-raised)] p-3">
               <form className="flex gap-1.5">
                 {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
                 <input type="hidden" name="aba" value="atendimentos" />
+                {/* A busca preserva o recorte: fase e "arquivados" viajam junto (a busca não os zera). */}
+                {faseEscolhida && <input type="hidden" name="fase" value={faseEscolhida} />}
+                {mostrarArquivados && <input type="hidden" name="arq" value="1" />}
+                <label htmlFor="busca-atendimentos" className="sr-only">
+                  Buscar por nome ou assunto
+                </label>
                 <input
+                  id="busca-atendimentos"
                   type="text"
                   name="q"
                   defaultValue={searchParams.q}
                   placeholder="Buscar por nome ou assunto"
-                  className="min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-etiqueta text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none"
+                  className="min-h-9 min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-etiqueta text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
                 />
               </form>
               {/* F5.5 — "eu só consigo responder reativamente": este botão abre uma conversa nova
                   sem esperar o cliente escrever primeiro. Fica na coluna de lista, e não na moldura
-                  de cima, porque é ação DESTA aba (Atendimentos), não da tela inteira. */}
-              <div className="mt-2">
+                  de cima, porque é ação DESTA aba (Atendimentos), não da tela inteira.
+                  A4 — o seletor de FASE mora AO LADO dele (pedido do dono): mesma linha, mesma altura. */}
+              <div className="mt-2 flex items-stretch gap-2">
                 <NovaConversaModal destino="central" />
+                <SeletorDeFase fase={faseEscolhida} contagens={contagens} q={recorte.q} arquivados={mostrarArquivados} id={idPedido} />
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {listaAtendimentos.length === 0 ? (
-                <p className="p-4 text-etiqueta text-tx-3">Nenhum atendimento encontrado.</p>
-              ) : (
-                listaAtendimentos.map((a) => (
-                  <Link
-                    key={a.id}
-                    href={hrefDaConversa("central", a.id)}
-                    className={`block border-b border-[var(--atd-border)] px-4 py-3 transition-colors hover:bg-[var(--list-bg-hover)] ${a.id === idSelecionado ? "bg-[var(--list-bg-hover)]" : ""}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 truncate text-corpo font-medium text-tx">{a.clientName}</p>
-                      <Badge color={statusColors[a.status]}>{attendanceStatusLabels[a.status] ?? a.status}</Badge>
-                    </div>
-                    <p className="mt-0.5 truncate text-etiqueta text-tx-3">{a.subject}</p>
-                  </Link>
-                ))
-              )}
-            </div>
+            <ListaDeConversas
+              linhas={listaAtendimentos}
+              conversaAberta={conversaAbertaForaDaLista}
+              idSelecionado={idSelecionado}
+              agora={agora}
+              nomeDoAtendente={cfg?.agenteNome?.trim() || "Atendente"}
+              recorte={recorte}
+              contagens={contagens}
+              ocultos={ocultos}
+              recorteFixoPorStatus={Boolean(searchParams.status)}
+            />
+            {/* A legenda dos atalhos some em janela baixa ou estreita (.atd-dica): ali o espaço é da lista. */}
+            <p className="atd-dica flex shrink-0 flex-wrap gap-x-3 gap-y-1 border-t border-[var(--atd-border)] px-4 py-1.5 text-etiqueta text-tx-3">
+              <span><Tecla>↑</Tecla><Tecla>↓</Tecla> navegar</span>
+              <span><Tecla>/</Tecla> buscar</span>
+              <span><Tecla>F</Tecla> fase</span>
+            </p>
           </div>
 
           {/* ── SUPERFÍCIE DE TRABALHO: conversa ────────────────────────────────────────────── */}
-          <div className="flex min-w-0 flex-1 flex-col bg-[var(--work-bg)]">
+          <div className="atd-conversa">
             {selecionado ? (
               <>
                 {/* A MEDIDA DE LEITURA (--atd-largura-leitura, ver atendimento-central.css) LIMITA O
@@ -456,9 +490,19 @@ export default async function AtendimentoCentralPage({
                     fundo diferente à direita, que é um defeito no lugar de outro. E o mesmo limite
                     vale no cabeçalho e na conversa, senão o nome do cliente e as mensagens dele
                     ficariam em réguas diferentes. */}
-                <div className="shrink-0 border-b border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 py-3">
+                <div className="shrink-0 border-b border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 py-3 max-[760px]:px-3">
                   <div className="flex w-full max-w-[var(--atd-largura-leitura)] items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    {/* Só em janela de celular: volta da conversa para a lista (o mesmo endereço, sem o
+                        `id`). É <Link>, e não botão com estado: funciona sem JavaScript e o botão
+                        Voltar do navegador leva ao mesmo lugar. */}
+                    <Link
+                      href={hrefDaLista(recorte)}
+                      aria-label="Voltar à lista de conversas"
+                      className="atd-so-celular min-h-11 min-w-11 shrink-0 items-center justify-center border border-[var(--atd-border-strong)] text-etiqueta font-semibold text-tx-2 hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
+                    >
+                      ←
+                    </Link>
+                    <div className="min-w-0 flex-1">
                       <h2 className="flex items-center gap-2 truncate text-corpo font-bold text-tx">
                         {esperandoResposta && (
                           <span className="bolinha-espera" role="img" aria-label="O cliente está esperando resposta" title="O cliente escreveu e ninguém respondeu" />
@@ -468,14 +512,22 @@ export default async function AtendimentoCentralPage({
                       <p className="truncate text-etiqueta text-tx-3">{selecionado.subject}</p>
                     </div>
                     <RelogioDoAtendimento prazoISO={selecionado.prazoDeRespostaAte ? selecionado.prazoDeRespostaAte.toISOString() : null} />
+                    <BotaoDaGaveta modo="abrir" />
                   </div>
                 </div>
                 {/* A caixa que ROLA continua sendo esta (min-h-0 + overflow-y-auto): a medida de
                     leitura entra num invólucro DENTRO dela, e não nela — trocar quem rola por causa
-                    de largura seria mexer no chassi da tela para resolver um problema de texto. */}
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                    de largura seria mexer no chassi da tela para resolver um problema de texto.
+                    `data-rolagem-da-conversa` é o que RolarParaOFim procura (closest): SEM ele o
+                    componente não achava a caixa e a conversa abria no COMEÇO — só as telas antigas
+                    (/atendimento/[id] e /m/atendimento/[id]) tinham o atributo, esta não.
+                    `key` = o lead: ao trocar de conversa pela lista o React reaproveitava o mesmo
+                    Conversa e o efeito de montagem não rodava de novo — a conversa nova abria onde a
+                    anterior tinha parado. */}
+                <div data-rolagem-da-conversa="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 max-[760px]:px-3">
                   <div className="w-full max-w-[var(--atd-largura-leitura)]">
                     <Conversa
+                      key={selecionado.id}
                       mensagens={selecionado.whatsappMessages}
                       agora={agora}
                       nomeDoAtendente={nomeDoAtendente}
@@ -494,7 +546,7 @@ export default async function AtendimentoCentralPage({
                     de leitura do cabeçalho e da conversa, senão desalinha delas.
                     QUEM PODE RESPONDER não se decide aqui: `selecionado` já passou por
                     recorteDaConversa, e replyWhatsapp reconfere com o mesmo recorte no servidor. */}
-                <div className="shrink-0 border-t border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 pb-4 pt-3">
+                <div data-caixa-de-resposta="" className="shrink-0 border-t border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 pb-4 pt-3 max-[760px]:px-3">
                   <div className="w-full max-w-[var(--atd-largura-leitura)]">
                     {podeResponder ? (
                       <>
@@ -528,68 +580,79 @@ export default async function AtendimentoCentralPage({
 
           {/* ── SUPERFÍCIE DE TRABALHO: trilho ──────────────────────────────────────────────── */}
           {selecionado && (
-            <div className="w-[380px] shrink-0 border-l border-[var(--atd-border)] bg-[var(--work-bg)]">
-              <TrilhoDoAtendimento
-                attendanceId={selecionado.id}
-                telefone={telefoneDoContato}
-                contato={contatoConhecido}
-                nomeAtual={selecionado.clientName}
-                area={selecionado.area}
-                canal={channelLabels[selecionado.channel] || selecionado.channel}
-                campanha={selecionado.campanha?.nome ?? null}
-                responsavel={selecionado.responsible?.name ?? null}
-                abertoEm={selecionado.createdAt}
-                descricao={selecionado.description}
-                anexos={selecionado.attachments.map((att) => ({ id: att.id, name: att.name, driveUrl: att.driveUrl }))}
-                pendencias={selecionado.pendencias}
-                jaConvertido={Boolean(selecionado.convertedCaseId)}
-              />
-              {/* ETAPA 3 — ESTE É O DESTINO DO ÍCONE "VER A RECUSA" (ver lib/conversaDaCentral.ts).
-                  O `id` é a âncora que o navegador usa para rolar até aqui, e vem da mesma constante
-                  que monta o endereço — duas palavras iguais em dois arquivos divergiriam calado.
-                  O ANEL É A GARANTIA: quem clicou no ícone está procurando ESTE painel entre dois, e
-                  o anel é desenhado pelo servidor, sem depender de o navegador ter rolado. */}
-              {!selecionado.convertedCaseId && (
-                <div
-                  id={ANCORA_DA_RECUSA}
-                  className={`scroll-mt-4 border-t border-[var(--atd-border)] p-4 ${
-                    foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
-                  }`}
-                  style={{ boxShadow: "var(--atd-shadow-card)" }}
+            <div className="atd-trilho">
+              {/* Só em janela estreita, onde o trilho é gaveta por cima da conversa. */}
+              <BotaoDaGaveta modo="fechar" />
+              <div className="min-h-0 flex-1">
+                <TrilhoDoAtendimento
+                  attendanceId={selecionado.id}
+                  telefone={telefoneDoContato}
+                  contato={contatoConhecido}
+                  nomeAtual={selecionado.clientName}
+                  area={selecionado.area}
+                  canal={channelLabels[selecionado.channel] || selecionado.channel}
+                  campanha={selecionado.campanha?.nome ?? null}
+                  responsavel={selecionado.responsible?.name ?? null}
+                  abertoEm={selecionado.createdAt}
+                  descricao={selecionado.description}
+                  anexos={selecionado.attachments.map((att) => ({ id: att.id, name: att.name, driveUrl: att.driveUrl }))}
+                  pendencias={selecionado.pendencias}
+                  jaConvertido={Boolean(selecionado.convertedCaseId)}
                 >
-                  <RecusarLeadPainel attendanceId={selecionado.id} motivos={motivosDeRecusa} recusa={recusaNaTela} enderecoDoSite={enderecoDoSite} />
-                </div>
-              )}
-              {/* O ÍCONE NUNCA PODE CAIR NO VAZIO. O painel acima não aparece para lead já convertido
-                  em processo — e isso está certo, porque recusar quem já virou cliente não faz sentido.
-                  Só que o ícone "Ver a recusa" CONTINUA na lista nesse caso: a fila de recusados busca
-                  por `estado: EM_ANALISE`, e converter um lead não muda esse estado. Sem este bloco, o
-                  ícone promete mostrar a recusa e entrega uma tela sem nada — o usuário clica de novo,
-                  acha que travou, e desconfia do resto da tela.
-                  A âncora e o anel são os MESMOS do painel, então o destino do ícone existe nos dois
-                  casos; o que muda é o que ele explica. */}
-              {selecionado.convertedCaseId && (
-                <div
-                  id={ANCORA_DA_RECUSA}
-                  className={`scroll-mt-4 border-t border-[var(--atd-border)] p-4 ${
-                    foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
-                  }`}
-                  style={{ boxShadow: "var(--atd-shadow-card)" }}
-                >
-                  <p className="text-etiqueta text-tx-3">Recusa</p>
-                  <p className="mt-1 max-w-[60ch] text-corpo text-tx-2">
-                    Este atendimento foi recusado e depois convertido em processo. O painel de recusa não
-                    se aplica a quem já é cliente — o registro da recusa continua no histórico do
-                    atendimento.
-                  </p>
-                </div>
-              )}
+                  {/* O PAINEL DE RECUSA MORA DENTRO DA REGIÃO QUE ROLA DO TRILHO (A1). Era irmão do
+                      trilho, embaixo dele, e por isso a coluna ficava mais alta que a janela — a
+                      causa do cabeçalho cortado. Agora ele é alcançado rolando DENTRO da coluna, e
+                      "Transformar em processo" (o pé do trilho) continua preso à vista. */}
+                  {/* ETAPA 3 — ESTE É O DESTINO DO ÍCONE "VER A RECUSA" (ver lib/conversaDaCentral.ts).
+                      O `id` é a âncora que o navegador usa para rolar até aqui, e vem da mesma constante
+                      que monta o endereço — duas palavras iguais em dois arquivos divergiriam calado.
+                      O ANEL É A GARANTIA: quem clicou no ícone está procurando ESTE painel entre dois, e
+                      o anel é desenhado pelo servidor, sem depender de o navegador ter rolado. */}
+                  {!selecionado.convertedCaseId && (
+                    <div
+                      id={ANCORA_DA_RECUSA}
+                      className={`scroll-mt-4 border border-regua bg-sf p-4 ${
+                        foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
+                      }`}
+                    >
+                      <RecusarLeadPainel attendanceId={selecionado.id} motivos={motivosDeRecusa} recusa={recusaNaTela} enderecoDoSite={enderecoDoSite} />
+                    </div>
+                  )}
+                  {/* O ÍCONE NUNCA PODE CAIR NO VAZIO. O painel acima não aparece para lead já convertido
+                      em processo — e isso está certo, porque recusar quem já virou cliente não faz sentido.
+                      Só que o ícone "Ver a recusa" CONTINUA na lista nesse caso: a fila de recusados busca
+                      por `estado: EM_ANALISE`, e converter um lead não muda esse estado. Sem este bloco, o
+                      ícone promete mostrar a recusa e entrega uma tela sem nada — o usuário clica de novo,
+                      acha que travou, e desconfia do resto da tela.
+                      A âncora e o anel são os MESMOS do painel, então o destino do ícone existe nos dois
+                      casos; o que muda é o que ele explica. */}
+                  {selecionado.convertedCaseId && (
+                    <div
+                      id={ANCORA_DA_RECUSA}
+                      className={`scroll-mt-4 border border-regua bg-sf p-4 ${
+                        foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
+                      }`}
+                    >
+                      <p className="text-etiqueta text-tx-3">Recusa</p>
+                      <p className="mt-1 max-w-[60ch] text-corpo text-tx-2">
+                        Este atendimento foi recusado e depois convertido em processo. O painel de recusa não
+                        se aplica a quem já é cliente — o registro da recusa continua no histórico do
+                        atendimento.
+                      </p>
+                    </div>
+                  )}
+                </TrilhoDoAtendimento>
+              </div>
             </div>
           )}
         </div>
       )}
     </div>
   );
+}
+
+function Tecla({ children }: { children: React.ReactNode }) {
+  return <kbd className="mr-0.5 border border-[var(--atd-border-strong)] bg-[var(--work-bg-raised)] px-1 font-semibold text-tx-2">{children}</kbd>;
 }
 
 function SubAba({ href, ativa, numero, rotulo, contagem }: { href: string; ativa: boolean; numero: number; rotulo: string; contagem?: number }) {
@@ -607,6 +670,20 @@ function SubAba({ href, ativa, numero, rotulo, contagem }: { href: string; ativa
   );
 }
 
+// As colunas da linha da lista (e da linha "Conversa aberta", que é a mesma coisa achada por id).
+// A última mensagem vem junto (uma por lead) para a prévia, o prefixo "Ana:/Você:" e a bolinha de
+// "esperando resposta" — o mesmo critério do funil: a última mensagem é do cliente.
+const SELECT_DA_LINHA = {
+  id: true,
+  clientName: true,
+  subject: true,
+  stage: true,
+  convertedCaseId: true,
+  createdAt: true,
+  ultimaAtividadeEm: true,
+  whatsappMessages: { orderBy: { createdAt: "desc" }, take: 1, select: { direction: true, body: true, porAgente: true, createdAt: true } },
+} satisfies Prisma.AttendanceSelect;
+
 // Mesma consulta de app/(app)/atendimento/page.tsx — extraída aqui para não crescer ainda mais o
 // corpo do componente de página. `soOsMeus` não entra no retorno porque esta etapa não reescreve
 // o rótulo de cabeçalho por nível; o RECORTE por dono, que é o que importa para segurança, já está
@@ -616,22 +693,51 @@ function SubAba({ href, ativa, numero, rotulo, contagem }: { href: string; ativa
 // tirá-lo faria cada abertura desta tela varrer a tabela de atendimentos do escritório inteiro. O
 // lead clicado que cai fora da página é resolvido com UMA busca por chave primária na seleção (ver
 // lá), e não alargando esta consulta.
+//
+// A4 — FASE, CONTAGENS E ARQUIVADOS. Três consultas em paralelo, TODAS com o mesmo recorte de dono
+// (`officeId` + `filtroDoAtendimento`, e a busca por nome):
+//   1. as linhas: recorte + FASE, no `where` ANTES do `take` (filtrar depois cortaria conversa
+//      antiga que tem a fase pedida);
+//   2. as contagens do menu: `groupBy stage` do MESMO recorte, sem a fase (o menu mostra quantos
+//      há em CADA fase); o número do menu e o tamanho da lista vêm do mesmo `where`;
+//   3. quantos arquivados/recusados estão escondidos (o alternador "Mostrar arquivados e recusados").
+// ARQUIVADOS e RECUSADOS ficam escondidos por padrão, como a Triagem já faz (decisão do dono);
+// RASCUNHO nunca aparece. Um `?status=` explícito na URL continua valendo como sempre valeu.
 async function carregarLista(
   viewer: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
-  status: string | undefined,
-  q: string | undefined,
-) {
-  const baseFilters: Prisma.AttendanceWhereInput = {
+  pedido: { status: string | undefined; q: string | undefined; fase: string | null; arquivados: boolean },
+): Promise<{ linhas: LinhaDaLista[]; contagens: ContagensPorFase; ocultos: number }> {
+  const ESCONDIDOS_POR_PADRAO = ["ARQUIVADO", "RECUSADO"];
+  const recorteDeDono: Prisma.AttendanceWhereInput = {
     officeId: viewer.officeId,
     ...filtroDoAtendimento(viewer, viewer.id),
-    status: status || { not: "RASCUNHO" },
   };
-  const termo = (q || "").trim();
-  const matchingIds = termo ? await findAttendanceIdsByLooseName(termo, baseFilters) : [];
-  return prisma.attendance.findMany({
-    where: { ...baseFilters, ...(termo ? { id: { in: matchingIds } } : {}) },
-    select: { id: true, clientName: true, subject: true, status: true },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
+  const statusDaLista: Prisma.AttendanceWhereInput["status"] = pedido.status
+    ? pedido.status
+    : pedido.arquivados
+      ? { not: "RASCUNHO" }
+      : { notIn: ["RASCUNHO", ...ESCONDIDOS_POR_PADRAO] };
+  const baseFilters: Prisma.AttendanceWhereInput = { ...recorteDeDono, status: statusDaLista };
+  const termo = (pedido.q || "").trim();
+  // A busca acha por nome em TODOS os status visíveis (só o rascunho fica de fora), e o status da
+  // lista estreita depois: senão, com uma busca, o alternador dos escondidos nunca teria o que contar.
+  const daBuscaBase: Prisma.AttendanceWhereInput = { ...recorteDeDono, status: pedido.status ? pedido.status : { not: "RASCUNHO" } };
+  const matchingIds = termo ? await findAttendanceIdsByLooseName(termo, daBuscaBase) : [];
+  const daBusca: Prisma.AttendanceWhereInput = termo ? { id: { in: matchingIds } } : {};
+  const [linhas, porFase, ocultos] = await Promise.all([
+    prisma.attendance.findMany({
+      where: { ...baseFilters, ...daBusca, ...filtroDeFase(pedido.fase) },
+      select: SELECT_DA_LINHA,
+      // A ORDEM É A ATIVIDADE MAIS RECENTE (lib/atividadeDoAtendimento.ts), e o `take` vem DEPOIS
+      // dela: os 200 que entram são os 200 mais ativos, não os 200 mais novos. Ordenar por
+      // criação cortaria justamente a conversa antiga que acabou de receber mensagem.
+      orderBy: ORDEM_POR_ATIVIDADE,
+      take: 200,
+    }),
+    prisma.attendance.groupBy({ by: ["stage"], where: { ...baseFilters, ...daBusca }, _count: { _all: true } }),
+    pedido.status || pedido.arquivados
+      ? Promise.resolve(0)
+      : prisma.attendance.count({ where: { ...recorteDeDono, ...daBusca, status: { in: ESCONDIDOS_POR_PADRAO } } }),
+  ]);
+  return { linhas, contagens: contagensPorFase(porFase), ocultos };
 }
