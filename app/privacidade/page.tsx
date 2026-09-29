@@ -39,7 +39,7 @@ export default function PrivacidadePage() {
           <div className="p-6 sm:p-8 space-y-5 text-sm leading-relaxed text-tx">
             <div>
               <h1 className="font-bold text-tx text-2xl sm:text-3xl leading-tight mb-1">Política de Privacidade</h1>
-              <p className="text-xs text-tx-2">Última atualização: 26 de setembro de 2026</p>
+              <p className="text-xs text-tx-2">Última atualização: 29 de setembro de 2026</p>
             </div>
 
             <p>
@@ -198,8 +198,26 @@ export default function PrivacidadePage() {
               </p>
             </section>
 
+            <section className="space-y-1.5" id="medicao">
+              <h2 className="font-bold text-tx text-lg">9. Visitantes do site público, cookies e medição de audiência</h2>
+              <p>
+                O site público do Lúmen (página inicial, blog e telas de entrada) usa apenas o necessário para
+                funcionar: o cookie de sessão, que só existe depois do login, e o armazenamento local do navegador,
+                onde ficam a sua escolha neste aviso e a preferência de tema (Manhã ou Noite). Nada disso é enviado a
+                terceiros.
+              </p>
+              <p>
+                A <b>medição de audiência</b> é feita com o <b>Vercel Analytics</b> (Vercel Inc.), que registra
+                visualizações de página de forma agregada. Ela só é ligada se você escolher <b>Aceitar a medição</b> no
+                aviso de cookies do site. Sem escolha, ou com <b>Somente o essencial</b>, o script de medição não é
+                carregado. Você pode mudar de ideia a qualquer momento em <b>Preferências de cookies</b>, no rodapé da
+                página inicial. Como o aviso está na página inicial, quem entra direto pelo endereço de login ou pelo
+                aplicativo instalado, sem ter feito a escolha, não é medido.
+              </p>
+            </section>
+
             <section className="space-y-1.5">
-              <h2 className="font-bold text-tx text-lg">9. Alterações desta política</h2>
+              <h2 className="font-bold text-tx text-lg">10. Alterações desta política</h2>
               <p>
                 Esta política pode ser atualizada periodicamente. A data no topo desta página indica a versão mais
                 recente.

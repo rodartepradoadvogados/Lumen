@@ -104,11 +104,11 @@ export default function SiteHeader({
         rolado ? "border-marca-tx" : "border-regua-forte"
       }`}
     >
-      <div className="faixa-site h-[76px] flex items-center justify-between gap-6">
+      <div className="faixa-site h-[76px] flex items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2.5 font-extrabold text-lg tracking-[.16em] shrink-0">
           <LumenMark size={26} /> LÚMEN
         </Link>
-        <nav className="hidden md:flex items-center gap-8">
+        <nav aria-label="Principal" className="hidden md:flex items-center gap-8">
           <a className={marca("recursos")} href="#recursos" aria-current={ativa === "recursos" ? "true" : undefined}>
             Produto
           </a>
@@ -119,7 +119,9 @@ export default function SiteHeader({
             Blog
           </Link>
         </nav>
-        <div className="flex items-center gap-4 sm:gap-6">
+        {/* Abaixo de `sm` a barra é só marca + Entrar + hambúrguer (≈260px, cabe em 320px). O tema
+            e "Criar conta" saem da barra e vão para a folha do MobileNav — ver a nota lá. */}
+        <div className="flex items-center gap-3 sm:gap-6">
           <Link className={navLink} href="/login">
             Entrar
           </Link>
@@ -128,11 +130,13 @@ export default function SiteHeader({
               armazenamento, em qualquer rota) e que NENHUMA delas tinha alternador. Quem escolhia
               "Noite" dentro do produto e fazia logout ficava preso, sem porta de volta a não ser
               limpar o armazenamento do navegador. O tema sempre funcionou; faltava a porta. */}
-          <ThemeToggle />
-          <Link href="/cadastro" className={btnPrimary}>
+          <div className="hidden sm:block">
+            <ThemeToggle />
+          </div>
+          <Link href="/cadastro" className={`${btnPrimary} hidden sm:inline-flex`}>
             Começar
           </Link>
-          <MobileNav />
+          <MobileNav btnPrimary={btnPrimary} />
         </div>
       </div>
     </header>
