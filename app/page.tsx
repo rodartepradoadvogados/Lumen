@@ -1,75 +1,41 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { unstable_cache } from "next/cache";
+import { ArrowRight, Check, Minus } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getPlatformMember } from "@/lib/platformMember";
 import { prisma } from "@/lib/prisma";
 import { calcularPrecoDoPlano, MODULOS } from "@/lib/officePricing";
-import { formatCurrency } from "@/components/ui";
 import LumenMark from "@/components/LumenMark";
 import CookieConsent from "@/components/site/CookieConsent";
 import PreferenciasCookies from "@/components/site/PreferenciasCookies";
 import SiteHeader from "@/components/site/SiteHeader";
-import FeatureFigure from "@/components/site/FeatureFigure";
+import SigiloDemo from "@/components/site/SigiloDemo";
+import Faq, { type Pergunta } from "@/components/site/Faq";
 import { comManifestoDoSite } from "@/lib/pwaManifestoDoSite";
-import GrainOverlay from "@/components/GrainOverlay";
 
-// Homepage PÚBLICA do produto de software "Lúmen" (documento 09 do redesenho: "o site passa a
-// vender o Lúmen como SaaS de gestão jurídica para outros escritórios, não é mais a homepage do
-// escritório Rodarte Prado"). Estrutura de 8 seções do documento, nesta ordem: barra, hero
-// regrado, linha de números, 5 linhas de recurso, fotografia, preço, fecho em pôster, rodapé —
-// sem carrossel (HomepageHeroCarousel saiu), sem card de login embutido (login virou uma
-// página de verdade, ver app/login/page.tsx), sem gradiente/textura/canto arredondado.
+// Capa (homepage PÚBLICA "/") do Lúmen — redesenho de 29/09/2026 (plano e mockup do gauntlet de
+// design; aprovado pelo dono). Cada frase desta página tem respaldo em código: a tabela de
+// promessas está no PR e no plano (seção 4). O que NÃO tem respaldo não entra: sem "conciliação
+// bancária", sem "prazo fatal", sem "93 tribunais", sem teste grátis, sem CNPJ, sem selo de
+// conformidade (LGPD/OAB). Ao mexer em qualquer texto, confira a frase contra o código antes.
 //
-// Cor: modelo B (Modernist puro) — o modelo A (ouro) do texto original do documento 09 foi
-// superado pela decisão registrada em design_handoff_lumen_redesign/01-tokens-e-tema.md
-// (19/08/2026) e pelos tokens de fato aplicados em app/globals.css e tailwind.config.ts: bordô
-// (--marca, #8a2f42), não o vermelho-alaranjado (#ec3013) do rascunho original do documento 09 —
-// ajuste feito na mesma decisão de 19/08, por render de contraste melhor sobre branco (~8:1
-// contra o vermelho antigo, ver comentário de --marca em app/globals.css). O "fecho em pôster"
-// (única seção onde a cor corre como campo) usa --marca. A marca (LumenMark) mantém sua paleta
-// própria e fixa (ouro+grafite, manual da marca v2) — não segue o modelo A/B da UI.
+// Estrutura: cabeçalho · herói (uma ação principal, WhatsApp como secundária humana) · três
+// provas · produto (captura REAL da fila de Publicações) · como funciona · assessoria e
+// financeiro · segurança e sigilo (demonstração operável) · planos (lidos do Painel Mestre) ·
+// perguntas · fecho · rodapé.
 //
-// Campos em aberto (dados reais a preencher depois, não inventados aqui — documento 09: "só
-// números que o escritório possa comprovar" / revisão OAB do preço): 3 dos 4 números da seção
-// de estatísticas (só "93 tribunais integrados" é real hoje, os outros ficam em branco).
-// Fotografia do escritório, CNPJ e DPO não têm dado real disponível e por isso saíram do texto
-// público em vez de aparecer como mockup: seção 5 virou uma faixa gráfica com o número real de
-// tribunais, o rodapé usa o e-mail de contato já existente como DPO e não exibe CNPJ algum —
-// ajustar quando os dados corretos existirem.
+// Sistema: escala tipográfica de 8 tamanhos e 3 pesos (400/600/700) — tokens `capa-*` em
+// tailwind.config.ts; cor só por tokens (bordô só em: botão principal, o "seu" do H1, filete do
+// cabeçalho rolado, borda do plano recomendado, numerais dos passos); filete de 2px no lugar de
+// sombra; raio de 2px. O único movimento autoral é "arquivar" (a árvore do Drive no herói);
+// o resto é feedback. Nada de GrainOverlay, halo, diagramas em SVG ou fotografia de banco de
+// imagens.
 //
-// Seção 6 (Preço) não tem mais array hardcoded: lê o catálogo de planos e o preço por módulo
-// direto do banco (Plan/ModulePrice, Painel Mestre → Preços) — "automatize isso" (pedido do
-// dono). Plano cujo módulo incluso ainda não tem preço configurado mostra a mesma moldura
-// tracejada "Substituir" de antes; vira número real sozinho assim que o operador preencher o
-// preço do módulo, sem precisar mexer neste arquivo.
-//
-// P2-5 do roteiro de adequação (.impeccable/plano-adequacao/roteiro-de-adequacao.md): força
-// dynamic-render (getCurrentUser() já obriga isso sozinho, por causa do cookies() que ela chama
-// por baixo — todo visitante, logado ou não, precisa dessa checagem ao vivo pra decidir se vê a
-// home ou é redirecionado pro painel). O "$impeccable audit" apontava certo o sintoma (ida ao
-// banco ao vivo pra buscar plano/preço, conteúdo que muda no máximo algumas vezes por dia) mas
-// as duas correções sugeridas na ficha não servem NESTE stack: não há Partial Prerendering
-// estável no Next 14.2 pra separar a parte estática da dinâmica numa mesma rota, e mover a
-// checagem de sessão pro middleware.ts exigiria rodar Prisma ali — o middleware roda em Edge
-// Runtime (Next 14 não tem Node.js middleware) e @prisma/client sem driver adapter não funciona
-// em Edge. Fix aplicado: a leitura de Plan/ModulePrice (a parte "conteúdo" do problema) foi pra
-// dentro de um unstable_cache (getHomepagePricingData, abaixo) — tira o round-trip ao banco em
-// toda visita, sem tocar a checagem de sessão (que continua 100% dinâmica, por request). Não
-// resolve o "cache de borda" da resposta HTTP inteira citado na ficha (impossível sem PPR/
-// middleware neste stack), só a causa concreta de custo (ida ao banco). updateModulePrice/
-// updatePlan/setRecommendedPlan (lib/actions/painelMestre.ts) já chamavam revalidatePath("/")
-// — antes um no-op nesta rota sempre dinâmica, agora invalida de fato o unstable_cache abaixo.
-//
-// P3-2 do roteiro de adequação: escala tipográfica PRÓPRIA do site público (marketing + blog),
-// exceção DELIBERADA à escala do DESIGN.md (24/16/14/12px — pensada pra tela de trabalho do
-// produto), documentada aqui em vez de corrigida — mesmo espírito da exceção de fonte do blog
-// (app/blog/layout.tsx: Lora só ali, resto do produto segue Archivo). Landing e blog são
-// vitrine/leitura, não tela de trabalho, e já tiveram sua hierarquia validada visualmente nas
-// rodadas anteriores deste mesmo roteiro (P0-1, P0-2, P1-1, P2-1, P0-5 etc.) — os valores
-// próprios (9.5/11/13/15/26/30px, mais o hero em clamp()) não são resquício a convergir num
-// sweep futuro para 24/16/14/12, são a hierarquia de página de marketing que já está no ar.
-// Mesma exceção vale para app/blog/page.tsx e app/blog/[slug]/page.tsx.
+// Preços: NUNCA no JSX. Vêm de Plan/ModulePrice (Painel Mestre → Preços) via unstable_cache; plano
+// com módulo sem preço mostra "Sob consulta" e leva ao WhatsApp. `force-dynamic` continua porque
+// getCurrentUser() precisa checar a sessão a cada visita (quem está logado nunca vê a Capa).
 export const dynamic = "force-dynamic";
 
 const getHomepagePricingData = unstable_cache(
@@ -88,245 +54,112 @@ export function generateMetadata() {
   return {
     title: "Lúmen — Software de gestão para escritórios de advocacia",
     description:
-      "Publicações triadas, o dia na frente, peticionamento com o timbrado do escritório e financeiro que fecha — tudo em um só sistema de gestão para escritórios de advocacia.",
+      "Os documentos do escritório ficam no Drive do próprio escritório. Publicações do DJEN e do Datajud, agenda de prazos, financeiro e sigilo auditável em um só sistema.",
     ...comManifestoDoSite(),
   };
 }
 
-// Cada `figure` também é a legenda acessível (aria-label) do diagrama de marca ao lado —
-// ver FeatureDiagram. Diagrama provisório (réguas + bordô), não uma fotografia real do produto
-// (P0-2 do roteiro de adequação, .impeccable/plano-adequacao/roteiro-de-adequacao.md).
-const FEATURES = [
+const WHATSAPP_URL = "https://wa.me/5562981283481";
+
+// Botões: UMA ação principal por dobra (bordô); a segunda é um link de texto ou um contorno.
+const btnBase =
+  "inline-flex items-center justify-center gap-2.5 min-h-[48px] px-[22px] py-2.5 border-2 border-transparent rounded-[2px] text-capa-corpo leading-tight font-bold text-center max-w-full transition-[background-color,border-color,transform] duration-100 ease-out active:translate-y-px motion-reduce:active:translate-y-0";
+const btnPrimario = `${btnBase} bg-acao hover:bg-acao-hover text-acao-tx`;
+const btnGrande = "!min-h-[54px] !px-7";
+const btnContorno = `${btnBase} border-regua-forte text-tx hover:bg-acao-bg hover:border-marca-tx`;
+const linkTexto =
+  "inline-flex items-center min-h-[44px] font-semibold underline underline-offset-4 decoration-regua-forte hover:decoration-current transition-[text-decoration-color] duration-100 ease-out";
+const linkRodape =
+  "inline-flex items-center min-h-[44px] text-capa-mini text-tx-2 hover:text-tx hover:underline underline-offset-2 transition-colors duration-100 ease-out";
+
+// Árvore de pastas (mono): a demonstração do diferencial, não uma descrição dele.
+const linhaArvore = "flex gap-3 py-[3px]";
+const nivel = "ml-1.5 pl-3 border-l border-regua";
+
+function Seta() {
+  return <ArrowRight size={20} strokeWidth={2.5} aria-hidden="true" className="shrink-0 transition-transform duration-150 ease-out group-hover:translate-x-1 motion-reduce:transition-none" />;
+}
+
+// Ordem dos módulos na lista do plano: a mesma que o visitante espera (o que mais pesa primeiro).
+const ORDEM_MODULOS = ["FINANCEIRO", "ATENDIMENTO", "WHATSAPP", "ASSESSORIA"] as const;
+
+function precoCurto(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: Number.isInteger(v) ? 0 : 2 });
+}
+
+const PERGUNTAS: Pergunta[] = [
   {
-    kicker: "Publicações",
-    title: "Publicações que chegam triadas",
-    p1: "DJEN e DATAJUD entram direto na fila do escritório, já separadas por processo e por fonte — sem copiar e colar de e-mail nem abrir site de tribunal um por um.",
-    p2: "Cada publicação vem com um toque para gerar prazo, marcar audiência ou delegar — o texto de origem fica sempre acessível, sem sair da tela.",
-    figure: "Lista de Publicações: card com filete por fonte (DJEN/DATAJUD/PJe), badge “Não lida”, ações “Gerar Prazo” e “Delegar”",
-    diagram: "publicacoes" as const,
-    // Deixou de ser pilar em 2026-09-16: captura de publicação é commodity no mercado
-    // brasileiro, e o peso editorial passou para o diferencial de verdade (Assessoria, abaixo).
-    // A copy continua intacta — ela é o ativo mais valioso da página.
-    pilar: false,
+    id: "onde",
+    pergunta: "Onde ficam os documentos do meu escritório?",
+    resposta: (
+      <p>
+        No Google Drive do próprio escritório, em uma pasta por processo, separada por tipo de documento. Se você
+        cancelar o Lúmen, os arquivos continuam lá.
+      </p>
+    ),
   },
   {
-    kicker: "Painel",
-    title: "O dia na frente",
-    p1: "Um painel mostra o que vence hoje, o que já passou do prazo e a agenda da semana. O prazo é sugerido, considerando fins de semana, feriados nacionais, o recesso forense e os feriados locais que o escritório cadastra — a confirmação é do advogado.",
-    p2: "Cada advogado vê a própria fila; quem administra o escritório vê o todo, sem precisar abrir uma planilha à parte.",
-    figure: "Painel: cartões “Hoje”, “Atrasados”, agenda da semana, prazo de segurança marcado em cor distinta",
-    diagram: "painel" as const,
-    pilar: false,
+    id: "prazo",
+    pergunta: "O prazo que o Lúmen mostra é o prazo fatal?",
+    resposta: (
+      <p>
+        É uma sugestão. O Lúmen considera fins de semana, feriados nacionais, o recesso forense e os feriados locais
+        cadastrados pelo escritório, mas a conferência e a confirmação do prazo são do advogado.
+      </p>
+    ),
   },
   {
-    kicker: "Peticionamento",
-    title: "Peticionamento com o timbrado do escritório",
-    p1: "Modelos de peça já saem formatados com o timbrado, os dados do processo e da parte preenchidos automaticamente. A minuta é um rascunho redigido com inteligência artificial: o advogado revisa, baixa e protocola — o Lúmen nunca protocola por você.",
-    // A frase aqui era "...sem depender de pasta de rede", que sugeria o OPOSTO do
-    // posicionamento: dava a entender que o Lúmen guarda os autos, quando o argumento do produto
-    // é que o ESCRITÓRIO guarda. Achado P2 do `audit` de 2026-09-16.
-    p2: "O histórico de peças de cada processo fica junto com ele, pesquisável — e o arquivo em si fica no Drive do escritório, na pasta daquele processo.",
-    figure: "Editor de petição com timbrado do escritório, campos de processo/parte preenchidos, botão “Baixar .docx”",
-    diagram: "peticionamento" as const,
-    pilar: false,
+    id: "protocolo",
+    pergunta: "O Lúmen protocola petições?",
+    resposta: (
+      <p>
+        Não. O Peticionamento gera uma minuta em rascunho, com o timbrado do escritório e os dados do processo,
+        redigida com inteligência artificial. Ela nunca é protocolada pelo Lúmen: o advogado revisa, baixa e protocola.
+      </p>
+    ),
   },
   {
-    kicker: "Financeiro",
-    title: "Financeiro que fecha",
-    p1: "DRE, livro caixa e contas a pagar e a receber num só módulo — honorários contratuais, de êxito e de sucumbência entram separados, com baixa parcial.",
-    p2: "O vencimento das contas a receber vira lembrete na agenda, não surpresa no fim do mês.",
-    figure: "DRE por categoria, gráfico de fluxo de caixa, tabela de Contas a Receber com status Pendente/Parcial/Pago",
-    diagram: "financeiro" as const,
-    pilar: false,
+    id: "equipe",
+    pergunta: "Quem da equipe do Lúmen enxerga os dados do meu escritório?",
+    resposta: (
+      <p>
+        O suporte só entra em uma conta com motivo registrado, em sessão de 30 minutos, e o administrador do
+        escritório vê um aviso enquanto ela durar.
+      </p>
+    ),
   },
   {
-    kicker: "Assessoria",
-    title: "Assessoria empresarial não é processo disfarçado",
-    p1: "Contrato, licitação, parecer e demanda recorrente têm modelo, pasta e ciclo próprios — não são um processo adaptado com gambiarra. Honorário mensal, documentos da empresa e histórico de demandas ficam no mesmo lugar.",
-    p2: "A pasta da empresa no Drive segue a mesma regra dos processos: Contratos, Pareceres, Licitações e Regimentos Internos, cada um no seu lugar, com o nome já padronizado.",
-    figure: "Assessoria: abas Documentos, Licitações, Demandas e Honorários; pasta da empresa com as quatro subpastas",
-    diagram: "peticionamento" as const,
-    // ÚNICO pilar da lista. O diagnóstico mediu que o peso "pilar" estava em Publicações
-    // (commodity no mercado brasileiro) e Sigilo, e que NENHUMA das cinco linhas era sobre
-    // contrato, licitação ou parecer — de modo que um sócio de escritório empresarial concluía,
-    // corretamente, que o Lúmen era software de contencioso. O outro diferencial do PRODUCT.md,
-    // a custódia no Drive do cliente, ocupa o primeiro viewport; este ocupa o pilar aqui.
-    // Um só, de propósito: se tudo é pilar, nada é.
-    pilar: true,
+    id: "depois",
+    pergunta: "O que acontece depois que eu criar a conta?",
+    resposta: (
+      <p>
+        A conta do escritório é criada na hora, com você como administrador. Em seguida você liga o Google Drive em
+        Conexões e cadastra a OAB de cada advogado na Equipe. Para conversar sobre plano e condições, fale conosco pelo{" "}
+        <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">
+          WhatsApp<span className="sr-only"> (abre em nova aba)</span>
+        </a>
+        .
+      </p>
+    ),
   },
   {
-    kicker: "Sigilo",
-    title: "Sigilo auditável",
-    p1: "Documento e telefone de cliente aparecem mascarados por padrão; revelar exige motivo registrado, com validade de 15 minutos — e fica na trilha de auditoria do escritório.",
-    p2: "Suporte técnico só entra na conta de um escritório com sessão de tempo limitado e visível para o administrador — nunca em silêncio.",
-    figure: "Campo de CPF mascarado com botão “Revelar” e caixa de motivo, trilha de auditoria listando revelações",
-    diagram: "sigilo" as const,
-    // Idem: continua sendo um mecanismo forte, mas não é o que diferencia o produto de um
-    // concorrente. Um pilar só na lista, ou nenhum é pilar.
-    pilar: false,
+    id: "senha",
+    pergunta: "Esqueci minha senha. E agora?",
+    resposta: (
+      <p>
+        Na tela de entrada, use{" "}
+        <Link href="/recuperar-senha" className="font-semibold underline underline-offset-4">
+          Esqueci minha senha
+        </Link>
+        . Enviamos um link por e-mail, e ele vale por 1 hora.
+      </p>
+    ),
   },
 ];
 
-// Diagrama de marca por feature (réguas + bordô), substituindo a legenda "Captura de tela — …"
-// até haver fotografia real do produto (P0-2). Um `<g>` fixo por chave de FEATURES.diagram —
-// não um ícone genérico repetido, cada um lê como a própria tela que descreve.
-// Rodada de reforma visual (retomada da proposta "pulso" descartada durante o grilling do
-// portal, ver .impeccable/plano-site-publico/andamento-site-publico.md): diagramas ganharam
-// densidade de verdade (preenchimento, selos, texto simulado) em vez de contorno fino vazio —
-// feedback direto do dono do projeto ao validar o protótipo ("muito geométrico... precisam ser
-// preenchidas"). Cores continuam 100% token (fill-marca-tx/fill-aviso/etc.), nenhum hex cravado.
-function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }) {
-  switch (kind) {
-    case "publicacoes":
-      return (
-        <>
-          {[
-            { y: 4, fillCls: "fill-marca-tx", bgCls: "fill-marca-bg", strokeCls: "stroke-marca-tx", w: 34 },
-            { y: 26, fillCls: "fill-aviso", bgCls: "fill-aviso-bg", strokeCls: "stroke-aviso", w: 40 },
-            { y: 48, fillCls: "fill-fonte-pje", bgCls: "fill-sf-apoio", strokeCls: "stroke-fonte-pje", w: 38 },
-          ].map((r, i) => (
-            // Movimento 10 · a publicação CAI na fila, sozinha, uma após a outra — que é
-            // literalmente o que esta linha de recurso afirma que acontece.
-            <g key={r.y} className="chega" style={{ animationDelay: `${i * 200}ms` }}>
-              <rect x="2" y={r.y} width="96" height="18" className={`${r.bgCls} ${r.strokeCls}`} strokeWidth="1.5" />
-              <rect x="2" y={r.y} width="3" height="18" className={r.fillCls} />
-              <circle cx="10" cy={r.y + 5} r="1.8" className={r.fillCls} />
-              <rect x="14" y={r.y + 3.5} width={r.w} height="3" className="fill-tx" />
-              <rect x="14" y={r.y + 9} width="46" height="2" className="fill-tx-3" />
-              <rect x="76" y={r.y + 4.5} width="18" height="7" className={r.fillCls} />
-            </g>
-          ))}
-        </>
-      );
-    case "painel":
-      return (
-        <>
-          {[
-            { x: 2, n: "4", fillCls: "fill-urgente", bgCls: "fill-urgente-bg", strokeCls: "stroke-urgente" },
-            { x: 35, n: "9", fillCls: "fill-aviso", bgCls: "fill-aviso-bg", strokeCls: "stroke-aviso" },
-            { x: 68, n: "21", fillCls: "fill-tx-2", bgCls: "fill-sf-apoio", strokeCls: "stroke-tx-2" },
-          ].map((c) => (
-            <g key={c.x}>
-              <rect x={c.x} y="4" width="30" height="30" className={`${c.bgCls} ${c.strokeCls}`} strokeWidth="1.5" />
-              <text x={c.x + 5} y="18" fontFamily="sans-serif" fontWeight="700" fontSize="11" className={c.fillCls}>{c.n}</text>
-              <rect x={c.x + 5} y="24" width="20" height="2" className={c.fillCls} fillOpacity="0.6" />
-              {/* O rótulo era um <text> de 3,6 unidades (≈9px no celular) escrito por cima do algarismo.
-                  Vira uma régua: a legenda acessível do diagrama inteiro já nomeia os três cartões. */}
-              <rect x={c.x + 5} y="6" width="14" height="1.6" className="fill-tx-3" />
-            </g>
-          ))}
-          <rect x="2" y="38" width="96" height="28" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
-          {[16, 30, 44, 58, 72, 86].map((x) => (
-            <line key={x} x1={x} y1="38" x2={x} y2="66" className="stroke-regua" strokeWidth="1" />
-          ))}
-          {/* Movimento 10 · cada compromisso POUSA na coluna do seu dia. As colunas e a moldura
-              da semana já estão lá: a grade existe primeiro, os compromissos caem nela. */}
-          <rect x="18" y="48" width="10" height="6" className="fill-marca-tx pousa" fillOpacity="0.7" style={{ animationDelay: "120ms" }} />
-          <rect x="46" y="54" width="10" height="6" className="fill-aviso pousa" fillOpacity="0.55" style={{ animationDelay: "260ms" }} />
-          <rect x="74" y="44" width="10" height="6" className="fill-concluido pousa" fillOpacity="0.55" style={{ animationDelay: "400ms" }} />
-        </>
-      );
-    case "peticionamento":
-      return (
-        <>
-          <rect x="18" y="2" width="64" height="66" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
-          {/* Movimento 10 · anima SÓ o que o produto preenche sozinho: o timbrado do escritório e
-              os campos do processo e da parte. As linhas do corpo, logo abaixo, ficam paradas de
-              propósito — a copy desta linha diz que a minuta é um rascunho que o advogado revisa, e
-              um corpo se escrevendo sozinho ilustraria o contrário do que a página afirma. */}
-          <rect x="24" y="7" width="10" height="10" className="fill-marca-tx preenche" />
-          <rect x="37" y="9" width="30" height="2.4" className="fill-tx preenche" style={{ animationDelay: "140ms" }} />
-          <rect x="37" y="14" width="20" height="2" className="fill-tx-3 preenche" style={{ animationDelay: "240ms" }} />
-          <line x1="24" y1="23" x2="76" y2="23" className="stroke-regua" strokeWidth="1" />
-          <rect x="24" y="28" width="52" height="2.2" className="fill-regua-forte" />
-          <rect x="24" y="34" width="52" height="2.2" className="fill-regua-forte" />
-          <rect x="24" y="40" width="34" height="2.2" className="fill-regua-forte" />
-          <rect x="24" y="46" width="40" height="2.2" className="fill-regua" />
-          <rect x="24" y="51" width="52" height="2.2" className="fill-regua" />
-          <rect x="24" y="56" width="26" height="2.2" className="fill-regua" />
-          <g className="preenche" style={{ animationDelay: "420ms" }}>
-            <rect x="52" y="60" width="24" height="6" className="fill-marca-tx" />
-            <rect x="56" y="62.4" width="16" height="1.2" className="fill-acao-tx" />
-          </g>
-        </>
-      );
-    case "financeiro":
-      return (
-        <>
-          <defs>
-            <linearGradient id="feature-financeiro-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--concluido)" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="var(--concluido)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <line x1="4" y1="10" x2="4" y2="42" className="stroke-regua" strokeWidth="1" />
-          <line x1="4" y1="42" x2="96" y2="42" className="stroke-regua" strokeWidth="1" />
-          {/* Movimento 10 · a curva do caixa se TRAÇA da esquerda para a direita (o tempo passando,
-              que é o que um fluxo de caixa é), a área sobe atrás dela e o ponto final pousa no fim.
-              Os eixos não animam: a régua existe antes do número. */}
-          <polygon className="area" points="4,50 20,42 36,46 52,30 68,34 84,18 96,22 96,42 4,42" fill="url(#feature-financeiro-fill)" />
-          <polyline className="traca stroke-concluido" points="4,50 20,42 36,46 52,30 68,34 84,18 96,22" strokeWidth="2" fill="none" />
-          <circle cx="96" cy="22" r="2.2" className="fill-concluido pousa" style={{ animationDelay: "820ms" }} />
-          {[
-            { y: 50, fillCls: "fill-concluido", bgCls: "fill-concluido-bg", w: 40 },
-            { y: 60, fillCls: "fill-aviso", bgCls: "fill-aviso-bg", w: 34 },
-          ].map((r) => (
-            <g key={r.y}>
-              <rect x="4" y={r.y} width="92" height="7" className="fill-sf-apoio stroke-regua" strokeWidth="0.7" />
-              <circle cx="8" cy={r.y + 3.5} r="1.6" className={r.fillCls} />
-              <rect x="12" y={r.y + 2.3} width={r.w} height="2.2" className="fill-tx" />
-              <rect x="80" y={r.y + 2} width="12" height="3" className={r.bgCls} />
-            </g>
-          ))}
-        </>
-      );
-    case "sigilo":
-      return (
-        <>
-          <rect x="4" y="4" width="92" height="20" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
-          <rect x="10" y="9" width="6" height="6" className="fill-none stroke-tx-2" strokeWidth="1.2" />
-          <rect x="20" y="12" width="42" height="2.4" className="fill-tx-2" />
-          {/* Movimento 10 · o campo continua mascarado (é o estado padrão do produto, e mexer nisso
-              seria contar outra história). O que se move é a consequência: o botão "Revelar" acende
-              uma vez, e a trilha de auditoria se ESCREVE da esquerda para a direita — que é o que a
-              copy promete, revelar exige motivo e fica registrado. */}
-          <g className="acende">
-            <rect x="70" y="8" width="20" height="10" className="fill-marca-tx" />
-            <rect x="74" y="12.2" width="12" height="1.6" className="fill-acao-tx" />
-          </g>
-          <rect x="4" y="30" width="26" height="1.6" className="fill-tx-3" />
-          {[
-            { y: 40, fillCls: "fill-concluido", w: 48 },
-            { y: 48, fillCls: "fill-aviso", w: 40 },
-            { y: 56, fillCls: "fill-tx-2", w: 52 },
-          ].map((r, i) => (
-            <g key={r.y} className="preenche" style={{ animationDelay: `${260 + i * 180}ms` }}>
-              <circle cx="6" cy={r.y} r="1.3" className={r.fillCls} />
-              <rect x="10" y={r.y - 1.2} width={r.w} height="2.2" className="fill-tx" />
-              <rect x="78" y={r.y - 1.2} width="14" height="2.2" className="fill-regua-forte" />
-            </g>
-          ))}
-        </>
-      );
-  }
-}
-
-// Os quatro estilos de interação do site. Antes do `animate` de 2026-09-16 nenhum deles tinha
-// uma única transição: o hover trocava de cor num salto e o clique não deixava recibo.
-// `navLink` não muda de cor no hover — muda de sublinhado; então o que transiciona aqui é a
-// COR DO SUBLINHADO (transparente → atual), que faz o traço crescer em vez de piscar, sem
-// mexer no layout (o `underline` já está sempre ligado). Os dois botões ganham, além da cor,
-// o recibo do toque: 1px para baixo enquanto o dedo está em cima — o mesmo eixo vertical da
-// guia do produto, que é a assinatura de movimento da casa.
-const navLink = "inline-block py-2 text-sm font-semibold text-tx underline decoration-transparent hover:decoration-current focus-visible:decoration-current underline-offset-4 transition-[text-decoration-color] duration-100 ease-out";
-const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm rounded-[2px] transition-[background-color,transform] duration-100 ease-out active:translate-y-px";
-const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg rounded-[2px] transition-[background-color,transform] duration-100 ease-out active:translate-y-px";
-const WHATSAPP_URL = "https://wa.me/5562981283481";
-const footerLink = "inline-block py-2 text-tx-2 hover:text-tx hover:underline underline-offset-2 transition-colors duration-100 ease-out";
-
 export default async function HomePage() {
-  // Usuário com sessão válida nunca vê a homepage de marketing — vai direto pro Painel (ou pro
-  // escolhedor /painel×/painel-mestre, se tiver acesso de plataforma — ver lib/actions/auth.ts).
+  // Usuário com sessão válida nunca vê a Capa — vai direto pro Painel (ou pro escolhedor, se tiver
+  // acesso de plataforma — ver lib/actions/auth.ts).
   const user = await getCurrentUser();
   if (user) {
     const hasPlatformAccess = user.isPlatformOwner || Boolean(await getPlatformMember());
@@ -338,329 +171,472 @@ export default async function HomePage() {
   const sobMedida = plansRaw.find((p) => p.isCustom);
 
   return (
-    <div className="site-publico bg-sf-fundo text-tx">
-      {/* 1. Barra — componente cliente desde 2026-09-16 (itens D2 e D8 do roteiro de dinamismo,
-          aprovados pelo dono): o item de seção acende quando a seção está na tela, e a régua de
-          baixo troca de cinza para bordô depois dos primeiros 40px de rolagem. Os dois usam o
-          mesmo ouvinte, por isso são um componente só. Ver components/site/SiteHeader.tsx. */}
-      <SiteHeader navLink={navLink} btnPrimary={btnPrimary} />
+    <div className="site-publico bg-sf-fundo text-tx text-capa-corpo">
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-acao focus:text-acao-tx focus:px-4 focus:py-3 focus:font-bold"
+      >
+        Ir para o conteúdo
+      </a>
 
-      <main>
-        {/* 2. Hero assimétrico — retomado da proposta "pulso" (.impeccable/plano-site-publico/
-            andamento-site-publico.md), descartada por timing durante o grilling do portal, não
-            por direção errada. Halo bordô + grão (GrainOverlay, mesma peça já usada no Painel do
-            produto) preenchem o campo vazio à esquerda — feedback direto do dono do projeto no
-            protótipo ("muito geométrico... precisam ser preenchidas"), sem depender de
-            fotografia real (ainda não disponível, PRODUCT.md). */}
-        <section className="relative overflow-hidden">
-          {/* O halo ficou para trás: `--halo-marca` virou transparente em F3 (elevação Ikeda do
-              contrato de direção — "se um elemento não carrega dado ou estado, ele não existe"),
-              então a div renderizava nada. */}
-          <GrainOverlay />
-          <div className="relative faixa-site pt-12 md:pt-24 pb-20 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,.92fr)] gap-12 items-center">
+      <SiteHeader />
+
+      <main id="conteudo" tabIndex={-1} className="outline-none">
+        {/* 1. HERÓI — o H1 é a frase verificável no código (custódia no Drive do escritório). */}
+        <section aria-labelledby="h-heroi" className="py-[clamp(40px,7vw,96px)]">
+          <div className="capa-faixa grid grid-cols-1 gap-11 items-center min-[1100px]:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)] min-[1100px]:gap-16">
             <div className="min-w-0">
-              <p className="text-etiqueta font-extrabold uppercase tracking-[.14em] text-marca-tx mb-4">
-                Software de gestão para escritórios de advocacia
-              </p>
-              {/* O diagnóstico de 2026-09-16 mediu o problema desta manchete: ela era a frase de
-                  CATEGORIA — "o escritório inteiro, num só lugar, sem perder um prazo" — que AdvBox,
-                  Astrea e Projuris também usam. O que diferencia o produto estava no subtítulo, a
-                  18px: a hierarquia premiava o genérico com 60px e o específico com 18. Aqui o
-                  primeiro diferencial do PRODUCT.md ocupa a manchete, e a frase de categoria vira
-                  a linha de apoio, que é o lugar dela. */}
-              <h1 className="font-extrabold text-[clamp(36px,5.5vw,60px)] leading-[1.05] tracking-[-.02em] max-w-[16ch]">
+              <h1 id="h-heroi" className="text-capa-display font-bold max-w-[16ch] [text-wrap:balance]">
                 Os documentos do seu escritório ficam no <span className="text-marca-tx">seu</span> Drive.
               </h1>
-              <p className="mt-5 text-lg text-tx-2 max-w-[44ch]">
-                Cada processo vira uma pasta no Google Drive do próprio escritório, dividida por tipo
-                de documento. Se você cancelar amanhã, o acervo continua lá — organizado, nomeado e
-                seu.
+              <p className="mt-5 text-destaque text-tx-2 max-w-[46ch]">
+                Cada processo vira uma pasta no Google Drive do próprio escritório, separada por tipo de documento.
+                Se você cancelar amanhã, o acervo continua lá: organizado, nomeado e seu.
               </p>
-              <p className="mt-3 text-corpo text-tx-2 max-w-[44ch]">
-                E o resto do escritório vem junto: as publicações do DJEN e do Datajud, a agenda de
-                prazos e o financeiro do escritório.
+              <p className="mt-3 text-capa-corpo text-tx-2 max-w-[46ch]">
+                Junto vêm as publicações do DJEN e do Datajud, a agenda de prazos e o financeiro do escritório.
               </p>
-              <div className="flex flex-wrap gap-3 mt-8">
-                <Link href="/cadastro" className={btnPrimary}>Começar agora</Link>
-                <a href="#recursos" className={btnSecondary}>Ver como funciona</a>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3.5 mt-8">
+                <Link href="/cadastro" className={`group ${btnPrimario} ${btnGrande}`}>
+                  Criar a conta do escritório <Seta />
+                </Link>
+                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={linkTexto}>
+                  Falar no WhatsApp<span className="sr-only"> (abre em nova aba)</span>
+                </a>
               </div>
+              <p className="mt-3.5 text-capa-mini text-tx-3 max-w-[46ch]">
+                Leva um minuto: nome do escritório, o seu nome, e-mail e senha. A conta é criada na hora.
+              </p>
             </div>
 
-            {/* A DEMONSTRAÇÃO do diferencial, não uma descrição dele — e não uma imagem decorativa.
-                Antes este painel rotulava "Fila de publicações — ao vivo" com ponto verde pulsante
-                sobre três objetos cravados no código, que nunca mudavam: era uma afirmação de
-                vivacidade que o componente não cumpria. O diagnóstico registrou isso.
-
-                Esta é a estrutura de pastas que o produto CRIA de fato — pasta por processo, com
-                subpasta por tipo de documento (lib/googleDrive.ts, getOrCreateCategoryFolder) — e o
-                rótulo diz onde ela está, que é a única coisa que precisa ser dita aqui. */}
-            <div className="min-w-0 border-2 border-regua-forte bg-sf rounded-[2px]">
-              <div className="px-4 py-3 border-b border-regua flex items-center gap-2 flex-wrap">
-                <span className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-2">
-                  Google Drive do escritório
-                </span>
-                <span className="text-etiqueta text-tx-3 ml-auto">conta do cliente, não a nossa</span>
+            <div className="min-w-0 w-full max-w-[640px] min-[1100px]:max-w-none">
+              <div className="capa-guia">
+                <span>Google Drive do escritório</span>
+                <span className="capa-guia-meta font-normal normal-case tracking-normal text-tx-3">conta do cliente, não a nossa</span>
               </div>
-              {/* O ÚNICO momento autoral de movimento da página (Movimento 7 · arquivar, em
-                  globals.css). Cada linha é revelada da esquerda para a direita a partir da régua
-                  vertical de que ela pende, deslizando 6px para dentro — a folha entrando na
-                  gaveta. As réguas (`border-l`) NÃO animam de propósito: o trilho já está lá
-                  quando a primeira folha chega.
-                  Os atrasos são explícitos, não calculados por índice, porque a ordem aqui é a
-                  ordem da hierarquia (raiz → processo → suas quatro subpastas → os dois processos
-                  seguintes), e não a ordem de um laço. Último atraso: 385ms; sequência inteira em
-                  765ms. CSS puro, uma vez por carregamento, acima da dobra: sem observador de
-                  rolagem, sem JS, e nada fica escondido se o script falhar. */}
-              <div className="px-4 py-4 font-mono text-corpo [overflow-wrap:anywhere]">
-                <p className="arquiva-linha font-semibold text-tx">Lúmen — Processos</p>
-                <div className="mt-2 pl-3 border-l border-regua space-y-2">
-                  <p className="arquiva-linha font-semibold text-tx" style={{ animationDelay: "55ms" }}>Arantes, Wagner Barros — 0812445-19.2025</p>
-                  <div className="pl-3 border-l border-regua space-y-1.5 text-tx-2">
-                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "110ms" }}><span className="flex-1">Petição</span><span className="text-tx-3">4</span></p>
-                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "165ms" }}><span className="flex-1">Contestação</span><span className="text-tx-3">2</span></p>
-                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "220ms" }}><span className="flex-1">Procuração</span><span className="text-tx-3">1</span></p>
-                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "275ms" }}><span className="flex-1">Sentença</span><span className="text-tx-3">1</span></p>
+              <div className="bg-sf border-2 border-regua-forte rounded-[2px] rounded-tl-none">
+                {/* O ÚNICO movimento autoral da página (Movimento 7 · arquivar, globals.css): cada
+                    linha entra da esquerda a partir da régua de que pende, em 55ms de escalonamento.
+                    Só opacity/transform/clip-path: CLS zero. As subpastas são tipos REAIS de
+                    lib/documentTypes.ts (a pasta de cada tipo só nasce quando há arquivo). */}
+                <div
+                  role="img"
+                  aria-label="Exemplo de estrutura no Drive: a pasta Lúmen — Processos contém uma pasta por processo, e cada processo tem subpastas por tipo de documento, como Petição, Contestação, Procuração e Sentença."
+                  className="px-4 py-[18px] font-mono text-capa-mini leading-normal text-tx-2 [overflow-wrap:anywhere]"
+                >
+                  <div className={`${linhaArvore} arquiva-linha`}>
+                    <span className="font-semibold text-tx min-w-0 flex-1">Lúmen — Processos</span>
                   </div>
-                  <p className="arquiva-linha font-semibold text-tx pt-1" style={{ animationDelay: "330ms" }}>Meireles &amp; Cia — 0755102-44.2025</p>
-                  <p className="arquiva-linha font-semibold text-tx" style={{ animationDelay: "385ms" }}>Alves Transportes — 0660154-06.2026</p>
+                  <div className={nivel}>
+                    <div className={`${linhaArvore} arquiva-linha`} style={{ animationDelay: "55ms" }}>
+                      <span className="font-semibold text-tx min-w-0 flex-1">Arantes, Wagner Barros — 0812445-19.2025</span>
+                    </div>
+                    <div className={`${nivel} mt-0.5`}>
+                      {[
+                        ["Petição", "4", "110ms"],
+                        ["Contestação", "2", "165ms"],
+                        ["Procuração", "1", "220ms"],
+                        ["Sentença", "1", "275ms"],
+                      ].map(([nome, n, atraso]) => (
+                        <div key={nome} className={`${linhaArvore} arquiva-linha`} style={{ animationDelay: atraso }}>
+                          <span className="min-w-0 flex-1">{nome}</span>
+                          <span className="text-tx-3 tabular-nums">{n}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className={`${linhaArvore} arquiva-linha mt-1.5`} style={{ animationDelay: "330ms" }}>
+                      <span className="font-semibold text-tx min-w-0 flex-1">Meireles &amp; Cia — 0755102-44.2025</span>
+                    </div>
+                    <div className={`${linhaArvore} arquiva-linha`} style={{ animationDelay: "385ms" }}>
+                      <span className="font-semibold text-tx min-w-0 flex-1">Alves Transportes — 0660154-06.2026</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="px-4 py-3 border-t border-regua">
-                <p className="text-etiqueta text-tx-2 leading-relaxed">
-                  Uma vez por dia o Lúmen confere se o Drive continua como o sistema espera. O que
-                  sair do lugar aparece como alerta.
+                <p className="px-4 py-3 border-t border-regua text-capa-mini text-tx-2">
+                  Uma vez por dia o Lúmen confere se o Drive continua como o sistema espera. O que sair do lugar
+                  aparece como alerta.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 3. Painel de número — consolida o antigo grid de 4 estatísticas (3 em branco, sem
-            número que o escritório não possa comprovar) e a faixa separada abaixo num único
-            painel, mesma correção proposta em "pulso": duas seções fracas virando uma de verdade.
-            O número "93 tribunais" saiu (auditoria de promessas, 29/09/2026): não havia derivação no
-            código — a faixa nomeia as fontes que o produto de fato consulta (DJEN e Datajud). */}
-        <section className="relative border-t-2 border-regua-forte bg-grafite-800 overflow-hidden">
-          <div
-            className="absolute inset-0 pointer-events-none opacity-50"
-            style={{
-              backgroundImage: "radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1.4px)",
-              backgroundSize: "18px 18px",
-              maskImage: "linear-gradient(to right, transparent, black 35%, black 70%, transparent)",
-            }}
-          />
-          <GrainOverlay />
-          <div className="relative faixa-site py-16 flex flex-col md:flex-row items-baseline gap-4 md:gap-10">
-            {/* eslint-disable-next-line no-restricted-syntax -- Faixa escura fixa da página pública (grafite + textura), não retematiza. */}
-            <div className="text-[clamp(36px,7vw,72px)] font-extrabold leading-none tracking-[-.02em] text-white">
-              DJEN e Datajud
-            </div>
-            <p className="text-lg text-neutro-300 max-w-[36ch]">
-              as publicações entram direto na fila do escritório, separadas por processo e por fonte, sem abrir site de tribunal um por um.
-            </p>
+        {/* 2. TRÊS PROVAS — lista com filetes, não cartões. */}
+        <section aria-labelledby="h-provas" className="border-y-2 border-regua-forte">
+          <h2 id="h-provas" className="sr-only">
+            Em resumo
+          </h2>
+          <div className="capa-faixa">
+            <ul className="grid min-[860px]:grid-cols-3">
+              {[
+                ["Seus arquivos, sua conta.", "Os documentos ficam no Google Drive do escritório. Cancelar o Lúmen não apaga nada."],
+                ["Publicações com origem.", "DJEN, pela OAB de cada advogado, e Datajud entram na fila, separados por processo e por fonte."],
+                ["Sigilo com registro.", "CPF e telefone aparecem mascarados. Revelar exige motivo, vale 15 minutos e fica na trilha."],
+              ].map(([t, p], i) => (
+                <li
+                  key={t}
+                  className={`py-6 min-[860px]:py-7 ${i > 0 ? "border-t border-regua min-[860px]:border-t-0 min-[860px]:border-l min-[860px]:pl-8" : ""} ${i < 2 ? "min-[860px]:pr-8" : ""}`}
+                >
+                  <h3 className="text-capa-h3 font-bold">{t}</h3>
+                  <p className="mt-1.5 text-capa-corpo text-tx-2 max-w-[44ch]">{p}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
-        {/* 4. Linhas de recurso */}
-        <section id="recursos" className="border-t-2 border-regua-forte">
-          <div className="faixa-site">
-            <h2 className="sr-only">Recursos</h2>
-            {/* Peso desigual (retomado de "pulso"): Publicações e Sigilo — os 2 mecanismos que
-                PRODUCT.md → Positioning cita como diferencial real — ganham tratamento "pilar"
-                (padding maior, título maior, fundo com filete bordô); os outros 3 ficam no
-                padrão. Não é decoração: é hierarquia real refletindo o que já é dito no produto. */}
-            {FEATURES.map((f, i) => (
-              <div
-                key={f.title}
-                className={`grid md:grid-cols-2 gap-10 items-center ${f.pilar ? "py-20 -mx-6 px-6 bg-acao-bg" : "py-16"} ${i > 0 ? "border-t border-regua" : ""}`}
-              >
-                <div className={i % 2 === 1 ? "md:order-2" : ""}>
-                  <p className="text-etiqueta font-extrabold uppercase tracking-[.12em] text-marca-tx mb-3">{f.kicker}</p>
-                  <h3 className={`font-extrabold tracking-[-.01em] mb-4 ${f.pilar ? "text-autuacao" : "text-autuacao"}`}>{f.title}</h3>
-                  <p className="text-corpo text-tx-2 max-w-[46ch]">{f.p1}</p>
-                  <p className="text-corpo text-tx-2 max-w-[46ch] mt-3">{f.p2}</p>
-                </div>
-                <FeatureFigure figure={f.figure} ordem={i}>
-                  <FeatureDiagram kind={f.diagram} />
-                </FeatureFigure>
+        {/* 3. PRODUTO — captura REAL da fila de Publicações (instância de demonstração, dados
+            fictícios). Refazer a captura se a tela mudar; nunca usar captura de produção. */}
+        <section id="produto" aria-labelledby="h-prod" className="scroll-mt-[88px] py-[clamp(56px,8vw,104px)]">
+          <div className="capa-faixa grid gap-10 items-start min-[960px]:grid-cols-[minmax(0,1fr)_minmax(0,.9fr)] min-[960px]:gap-16">
+            <div className="min-w-0">
+              <h2 id="h-prod" className="text-capa-h2 font-bold max-w-[24ch] [text-wrap:balance]">
+                Cada publicação chega com o próximo passo.
+              </h2>
+              <p className="mt-5 text-destaque text-tx-2 max-w-[62ch]">
+                As publicações entram na fila do escritório já separadas por processo e por fonte. Sem copiar e colar de
+                e-mail, sem abrir site de tribunal um por um. Cada advogado vê a própria fila; quem administra vê o todo.
+              </p>
+              <ul className="mt-6 border-t border-regua">
+                {[
+                  ["Gerar prazo", "Cria o prazo na agenda, ligado ao processo."],
+                  ["Marcar audiência", "Quando a publicação convoca, a data vai para a agenda."],
+                  ["Delegar", "Passa a publicação a quem vai tratá-la. O texto de origem continua a um toque."],
+                ].map(([t, p]) => (
+                  <li key={t} className="grid grid-cols-1 min-[481px]:grid-cols-[150px_1fr] gap-0.5 min-[481px]:gap-3 py-3.5 border-b border-regua">
+                    <b className="font-bold">{t}</b>
+                    <span className="text-tx-2">{p}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6 px-[18px] py-4 bg-sf border-2 border-regua rounded-[2px] text-capa-mini">
+                <b className="font-bold">O prazo é sugerido; quem confirma é o advogado.</b>{" "}
+                <span className="text-tx-2">
+                  O Lúmen propõe a data considerando fins de semana, feriados nacionais, o recesso forense e os feriados
+                  locais que o escritório cadastra.
+                </span>
               </div>
-            ))}
+            </div>
+            <figure className="w-full max-w-[440px] justify-self-center m-0">
+              <Image
+                src="/homepage/capa-publicacoes.webp"
+                width={420}
+                height={675}
+                sizes="(min-width: 960px) 440px, 92vw"
+                alt="Tela real do Lúmen: fila de Publicações, com abas Não triadas, Minhas e Sem processo, busca e cartões de publicações de ESAJ, PROJUDI, e-mail e DJEN, cada um com o processo e as partes."
+                className="capa-tela w-full h-auto border-2 border-regua-forte border-b-transparent rounded-[2px] bg-grafite-800"
+              />
+              <figcaption className="mt-3 text-capa-mini text-tx-3">Tela real da fila de Publicações, com dados fictícios.</figcaption>
+            </figure>
           </div>
         </section>
 
-        {/* 5. Preço — lido ao vivo do catálogo (Plan/ModulePrice, Painel Mestre → Preços), sem
-            array hardcoded. Plano com módulo incluso ainda sem preço configurado mostra "Sob
-            consulta" (mesma copy do plano sob medida abaixo) em vez de expor a etiqueta interna
-            "Substituir"; vira preço real sozinho assim que o operador preencher o preço do
-            módulo. */}
-        <section id="preco" className="border-t-2 border-regua-forte py-20">
-          <div className="faixa-site">
-            <h2 className="text-autuacao font-extrabold tracking-[-.015em] mb-11">Um plano para cada tamanho de escritório</h2>
-            {/* Auditoria de 2026-09-16: a grade não tinha `gap`, então cartões `border-2` adjacentes
-                encostavam e produziam filete duplo de 4px — e o cartão recomendado, de borda em cor
-                diferente, colava a dele na do vizinho. Com 5 planos mais "sob medida", o sexto
-                órfãva numa segunda linha. `auto-fit` com piso resolve o reflow sozinho, em vez de
-                depender de contar planos num breakpoint. */}
-              <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+        {/* 4. COMO FUNCIONA — a ordem informa, por isso os três numerais. */}
+        <section id="como" aria-labelledby="h-como" className="scroll-mt-[88px] pb-[clamp(56px,8vw,104px)]">
+          <div className="capa-faixa">
+            <h2 id="h-como" className="text-capa-h2 font-bold max-w-[24ch] [text-wrap:balance]">
+              Do cadastro à primeira fila em três passos.
+            </h2>
+            <ol className="mt-10 grid min-[860px]:grid-cols-3 min-[860px]:gap-10">
+              {[
+                ["1", "Crie a conta e ligue o Drive.", "Um minuto de cadastro. Depois, autorize o Google Drive do escritório em Conexões."],
+                ["2", "Cadastre a OAB de quem advoga.", "Com a OAB de cada advogado na Equipe, o Lúmen passa a buscar as publicações dele no DJEN."],
+                ["3", "Trabalhe a fila do dia.", "A publicação vira prazo e agenda, o arquivo vai para a pasta do processo, e o painel mostra o que vence hoje."],
+              ].map(([n, t, p]) => (
+                <li key={n} className="pt-6 pb-7 border-t-2 border-regua-forte">
+                  <p className="text-tarja font-bold tabular-nums text-marca-tx" aria-hidden="true">
+                    {n}
+                  </p>
+                  <h3 className="mt-3.5 text-capa-h3 font-bold">
+                    <span className="sr-only">Passo {n}: </span>
+                    {t}
+                  </h3>
+                  <p className="mt-2 text-capa-corpo text-tx-2 max-w-[36ch]">{p}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* 5. ASSESSORIA E FINANCEIRO — pesos diferentes de propósito (7fr / 5fr). */}
+        <section aria-labelledby="h-alem" className="pb-[clamp(56px,8vw,104px)]">
+          <div className="capa-faixa">
+            <h2 id="h-alem" className="text-capa-h2 font-bold max-w-[24ch] [text-wrap:balance]">
+              Assessoria e financeiro têm lugar próprio.
+            </h2>
+            <div className="mt-10 grid gap-14 min-[960px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] min-[960px]:gap-[72px]">
+              <div className="min-w-0">
+                <h3 className="text-capa-h3 font-bold">Assessoria empresarial não é processo disfarçado.</h3>
+                <p className="mt-2.5 text-capa-corpo text-tx-2 max-w-[62ch]">
+                  Contrato, licitação, parecer e demanda recorrente têm modelo, pasta e ciclo próprios. Honorário mensal,
+                  documentos da empresa e histórico de demandas ficam no mesmo lugar.
+                </p>
+                <div className="mt-6">
+                  <div className="capa-guia">
+                    <span>Drive · Empresa cliente</span>
+                  </div>
+                  <div className="bg-sf border-2 border-regua-forte rounded-[2px] rounded-tl-none">
+                    <div
+                      role="img"
+                      aria-label="Pastas da empresa no Drive: Contratos, Pareceres, Licitações e Regimentos Internos."
+                      className="px-4 py-[18px] font-mono text-capa-mini leading-normal text-tx-2"
+                    >
+                      <div className={linhaArvore}>
+                        <span className="font-semibold text-tx">Empresa cliente</span>
+                      </div>
+                      <div className={nivel}>
+                        {["Contratos", "Pareceres", "Licitações", "Regimentos Internos"].map((n) => (
+                          <div key={n} className={linhaArvore}>
+                            <span>{n}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-3 text-capa-mini text-tx-3">Módulo Assessoria Jurídica, conforme o plano.</p>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-capa-h3 font-bold">Financeiro do escritório.</h3>
+                <ul className="mt-5 border-t border-regua">
+                  {[
+                    "DRE e livro caixa.",
+                    "Contas a pagar e a receber, com o vencimento na agenda como lembrete.",
+                    "Honorários contratuais, de êxito e de sucumbência, lançados separados, com baixa parcial.",
+                  ].map((t) => (
+                    <li key={t} className="flex gap-3 py-3.5 border-b border-regua">
+                      <Check size={20} strokeWidth={2.5} aria-hidden="true" className="shrink-0 mt-[3px] text-concluido" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-capa-mini text-tx-3">Módulo Financeiro, conforme o plano.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 6. SEGURANÇA E SIGILO — a faixa escura é a mesma nos dois temas (grafite fixo). */}
+        <section
+          id="seguranca"
+          aria-labelledby="h-seg"
+          className="scroll-mt-[88px] py-[clamp(56px,8vw,104px)] bg-grafite-800 dark:bg-grafite-900 text-neutro-100 border-y-2 border-regua-forte"
+        >
+          <div className="capa-faixa">
+            <h2 id="h-seg" className="text-capa-h2 font-bold max-w-[24ch] [text-wrap:balance]">
+              Sigilo que você confere na própria tela.
+            </h2>
+            <p className="mt-4 text-destaque text-neutro-300 max-w-[62ch]">
+              Experimente abaixo o mascaramento que o Lúmen usa nas fichas de cliente. É uma demonstração com dados
+              fictícios.
+            </p>
+            <div className="mt-10 grid gap-12 items-start min-[960px]:grid-cols-2 min-[960px]:gap-[72px]">
+              <div className="min-w-0">
+                <SigiloDemo />
+              </div>
+              <div className="min-w-0">
+                <ul className="border-t border-grafite-500">
+                  {[
+                    ["Seus arquivos ficam no seu Drive.", "O Lúmen usa a autorização do Google do próprio escritório. Publicações, prazos e financeiro ficam no banco de dados do Lúmen."],
+                    ["Revelar exige motivo e deixa rastro.", "Documento e telefone de cliente aparecem mascarados. O motivo tem no mínimo 20 caracteres, a revelação vale 15 minutos e entra na trilha de auditoria."],
+                    ["O suporte não entra em silêncio.", "A equipe do Lúmen só acessa uma conta com motivo, em sessão de 30 minutos e com aviso visível ao administrador."],
+                    ["A inteligência artificial é dita, não escondida.", "A minuta de peça e o assistente usam IA. A minuta é rascunho e nunca é protocolada pelo Lúmen. Segundo a política de privacidade, o conteúdo enviado ao provedor não é usado para treinar modelos."],
+                  ].map(([t, p]) => (
+                    <li key={t} className="py-5 border-b border-grafite-500">
+                      <h3 className="text-capa-h3 font-bold">{t}</h3>
+                      <p className="mt-1.5 text-capa-corpo text-neutro-300 max-w-[52ch]">{p}</p>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-7 flex flex-wrap gap-x-7 gap-y-3">
+                  <Link href="/privacidade" className="inline-flex items-center min-h-[44px] font-semibold underline underline-offset-4 decoration-grafite-300 hover:decoration-current">
+                    Ler a política de privacidade
+                  </Link>
+                  <a href="mailto:contato@rodarteprado.com.br" className="inline-flex items-center min-h-[44px] font-semibold underline underline-offset-4 decoration-grafite-300 hover:decoration-current">
+                    Falar com o encarregado de dados (DPO)
+                  </a>
+                </div>
+                <p className="mt-5 text-capa-mini text-neutro-300 max-w-[52ch]">
+                  Descrevemos o que o sistema faz. Não usamos selo de conformidade.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 7. PLANOS — lidos do Painel Mestre. Só o recomendado é bordô; módulo ausente aparece
+            esmaecido; o botão fica ancorado no rodapé do cartão. */}
+        <section id="planos" aria-labelledby="h-planos" className="scroll-mt-[88px] py-[clamp(56px,8vw,104px)]">
+          <div className="capa-faixa">
+            <h2 id="h-planos" className="text-capa-h2 font-bold max-w-[24ch] [text-wrap:balance]">
+              Um plano para cada tamanho de escritório.
+            </h2>
+            <p className="mt-4 text-destaque text-tx-2 max-w-[62ch]">
+              Você escolhe pelo número de advogados com OAB cadastrada e pelos módulos de que precisa.
+            </p>
+            <div className="mt-10 grid gap-4 items-stretch [grid-template-columns:repeat(auto-fit,minmax(min(100%,232px),1fr))]">
               {plans.map((plan) => {
                 const calc = calcularPrecoDoPlano(plan, modulePrices);
                 const semPreco = calc.modulosSemPreco.length > 0;
-                const modulosInclusos = MODULOS.filter((m) => {
-                  if (m.key === "FINANCEIRO") return plan.moduloFinanceiro;
-                  if (m.key === "ASSESSORIA") return plan.moduloAssessoria;
-                  if (m.key === "WHATSAPP") return plan.moduloWhatsapp;
-                  return plan.moduloAtendimento;
-                });
+                const incluso = (key: (typeof ORDEM_MODULOS)[number]) =>
+                  key === "FINANCEIRO" ? plan.moduloFinanceiro : key === "ASSESSORIA" ? plan.moduloAssessoria : key === "WHATSAPP" ? plan.moduloWhatsapp : plan.moduloAtendimento;
                 return (
-                  <div
+                  <article
                     key={plan.id}
-                    // D5 do roteiro de dinamismo, aprovado pelo dono em 2026-09-16 — na forma da
-                    // RÉGUA, não na do cartão que levanta com sombra. Duas razões, e nenhuma é de
-                    // gosto: o produto inteiro recusou sombra (usa filete de 2px no lugar, e não há
-                    // um `box-shadow` sequer nas telas), e "cartão que levanta no hover" é um dos
-                    // tiques mais reconhecíveis de interface gerada por máquina. O cartão
-                    // recomendado já nasce com a régua em `--acao`, então ele responde pelo fundo.
-                    className={`relative p-6 border-2 bg-sf rounded-[2px] transition-[border-color,background-color] duration-100 ease-out ${plan.recommended ? "border-marca-tx hover:bg-acao-bg" : "border-regua-forte hover:border-marca-tx hover:bg-acao-bg"}`}
+                    aria-labelledby={`plano-${plan.key}`}
+                    className={`relative flex flex-col p-6 bg-sf border-2 rounded-[2px] ${plan.recommended ? "border-marca-tx" : "border-regua-forte"}`}
                   >
-                    {/* FORA DO FLUXO. Antes o selo era renderizado dentro dele e empurrava ~24px de
-                        conteúdo para baixo, de modo que preço, módulos e botão deixavam de alinhar
-                        com os vizinhos justamente no cartão que se quer destacar. */}
                     {plan.recommended && (
-                      <span className="absolute -top-3 left-6 inline-block text-etiqueta font-extrabold uppercase tracking-[.08em] text-acao-tx bg-acao px-2 py-0.5 rounded-sm">
+                      <span className="absolute -top-3.5 left-5 px-2.5 py-0.5 bg-acao text-acao-tx text-etiqueta font-bold uppercase tracking-[.06em] rounded-[2px]">
                         Recomendado
                       </span>
                     )}
-                    <div className="text-corpo font-extrabold uppercase tracking-[.08em] text-tx-2">{plan.name}</div>
-                    {/* Os limites definem QUAL plano o visitante compra — tinta secundária. */}
-                    <div className="text-corpo text-tx-2 mt-1">
-                      {plan.maxOabs != null && `Até ${plan.maxOabs} OAB${plan.maxOabs > 1 ? "s" : ""}`}
+                    <h3 id={`plano-${plan.key}`} className="text-capa-h3 font-bold">
+                      {plan.name}
+                    </h3>
+                    <p className="mt-1 text-capa-mini text-tx-2">
+                      {plan.maxOabs != null && `Até ${plan.maxOabs} advogado${plan.maxOabs > 1 ? "s" : ""}`}
                       {plan.maxOabs != null && plan.maxProcessos != null && " · "}
-                      {plan.maxProcessos != null && `até ${plan.maxProcessos} processos`}
-                    </div>
-                    <div className="text-4xl font-extrabold mt-3">
+                      {plan.maxProcessos != null && `até ${plan.maxProcessos.toLocaleString("pt-BR")} processos`}
+                    </p>
+                    <p className="mt-4 flex items-baseline gap-1.5">
                       {semPreco ? (
-                        "Sob consulta"
+                        <span className="text-capa-h3 font-bold">Sob consulta</span>
                       ) : (
                         <>
-                          {formatCurrency(calc.total)}
-                          <span className="text-sm font-semibold text-tx-2">/mês</span>
+                          <span className="text-tarja font-bold tabular-nums">{precoCurto(calc.total)}</span>
+                          <small className="text-capa-mini font-semibold text-tx-2">/mês</small>
                         </>
                       )}
-                    </div>
-                    <ul className="mt-5 space-y-2.5">
-                      {modulosInclusos.map((m) => (
-                        <li key={m.key} className="flex items-start gap-2.5 text-sm text-tx-2">
-                          <span className="w-2 h-2 bg-marca mt-1.5 shrink-0" />
-                          {m.label}
-                        </li>
-                      ))}
+                    </p>
+                    <ul className="mt-5 grid gap-2.5 flex-1 content-start">
+                      {ORDEM_MODULOS.map((key) => {
+                        const label = MODULOS.find((m) => m.key === key)!.label;
+                        return incluso(key) ? (
+                          <li key={key} className="flex gap-2.5 text-capa-mini leading-snug">
+                            <Check size={18} strokeWidth={2.5} aria-hidden="true" className="shrink-0 mt-px text-concluido" />
+                            {label}
+                          </li>
+                        ) : (
+                          <li key={key} className="flex gap-2.5 text-capa-mini leading-snug text-tx-3">
+                            <Minus size={18} strokeWidth={2.5} aria-hidden="true" className="shrink-0 mt-px" />
+                            Sem {label}
+                          </li>
+                        );
+                      })}
                     </ul>
                     {semPreco ? (
-                      <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>
+                      <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={`${btnContorno} w-full mt-6`}>
                         Falar no WhatsApp<span className="sr-only"> (abre em nova aba)</span>
                       </a>
                     ) : (
-                      <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>
-                        Começar
+                      <Link href={`/cadastro?plano=${plan.key}`} className={`${plan.recommended ? btnPrimario : btnContorno} w-full mt-6`}>
+                        Criar conta no {plan.name}
                       </Link>
                     )}
-                  </div>
+                  </article>
                 );
               })}
               {sobMedida && (
-                <div className="p-6 border-2 border-regua-forte bg-sf rounded-[2px] transition-[border-color,background-color] duration-100 ease-out hover:border-marca-tx hover:bg-acao-bg">
-                  <div className="text-corpo font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{sobMedida.name}</div>
-                  <div className="text-corpo text-tx-3 mt-1">Módulos, processos e OABs sob medida</div>
-                  <div className="text-2xl font-extrabold mt-3">Sob consulta</div>
-                  <p className="text-sm text-tx-2 mt-5">Escolha os módulos e o volume certo para o seu escritório — a gente monta o plano com você.</p>
-                  <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>
+                <article aria-labelledby="plano-sob-medida" className="relative flex flex-col p-6 bg-sf border-2 border-regua-forte rounded-[2px]">
+                  <h3 id="plano-sob-medida" className="text-capa-h3 font-bold">
+                    {sobMedida.name}
+                  </h3>
+                  <p className="mt-1 text-capa-mini text-tx-2">Módulos, processos e advogados combinados com você</p>
+                  <p className="mt-4">
+                    <span className="text-capa-h3 font-bold">Sob consulta</span>
+                  </p>
+                  <ul className="mt-5 grid gap-2.5 flex-1 content-start">
+                    <li className="flex gap-2.5 text-capa-mini leading-snug">
+                      <Check size={18} strokeWidth={2.5} aria-hidden="true" className="shrink-0 mt-px text-concluido" />
+                      Escolha os módulos e o volume do escritório
+                    </li>
+                  </ul>
+                  <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={`${btnContorno} w-full mt-6`}>
                     Falar no WhatsApp<span className="sr-only"> (abre em nova aba)</span>
                   </a>
-                </div>
+                </article>
               )}
             </div>
           </div>
         </section>
 
-        {/* 6. Fecho em pôster */}
-        <section className="relative bg-marca text-acao-tx py-24 overflow-hidden">
-          <div
-            className="absolute -bottom-16 -right-24 h-[300px] w-[420px] pointer-events-none"
-            style={{ background: "radial-gradient(ellipse at bottom right, rgba(255,255,255,0.12), transparent 70%)" }}
-          />
-          <GrainOverlay />
-          <div className="relative faixa-site">
-            <h2 className="font-extrabold text-[clamp(32px,5vw,52px)] tracking-[-.02em] max-w-[18ch]">
-              Leve a triagem, a agenda e o financeiro do escritório para um só lugar.
+        {/* 8. PERGUNTAS */}
+        <section id="perguntas" aria-labelledby="h-faq" className="scroll-mt-[88px] pb-[clamp(56px,8vw,104px)]">
+          <div className="capa-faixa">
+            <h2 id="h-faq" className="text-capa-h2 font-bold max-w-[24ch] [text-wrap:balance]">
+              Perguntas de quem decide.
             </h2>
-            {/* P0-5 do roteiro de adequação: text-marca-tx (vermelho) sobre bg-grafite-800 media
-                2,15:1 ao vivo, reprova WCAG AA (1.4.3, precisa 4,5:1). text-acao-tx (creme,
-                --acao-tx nos globals.css) é o mesmo tom do botão primário do hero (btnPrimary)
-                e — igual a --marca/--acao — não retematiza entre Manhã e Noite. */}
-            {/* D6, aprovado pelo dono em 2026-09-16: a seta anda 5px quando o ponteiro chega. A
-                seta é `aria-hidden` — ela repete em desenho o que o texto do botão já diz, e
-                anunciá-la de novo para leitor de tela seria ruído. */}
-            <Link
-              href="/cadastro"
-              className="group inline-flex items-center justify-start gap-2.5 h-11 px-6 bg-grafite-800 hover:bg-grafite-900 text-acao-tx font-extrabold text-sm rounded-[2px] mt-8 transition-[background-color,transform] duration-100 ease-out active:translate-y-px"
-            >
-              Começar agora
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                aria-hidden="true"
-                className="transition-transform duration-150 ease-out group-hover:translate-x-[5px]"
-              >
-                <path d="M5 12h13M13 6l6 6-6 6" />
-              </svg>
-            </Link>
+            <Faq itens={PERGUNTAS} />
+          </div>
+        </section>
+
+        {/* 9. FECHO — ficha calma com aba, não mais parede bordô. */}
+        <section id="contato" aria-labelledby="h-fecho" className="scroll-mt-[88px] pt-[clamp(48px,7vw,88px)] pb-[clamp(64px,8vw,112px)]">
+          <div className="capa-faixa">
+            <div className="capa-guia">
+              <span>Comece pelo Drive</span>
+            </div>
+            <div className="bg-sf border-2 border-regua-forte rounded-[2px] rounded-tl-none p-[clamp(28px,5vw,56px)]">
+              <h2 id="h-fecho" className="text-capa-h2 font-bold max-w-[20ch] [text-wrap:balance]">
+                Abra a conta do escritório e ligue o Drive hoje.
+              </h2>
+              <p className="mt-3.5 text-destaque text-tx-2 max-w-[62ch]">
+                Prefere conversar antes? Responda a uma dúvida de plano, de sigilo ou de migração direto pelo WhatsApp.
+              </p>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3.5 mt-7">
+                <Link href="/cadastro" className={`group ${btnPrimario} ${btnGrande}`}>
+                  Criar a conta do escritório <Seta />
+                </Link>
+                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={linkTexto}>
+                  Falar no WhatsApp<span className="sr-only"> (abre em nova aba)</span>
+                </a>
+              </div>
+            </div>
           </div>
         </section>
       </main>
 
-      {/* 7. Rodapé */}
-      <footer className="border-t-2 border-regua-forte py-14">
-        <div className="faixa-site">
-          <div className="grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-8">
+      <footer className="border-t-2 border-regua-forte pt-12 pb-8">
+        <div className="capa-faixa">
+          <div className="grid gap-8 min-[720px]:grid-cols-[1.4fr_1fr_1fr_1fr]">
             <div>
-              <div className="flex items-center gap-2 font-extrabold text-base tracking-[.16em] mb-3">
-                <LumenMark size={24} /> LÚMEN
+              <div className="flex items-center gap-2.5 font-bold text-destaque tracking-[.16em] mb-2.5">
+                <LumenMark size={26} /> LÚMEN
               </div>
-              <p className="text-corpo text-tx-2 max-w-[32ch]">Software de gestão jurídica para escritórios de advocacia.</p>
+              <p className="text-capa-mini text-tx-2 max-w-[32ch]">Software de gestão jurídica para escritórios de advocacia.</p>
             </div>
             <div>
-              <h3 className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Produto</h3>
-              <ul className="space-y-2.5 text-sm">
-                <li><a href="#recursos" className={footerLink}>Recursos</a></li>
-                <li><a href="#preco" className={footerLink}>Preço</a></li>
-                <li><Link href="/blog" className={footerLink}>Blog</Link></li>
-                <li><Link href="/login" className={footerLink}>Entrar</Link></li>
+              <h2 className="text-capa-mini font-bold mb-3">Produto</h2>
+              <ul>
+                <li><a href="#produto" className={linkRodape}>Produto</a></li>
+                <li><a href="#seguranca" className={linkRodape}>Segurança e sigilo</a></li>
+                <li><a href="#planos" className={linkRodape}>Planos</a></li>
+                <li><a href="#perguntas" className={linkRodape}>Perguntas frequentes</a></li>
+                <li><Link href="/blog" className={linkRodape}>Blog</Link></li>
+                <li><Link href="/login" className={linkRodape}>Entrar</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Contato</h3>
-              <ul className="space-y-2.5 text-sm">
-                <li className="text-tx-2">Goiânia — GO</li>
-                <li><a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={footerLink}>(62) 98128-3481</a></li>
-                <li><a href="mailto:contato@rodarteprado.com.br" className={footerLink}>contato@rodarteprado.com.br</a></li>
+              <h2 className="text-capa-mini font-bold mb-3">Contato</h2>
+              <ul>
+                <li><span className="inline-flex items-center min-h-[44px] text-capa-mini text-tx-2">Goiânia — GO</span></li>
+                <li><a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={linkRodape}>(62) 98128-3481</a></li>
+                <li><a href="mailto:contato@rodarteprado.com.br" className={linkRodape}>contato@rodarteprado.com.br</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Legal</h3>
-              <ul className="space-y-2.5 text-sm">
-                <li><Link href="/privacidade" className={footerLink}>Política de privacidade</Link></li>
-                {/* DPO reaproveita o contato real já existente no rodapé em vez de um dado fictício —
-                    sem CNPJ aqui pela mesma razão: melhor omitir do que publicar um valor inventado. */}
-                <li><a href="mailto:contato@rodarteprado.com.br" className={footerLink}>Encarregado de dados (DPO)</a></li>
-                <li><PreferenciasCookies className={footerLink} /></li>
+              <h2 className="text-capa-mini font-bold mb-3">Legal</h2>
+              <ul>
+                <li><Link href="/privacidade" className={linkRodape}>Política de privacidade</Link></li>
+                {/* DPO reaproveita o contato real já existente: sem CNPJ nem razão social aqui —
+                    melhor omitir do que publicar um valor inventado. */}
+                <li><a href="mailto:contato@rodarteprado.com.br" className={linkRodape}>Encarregado de dados (DPO)</a></li>
+                <li><PreferenciasCookies className={linkRodape} /></li>
               </ul>
             </div>
           </div>
-          <div className="flex items-center justify-end mt-11 pt-5 border-t border-regua text-xs text-tx-3">
+          <div className="mt-7 pt-[18px] border-t border-regua text-capa-mini text-tx-3">
             <span>© 2026 Lúmen. Todos os direitos reservados.</span>
           </div>
         </div>

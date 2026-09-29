@@ -228,6 +228,30 @@ em computador. Defeitos que isto corrigiu e que voltam se for desfeito:
   filhos somavam 467px em 390px e a página rolava para o lado. Tema e "Criar conta" moram na folha do
   menu. "Entrar" precisa continuar visível na barra (PWA, item 11).
 
+
+### 11c. Redesenho da Capa (mesmo dia): o que não pode voltar atrás
+
+- **O tema da Capa vale no app logado.** `salvarTema()` (`lib/theme.ts`) grava `rp-site-theme` E
+  `rp-portal-theme`; a leitura (`resolverTema`, e o `THEME_INIT_SCRIPT` em texto) dá prioridade à
+  chave do portal e, sem nenhuma escolha, segue `prefers-color-scheme`. `PortalThemeSync` aplica o
+  tema salvo ao `#portal-shell` depois de uma navegação no cliente: o `<script>` anti-flash do portal
+  só roda no HTML do servidor, então sem ele quem escolhia Manhã na Capa e entrava pelo `/login`
+  caía em Noite até dar F5. Consequência: a primeira visita agora segue o tema do sistema em todas as
+  páginas públicas (antes, sempre Manhã). Rótulos: "Manhã/Noite", como no app.
+- **Recuperar senha é a página `/recuperar-senha`** (pública no `middleware.ts`), com resposta
+  NEUTRA (`solicitarRecuperacaoDeSenha`, `lib/actions/auth.ts`): o texto e o tempo (piso de 3s) são
+  os mesmos exista ou não a conta. O modal antigo dizia "não encontramos esse e-mail" e mostrava o
+  e-mail mascarado — revelava quem é cliente. Não recrie `checkLoginForReset`. Sem limite de
+  tentativas (pendência).
+- **`/cadastro?plano=KEY`** grava só `Office.planId` (interesse, validado contra `Plan.key` ativo e
+  não sob medida). Não liga módulo, não define preço, não cobra: isso segue sendo decisão humana no
+  Painel Mestre, e a Capa não promete teste grátis nem cobrança.
+- **Escala tipográfica da Capa**: cinco tokens `capa-*` em `tailwind.config.ts` + etiqueta, destaque
+  e tarja da rampa = oito tamanhos, pesos 400/600/700. Medida em `getComputedStyle`; não acrescente
+  tamanho novo na Capa.
+- **Preço da Capa** vem de `Plan`/`ModulePrice`; "Em todos os planos: processos, publicações,
+  agenda e documentos no Drive" NÃO está na Capa porque o dono não confirmou que vale para todo plano.
+
 ## 12. A lista de Atendimentos ordena por `Attendance.ultimaAtividadeEm` (29/09/2026)
 
 A lista da Central (`/atendimento-central`, aba Atendimentos) é ordenada pela **atividade mais

@@ -8,7 +8,7 @@ export async function middleware(req: NextRequest) {
   // login, /cadastro (cadastro público de escritório novo — signupOffice(), precisa
   // ser acessível SEM sessão, é assim que um Office passa a existir), /redefinir-senha
   // (precisa ser acessível SEM sessão — é justamente para quem esqueceu a senha e não
-  // consegue logar, ver ForgotPasswordModal), assets internos do Next, o blog jurídico
+  // consegue logar, ver app/recuperar-senha), assets internos do Next, o blog jurídico
   // público (leitura livre, sem login), as fotos estáticas da própria homepage
   // (public/homepage/*, usadas em <img>/next-image por visitantes SEM sessão — sem
   // essa exceção, o middleware barrava até a busca interna do otimizador de imagem do
@@ -29,6 +29,9 @@ export async function middleware(req: NextRequest) {
     ehTelaDeEntradaDePwa(pathname) ||
     pathname === "/cadastro" ||
     pathname === "/redefinir-senha" ||
+    // /recuperar-senha: a página que pede o link (substituiu o modal ForgotPasswordModal). Pública
+    // pelo mesmo motivo de /redefinir-senha: quem esqueceu a senha não consegue logar.
+    pathname === "/recuperar-senha" ||
     pathname === "/blog" ||
     pathname.startsWith("/blog/") ||
     // A política de privacidade. Sem esta linha a página EXISTIA (app/privacidade/page.tsx) mas

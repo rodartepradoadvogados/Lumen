@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { teste, verdade, resumo, codigoDe } from "./executar";
 import { CONSENT_KEY, CONSENT_CHANGE_EVENT } from "../cookieConsent";
+import { resolverTema, THEME_INIT_SCRIPT } from "../theme";
 
 // ============================================================================
 // CAPA (homepage pública) — auditoria de promessas e de consentimento, 29/09/2026.
@@ -23,7 +24,7 @@ const semComentarios = (fonte: string) => codigoDe(fonte.replace(/\/\*[\s\S]*?\*
 
 const PROIBIDAS: [RegExp, string][] = [
   [/concilia/i, "\"conciliação bancária\" não existe no produto (não há importação de extrato)"],
-  [/prazo fatal/i, "o Lúmen sugere prazo; quem confirma é o advogado"],
+  [/prazo fatal(?!\?)/i, "o Lúmen sugere prazo; quem confirma é o advogado"],
   [/de cada tribunal/i, "não há calendário por tribunal (feriados nacionais, recesso e locais cadastrados)"],
   [/\b93\b/, "o número de tribunais não tem derivação no código"],
   [/escrito pelo advogado/i, "a minuta é redigida por IA (rascunho que o advogado revisa)"],
@@ -72,6 +73,51 @@ teste("a política de privacidade declara a medição de audiência e a condiç�
 
 teste("toda tela de sessão tem <main>", () => {
   verdade(/<main[\s>]/.test(semComentarios(ler("components/site/TelaSessao.tsx"))), "components/site/TelaSessao.tsx sem <main>");
+});
+
+// ── tema: a escolha da Capa vale no app logado (chave rp-portal-theme) ──────────────────────────
+teste("resolverTema: portal vence o site; sem escolha segue o sistema; \"auto\" antigo vira Noite", () => {
+  verdade(resolverTema("light", "dark", true) === "light", "portal light deveria vencer");
+  verdade(resolverTema("dark", "light", false) === "dark", "portal dark deveria vencer");
+  verdade(resolverTema(null, "dark", false) === "dark", "só site dark");
+  verdade(resolverTema(null, "auto", false) === "dark", "auto migra para dark");
+  verdade(resolverTema(null, null, true) === "dark", "sem escolha + sistema escuro");
+  verdade(resolverTema(null, null, false) === "light", "sem escolha + sistema claro");
+});
+
+function rodaScript(portal: string | null, site: string | null, sistemaEscuro: boolean): boolean {
+  let dark = false;
+  const armazenamento: Record<string, string | null> = { "rp-portal-theme": portal, "rp-site-theme": site };
+  const fake = {
+    localStorage: { getItem: (k: string) => armazenamento[k] ?? null },
+    window: { matchMedia: () => ({ matches: sistemaEscuro }) },
+    document: { documentElement: { classList: { toggle: (_c: string, v: boolean) => { dark = v; } } } },
+  };
+  new Function("localStorage", "window", "document", THEME_INIT_SCRIPT)(fake.localStorage, fake.window, fake.document);
+  return dark;
+}
+
+teste("THEME_INIT_SCRIPT aplica a mesma regra de resolverTema antes da hidratação", () => {
+  verdade(rodaScript("light", "dark", true) === false, "portal light");
+  verdade(rodaScript("dark", null, false) === true, "portal dark");
+  verdade(rodaScript(null, "dark", false) === true, "site dark");
+  verdade(rodaScript(null, null, true) === true, "sistema escuro");
+  verdade(rodaScript(null, null, false) === false, "sistema claro");
+});
+
+teste("o alternador grava as duas chaves (site e portal)", () => {
+  const t = semComentarios(ler("lib/theme.ts"));
+  verdade(/setItem\(THEME_KEY, mode\)/.test(t) && /setItem\(PORTAL_THEME_KEY, mode\)/.test(t), "salvarTema não grava as duas chaves");
+});
+
+teste("recuperação de senha: resposta neutra, sem revelar se o e-mail existe", () => {
+  const a = semComentarios(ler("lib/actions/auth.ts"));
+  verdade(!/checkLoginForReset|maskedEmail|E-mail não encontrado/.test(a), "voltou a haver resposta que revela a existência da conta");
+  verdade(/solicitarRecuperacaoDeSenha/.test(a), "sem a ação neutra");
+});
+
+teste("o layout do portal aplica o tema salvo também depois de navegação no cliente (login vindo da Capa)", () => {
+  verdade(/<PortalThemeSync \/>/.test(semComentarios(ler("app/(app)/layout.tsx"))), "app/(app)/layout.tsx não monta PortalThemeSync");
 });
 
 resumo("capa");

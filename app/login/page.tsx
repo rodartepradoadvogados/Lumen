@@ -34,14 +34,14 @@ export default async function LoginPage() {
           {/* O caminho do cadastro não existia nesta tela: quem chegava aqui sem conta só tinha a
               porta de volta ao site. Numa tela de funil, o desvio para "criar conta" é o link mais
               caro que pode faltar. */}
-          <Link href="/cadastro" className="text-corpo font-semibold text-tx-2 hover:text-tx underline underline-offset-4 transition-colors duration-100 ease-out">
+          <Link href="/cadastro" className="inline-flex items-center min-h-[44px] text-corpo font-semibold text-tx-2 hover:text-tx underline underline-offset-4 transition-colors duration-100 ease-out">
             Ainda não tem conta? Criar a conta do escritório
           </Link>
         </div>
       }
     >
       <Suspense fallback={null}>
-        <LoginForm />
+        <LoginForm mostrarCadastro={false} />
       </Suspense>
     </TelaSessao>
   );

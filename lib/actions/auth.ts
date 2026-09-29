@@ -17,15 +17,6 @@ function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-// Mostra só a 1ª letra e as 2 últimas do que vem antes do "@", o resto com "***" —
-// confirma pro usuário qual e-mail vai receber o link sem expor o endereço completo.
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain) return email;
-  if (local.length <= 3) return `${local[0]}***@${domain}`;
-  return `${local[0]}***${local.slice(-2)}@${domain}`;
-}
-
 // Login por e-mail (não por username): num sistema multi-tenant, e-mail é o único
 // identificador que continua único GLOBALMENTE (username agora é só um apelido por
 // escritório, ver prisma/schema.prisma) — login por e-mail evita qualquer ambiguidade
@@ -107,38 +98,43 @@ export async function logout(destino?: unknown) {
   redirect(typeof destino === "string" && ehTelaDeEntradaDePwa(destino) ? destino : "/");
 }
 
-// Passo 1 do "Esqueci minha senha": confirma se o login existe e devolve o e-mail
-// mascarado, sem revelar mais nada — usado pela janela suspensa antes de perguntar
-// "deseja redefinir a senha por e-mail?".
-export async function checkLoginForReset(email: string): Promise<{ found: boolean; maskedEmail?: string }> {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.active) return { found: false };
-  return { found: true, maskedEmail: maskEmail(user.email) };
-}
+// "Esqueci minha senha" (página /recuperar-senha): gera um token de uso único (válido por 1h,
+// guardado só como hash) e envia o link de redefinição para o e-mail cadastrado.
+//
+// A RESPOSTA É NEUTRA: devolve o mesmo resultado exista ou não a conta, esteja ela ativa ou não, e
+// tenha ou não o envio funcionado. O fluxo antigo (modal) respondia "não encontramos esse e-mail" e
+// mostrava o e-mail mascarado de quem existia — quem consultasse descobria quais e-mails são de
+// clientes. Falha de envio vai para o log do servidor, não para a tela (o texto da página já manda
+// pedir o link a um administrador). O tempo de resposta também é nivelado (piso de 3s, que cobre o envio na maioria dos casos; se o envio passar disso o tempo ainda diferencia): responder
+// mais rápido quando a conta não existe seria o mesmo vazamento por outro canal.
+//
+// Sem limite de tentativas por e-mail ou IP, como já era no fluxo antigo: fica como pendência.
+const RECUPERACAO_PISO_MS = 3000;
 
-// Passo 2: gera um token de uso único (válido por 1h, guardado só como hash) e envia
-// o link de redefinição para o e-mail cadastrado do usuário.
-export async function requestPasswordReset(email: string): Promise<{ error?: string; sent?: boolean }> {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.active) return { error: "E-mail não encontrado." };
+export async function solicitarRecuperacaoDeSenha(emailBruto: string): Promise<{ error?: string; enviado?: true }> {
+  const email = String(emailBruto ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Digite um e-mail válido." };
 
-  const rawToken = crypto.randomBytes(32).toString("hex");
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { resetTokenHash: hashToken(rawToken), resetTokenExpiry: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
-  });
-
-  const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } });
-  const resetUrl = `${getAppUrl()}/redefinir-senha?token=${rawToken}`;
-  const result = await sendPasswordResetEmail(user.email, resetUrl, office?.name || "Lúmen", user.officeId);
-  if (!result.sent) {
-    return {
-      error:
-        result.reason ||
-        "Não foi possível enviar agora — peça a um administrador para gerar seu link de acesso em Configurações → Equipe.",
-    };
+  const inicio = Date.now();
+  try {
+    const user = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
+    if (user?.active) {
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetTokenHash: hashToken(rawToken), resetTokenExpiry: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
+      });
+      const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } });
+      const resetUrl = `${getAppUrl()}/redefinir-senha?token=${rawToken}`;
+      const result = await sendPasswordResetEmail(user.email, resetUrl, office?.name || "Lúmen", user.officeId);
+      if (!result.sent) console.error("[recuperar-senha] envio falhou:", result.reason);
+    }
+  } catch (e) {
+    console.error("[recuperar-senha] erro:", e);
   }
-  return { sent: true };
+  const falta = RECUPERACAO_PISO_MS - (Date.now() - inicio);
+  if (falta > 0) await new Promise((r) => setTimeout(r, falta));
+  return { enviado: true };
 }
 
 // Caminho que NÃO depende de e-mail nenhum: um administrador gera, na hora, um link de
