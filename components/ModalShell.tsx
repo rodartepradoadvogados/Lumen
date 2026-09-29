@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
@@ -56,20 +56,57 @@ export default function ModalShell({
   // aberto (`{open && <ModalShell ... />}`), então não há um "fechado" para o hook distinguir aqui.
   useEscapeToClose(true, onClose);
 
+  // Acessibilidade do diálogo: papel e nome para o leitor de tela, foco que entra, fica preso
+  // enquanto aberto e VOLTA ao elemento que abriu (antes o foco se perdia no <body>).
+  const titleId = useId();
+  const caixaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const anterior = document.activeElement as HTMLElement | null;
+    const caixa = caixaRef.current;
+    if (caixa && !caixa.contains(document.activeElement)) {
+      (caixa.querySelector<HTMLElement>("[autofocus], input, select, textarea, button") ?? caixa).focus();
+    }
+    function preso(e: KeyboardEvent) {
+      if (e.key !== "Tab" || !caixa) return;
+      const foc = Array.from(caixa.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])')).filter((el) => el.offsetParent !== null);
+      if (foc.length === 0) return;
+      const primeiro = foc[0];
+      const ultimo = foc[foc.length - 1];
+      if (e.shiftKey && document.activeElement === primeiro) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && document.activeElement === ultimo) {
+        e.preventDefault();
+        primeiro.focus();
+      }
+    }
+    document.addEventListener("keydown", preso);
+    return () => {
+      document.removeEventListener("keydown", preso);
+      if (anterior && document.contains(anterior)) anterior.focus();
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
       <div
+        ref={caixaRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className={`bg-sf shadow-pop flex flex-col overflow-hidden rounded-lg animate-fade-in ${SIZE_CLASSES[size]} ${className}`}
       >
         <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b-2 border-regua-forte">
           <div className="min-w-0">
-            <h3 className=" font-bold text-tx truncate">{title}</h3>
+            <h3 id={titleId} className=" font-bold text-tx truncate">{title}</h3>
             {subtitle && <p className="text-xs text-tx-2 mt-0.5">{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 text-tx-3 hover:text-tx"
+            aria-label="Fechar"
+            className="shrink-0 text-tx-3 hover:text-tx min-h-11 min-w-11 grid place-items-center"
           >
             <X size={18} />
           </button>

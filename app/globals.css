@@ -916,6 +916,12 @@ html:has(.site-publico) {
   --risco-vencido: #c98b92;
   --risco-hoje: #bd7e00;
   --risco-em-dia: #299d78;
+  /* Texto de risco e foco de /publicacoes (plano de Publicações): --risco-vencido no Noite mede
+     abaixo de 4,5:1 como texto de 12px sobre campo-risco; estas variantes medem 7,3:1 / 6,8:1 / 7,3:1. */
+  --risco-vencido-tx: #f3a19b;
+  --risco-hoje-tx: #e2b04a;
+  --risco-em-dia-tx: #57c6a1;
+  --foco: #9fb0f0;
 
   /* --- rotulo sobre faixa PREENCHIDA: troca com o tema. No claro as faixas sao escuras e
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
@@ -1039,6 +1045,10 @@ html:has(.site-publico) {
   --risco-vencido: #8a2f42;
   --risco-hoje: #8a5c00;
   --risco-em-dia: #1c6b52;
+  --risco-vencido-tx: #8a2f42;
+  --risco-hoje-tx: #7a5000;
+  --risco-em-dia-tx: #1c6b52;
+  --foco: #3b4a86;
 
   /* --- rotulo sobre faixa PREENCHIDA: troca com o tema. No claro as faixas sao escuras e
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
@@ -2281,5 +2291,41 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
   .flex.gap-4.overflow-x-auto:not(.secao-abas) > div {
     width: 100% !important;
     min-width: 0 !important;
+  }
+}
+
+
+/* Publicações — foco visível de 3px (o anel padrão media 1,9:1) e saída da fila em duas fases.
+   Saída: 780ms de desfecho legível (texto em alto contraste, sem flash de cor) + 220ms de colapso da
+   altura, sem buraco. Total 1000ms, pedido explícito do dono. Com movimento reduzido a linha sai já
+   (o temporizador em JS também zera: ver PublicationsTriage). */
+.pub-scope :focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+.pub-scope .pub-linha-fila > button:focus-visible,
+.pub-scope .pub-linha-fila label:focus-within {
+  outline-offset: -3px;
+}
+.pub-saindo {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: pub-colapsa 220ms cubic-bezier(0.4, 0, 0.2, 1) 780ms forwards;
+}
+.pub-saindo > .pub-saindo-in {
+  min-height: 0;
+  overflow: hidden;
+  animation: pub-some 220ms ease-in 780ms forwards;
+}
+@keyframes pub-colapsa {
+  to { grid-template-rows: 0fr; }
+}
+@keyframes pub-some {
+  to { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-saindo,
+  .pub-saindo > .pub-saindo-in {
+    animation: none !important;
   }
 }
