@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
+import { MOTIVOS_DE_PERDA } from "@/lib/funil";
 
 // Opções fechadas do motivo da perda (Fase 5) — item que alimenta o relatório de captação.
 // "Outro" exige um texto livre além da caixinha, para o motivo nunca ficar vazio.
-const CLOSED_REASONS = ["Preço", "Prazo", "Escolheu outro escritório", "Desistiu da ação", "Sem resposta", "Fora da nossa área"];
+const CLOSED_REASONS = MOTIVOS_DE_PERDA;
 
 export default function AttendanceLostReasonModal({
   onConfirm,

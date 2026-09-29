@@ -152,9 +152,13 @@ teste("nunca reescreve o driveFolderId — o id é o que amarra tudo no banco, s
 teste("segue o mesmo padrão de convertAttendanceToCase: best-effort e comentado", () => {
   // A conversão já resolvia isso — este conserto copia o padrão, não inventa um novo. Ver o
   // comentário ao lado do try/catch de lá.
-  const conversao = corpoDaFuncao(fonteAttendance, "convertAttendanceToCase");
-  verdade(conversao.includes("renameDriveFolder("), "convertAttendanceToCase não é mais a referência a seguir");
-  verdade(conversao.includes("try {") && conversao.includes("catch"), "convertAttendanceToCase perdeu o próprio best-effort");
+  // A regra da conversão mora em lib/converterAtendimento.ts (o aplicativo de Atendimento usa o mesmo
+  // núcleo); `convertAttendanceToCase` só chama o núcleo e redireciona.
+  const nucleo = codigoDe(readFileSync("lib/converterAtendimento.ts", "utf8"));
+  const conversao = corpoDaFuncao(nucleo, "converterAtendimentoEmCaso");
+  verdade(conversao.includes("renameDriveFolder("), "converterAtendimentoEmCaso não é mais a referência a seguir");
+  verdade(conversao.includes("try {") && conversao.includes("catch"), "converterAtendimentoEmCaso perdeu o próprio best-effort");
+  verdade(corpoDaFuncao(fonteAttendance, "convertAttendanceToCase").includes("converterAtendimentoEmCaso("), "convertAttendanceToCase deixou de usar o núcleo");
 });
 
 teste("o assunto é GRAVADO antes de a pasta ser renomeada", () => {

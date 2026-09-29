@@ -32,6 +32,9 @@
 // marca fariam "movi o card" parecer "respondi o cliente".
 // ============================================================================
 
+/** Opções fechadas do motivo da perda (Fase 5) — alimentam o relatório de captação. "Outro" pede texto livre. */
+export const MOTIVOS_DE_PERDA = ["Preço", "Prazo", "Escolheu outro escritório", "Desistiu da ação", "Sem resposta", "Fora da nossa área"];
+
 export const stageOptions = ["NOVO", "AGUARDANDO", "QUALIFICACAO", "PROPOSTA", "FECHADO", "PERDIDO"];
 
 export const stageLabels: Record<string, string> = {

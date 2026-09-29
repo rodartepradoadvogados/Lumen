@@ -99,6 +99,7 @@ export async function deleteAnotacao(id: string): Promise<{ error?: string }> {
 
   const anotacao = await prisma.anotacao.findFirst({ where: { id, officeId: viewer.officeId, authorId: viewer.id } });
   if (!anotacao) return { error: "Anotação não encontrada." };
+  if (!(await podeMexerNaAnotacaoDoAtendimento(viewer, anotacao.attendanceId))) return { error: "Anotação não encontrada." };
 
   await prisma.anotacao.delete({ where: { id } });
 
@@ -106,5 +107,41 @@ export async function deleteAnotacao(id: string): Promise<{ error?: string }> {
   if (anotacao.attendanceId) revalidatePath(`/atendimento/${anotacao.attendanceId}`);
   if (anotacao.assessoriaId) revalidatePath(`/assessoria/${anotacao.assessoriaId}`);
 
+  return {};
+}
+
+// Anotação vinculada a ATENDIMENTO: quem perdeu o acesso àquele lead (foi repassado a outro dono, ou o papel
+// mudou) não mexe mais nas anotações que ele guardou ali — a anotação é pessoal, mas o atendimento não é dele.
+async function podeMexerNaAnotacaoDoAtendimento(viewer: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>, attendanceId: string | null): Promise<boolean> {
+  if (!attendanceId) return true;
+  if (!podeVerAtendimentos(viewer)) return false;
+  return Boolean(await prisma.attendance.findFirst({ where: { id: attendanceId, ...whereDoAtendimento(viewer) }, select: { id: true } }));
+}
+
+/**
+ * Editar uma anotação pessoal (N20): só o AUTOR, e — quando ela está vinculada a um atendimento — só quem
+ * ainda vê aquele atendimento. O vínculo NÃO muda (editar o texto e a data não move a anotação de lugar).
+ */
+export async function updateAnotacao(id: string, data: { content: string; referenceDate: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+
+  const anotacao = await prisma.anotacao.findFirst({ where: { id, officeId: viewer.officeId, authorId: viewer.id } });
+  if (!anotacao) return { error: "Anotação não encontrada." };
+  if (!(await podeMexerNaAnotacaoDoAtendimento(viewer, anotacao.attendanceId))) return { error: "Anotação não encontrada." };
+
+  const content = sanitizeAnotacaoHtml(data.content ?? "");
+  if (isAnotacaoContentEmpty(content)) return { error: "A anotação não pode ficar vazia." };
+  const referenceDate = new Date(data.referenceDate);
+  if (!data.referenceDate || Number.isNaN(referenceDate.getTime())) return { error: "Informe uma data válida." };
+
+  await prisma.anotacao.updateMany({ where: { id, officeId: viewer.officeId, authorId: viewer.id }, data: { content, referenceDate } });
+
+  if (anotacao.caseId) revalidatePath(`/processos/${anotacao.caseId}`);
+  if (anotacao.attendanceId) {
+    revalidatePath(`/atendimento/${anotacao.attendanceId}`);
+    revalidatePath(`/atendimento-app/${anotacao.attendanceId}/detalhes`);
+  }
+  if (anotacao.assessoriaId) revalidatePath(`/assessoria/${anotacao.assessoriaId}`);
   return {};
 }
