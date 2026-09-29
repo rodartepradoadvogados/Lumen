@@ -19,6 +19,7 @@ import { esperaParaHermes } from "@/lib/orcamentoDoPedido";
 import { nomeEhTemporario, assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoLead";
 import { renomearPastaSeExistir } from "@/lib/renomeacaoDoAtendimento";
 import { relerAntesDeEnviar } from "@/lib/anaReleOSilencio";
+import { registrarAvisoDaAna } from "@/lib/notaDaConversaDb";
 import { motivoDaFalhaDoHermes, motivoDePonteNaoConfigurada, semSegredoDaPonte } from "@/lib/motivoDoAtendente";
 
 // ============================================================================
@@ -34,6 +35,16 @@ import { motivoDaFalhaDoHermes, motivoDePonteNaoConfigurada, semSegredoDaPonte }
 // ============================================================================
 
 const QUANTAS_MENSAGENS_DE_CONTEXTO = 10;
+
+/**
+ * A Ana desistiu depois de reler o silêncio. Além de não enviar, deixa um AVISO NO CHAT ("A Ana não respondeu:
+ * <motivo>"), só da equipe, uma vez por pergunta (NotaDaConversa, lib/notaDaConversaDb.ts). Não é mensagem de
+ * WhatsApp: nunca vai ao cliente nem entra no que a Ana lê. `registrarAvisoDaAna` não lança.
+ */
+async function desistirComAviso(attendanceId: string, officeId: string, perguntaId: string, motivo: string) {
+  await registrarAvisoDaAna({ id: attendanceId, officeId }, perguntaId, motivo);
+  return { respondeu: false as const, motivo: `o atendente desistiu de enviar: ${motivo}` };
+}
 
 type CampanhaDoAtendimento = {
   sobre: string;
@@ -290,7 +301,9 @@ export async function atendenteResponde(
     // envio (o teste atendimentoAppEnvio.teste.ts trava a ordem).
     const releitura = await relerAntesDeEnviar(attendanceId, atendimento.officeId, { id: ultima.id, createdAt: ultima.createdAt }, { forcar: Boolean(opcoes.forcar) });
     if (!releitura.envia) {
-      return { respondeu: false, motivo: `o atendente desistiu de enviar: ${releitura.motivo}` };
+      // Devolve a promessa, sem `await` aqui: nada assíncrono pode ficar entre a releitura e o envio (o teste
+      // trava). A equipe VÊ que a Ana desistiu (aviso de sistema no chat) dentro do auxiliar.
+      return desistirComAviso(attendanceId, atendimento.officeId, ultima.id, releitura.motivo);
     }
 
     const envio = await sendWhatsappText(atendimento.officeId, atendimento.waPhone, resposta);

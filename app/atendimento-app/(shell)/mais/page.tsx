@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Card } from "@/components/ui";
-import { User, Users, Palette, LogOut, ExternalLink, Zap } from "lucide-react";
+import { User, Users, Palette, LogOut, ExternalLink, Zap, BellOff } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +33,19 @@ export default async function MaisAppPage() {
           <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><ExternalLink size={18} className="text-ouro-acento" /></div>
           <div className="flex-1"><p className="font-medium text-tx">Abrir site completo</p><p className="text-xs text-tx-2">Ir para o Lúmen desktop</p></div>
         </Link>
+      </Card>
+
+      <Card className="p-4" data-avisos-de-mensagem-nova="">
+        <div className="flex items-start gap-3">
+          <BellOff size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-tx-2" />
+          <div className="min-w-0">
+            <p className="font-medium text-tx">Avisos de mensagem nova · a construir</p>
+            <p className="mt-0.5 text-xs text-tx-2">
+              Com o aplicativo aberto, o número de mensagens novas aparece no título da aba e no ícone do aplicativo enquanto você está em outra tela.
+              Com o aplicativo fechado o aviso ainda não existe: confira as Conversas.
+            </p>
+          </div>
+        </div>
       </Card>
 
       <Card className="p-4 space-y-3 border-urgente bg-urgente-bg">

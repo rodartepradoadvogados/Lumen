@@ -143,7 +143,7 @@ teste("SCHEMA: os dois modelos novos são aditivos, com escritório e índice; a
   const s = le("prisma/schema.prisma");
   const fix = s.slice(s.indexOf("model MensagemFixada {"), s.indexOf("model RespostaRapida {"));
   verdade(/attendanceId\s+String\s+@unique/.test(fix) && /officeId\s+String/.test(fix) && /onDelete: Cascade/.test(fix), "MensagemFixada");
-  const rr = s.slice(s.indexOf("model RespostaRapida {"), s.indexOf("model TranscricaoDeAudio {"));
+  const rr = s.slice(s.indexOf("model RespostaRapida {"), s.indexOf("model NotaDaConversa {"));
   verdade(/officeId\s+String/.test(rr) && /@@index\(\[officeId, titulo\]\)/.test(rr) && !/@relation/.test(rr), "RespostaRapida");
   verdade(/mensagemFixada\s+MensagemFixada\?/.test(s), "relação de volta no Attendance");
 });

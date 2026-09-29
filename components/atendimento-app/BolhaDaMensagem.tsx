@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Check, Clock, Ear, HelpCircle, MoreVertical, Pin, RefreshCw, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, Clock, Ear, HelpCircle, Info, Lock, MoreVertical, Pin, RefreshCw, Trash2 } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
 import MidiaDaBolha from "@/components/atendimento-app/MidiaDaBolha";
 import type { MensagemDoChat } from "@/lib/mensagensDoChat";
@@ -16,6 +16,12 @@ import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 //   falhou          alerta + motivo + "Tentar de novo" e "Descartar" (sem "tentar de novo" quando não adianta)
 //   sem confirmação alerta + "Pode ter sido enviada: confira antes de repetir" + "Conferir e tentar de novo"
 // O ícone e o texto dizem o estado; a cor só reforça.
+//
+// NOTA INTERNA (`m.tipo === "nota"`) e AVISO DE SISTEMA (`"sistema"`) vêm de NotaDaConversa, não do WhatsApp:
+// só a equipe vê e nunca saíram para o cliente. Nunca se confundem com mensagem ao cliente: a nota tem borda
+// TRACEJADA de ardósia, cadeado e o rótulo "Nota interna · só a equipe" com autor e hora; o aviso é centralizado,
+// de borda contínua, com ícone de informação e "Aviso do sistema · só a equipe". Rótulo e ícone dizem o que é;
+// a cor só reforça.
 
 export default function BolhaDaMensagem({
   m,
@@ -50,16 +56,41 @@ export default function BolhaDaMensagem({
   const duvida = local?.estado === "sem-confirmacao";
   const enviando = local?.estado === "enviando";
   const chave = m.clientMessageId;
+  const ehNota = m.tipo === "nota";
+
+  if (m.tipo === "sistema") {
+    return (
+      <div className="flex justify-center py-0.5" data-mensagem={m.id} data-tipo="sistema">
+        <div className="max-w-[92%] break-words rounded-[2px] border border-regua-forte bg-sf-apoio px-2.5 py-1.5 text-center [overflow-wrap:anywhere]">
+          <span className="sr-only">Aviso do sistema, só da equipe: </span>
+          <p className="mb-0.5 flex items-center justify-center gap-1.5 text-etiqueta font-bold text-tx-2">
+            <Info size={12} aria-hidden="true" />
+            Aviso do sistema · só a equipe
+          </p>
+          <p className="whitespace-pre-wrap text-corpo text-tx">{m.texto}</p>
+          <p className="mt-0.5 text-etiqueta tabular-nums text-tx-2">
+            <time dateTime={m.criadoEm}>{m.hora}</time>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`flex flex-col ${saiu ? "items-end" : "items-start"}`} data-mensagem={m.id} data-envio={local?.estado ?? (m.enviada ? "enviada" : undefined)}>
+    <div className={`flex flex-col ${saiu ? "items-end" : "items-start"}`} data-mensagem={m.id} data-tipo={ehNota ? "nota" : undefined} data-envio={local?.estado ?? (m.enviada ? "enviada" : undefined)}>
       <div className={`flex w-full items-end gap-0.5 ${saiu ? "flex-row-reverse" : ""}`}>
       <div
         className={`min-w-0 max-w-[84%] break-words rounded-[2px] border px-2.5 pb-1 pt-1.5 [overflow-wrap:anywhere] ${
-          falhou ? "border-urgente bg-urgente-bg" : duvida ? "border-aviso bg-aviso-bg" : `${saiu ? "bg-atd-bolha-out" : "bg-atd-bolha-in"} ${m.porAgente ? "border-ouro-acento" : saiu ? "border-atd-borda-out" : "border-atd-borda-in"}`
+          falhou ? "border-urgente bg-urgente-bg" : duvida ? "border-aviso bg-aviso-bg" : ehNota ? "border-dashed border-atd-ardosia bg-atd-ardosia-bg" : `${saiu ? "bg-atd-bolha-out" : "bg-atd-bolha-in"} ${m.porAgente ? "border-ouro-acento" : saiu ? "border-atd-borda-out" : "border-atd-borda-in"}`
         }`}
       >
-        <span className="sr-only">{autor} disse: </span>
+        <span className="sr-only">{ehNota ? `Nota interna, só da equipe, de ${m.autor || "você"}: ` : `${autor} disse: `}</span>
+        {ehNota && (
+          <p className="mb-0.5 flex items-center gap-1.5 text-etiqueta font-bold text-atd-ardosia">
+            <Lock size={12} aria-hidden="true" />
+            Nota interna · só a equipe
+          </p>
+        )}
         {saiu && m.porAgente && (
           <p className="mb-0.5 flex items-center gap-1.5 text-etiqueta font-bold text-tx-2">
             <IconeAgente size={12} className="text-tx-3" />
@@ -80,6 +111,7 @@ export default function BolhaDaMensagem({
           </div>
         )}
         <p className="mt-0.5 flex items-center justify-end gap-1.5 text-etiqueta tabular-nums text-tx-2">
+          {ehNota && <span className="min-w-0 truncate font-semibold">{m.autor || "Você"} ·</span>}
           {enviando && (
             <span className="inline-flex items-center gap-1">
               <Clock size={12} aria-hidden="true" /> Enviando…
@@ -87,7 +119,7 @@ export default function BolhaDaMensagem({
           )}
           {falhou && (
             <span className="inline-flex items-center gap-1 font-semibold text-urgente">
-              <AlertTriangle size={12} aria-hidden="true" /> Não enviada
+              <AlertTriangle size={12} aria-hidden="true" /> {ehNota ? "Não salva" : "Não enviada"}
             </span>
           )}
           {duvida && (
@@ -96,9 +128,9 @@ export default function BolhaDaMensagem({
             </span>
           )}
           {(m.enviada || local?.estado === "enviada") && (
-            <span className="inline-flex items-center gap-0.5" title="Enviada">
+            <span className="inline-flex items-center gap-0.5" title={ehNota ? "Salva" : "Enviada"}>
               <Check size={12} aria-hidden="true" />
-              <span className="sr-only">Enviada</span>
+              <span className="sr-only">{ehNota ? "Salva" : "Enviada"}</span>
             </span>
           )}
           {fixada && (
@@ -118,7 +150,7 @@ export default function BolhaDaMensagem({
 
       {local && (falhou || duvida) && chave && (
         <div role="alert" className="mt-1 flex max-w-[92%] flex-col items-end gap-1.5 text-right">
-          <p className={`text-corpo font-semibold ${falhou ? "text-urgente" : "text-tx"}`}>{falhou ? `Não enviada · ${local.erro ?? "erro desconhecido"}` : (local.erro ?? "Pode ter sido enviada: confira antes de repetir.")}</p>
+          <p className={`text-corpo font-semibold ${falhou ? "text-urgente" : "text-tx"}`}>{falhou ? `${ehNota ? "Não salva" : "Não enviada"} · ${local.erro ?? "erro desconhecido"}` : (local.erro ?? "Pode ter sido enviada: confira antes de repetir.")}</p>
           {confirmandoReenvio ? (
             <div className="flex flex-col items-end gap-1.5">
               <p className="text-corpo text-tx">Não dá para saber se saiu. Enviar de novo pode chegar duas vezes ao cliente.</p>

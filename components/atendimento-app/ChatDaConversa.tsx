@@ -10,7 +10,10 @@ import FixadaDoChatTopo from "@/components/atendimento-app/FixadaDoChat";
 import { trechoDaMensagem } from "@/lib/mensagemFixada";
 import { agruparMensagensPorDia, cursorDaMaisNova, mesclarMensagens, type MensagemDoChat } from "@/lib/mensagensDoChat";
 import type { EstadoDoChat } from "@/lib/estadoDoChat";
+import { useAvisoDeMensagemNova } from "@/components/atendimento-app/useAvisoDeMensagemNova";
+import { deveBuscarAgora, novasDoCliente } from "@/lib/avisoDeMensagemNova";
 import { novaChaveDeMensagem, resultadoDoPedido } from "@/lib/envioDeMensagem";
+import { resultadoDaNota } from "@/lib/notaDaConversa";
 import { gravarPendentesNoAparelho, lerPendentesDoAparelho, novoPendente, pendenteComoMensagem, semOsJaConfirmados, type Pendente } from "@/lib/filaDoChat";
 
 // O CHAT (Onda A: leitura; Onda B-1: ENVIO). Abre JÁ ROLADO NO FIM (RolarParaOFim: abre na última mensagem,
@@ -139,6 +142,7 @@ export default function ChatDaConversa({
   }, [temConteudo]);
 
   const anunciar = useCallback((texto: string) => setAviso(texto), []);
+  const avisarEmSegundoPlano = useAvisoDeMensagemNova();
 
   // Vai até a mensagem fixada, se ela está na tela (mexe só na rolagem da conversa, nunca em `scrollIntoView`).
   const irParaAMensagem = useCallback(
@@ -157,7 +161,9 @@ export default function ChatDaConversa({
 
   // ── A ATUALIZAÇÃO A CADA 15 SEGUNDOS ─────────────────────────────────────────────────────────────
   const buscarNovas = useCallback(async () => {
-    if (buscando.current || document.visibilityState !== "visible") return;
+    // Fora de vista a busca continua, mais devagar (1 min): é o que permite pôr o número no título da aba.
+    const visivel = document.visibilityState === "visible";
+    if (buscando.current || !deveBuscarAgora(visivel, Date.now() - ultimaBusca.current)) return;
     buscando.current = true;
     ultimaBusca.current = Date.now();
     try {
@@ -170,8 +176,15 @@ export default function ChatDaConversa({
       if (dados.mensagens.length > 0) {
         setTodas((atuais) => mesclarMensagens(atuais, dados.mensagens));
         setPendentes((atuais) => semOsJaConfirmados(atuais, dados.mensagens));
-        const entradas = dados.mensagens.filter((m) => m.direction === "IN");
-        if (entradas.length === 1) anunciar(`Nova mensagem de ${nomeDoContato}: ${(entradas[0].texto || entradas[0].midia?.rotulo || "").slice(0, 200)}`);
+        const entradas = dados.mensagens.filter((m) => m.direction === "IN" && !m.tipo);
+        // Aba fora de vista: só o número, no título e no selo do app (sem nome nem texto). Visível: nada disto.
+        avisarEmSegundoPlano(novasDoCliente(dados.mensagens));
+        const avisos = dados.mensagens.filter((m) => m.tipo === "sistema");
+        // A região viva só fala com a aba à vista (escondida não há quem ouça, e o texto ficaria velho).
+        if (!visivel) {
+          /* o título e o selo já cuidaram do aviso */
+        } else if (avisos.length > 0) anunciar(`Aviso do sistema: ${avisos[avisos.length - 1].texto}`);
+        else if (entradas.length === 1) anunciar(`Nova mensagem de ${nomeDoContato}: ${(entradas[0].texto || entradas[0].midia?.rotulo || "").slice(0, 200)}`);
         else if (entradas.length > 1) anunciar(`${entradas.length} novas mensagens de ${nomeDoContato}.`);
       }
     } catch {
@@ -179,7 +192,7 @@ export default function ChatDaConversa({
     } finally {
       buscando.current = false;
     }
-  }, [idDaConversa, nomeDoContato, anunciar]);
+  }, [idDaConversa, nomeDoContato, anunciar, avisarEmSegundoPlano]);
 
   useEffect(() => {
     const relogio = window.setInterval(buscarNovas, INTERVALO_MS);
@@ -213,9 +226,10 @@ export default function ChatDaConversa({
 
   const disparar = useCallback(
     async (p: Pendente, confirmouReenvio: boolean) => {
+      const ehNota = p.nota === true;
       const eraRetentativaIncerta = p.estado === "sem-confirmacao";
       atualizarPendente(p.clientMessageId, { estado: "enviando", erro: null, podeTentarDeNovo: false });
-      anunciar("Enviando mensagem…");
+      anunciar(ehNota ? "Salvando nota…" : "Enviando mensagem…");
       let status: number | null = null;
       let corpo: { codigo?: string; erro?: string; mensagem?: MensagemDoChat | null } | null = null;
       const controle = new AbortController();
@@ -224,7 +238,7 @@ export default function ChatDaConversa({
         const resp = await fetch(`/api/atendimento/${encodeURIComponent(idDaConversa)}/mensagens`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ clientMessageId: p.clientMessageId, texto: p.texto, confirmouReenvio }),
+          body: JSON.stringify(ehNota ? { modo: "nota", clientMessageId: p.clientMessageId, texto: p.texto } : { clientMessageId: p.clientMessageId, texto: p.texto, confirmouReenvio }),
           cache: "no-store",
           signal: controle.signal,
         });
@@ -235,7 +249,7 @@ export default function ChatDaConversa({
       } finally {
         window.clearTimeout(limite);
       }
-      const r = resultadoDoPedido(status, corpo);
+      const r = ehNota ? resultadoDaNota(status, corpo) : resultadoDoPedido(status, corpo);
       if (r.estado === "enviada") {
         if (corpo?.mensagem) {
           const m = corpo.mensagem;
@@ -245,23 +259,23 @@ export default function ChatDaConversa({
           atualizarPendente(p.clientMessageId, { estado: "enviada", erro: null, podeTentarDeNovo: false });
         }
         // Quem enviou assumiu: o servidor calou a Ana (só quando o envio deu certo). A barra acompanha na hora,
-        // sem esperar a próxima busca.
-        setEstado((e) => (e.agenteSilenciadoEm ? e : { ...e, agenteSilenciadoEm: new Date().toISOString(), agenteResponde: false }));
-        anunciar("Mensagem enviada.");
+        // sem esperar a próxima busca. NOTA NÃO ASSUME: a Ana continua respondendo.
+        if (!ehNota) setEstado((e) => (e.agenteSilenciadoEm ? e : { ...e, agenteSilenciadoEm: new Date().toISOString(), agenteResponde: false }));
+        anunciar(ehNota ? "Nota salva." : "Mensagem enviada.");
         return;
       }
       // A pessoa tocou em "Conferir e tentar de novo" e o servidor TAMBÉM não sabe se saiu: só reenvia se ela
       // confirmar, sabendo que pode chegar duas vezes. (No primeiro envio, sem confirmação é só o estado.)
-      if (eraRetentativaIncerta && corpo?.codigo === "SEM_CONFIRMACAO" && !confirmouReenvio) setConfirmando(p.clientMessageId);
+      if (!ehNota && eraRetentativaIncerta && corpo?.codigo === "SEM_CONFIRMACAO" && !confirmouReenvio) setConfirmando(p.clientMessageId);
       atualizarPendente(p.clientMessageId, { estado: r.estado, erro: r.erro, podeTentarDeNovo: r.podeTentarDeNovo });
-      anunciar(r.estado === "sem-confirmacao" ? `Sem confirmação. ${r.erro ?? ""}` : `Mensagem não enviada. ${r.erro ?? ""}`);
+      anunciar(r.estado === "sem-confirmacao" ? `Sem confirmação. ${r.erro ?? ""}` : `${ehNota ? "Nota não salva" : "Mensagem não enviada"}. ${r.erro ?? ""}`);
     },
     [idDaConversa, atualizarPendente, anunciar],
   );
 
   const enviar = useCallback(
-    (texto: string) => {
-      const p = novoPendente(novaChaveDeMensagem(), texto, new Date());
+    (texto: string, nota = false) => {
+      const p = novoPendente(novaChaveDeMensagem(), texto, new Date(), nota);
       setPendentes((atuais) => [...atuais, p]);
       irAoFim();
       void disparar(p, false);

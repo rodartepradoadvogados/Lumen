@@ -243,9 +243,11 @@ teste("a rota de envio: guarda ANTES do corpo (401/403/404 sem gravar nada), só
   const post = c.slice(c.indexOf("export async function POST"));
   verdade(post.indexOf("atendimentoDaRota(params.id)") > 0, "POST sem guarda");
   verdade(post.indexOf("atendimentoDaRota") < post.indexOf("req.json"), "a guarda vem antes de ler o corpo");
-  verdade(post.indexOf("atendimentoDaRota") < post.indexOf("enviarMensagemDoApp"), "a guarda vem antes de enviar");
+  verdade(post.indexOf("atendimentoDaRota") < post.indexOf("despacharPedidoDoChat"), "a guarda vem antes de enviar");
   verdade(post.includes("application/json") && post.includes("415"), "só application/json");
-  verdade(post.includes("validarPedidoDeEnvio"), "o corpo da rede é validado");
+  // O corpo da rede é validado em lib/pedidoDoChatDb.ts (o despacho por `modo`), antes de qualquer envio.
+  const d = codigoDe(le("lib/pedidoDoChatDb.ts"));
+  verdade(d.includes("validarPedidoDeEnvio") && d.indexOf("validarPedidoDeEnvio") < d.indexOf("enviarMensagemDoApp("), "o corpo da rede é validado antes de enviar");
   verdade(!/attendance\.(findFirst|findUnique|findMany|update)/.test(post), "a rota não toca em Attendance por conta própria");
 });
 
@@ -290,9 +292,9 @@ teste("as rotas velhas sem uso saíram (ana-responde gravava metadata que ningu�
   verdade(codigoDe(le("components/atendimento-app/BarraDoChat.tsx")).includes("definirAtendenteResponde") && codigoDe(le("components/atendimento-app/BarraDoChat.tsx")).includes("devolverAtendenteResponde"), "o interruptor usa as ações com recorte");
 });
 
-teste("o campo de mensagem: sem anexo, sem nota interna, sem modelo (não faz o que o código não faz); 16 px; alvo de 44 px; safe-area", () => {
+teste("o campo de mensagem: sem anexo e sem modelo (não faz o que o código não faz); 16 px; alvo de 44 px; safe-area", () => {
   const c = codigoDe(le("components/atendimento-app/CompositorDoChat.tsx"));
-  verdade(!/Paperclip|anexar|Nota interna|modelo aprovado/i.test(c), "promete o que não existe");
+  verdade(!/Paperclip|anexar|modelo aprovado/i.test(c), "promete o que não existe");
   verdade(c.includes("env(safe-area-inset-bottom)"), "safe-area");
   verdade(c.includes("min-h-11") && c.includes("h-11"), "alvo de 44 px");
   verdade(c.includes("atd-campo-de-mensagem"), "fonte de 16 px");
