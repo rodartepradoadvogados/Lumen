@@ -27,4 +27,4 @@ export const caseStatusColor: Record<string, string> = {
 };
 
 export const triageLabels: Record<string, string> = { PENDENTE: "Pendente", EM_ANALISE: "Em análise", TRATADA: "Tratada" };
-export const triageColor: Record<string, string> = { PENDENTE: "var(--aviso)", EM_ANALISE: "var(--acao)", TRATADA: "var(--concluido)" };
+export const triageColor: Record<string, string> = { PENDENTE: "var(--aviso)", EM_ANALISE: "var(--faixa-ardosia)", TRATADA: "var(--concluido)" };

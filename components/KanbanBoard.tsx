@@ -57,7 +57,7 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4 h-full items-start">
+    <div className="flex gap-4 overflow-x-auto pb-4 h-full items-start quadro-empilha">
       {columns.map((col) => {
         const colTasks = col.tasks.filter((t) => (optimistic[t.id] ?? t.columnId) === col.id);
         return (

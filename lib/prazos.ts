@@ -105,3 +105,41 @@ export function addDiasUteis(dataInicial: Date, n: number, feriadosExtras: { dat
   }
   return atual;
 }
+
+// Soma N dias CORRIDOS (calendário) a partir de dataInicial e, se o último dia cair em dia não útil
+// (fim de semana, feriado nacional ou do escritório), rola para o próximo dia útil — CPC art. 224,
+// §1º ("os dias do começo e do vencimento serão protraídos para o primeiro dia útil seguinte, se
+// coincidirem com dia em que o expediente for encerrado"). Os dias dentro do recesso do CPC art.
+// 220 não entram na contagem, como em addDiasUteis. A data de partida não conta.
+export function addDiasCorridos(dataInicial: Date, n: number, feriadosExtras: { date: string }[] = []): Date {
+  let atual = dataInicial;
+  let restante = n;
+  while (restante > 0) {
+    atual = addDays(atual, 1);
+    if (isSuspensaoForense(atual)) continue;
+    restante--;
+  }
+  while (isSuspensaoForense(atual) || !isDiaUtil(atual, feriadosExtras)) atual = addDays(atual, 1);
+  return atual;
+}
+
+// Quantos dias úteis separam duas datas-calendário (UTC-meia-noite), pelas mesmas regras de
+// addDiasUteis (fim de semana, feriados, recesso). Positivo quando `ate` é depois de `de`
+// (conta os dias úteis em (de, ate]); negativo quando é antes (conta em (ate, de], com sinal
+// trocado); zero quando é o mesmo dia. Usado para "vence em N dias úteis" e "vencido há N dias
+// úteis" na fila de publicações.
+export function diasUteisEntre(de: Date, ate: Date, feriadosExtras: { date: string }[] = []): number {
+  const a = de.getTime();
+  const b = ate.getTime();
+  if (a === b) return 0;
+  const [ini, fim, sinal] = a < b ? [de, ate, 1] : [ate, de, -1];
+  let cursor = ini;
+  let n = 0;
+  while (cursor.getTime() < fim.getTime()) {
+    cursor = addDays(cursor, 1);
+    if (isSuspensaoForense(cursor)) continue;
+    if (!isDiaUtil(cursor, feriadosExtras)) continue;
+    n++;
+  }
+  return sinal * n;
+}

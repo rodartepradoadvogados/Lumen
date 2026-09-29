@@ -147,6 +147,13 @@ function ShellChrome({
     // Anotações à direita, ocupando a altura INTEIRA da janela — pedido do dono do escritório
     // pra essa barra "seguir até o topo, e não acabar antes de chegar na extremidade superior".
     <div className="flex h-screen overflow-hidden">
+      {/* Atalho de teclado: sem ele quem navega por Tab atravessa o rail inteiro em toda página. */}
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[60] focus:bg-acao focus:text-acao-tx focus:px-3 focus:py-2 focus:text-sm focus:font-semibold"
+      >
+        Pular para o conteúdo
+      </a>
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {supportBanner}
         <div className="flex flex-1 overflow-hidden">
@@ -172,7 +179,7 @@ function ShellChrome({
             {topBar}
             <PageSectionTabs section={section} hasFinanceAccess={sidebarProps.hasFinanceAccess} modules={sidebarProps.modules} podeAtendimento={sidebarProps.podeAtendimento} veTodoAtendimento={sidebarProps.veTodoAtendimento} />
 
-            <main className={activeTabId === null ? "flex-1 overflow-y-auto scrollbar-thin" : "hidden"}>{children}</main>
+            <main id="conteudo" tabIndex={-1} className={activeTabId === null ? "flex-1 overflow-y-auto scrollbar-thin outline-none" : "hidden"}>{children}</main>
             {tabs.map((tab) => (
               <iframe
                 key={tab.id}

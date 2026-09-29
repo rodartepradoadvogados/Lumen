@@ -128,7 +128,7 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
       </div>
       {feedback && <p className={`text-xs font-medium ${feedback.tipo === "erro" ? "text-atencao" : "text-concluido"}`}>{feedback.texto}</p>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-4">
         <div className="space-y-1.5">
           <p className="text-etiqueta font-bold uppercase tracking-[0.1em] text-tx-3">Variáveis</p>
           {TEMPLATE_VARS.map((v) => (
@@ -192,7 +192,11 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
 
           <div>
             <p className="text-etiqueta font-bold uppercase tracking-[0.1em] text-tx-3 mb-1.5">Prévia</p>
-            <div className="border border-regua bg-sf-apoio p-3 max-w-[440px] overflow-x-auto">
+            {/* PAPEL BRANCO FIXO: o HTML do e-mail (lib/emailTemplateRender.ts) crava cores claras em hex
+                (texto #14161a, botão e cabeçalho em grafite), porque e-mail é sempre claro. Sobre o
+                fundo escuro do tema Noite (bg-sf-apoio) o assunto, o texto e o rodapé mediam 1,01:1
+                — invisíveis. A folha é branca nos dois temas, como o e-mail que o cliente recebe. */}
+            <div className="border border-regua-forte bg-white p-3 max-w-[440px] overflow-x-auto">
               {/* eslint-disable-next-line react/no-danger -- prévia do próprio admin do HTML que
                   ele mesmo está editando agora (atual.bodyHtml); as variáveis vêm de SAMPLE_VARS,
                   dado de amostra fixo, nunca de outro usuário. */}

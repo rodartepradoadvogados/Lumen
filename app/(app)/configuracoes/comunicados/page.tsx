@@ -29,7 +29,9 @@ export default async function ComunicadosPage() {
       </Link>
       <PageHeader title="Comunicados" subtitle="Um resumo por dia, no horário que você escolher — com exceção curta para o que não pode esperar" />
 
-      <div className={`grid grid-cols-1 gap-6 ${templates && !("error" in templates) ? "lg:grid-cols-[640px_1fr]" : ""}`}>
+      {/* Duas colunas só a partir de 1536px (2xl). Com `lg`, em 1280px a coluna do editor sobrava com
+          ~120px e as guias Corpo/Assunto/Rodapé estouravam a largura do <main> em 38px. */}
+      <div className={`grid grid-cols-1 gap-6 ${templates && !("error" in templates) ? "2xl:grid-cols-[640px_minmax(0,1fr)]" : ""}`}>
         <Card className="max-w-[640px]">
           <CardHeader title="Suas regras" />
           <div className="p-5">
@@ -38,7 +40,7 @@ export default async function ComunicadosPage() {
         </Card>
 
         {templates && !("error" in templates) && (
-          <Card>
+          <Card className="min-w-0">
             <CardHeader title="Templates de e-mail" subtitle="O que todo mundo do escritório recebe — só sócios editam" />
             <div className="p-5">
               <TemplateEditor initial={templates} />
