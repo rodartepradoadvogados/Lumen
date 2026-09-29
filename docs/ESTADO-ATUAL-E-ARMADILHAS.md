@@ -281,3 +281,21 @@ volta a quebrar se for desfeito:
   e `.pub-filtros`. Ao mexer nelas, confira o funil e as abas em 390 px.
 - Os filtros de pessoa ("Citado", "Responsável") vêm dos dados do escritório; nenhum nome de advogado
   fica escrito no código, e parâmetro inexistente avisa em vez de ser descartado em silêncio.
+
+### 12b. Publicações: a fila é o STATUS do escritório, e a saída da fila tem regras de tempo
+
+- **A fila padrão é "A tratar" = `triageStatus` diferente de TRATADA** (`lib/publicationChips.ts`).
+  "Vista" (`PublicationRead`) é marca pessoal e NÃO tira nada da fila. Antes a fila era "Não triadas"
+  (= não lida por mim) e uma publicação vista e nunca tratada sumia de todas as abas. Os links antigos
+  (`?aba=nao-triadas`, `?aba=arquivadas`) continuam funcionando.
+- **Criar compromisso a partir de uma publicação a marca como TRATADA** (`resolvePublicationGroupForOffice`),
+  senão ela ficaria em "A tratar" para sempre.
+- **"Marcar como vistas" em lote nunca marca quem cita prazo** — a decisão é do SERVIDOR
+  (`markPublicationsReadBatch`, com a mesma extração da tela). Não existe "arquivar em massa".
+- **Saída da fila = 780 ms de desfecho legível + 220 ms de colapso (1000 ms, pedido do dono).** Com
+  `prefers-reduced-motion` a linha sai já, inclusive o `setTimeout`. A cópia local da fila NÃO é
+  substituída pela do servidor enquanto há modal aberto ou linha saindo (uma ação de servidor
+  revalida a página no meio do caminho e a linha sumia antes do desfecho).
+- **Tokens de texto de risco** (`--risco-*-tx`) e `--foco` existem porque `--risco-vencido` no Noite
+  mede abaixo de 4,5:1 como texto de 12 px. Use `text-risco-vencido-tx` para texto, `text-risco-vencido`
+  só para ícone/borda.

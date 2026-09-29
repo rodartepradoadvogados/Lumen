@@ -1,17 +1,12 @@
-// Vocabulário dos 4 chips de filtro da triagem de publicações (documento 05 do handoff do
-// redesenho, "Não triadas · Minhas · Sem processo · Arquivadas") — substituem as antigas abas
-// Não lidas/Lidas/Todos como navegação PRINCIPAL de /publicacoes. Puro, sem Prisma: usado tanto
-// pelo servidor (app/(app)/publicacoes/page.tsx, para filtrar/contar antes de mandar pro cliente)
-// quanto pelo cliente (components/PublicationsTriage.tsx, para reaplicar o mesmo filtro nas
-// atualizações otimistas locais depois de arquivar/vincular/criar tarefa — sem esperar um
-// router.refresh() completo pra a fila reagir).
+// Vocabulário dos chips de fila da triagem de publicações (/publicacoes): "A tratar" (padrão),
+// "Minhas", "Sem processo" e "Tratadas". A fila é definida pelo STATUS DO ESCRITÓRIO
+// (Publication.triageStatus), nunca pela leitura de cada pessoa: "vista" é uma marca individual e
+// não tira nada da fila — antes a fila padrão era "Não triadas" (= não lida por mim), e uma
+// publicação vista e nunca tratada sumia de todas as abas (32 no banco de demonstração).
 //
-// Cada chip é independente dos outros três (não é uma árvore de sub-filtros): "Arquivadas"
-// reaproveita Publication.triageStatus = TRATADA (campo já existente, sem mudança de schema) como
-// o desfecho de "Arquivar" na barra de ações do teor — os outros dois valores (PENDENTE/
-// EM_ANALISE) continuam existindo e não têm chip próprio aqui, só o seletor que já existe na
-// tela do Processo.
-export type PublicationChipKey = "nao-triadas" | "a-tratar" | "minhas" | "sem-processo" | "arquivadas";
+// Puro, sem Prisma: usado pelo servidor (contagens e filtro) e pelo cliente (reaplicar o filtro nas
+// atualizações otimistas depois de cada ação, sem esperar um router.refresh()).
+export type PublicationChipKey = "a-tratar" | "minhas" | "sem-processo" | "tratadas";
 
 export type ChipMatchable = {
   allRead: boolean;
@@ -23,17 +18,16 @@ export type ChipMatchable = {
 };
 
 export function matchesPublicationChip(group: ChipMatchable, chip: PublicationChipKey, viewerId: string): boolean {
-  if (chip === "minhas") return group.primary.assignedToId === viewerId;
-  if (chip === "sem-processo") return !group.primary.case;
-  if (chip === "arquivadas") return group.primary.triageStatus === "TRATADA";
-  // "A tratar": status do ESCRITÓRIO (não a leitura de cada pessoa) — tudo que ainda não foi
-  // tratado, tenha alguém visto ou não. É onde reaparece o que "Não triadas" (leitura pessoal)
-  // esconde: publicação vista e nunca tratada.
-  if (chip === "a-tratar") return group.primary.triageStatus !== "TRATADA";
-  return !group.allRead; // nao-triadas (padrão) — mesmo critério da antiga aba "Não lidas"
+  const aberta = group.primary.triageStatus !== "TRATADA";
+  if (chip === "tratadas") return !aberta;
+  if (chip === "minhas") return aberta && group.primary.assignedToId === viewerId;
+  if (chip === "sem-processo") return aberta && !group.primary.case;
+  return aberta; // a-tratar (padrão)
 }
 
+// Aceita os nomes antigos ("nao-triadas", "arquivadas") para não quebrar links já salvos.
 export function parsePublicationChip(value: string | undefined): PublicationChipKey {
-  if (value === "a-tratar" || value === "minhas" || value === "sem-processo" || value === "arquivadas") return value;
-  return "nao-triadas";
+  if (value === "minhas" || value === "sem-processo") return value;
+  if (value === "tratadas" || value === "arquivadas") return "tratadas";
+  return "a-tratar";
 }

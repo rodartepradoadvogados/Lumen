@@ -119,7 +119,12 @@ const config: Config = {
           vencido: "var(--risco-vencido)",
           hoje: "var(--risco-hoje)",
           "em-dia": "var(--risco-em-dia)",
+          // Variantes para TEXTO de risco (contraste de 4,5:1 nos dois temas; ver globals.css).
+          "vencido-tx": "var(--risco-vencido-tx)",
+          "hoje-tx": "var(--risco-hoje-tx)",
+          "em-dia-tx": "var(--risco-em-dia-tx)",
         },
+        foco: "var(--foco)",
         // Papel de texto sobre uma faixa PREENCHIDA (guia ativa, botao primario, tarja). Troca
         // com o tema — claro sobre a faixa escura do tema manila, escuro sobre a faixa clara do
         // tema gaveta. E o token que impede o defeito de `text-white` cravado, que hoje deixa
