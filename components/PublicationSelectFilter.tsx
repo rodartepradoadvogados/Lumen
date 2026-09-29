@@ -10,11 +10,15 @@ export type SelectFilterOption = { value: string; label: string; count?: number 
 export default function PublicationSelectFilter({
   param,
   label,
+  allLabel = "todos",
+  neutro = false,
   options,
   value,
   baseParams,
 }: {
-  param: "resp" | "adv";
+  param: string;
+  allLabel?: string;
+  neutro?: boolean;
   label: string;
   options: SelectFilterOption[];
   value?: string;
@@ -30,21 +34,21 @@ export default function PublicationSelectFilter({
     router.push(`/publicacoes${s ? `?${s}` : ""}`);
   }
 
-  const active = !!value;
+  const active = !!value && !neutro;
 
   return (
     <select
       value={value || ""}
       onChange={handleChange}
       aria-label={label}
-      className={`text-xs font-semibold px-3 py-1.5 border cursor-pointer transition-colors ${
+      className={`text-sm font-semibold px-2 min-h-11 md:min-h-9 w-44 max-md:w-full border cursor-pointer transition-colors ${
         active ? "bg-acao text-acao-tx border-acao" : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
       }`}
     >
-      <option value="">{label}: todos</option>
+      <option value="">{label}: {allLabel}</option>
       {options.map((o) => (
         <option key={o.value} value={o.value}>
-          {o.label}
+          {label}: {o.label}
           {o.count !== undefined ? ` (${o.count})` : ""}
         </option>
       ))}

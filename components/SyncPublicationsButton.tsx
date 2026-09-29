@@ -15,8 +15,13 @@ export default function SyncPublicationsButton() {
   const [result, setResult] = useState<FullSyncResult | null>(null);
 
   return (
-    <div>
+    <div className="relative">
+      {/* Botão de ícone: a sincronização já é automática (a cada 3 h); o ato do dia é triar. O nome
+          longo de antes (49 caracteres) e o bordô saíram do cabeçalho. */}
       <button
+        type="button"
+        aria-label="Buscar novas publicações agora"
+        title="Buscar novas publicações agora"
         onClick={() =>
           startTransition(async () => {
             const r = await runFullPublicationsSync();
@@ -25,13 +30,16 @@ export default function SyncPublicationsButton() {
           })
         }
         disabled={pending}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2 rounded-md"
+        className="grid place-items-center min-h-11 min-w-11 md:min-h-9 md:min-w-9 border border-regua-forte bg-transparent hover:bg-sf-apoio text-tx disabled:opacity-50"
       >
-        <RefreshCw size={15} className={pending ? "animate-spin" : ""} />
-        {pending ? "Sincronizando..." : "Sincronizar publicações e andamentos processuais"}
+        <RefreshCw size={16} aria-hidden="true" className={pending ? "animate-spin motion-reduce:animate-none" : ""} />
       </button>
+      <span role="status" className="sr-only">{pending ? "Buscando novas publicações." : ""}</span>
       {result && (
-        <div className="text-sm mt-3 space-y-2">
+        <div className="absolute right-0 top-full mt-1 z-30 w-[min(92vw,26rem)] bg-sf border border-regua-forte shadow-pop p-3 text-sm space-y-2" role="status">
+          <button type="button" onClick={() => setResult(null)} className="float-right min-h-8 px-2 text-xs font-semibold text-tx-2 hover:text-tx">
+            Fechar
+          </button>
           <div>
             <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">E-mail</p>
             <p className="text-tx">
