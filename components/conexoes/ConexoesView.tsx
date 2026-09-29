@@ -3,18 +3,14 @@
 import { useMemo, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
+import { EmptyState } from "@/components/ui";
+import { descreverExecucao, ordenarFalhasPrimeiro } from "@/lib/gestao/saudeIntegracoes";
 
-// FILETE LATERAL DELIBERADO — o detector acusa `side-tab` aqui e a acusação fica em pé de
-// propósito, sem ignore de arquivo (que silenciaria todo achado futuro deste arquivo, inclusive
-// os reais). Dos treze filetes laterais que o diagnóstico encontrou, nove eram recado avulso e
-// viraram régua no topo (ver components/Aviso.tsx). Estes ficam porque aqui o filete NÃO decora
-// uma caixa: ele codifica a SELEÇÃO da LINHA inteira, que é exatamente o papel que o contrato de
-// direção "Guias" reserva para ele.
-
-// Rota /conexoes (documento 04 do handoff do redesenho Modernist) — catálogo à esquerda (520px,
-// borda direita 2px), detalhe de anatomia fixa à direita. Item selecionado é estado de cliente
-// (não muda a URL): a página inteira já chega pronta do servidor (app/(app)/conexoes/page.tsx),
-// então trocar o item em foco não precisa de nenhum round-trip — só decide o que mostrar.
+// Rota /conexoes. A página chega pronta do servidor (app/(app)/conexoes/page.tsx); o item aberto no
+// detalhe é estado de cliente (trocar de item não precisa de nenhum round-trip). As guias
+// (Ativas, Disponíveis, Webhooks e log) são links, e o título/trilha/guias vêm do gabarito único
+// (components/gestao/ConexoesPagina.tsx). A seleção da lista se marca com fundo e aria-current, e
+// não mais com um filete lateral de 4px.
 
 export type ConexaoEstado = "ok" | "erro" | "aviso" | "off";
 export type ConexaoGrupo = "Tribunais" | "Dinheiro" | "Arquivos" | "Mensagens" | "Chaves e automação";
@@ -45,29 +41,23 @@ export type ConexaoItem = {
   // serviço Python à parte), mostra essa ressalva em vez de fabricar um controle que não mudaria
   // nada de verdade.
   frequenciaNota?: string;
-  // "Webhooks e log" (documento 04) não é uma integração com ciclo de vida próprio — é a visão
-  // consolidada de TODAS as outras. Só este item usa o painel de detalhe alternativo (filtro +
-  // exportação), em vez da anatomia fixa de 1-a-6 do documento.
-  ehLog?: boolean;
+  /** Grupo temático, mostrado como legenda pequena na lista. */
+  grupo?: ConexaoGrupo;
 };
 
 const ESTADO_DOT: Record<ConexaoEstado, string> = {
   ok: "bg-concluido",
-  erro: "bg-atencao",
+  erro: "bg-urgente",
   aviso: "bg-aviso",
   off: "bg-tx-3",
 };
 
 const ESTADO_TEXT: Record<ConexaoEstado, string> = {
   ok: "text-concluido",
-  erro: "text-atencao",
+  erro: "text-urgente",
   aviso: "text-aviso",
   off: "text-tx-3",
 };
-
-// O filete LATERAL da linha de lista codifica SELEÇÃO (border-l-acao quando ativa), não estado —
-// por isso não há mapa de estado para ele. Seleção é "lugar", e o contrato de direção reserva o
-// filete lateral exatamente para lugar e para severidade de fila.
 
 // Filete de TOPO — para a caixa de recado. Filete lateral grosso numa caixa é o antipadrão que a
 // regra da casa já proibia; aqui ele virou régua no topo, como em todo cartão do sistema.
@@ -87,38 +77,54 @@ function formatDateTime(iso: string) {
   return `${dataDeBrasilia(d)} ${horaDeBrasilia(d)}`;
 }
 
-const RUN_STATUS_TEXT: Record<IntegrationRunRow["status"], string> = { OK: "text-concluido", ERRO: "text-atencao", AVISO: "text-aviso" };
+const RUN_STATUS_TEXT: Record<IntegrationRunRow["status"], string> = { OK: "text-concluido", ERRO: "text-urgente", AVISO: "text-aviso" };
+const RUN_STATUS_PALAVRA: Record<IntegrationRunRow["status"], string> = { OK: "Ok", ERRO: "Falhou", AVISO: "Aviso" };
+const LINHAS_INICIAIS = 8;
 
-// Tabela de log — mesma estrutura tanto no detalhe de uma integração (log só dela) quanto no
-// detalhe de "Webhooks e log" (log de todas, com a coluna extra de integração).
+// Tabela de log — falhas PRIMEIRO, 8 linhas e "Ver mais" (eram ~28 linhas de "200"), o estado dito
+// com palavra e a mensagem traduzida em português com a consequência. O código HTTP fica como
+// detalhe pequeno, para quem precisa dele.
 function RunsTable({ runs, showIntegration }: { runs: (IntegrationRunRow & { integration?: string })[]; showIntegration?: boolean }) {
+  const [todas, setTodas] = useState(false);
   if (runs.length === 0) {
     return <p className="text-sm text-tx-2 px-5 py-6">Nenhuma execução registrada neste período.</p>;
   }
+  const ordenadas = ordenarFalhasPrimeiro(runs);
+  const mostradas = todas ? ordenadas : ordenadas.slice(0, LINHAS_INICIAIS);
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-etiqueta font-semibold uppercase tracking-[.1em] text-tx-2 border-b border-regua">
-            <th className="px-5 py-2 font-semibold w-[150px]">Data/hora</th>
-            {showIntegration && <th className="px-2 py-2 font-semibold">Integração</th>}
-            <th className="px-2 py-2 font-semibold w-[90px]">Status</th>
-            <th className="px-2 py-2 font-semibold">Resultado</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-regua">
-          {runs.map((r) => (
-            <tr key={r.id}>
-              <td className="px-5 py-2 tabular-nums text-tx-2">{formatDateTime(r.startedAt)}</td>
-              {showIntegration && <td className="px-2 py-2 text-tx">{r.integration}</td>}
-              <td className={clsx("px-2 py-2 font-semibold", RUN_STATUS_TEXT[r.status])}>{r.httpStatus ?? r.status}</td>
-              <td className="px-2 py-2 text-tx-2">
-                {r.message ?? (r.itemCount !== null ? `${r.itemCount} item(ns)` : "—")}
-              </td>
+    <div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-etiqueta font-semibold uppercase tracking-[.1em] text-tx-2 border-b border-regua">
+              <th scope="col" className="px-5 py-2 font-semibold w-[150px]">Quando</th>
+              {showIntegration && <th scope="col" className="px-2 py-2 font-semibold">Integração</th>}
+              <th scope="col" className="px-2 py-2 font-semibold w-[90px]">Estado</th>
+              <th scope="col" className="px-2 py-2 font-semibold">O que aconteceu</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-regua">
+            {mostradas.map((r) => (
+              <tr key={r.id}>
+                <td className="px-5 py-2 tabular-nums text-tx-2 whitespace-nowrap">{formatDateTime(r.startedAt)}</td>
+                {showIntegration && <td className="px-2 py-2 text-tx">{r.integration}</td>}
+                <td className={clsx("px-2 py-2 font-semibold", RUN_STATUS_TEXT[r.status])}>{RUN_STATUS_PALAVRA[r.status]}</td>
+                <td className="px-2 py-2 text-tx-2">
+                  {descreverExecucao(r)}
+                  {r.status !== "OK" && r.httpStatus !== null && <span className="text-etiqueta text-tx-3"> · código {r.httpStatus}</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {ordenadas.length > LINHAS_INICIAIS && (
+        <div className="px-5 py-3 border-t border-regua">
+          <button type="button" onClick={() => setTodas((v) => !v)} className="text-sm font-semibold text-marca-tx hover:underline">
+            {todas ? "Mostrar só as mais importantes" : `Ver as ${ordenadas.length} execuções`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -254,76 +260,70 @@ function IntegrationDetail({ item, runs }: { item: ConexaoItem; runs: Integratio
 }
 
 export default function ConexoesView({
-  grupos,
-  totalIntegracoes,
-  exigemAtencao,
+  guia,
+  ativas,
+  disponiveis,
   runsByIntegration,
 }: {
-  grupos: { grupo: ConexaoGrupo; itens: ConexaoItem[] }[];
-  totalIntegracoes: number;
-  exigemAtencao: number;
+  guia: "ativas" | "disponiveis" | "log";
+  ativas: ConexaoItem[];
+  disponiveis: ConexaoItem[];
   runsByIntegration: Record<string, IntegrationRunRow[]>;
 }) {
-  const firstId = grupos[0]?.itens[0]?.id ?? "";
-  const [selectedId, setSelectedId] = useState(firstId);
-  const selected = grupos.flatMap((g) => g.itens).find((i) => i.id === selectedId) ?? grupos[0]?.itens[0];
+  const [selectedId, setSelectedId] = useState("");
+
+  if (guia === "log") {
+    return (
+      <div className="bg-sf border-t-2 border-regua-forte">
+        <div className="px-5 py-4 border-b border-regua">
+          <h2 className="text-destaque font-bold text-tx">Webhooks e log</h2>
+          <p className="text-sm text-tx-2 mt-0.5">Todas as execuções dos últimos 30 dias, as falhas primeiro.</p>
+        </div>
+        <LogDetail runsByIntegration={runsByIntegration} />
+      </div>
+    );
+  }
+
+  const lista = guia === "disponiveis" ? disponiveis : ativas;
+  if (lista.length === 0) {
+    return (
+      <div className="bg-sf border-t-2 border-regua-forte">
+        <EmptyState
+          title={guia === "ativas" ? "Nenhuma conexão ativa ainda" : "Nada mais para ligar por enquanto"}
+          subtitle={guia === "ativas" ? "Veja as disponíveis na guia ao lado para ligar a primeira." : "Tudo o que funciona neste ambiente já está ativo."}
+        />
+      </div>
+    );
+  }
+  const selected = lista.find((i) => i.id === selectedId) ?? lista[0];
 
   return (
-    // Sem h-full/overflow próprio: <main> (components/AppShell.tsx) já é o único scroller da
-    // página, como em todas as outras rotas — duas áreas de rolagem aninhadas (esta + a de
-    // <main>) rendem inconsistente entre navegadores sem ganho real (o catálogo cabe folgado
-    // numa tela comum; quem tiver uma janela baixa só rola a página inteira, como em qualquer
-    // outra tela do produto).
-    <div className="animate-fade-in">
-      <div className="px-6 py-5 border-b-2 border-regua-forte">
-        <h1 className="text-autuacao font-extrabold text-tx leading-tight">Conexões</h1>
-        <p className="text-sm text-tx-2 mt-1">
-          {totalIntegracoes} integrações · {exigemAtencao} exige{exigemAtencao === 1 ? "" : "m"} atenção
-        </p>
-      </div>
-
-      <div className="flex flex-col md:flex-row md:items-start">
-        <div className="w-full md:w-[520px] shrink-0 border-b-2 md:border-b-0 md:border-r-2 border-regua-forte">
-          {grupos.map((g) => (
-            <div key={g.grupo}>
-              <p className="px-5 py-2 text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em] bg-sf-apoio">{g.grupo}</p>
-              <div className="divide-y divide-regua">
-                {g.itens.map((item) => {
-                  const active = item.id === selectedId;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setSelectedId(item.id)}
-                      className={clsx(
-                        "w-full text-left px-5 py-3 border-l-4 transition-colors",
-                        active ? "bg-sf-apoio border-l-acao" : "border-l-transparent hover:bg-sf-apoio"
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-tx">{item.nome}</span>
-                        <span className={clsx("flex items-center gap-1.5 text-xs font-semibold shrink-0", ESTADO_TEXT[item.estado])}>
-                          <EstadoDot estado={item.estado} />
-                          {item.estadoTexto}
-                        </span>
-                      </div>
-                      <p className="text-xs text-tx-2 mt-0.5 truncate">{item.contexto}</p>
-                    </button>
-                  );
-                })}
+    <div className="flex flex-col lg:flex-row lg:items-start bg-sf border-t-2 border-regua-forte animate-fade-in">
+      <div className="w-full lg:w-[420px] shrink-0 border-b-2 lg:border-b-0 lg:border-r-2 border-regua-forte divide-y divide-regua">
+        {lista.map((item) => {
+          const active = item.id === selected.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setSelectedId(item.id)}
+              aria-current={active ? "true" : undefined}
+              className={clsx("w-full text-left px-5 py-3 transition-colors", active ? "bg-sf-apoio" : "hover:bg-sf-apoio")}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={clsx("text-sm text-tx", active ? "font-bold" : "font-semibold")}>{item.nome}</span>
+                <span className={clsx("flex items-center gap-1.5 text-xs font-semibold shrink-0", ESTADO_TEXT[item.estado])}>
+                  <EstadoDot estado={item.estado} />
+                  {item.estadoTexto}
+                </span>
               </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          {selected &&
-            (selected.ehLog ? (
-              <LogDetail runsByIntegration={runsByIntegration} />
-            ) : (
-              <IntegrationDetail item={selected} runs={runsByIntegration[selected.id] ?? []} />
-            ))}
-        </div>
+              <p className="text-xs text-tx-2 mt-0.5 truncate">{item.contexto}</p>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex-1 min-w-0">
+        <IntegrationDetail item={selected} runs={runsByIntegration[selected.id] ?? []} />
       </div>
     </div>
   );

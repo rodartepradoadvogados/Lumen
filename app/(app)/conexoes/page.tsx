@@ -14,9 +14,12 @@ import { getDjenTargets } from "@/lib/djenSync";
 import { isBtgConnected } from "@/lib/btg";
 import { getAppUrl } from "@/lib/appUrl";
 import { listApiKeys } from "@/lib/actions/apiKeys";
-import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
+import { dataDeBrasilia, horaDeBrasilia } from "@/lib/horaDeBrasilia";
 import AccessRestrictedNotice from "@/components/AccessRestrictedNotice";
 import ApiKeysManager from "@/components/conexoes/ApiKeysManager";
+import ConexoesPagina from "@/components/gestao/ConexoesPagina";
+import SaudeDasConexoes from "@/components/conexoes/SaudeDasConexoes";
+import { descreverExecucao, resumirSaude } from "@/lib/gestao/saudeIntegracoes";
 import ConexoesView, { type ConexaoGrupo, type ConexaoItem, type IntegrationRunRow } from "@/components/conexoes/ConexoesView";
 import TestDjenButton from "@/components/TestDjenButton";
 import TestEmailButton from "@/components/TestEmailButton";
@@ -106,7 +109,7 @@ function formatRelative(date: Date): string {
 export default async function ConexoesPage({
   searchParams,
 }: {
-  searchParams: { google?: string; microsoft?: string; dropbox?: string; msg?: string };
+  searchParams: { google?: string; microsoft?: string; dropbox?: string; msg?: string; guia?: string };
 }) {
   const viewer = await getCurrentUser();
   if (!canConfigureIntegrations(viewer)) {
@@ -237,8 +240,9 @@ export default async function ConexoesPage({
       ? `Última execução ${formatRelative(ultimoDatajud.executadoEm)}`
       : "Nunca executado";
 
-  const FREQUENCIA_ROBO =
-    "Sincronizado por um serviço agendado à parte (robo-publicacoes/), hoje a cada 3 horas — configurar isso por aqui ainda não está disponível.";
+  // Texto para quem usa o sistema: sem nome de pasta do repositório nem "ainda não disponível"
+  // (consolidado R10 — texto de desenvolvimento vazava para a tela).
+  const FREQUENCIA_ROBO = "Consultado automaticamente a cada 3 horas.";
 
   // Nomeação de pastas, escolha de provedor ativo e os botões de manutenção do Drive são
   // configuração de ARMAZENAMENTO como um todo, não de um provedor específico — documento 04:
@@ -292,10 +296,10 @@ export default async function ConexoesPage({
             </p>
           </div>
           <RenameCasesToConventionButton />
-          <Link href="/configuracoes/relatorio-pastas" className="text-xs font-semibold text-marca-tx hover:underline">
+          <Link href="/conexoes/relatorio-pastas" className="text-xs font-semibold text-marca-tx hover:underline">
             Ver relatório de pastas →
           </Link>
-          <Link href="/configuracoes/duplicados" className="text-xs font-semibold text-marca-tx hover:underline">
+          <Link href="/contatos/duplicados" className="text-xs font-semibold text-marca-tx hover:underline">
             Ver e unificar clientes duplicados →
           </Link>
         </div>
@@ -463,7 +467,7 @@ export default async function ConexoesPage({
           contexto: driveStatus.accountEmail ? `Conta: ${driveStatus.accountEmail}` : driveStatus.message || "Nenhuma conta conectada ainda.",
           extra: driveExtra,
         },
-        {
+        ...(isMicrosoftConfigured() || oneDriveStatus.connected ? [{
           id: "ONEDRIVE",
           nome: "OneDrive",
           descricao: "Guarda os anexos dos processos e assessorias na conta Microsoft conectada.",
@@ -475,8 +479,8 @@ export default async function ConexoesPage({
               ? `Conta: ${oneDriveStatus.accountEmail}`
               : "Nenhuma conta conectada ainda.",
           extra: oneDriveExtra,
-        },
-        {
+        } as ConexaoItem] : []),
+        ...(isDropboxConfigured() || dropboxStatus.connected ? [{
           id: "DROPBOX",
           nome: "Dropbox",
           descricao: "Guarda os anexos dos processos e assessorias na conta Dropbox conectada.",
@@ -488,7 +492,7 @@ export default async function ConexoesPage({
               ? `Conta: ${dropboxStatus.accountEmail}`
               : "Nenhuma conta conectada ainda.",
           extra: dropboxExtra,
-        },
+        } as ConexaoItem] : []),
       ],
     },
     {
@@ -540,59 +544,61 @@ export default async function ConexoesPage({
         },
       ],
     },
-    {
-      grupo: "Chaves e automação",
-      itens: [
-        {
-          id: "API_KEYS",
-          nome: "API keys do escritório",
-          descricao: "Chaves para integrações externas chamarem a API do Lúmen em nome do escritório.",
-          estado: apiKeysAtivas.length > 0 ? "ok" : "off",
-          estadoTexto: apiKeysAtivas.length > 0 ? contar(apiKeysAtivas.length, "ativa") : "não configurado",
-          contexto:
-            apiKeysAtivas.length > 0
-              ? `${contar(apiKeysAtivas.length, "chave ativa", "chaves ativas")} — nenhuma valida chamada real ainda (ver aviso no detalhe)`
-              : "Nenhuma chave criada ainda. Nenhum endpoint do Lúmen valida chaves ainda — só a gestão da credencial existe.",
-          extra: <ApiKeysManager initialKeys={apiKeysList} />,
-        },
-        {
-          id: "MCP",
-          nome: "Servidores MCP",
-          descricao: "Ferramentas externas que o assistente (AssistenteWidget) pode chamar em nome do escritório.",
-          estado: "off",
-          estadoTexto: "não configurado",
-          // Disclosure explícita: hoje não existe NENHUM servidor MCP administrável no projeto —
-          // o assistente não tem essa capacidade de verdade ainda, então esta tela nasce vazia até
-          // essa capacidade existir (não é só uma tela sem dado; é uma tela sem a FUNCIONALIDADE por
-          // trás dela). Ver comentário na PR sobre o que falta antes de PR12 poder ligar isto de
-          // verdade.
-          contexto: "Ainda não implementado — o assistente hoje não chama nenhuma ferramenta MCP.",
-        },
-        {
-          id: "WEBHOOKS_LOG",
-          nome: "Webhooks e log",
-          descricao: "Visão consolidada de todas as execuções de integração dos últimos 30 dias.",
-          estado: integrationRuns.length > 0 ? "ok" : "off",
-          estadoTexto: integrationRuns.length > 0 ? "ativo" : "sem execuções",
-          contexto:
-            integrationRuns.length > 0
-              ? `${contar(integrationRuns.length, "execução", "execuções")} nos últimos 30 dias`
-              : "Nenhuma execução registrada ainda — o log passa a preencher conforme cada integração acima liga a escrita (próximas PRs desta fase).",
-          ehLog: true,
-        },
-      ],
-    },
+    // Só aparece o que funciona neste ambiente. "Servidores MCP" não existe no produto e as API
+    // keys ainda não são validadas por nenhum endpoint: mostrar os dois como "não configurado" era
+    // propaganda de coisa que não se pode ligar. Quem já criou chaves continua vendo (e revogando).
+    ...(apiKeysAtivas.length > 0
+      ? [
+          {
+            grupo: "Chaves e automação" as ConexaoGrupo,
+            itens: [
+              {
+                id: "API_KEYS",
+                nome: "Chaves de API do escritório",
+                descricao: "Chaves para integrações externas chamarem a API do Lúmen em nome do escritório.",
+                estado: "ok" as const,
+                estadoTexto: contar(apiKeysAtivas.length, "ativa"),
+                contexto: contar(apiKeysAtivas.length, "chave ativa", "chaves ativas"),
+                extra: <ApiKeysManager initialKeys={apiKeysList} />,
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 
-  const totalIntegracoes = grupos.reduce((s, g) => s + g.itens.length, 0);
-  const exigemAtencao = grupos.reduce((s, g) => s + g.itens.filter((i) => i.estado === "erro" || i.estado === "aviso").length, 0);
+  const todos: ConexaoItem[] = grupos.flatMap((g) => g.itens.map((i) => ({ ...i, grupo: g.grupo })));
+  const ativas = todos.filter((i) => i.estado !== "off");
+  const disponiveis = todos.filter((i) => i.estado === "off");
+  const guia: "ativas" | "disponiveis" | "log" = searchParams.guia === "disponiveis" ? "disponiveis" : searchParams.guia === "log" ? "log" : "ativas";
+
+  // A RESPOSTA da página: a saúde das integrações. Nunca "0 exigem atenção" ao lado de um erro: o
+  // resumo conta as falhas do log dos últimos 7 dias E as conexões que estão falhando agora.
+  const seteDias = Date.now() - 7 * 86400000;
+  const recentes = integrationRuns.filter((r) => r.startedAt.getTime() >= seteDias).map((r) => ({ status: r.status as "OK" | "ERRO" | "AVISO" }));
+  const saude = resumirSaude(recentes, "nos últimos 7 dias");
+  const falhandoAgora = todos.filter((i) => i.estado === "erro" || i.estado === "aviso");
+  const ultimaFalha = integrationRuns.find((r) => r.status === "ERRO");
 
   return (
-    <ConexoesView
-      grupos={grupos}
-      totalIntegracoes={totalIntegracoes}
-      exigemAtencao={exigemAtencao}
-      runsByIntegration={Object.fromEntries(runsByIntegration)}
-    />
+    <ConexoesPagina
+      ativa={guia === "log" ? "log" : guia}
+      frase="O que está ligado ao Lúmen, o que dá para ligar e o que falhou."
+      contadores={{ ativas: ativas.length, disponiveis: disponiveis.length }}
+      resposta={
+        <SaudeDasConexoes
+          texto={saude.texto}
+          falhas={saude.falhas + falhandoAgora.length}
+          falhandoAgora={falhandoAgora.map((i) => `${i.nome}: ${i.contexto}`)}
+          ultimaFalha={
+            ultimaFalha
+              ? { integracao: ultimaFalha.integration, quando: `${dataDeBrasilia(ultimaFalha.startedAt)} ${horaDeBrasilia(ultimaFalha.startedAt)}`, o_que: descreverExecucao({ status: "ERRO", httpStatus: ultimaFalha.httpStatus, itemCount: ultimaFalha.itemCount, message: ultimaFalha.message }) }
+              : null
+          }
+        />
+      }
+    >
+      <ConexoesView guia={guia} ativas={ativas} disponiveis={disponiveis} runsByIntegration={Object.fromEntries(runsByIntegration)} />
+    </ConexoesPagina>
   );
 }
