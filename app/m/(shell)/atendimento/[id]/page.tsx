@@ -16,6 +16,7 @@ import Conversa from "@/components/atendimento/Conversa";
 import QuemEEsteNumero from "@/components/atendimento/QuemEEsteNumero";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
+import { janelaDaConversa } from "@/lib/envioDeMensagemDb";
 import AtendenteIaControle from "@/components/AtendenteIaControle";
 import { ArrowLeft } from "lucide-react";
 import { dataDeBrasilia, dataEHoraDeBrasilia } from "@/lib/horaDeBrasilia";
@@ -95,6 +96,8 @@ export default async function MobileAttendanceDetail({
 
   const whatsappConfigured = await isWhatsappConfigured(viewer.officeId);
   const podeResponder = Boolean(a.waPhone) && whatsappConfigured;
+  // A janela de 24 h (só Meta) ANTES do campo: fechada, a caixa vira a faixa com as saídas.
+  const janelaDoWhatsapp = podeResponder ? await janelaDaConversa(a.id, viewer.officeId, new Date()) : undefined;
 
   // O MESMO CRITÉRIO DE TODAS AS TELAS (lib/rotulosDaEspera.ts): a última palavra é do cliente.
   // Serve a duas coisas de uma vez — a bolinha que pisca no cabeçalho e o controle do atendente,
@@ -312,7 +315,7 @@ export default async function MobileAttendanceDetail({
                 nomeDoAtendente={nomeDoAtendente}
                 compacto
               />
-              <WhatsappReplyBox attendanceId={a.id} nomeDoCliente={a.clientName} />
+              <WhatsappReplyBox attendanceId={a.id} nomeDoCliente={a.clientName} janela={janelaDoWhatsapp} telefone={a.waPhone} />
             </>
           ) : (
             <p className="py-2 text-corpo text-tx-3">

@@ -4,6 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Send } from "lucide-react";
 import { replyWhatsapp } from "@/lib/actions/attendance";
+import FaixaDaJanelaFechada from "@/components/atendimento-app/FaixaDaJanelaFechada";
+import { nomeParaAFaixa } from "@/lib/faixaDaJanela";
+import type { JanelaDoWhatsapp } from "@/lib/janelaDe24h";
 
 // A caixa de resposta, presa no pé da conversa.
 //
@@ -14,7 +17,21 @@ import { replyWhatsapp } from "@/lib/actions/attendance";
 // O NOME DO CLIENTE VAI NO CAMPO ("Escreva para Maria…") porque a pessoa do escritório atende dez
 // conversas ao mesmo tempo, e o custo de mandar a mensagem para a conversa errada é alto. Só o
 // primeiro nome: o nome completo no lugar de uma dica de campo fica comprido e deixa de ser lido.
-export default function WhatsappReplyBox({ attendanceId, nomeDoCliente }: { attendanceId: string; nomeDoCliente?: string }) {
+//
+// JANELA DE 24 H (só Meta): a página calcula `janela` (janelaDaConversa) e, FECHADA, este componente troca o campo pela mesma
+// faixa do aplicativo (Ligar, Abrir no meu WhatsApp, Criar tarefa, Como reabrir?). Sem `janela` (ou aberta, ou Evolution) o campo
+// é o de sempre. O servidor (replyWhatsapp) confere de novo e recusa cedo, sem tentar a Meta.
+export default function WhatsappReplyBox({
+  attendanceId,
+  nomeDoCliente,
+  janela,
+  telefone,
+}: {
+  attendanceId: string;
+  nomeDoCliente?: string;
+  janela?: JanelaDoWhatsapp;
+  telefone?: string | null;
+}) {
   const primeiroNome = (nomeDoCliente || "").trim().split(/\s+/)[0] || "";
   const router = useRouter();
   const [body, setBody] = useState("");
@@ -34,6 +51,23 @@ export default function WhatsappReplyBox({ attendanceId, nomeDoCliente }: { atte
       setBody("");
       router.refresh();
     });
+  }
+
+  if (janela && !janela.aberta) {
+    const { nomeTemporario, primeiroNome: nome } = nomeParaAFaixa(nomeDoCliente);
+    return (
+      <div className="mt-3" data-janela-fechada="">
+        <FaixaDaJanelaFechada
+          idDaConversa={attendanceId}
+          janela={janela}
+          nomeDoContato={(nomeDoCliente || "").trim()}
+          primeiroNome={nome}
+          nomeTemporario={nomeTemporario}
+          telefone={telefone ?? null}
+          tema="site"
+        />
+      </div>
+    );
   }
 
   return (
