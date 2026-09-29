@@ -13,8 +13,7 @@
 // limite: para ela a janela está sempre aberta e a tela não mostra aviso nenhum. O erro que a própria
 // Meta devolve (`extractGraphError`) continua sendo a autoridade quando esta conta erra.
 //
-// PROTEÇÃO MÍNIMA, NÃO O DESENHO COMPLETO: o aviso é uma frase. A faixa com Ligar, Criar tarefa e
-// "Como reabrir?" é a etapa da janela (PR 6 da proposta).
+// A faixa com Ligar, meu WhatsApp, Criar tarefa e "Como reabrir?" está em lib/faixaDaJanela.ts (PR 6).
 // ============================================================================
 
 export const HORAS_DA_JANELA = 24;
