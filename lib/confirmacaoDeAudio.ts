@@ -15,6 +15,7 @@
 // ============================================================================
 
 import { prisma } from "@/lib/prisma";
+import { registrarMensagem } from "@/lib/registrarMensagem";
 import { deveResponder } from "@/lib/agenteAtendimento";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
@@ -78,8 +79,8 @@ export async function confirmarRecebimentoDeAudio(attendanceId: string): Promise
     const envio = await sendWhatsappText(atendimento.officeId, atendimento.waPhone, CONFIRMACAO_DE_AUDIO);
     if (!envio.ok) return { enviou: false, motivo: envio.error || "falha ao enviar" };
 
-    await prisma.whatsappMessage.create({
-      data: {
+    await registrarMensagem(
+      {
         officeId: atendimento.officeId,
         attendanceId,
         direction: "OUT",
@@ -94,8 +95,8 @@ export async function confirmarRecebimentoDeAudio(attendanceId: string): Promise
         status: "SENT",
         fromNumber: atendimento.waPhone,
       },
-    });
-    await prisma.attendance.update({ where: { id: attendanceId }, data: { waLastMessageAt: new Date() } });
+      { waLastMessageAt: new Date() },
+    );
 
     revalidatePath(`/atendimento/${attendanceId}`);
     revalidatePath("/atendimento");

@@ -130,7 +130,9 @@ export default function Conversa({
           })}
         </div>
       ))}
-      <RolarParaOFim />
+      {/* `conversa` = a identidade da conversa (a primeira mensagem); `chave`/`total` mudam quando chega
+          mensagem — ver RolarParaOFim para o que cada um faz. */}
+      <RolarParaOFim conversa={mensagens[0].id} chave={mensagens[mensagens.length - 1].id} total={mensagens.length} />
     </div>
   );
 }

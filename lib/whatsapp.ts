@@ -9,6 +9,7 @@ import { type TipoMidiaWhatsapp, montarNomeArquivoWhatsapp, rotuloDaMidiaWhatsap
 import { getOrCreateAttendanceFolder, uploadFileToDriveFolder, type StorageProvider } from "@/lib/storageProvider";
 import { nomeTemporarioDoLead, assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoLead";
 import { prazoAutomaticoDeFollowUp } from "@/lib/followUpAutomatico";
+import { registrarMensagem } from "@/lib/registrarMensagem";
 
 // ============================================================================
 // Integração WhatsApp — DOIS provedores, uma porta só para o resto do sistema.
@@ -543,8 +544,8 @@ export async function ingestIncomingWhatsapp({
 
   const recebidoEm = new Date();
 
-  const novaMensagem = await prisma.whatsappMessage.create({
-    data: {
+  const novaMensagem = await registrarMensagem(
+    {
       officeId,
       attendanceId: attendance.id,
       direction: "IN",
@@ -558,12 +559,8 @@ export async function ingestIncomingWhatsapp({
       status: "RECEIVED",
       fromNumber,
     },
-  });
-
-  await prisma.attendance.update({
-    where: { id: attendance.id },
-    data: { waLastMessageAt: new Date() },
-  });
+    { waLastMessageAt: new Date() },
+  );
 
   // F5 — MÍDIA DO WHATSAPP NO DRIVE. Sobe AGORA, no mesmo pedido do webhook, e não numa fila: a
   // URL de mídia da Meta expira em minutos, e a Evolution só guarda o arquivo por um tempo curto —
