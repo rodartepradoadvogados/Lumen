@@ -125,8 +125,8 @@ teste("app/(app)/configuracoes/page.tsx: as duas listas do admin (pendente e pub
   verdade(/status:\s*"PUBLICADO",\s*excluidaEm:\s*null/.test(c), "a lista de publicadas do admin (computador) não filtra excluidaEm: null");
 });
 
-teste("app/m/configuracoes/page.tsx: as mesmas duas listas, no PWA, também excluem quem já foi excluído", () => {
-  const c = leCodigoDe("app/m/configuracoes/page.tsx");
+teste("app/m/(shell)/configuracoes/page.tsx: as mesmas duas listas, no PWA, também excluem quem já foi excluído", () => {
+  const c = leCodigoDe("app/m/(shell)/configuracoes/page.tsx");
   verdade(/status:\s*"AGUARDANDO_REVISAO",\s*excluidaEm:\s*null/.test(c), "a lista de revisão pendente do admin (celular) não filtra excluidaEm: null — o PWA reusa BlogReviewManager, mas a QUERY daqui é própria e também precisa do filtro");
   verdade(/status:\s*"PUBLICADO",\s*excluidaEm:\s*null/.test(c), "a lista de publicadas do admin (celular) não filtra excluidaEm: null");
 });

@@ -194,7 +194,7 @@ teste("a fila é buscada com o recorte por dono dentro da consulta", () => {
 });
 
 teste("a tela inicial do app só consulta a fila para quem pode ver o Atendimento", () => {
-  const fonte = readFileSync("app/m/page.tsx", "utf8");
+  const fonte = readFileSync("app/m/(shell)/page.tsx", "utf8");
   verdade(fonte.includes("podeAtendimento && user"), "a tela inicial consulta a fila sem checar o acesso");
   verdade(fonte.includes("filtroDoAtendimento(user, user.id)"), "a tela inicial não passa o recorte por dono");
 });

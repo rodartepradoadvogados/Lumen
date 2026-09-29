@@ -206,15 +206,15 @@ teste("TRAVA: GlobalSearch soma RAIL_STANDALONE (via visibleStandaloneItems) à 
 
 // ── 10. O PWA (app/m) não foi tocado, e sua navegação própria continua flat, sem 'seção' nenhuma ─
 //
-// A tela "Mais" do celular (app/m/mais/page.tsx) já listava Atendimento/Contatos/Configurações
+// A tela "Mais" do celular (app/m/(shell)/mais/page.tsx) já listava Atendimento/Contatos/Configurações
 // como destinos INDEPENDENTES, sem nenhum conceito de "seção" (Jurídico/Gestão/Comunicação) —
 // bem diferente do rail do computador. A reorganização desta entrega é uma mudança de AGRUPAMENTO
 // no rail; onde não há agrupamento para reorganizar (o celular), não há nada a espelhar. Esta
 // suíte só prova que ninguém "consertou" isso adicionando uma dependência nova por engano.
 
-teste("app/m/mais/page.tsx continua sem importar lib/navSections — a reorganização do rail do computador não vazou para o celular", () => {
-  const c = readFileSync(join(RAIZ, "app", "m", "mais", "page.tsx"), "utf8");
-  igual(c.includes("navSections"), false, "app/m/mais/page.tsx passou a importar lib/navSections — o celular não deveria depender do agrupamento por seção do rail do computador");
+teste("app/m/(shell)/mais/page.tsx continua sem importar lib/navSections — a reorganização do rail do computador não vazou para o celular", () => {
+  const c = readFileSync(join(RAIZ, "app", "m", "(shell)", "mais", "page.tsx"), "utf8");
+  igual(c.includes("navSections"), false, "app/m/(shell)/mais/page.tsx passou a importar lib/navSections — o celular não deveria depender do agrupamento por seção do rail do computador");
 });
 
 // ── O RÓTULO TEM DE CABER ────────────────────────────────────────────────────────────────────

@@ -406,7 +406,7 @@ teste("a proposta chega a uma pessoa — nas duas telas, e marcada como interna"
     "o aviso não diz que a nota é interna");
   verdade(aviso.includes("Isto não é recusa"), "a espera de documento não se diz não-recusa na tela");
 
-  for (const tela of ["app/(app)/atendimento/[id]/page.tsx", "app/m/atendimento/[id]/page.tsx"]) {
+  for (const tela of ["app/(app)/atendimento/[id]/page.tsx", "app/m/(shell)/atendimento/[id]/page.tsx"]) {
     const fonte = codigoDe(readFileSync(tela, "utf8"));
     verdade(/<AvisoDaAna\s/.test(fonte), `${tela} não mostra o que a atendente deixou`);
     verdade(fonte.includes("propostaDeRecusa"), `${tela} não passa a proposta`);
