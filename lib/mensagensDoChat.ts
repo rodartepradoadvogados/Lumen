@@ -1,0 +1,175 @@
+import { diaDeBrasilia, horaDeBrasilia } from "@/lib/horaDeBrasilia";
+import { rotuloDoDia } from "@/lib/relogioDoAtendimento";
+import { rotuloDeTranscricaoNaTela, type TranscricaoDaMensagem } from "@/lib/transcricaoDeAudio";
+
+// ============================================================================
+// O CHAT DO APLICATIVO DE ATENDIMENTO (modo leitura, ONDA A): a parte que não toca em banco nem em
+// React — paginação das mensagens, rótulo de mídia e a forma serializável que vai para o celular.
+//
+// AS ÚLTIMAS 60, E "CARREGAR ANTERIORES". A conversa longa não vem inteira: a página traz as 60 mais
+// recentes e a pessoa pede as anteriores em blocos de 60. O CURSOR é (instante, id) da mensagem mais
+// antiga já na tela — e não um "offset" — porque chega mensagem nova enquanto a pessoa lê, e um
+// offset deslocaria a página inteira. O id entra no cursor porque duas mensagens no MESMO instante
+// (comum no ingest em rajada) sem ele seriam puladas ou repetidas na fronteira.
+//
+// MÍDIA É RÓTULO. A mensagem de mídia recebida vira `[imagem]`, `[documento: nome.pdf]`, `[áudio]`
+// (lib/driveNaming.ts:rotuloDaMidiaWhatsapp), com a legenda depois. O arquivo mora no Drive do
+// escritório; abrir/tocar pelo celular chega numa etapa seguinte. O áudio mostra o rótulo e a
+// transcrição (que é um registro à parte, nunca uma mensagem — ver TranscricaoDeAudio).
+// ============================================================================
+
+export const TAMANHO_DA_PAGINA = 60;
+
+export type TipoDeMidia = "imagem" | "documento" | "audio" | "video" | "figurinha";
+
+export type MidiaDaMensagem = {
+  tipo: TipoDeMidia;
+  /** "Imagem", "Documento", "Áudio"... — o que a bolha escreve. */
+  rotulo: string;
+  /** Nome do arquivo, quando o rótulo o trouxe. */
+  nome: string | null;
+  /** O texto que o cliente mandou junto (legenda), ou "". */
+  legenda: string;
+};
+
+const ROTULO_DO_TIPO: Record<TipoDeMidia, string> = {
+  imagem: "Imagem",
+  documento: "Documento",
+  audio: "Áudio",
+  video: "Vídeo",
+  figurinha: "Figurinha",
+};
+
+/** Lê o rótulo de mídia que o ingest grava em `body`. `null` = é texto de verdade. */
+export function lerMidia(body: string): MidiaDaMensagem | null {
+  const m = /^\[(imagem|documento|áudio|audio|vídeo|video|figurinha)(?::\s*([^\]]*))?\]\s*([\s\S]*)$/i.exec(body.trim());
+  if (!m) return null;
+  const bruto = m[1].toLowerCase();
+  const tipo: TipoDeMidia = bruto === "áudio" || bruto === "audio" ? "audio" : bruto === "vídeo" || bruto === "video" ? "video" : (bruto as TipoDeMidia);
+  const nome = m[2]?.trim() ? m[2].trim() : null;
+  return { tipo, rotulo: ROTULO_DO_TIPO[tipo], nome, legenda: m[3].trim() };
+}
+
+/** A prévia da lista: mídia vira "Imagem", "Documento: contrato.pdf"..., com a legenda quando há. */
+export function previaDoCorpo(body: string): string {
+  const midia = lerMidia(body);
+  if (!midia) return body;
+  const base = midia.nome ? `${midia.rotulo}: ${midia.nome}` : midia.rotulo;
+  return midia.legenda ? `${base} · ${midia.legenda}` : base;
+}
+
+/** A mensagem como ela viaja para o celular: só dados simples, horas já em Brasília. */
+export type MensagemDoChat = {
+  id: string;
+  direction: "IN" | "OUT";
+  porAgente: boolean;
+  /** Texto (ou a legenda, quando é mídia). */
+  texto: string;
+  midia: MidiaDaMensagem | null;
+  /** "falhou" só em mensagem de saída que o WhatsApp recusou. */
+  falhou: boolean;
+  enviada: boolean;
+  criadoEm: string; // ISO
+  hora: string;
+  /** Dia de Brasília ("2026-09-29") e o rótulo dele ("Hoje", "Ontem", "27/09"). */
+  dia: string;
+  rotuloDoDia: string;
+  transcricao: { texto: string; ehConteudo: boolean } | null;
+};
+
+export type LinhaDeMensagem = {
+  id: string;
+  direction: string;
+  porAgente: boolean;
+  body: string;
+  status: string;
+  createdAt: Date;
+  transcricao?: TranscricaoDaMensagem;
+};
+
+export function prepararMensagem(m: LinhaDeMensagem, agora: Date): MensagemDoChat {
+  const midia = lerMidia(m.body);
+  const rotuloTranscricao = rotuloDeTranscricaoNaTela(m.transcricao);
+  return {
+    id: m.id,
+    direction: m.direction === "OUT" ? "OUT" : "IN",
+    porAgente: m.porAgente,
+    texto: midia ? midia.legenda : m.body,
+    midia,
+    falhou: m.direction === "OUT" && m.status === "FAILED",
+    enviada: m.direction === "OUT" && m.status === "SENT",
+    criadoEm: m.createdAt.toISOString(),
+    hora: horaDeBrasilia(m.createdAt),
+    dia: diaDeBrasilia(m.createdAt),
+    rotuloDoDia: rotuloDoDia(m.createdAt, agora),
+    transcricao: rotuloTranscricao,
+  };
+}
+
+// ── PAGINAÇÃO ──────────────────────────────────────────────────────────────────────────────────
+
+export type CursorDeMensagem = { criadoEm: Date; id: string };
+
+export function codificarCursor(c: { createdAt: Date; id: string }): string {
+  return `${c.createdAt.toISOString()}|${c.id}`;
+}
+
+/** O cursor que veio da URL é palpite: só vale se for um instante válido e um id razoável. */
+export function lerCursor(bruto: string | null | undefined): CursorDeMensagem | null {
+  if (!bruto) return null;
+  const i = bruto.indexOf("|");
+  if (i < 1) return null;
+  const quando = new Date(bruto.slice(0, i));
+  const id = bruto.slice(i + 1);
+  if (Number.isNaN(quando.getTime())) return null;
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
+  return { criadoEm: quando, id };
+}
+
+/** O pedaço de `where` que traz só o que é ANTERIOR ao cursor (instante, depois id). */
+export function filtroAntesDoCursor(c: CursorDeMensagem | null) {
+  if (!c) return {};
+  return { OR: [{ createdAt: { lt: c.criadoEm } }, { createdAt: c.criadoEm, id: { lt: c.id } }] };
+}
+
+/** A ordem da consulta paginada: do mais novo para o mais antigo, com o id como desempate. */
+export const ORDEM_DA_PAGINA = [{ createdAt: "desc" as const }, { id: "desc" as const }];
+
+export type PaginaDeMensagens<T> = {
+  /** Da mais antiga para a mais nova — a ordem em que se lê. */
+  mensagens: T[];
+  temAnteriores: boolean;
+  /** Passe em `antes` para pedir a página anterior. Nulo quando não há mais. */
+  cursorDasAnteriores: string | null;
+};
+
+/**
+ * Monta a página a partir de `limite + 1` linhas lidas da mais nova para a mais antiga: a linha a
+ * mais só serve para saber se ainda há anteriores (sem uma segunda consulta de contagem).
+ */
+export function paginaDeMensagens<T extends { id: string; createdAt: Date }>(linhasDoMaisNovoParaOMaisAntigo: T[], limite = TAMANHO_DA_PAGINA): PaginaDeMensagens<T> {
+  const temAnteriores = linhasDoMaisNovoParaOMaisAntigo.length > limite;
+  const daPagina = linhasDoMaisNovoParaOMaisAntigo.slice(0, limite);
+  const mensagens = [...daPagina].reverse();
+  const maisAntiga = mensagens[0];
+  return { mensagens, temAnteriores, cursorDasAnteriores: temAnteriores && maisAntiga ? codificarCursor(maisAntiga) : null };
+}
+
+/** Junta as mensagens que já estão na tela com as recém-chegadas: sem repetir, em ordem de leitura. */
+export function mesclarMensagens(atuais: MensagemDoChat[], novas: MensagemDoChat[]): MensagemDoChat[] {
+  const porId = new Map<string, MensagemDoChat>();
+  for (const m of atuais) porId.set(m.id, m);
+  for (const m of novas) porId.set(m.id, m);
+  return Array.from(porId.values()).sort((a, b) => (a.criadoEm < b.criadoEm ? -1 : a.criadoEm > b.criadoEm ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
+/** Agrupa por dia de Brasília, na ordem de chegada (o rótulo já veio pronto do servidor). */
+export function agruparMensagensPorDia(mensagens: MensagemDoChat[]): { dia: string; rotulo: string; mensagens: MensagemDoChat[] }[] {
+  const grupos: { dia: string; rotulo: string; mensagens: MensagemDoChat[] }[] = [];
+  for (const m of mensagens) {
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.dia === m.dia) ultimo.mensagens.push(m);
+    else grupos.push({ dia: m.dia, rotulo: m.rotuloDoDia, mensagens: [m] });
+  }
+  return grupos;
+}

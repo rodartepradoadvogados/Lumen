@@ -1,67 +1,50 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Sun, Moon, Monitor } from "lucide-react";
+import { useTema } from "@/components/atendimento-app/tema";
+import { ROTULO_DO_TEMA, type PreferenciaDeTema } from "@/lib/temaDoAtendimentoApp";
+
+const OPCOES: { valor: PreferenciaDeTema; Icone: typeof Sun; ajuda: string }[] = [
+  { valor: "light", Icone: Sun, ajuda: "Fundo claro" },
+  { valor: "dark", Icone: Moon, ajuda: "Fundo escuro" },
+  { valor: "auto", Icone: Monitor, ajuda: "Segue o sistema" },
+];
 
 export default function TemaAppPage() {
-  const [theme, setTheme] = useState<"light" | "dark" | "auto">("light");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("rp-atendimento-theme") as "light" | "dark" | "auto" | null;
-    if (stored) setTheme(stored);
-  }, []);
-
-  const applyTheme = (newTheme: "light" | "dark" | "auto") => {
-    setTheme(newTheme);
-    localStorage.setItem("rp-atendimento-theme", newTheme);
-    const shell = document.getElementById("atendimento-shell");
-    if (!shell) return;
-    const isDark = newTheme === "dark" || (newTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    shell.classList.toggle("atendimento-dark", isDark);
-  };
+  const { pref, definir } = useTema();
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/atendimento-app/mais" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
+      <Link href="/atendimento-app/mais" className="inline-flex min-h-11 items-center gap-1 text-corpo font-semibold text-tx-2">
         <ArrowLeft size={13} /> Mais
       </Link>
 
       <h1 className="text-xl font-bold text-tx">Tema</h1>
 
       <div className="bg-sf-apoio border border-regua rounded-[2px] p-4 space-y-3">
-        <p className="text-sm text-tx-2">Escolha o modo de exibição do app.</p>
+        <p className="text-sm text-tx-2">Escolha o modo de exibição do app. A escolha fica guardada neste aparelho.</p>
 
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => applyTheme("light")}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-[2px] border-2 transition-colors ${
-              theme === "light" ? "border-ouro-acento bg-ouro-bg" : "border-regua hover:border-ouro-acento"
-            }`}
-          >
-            <Sun size={22} className={theme === "light" ? "text-ouro-acento" : "text-tx-2"} />
-            <span className={`text-corpo font-medium ${theme === "light" ? "text-ouro-acento" : "text-tx"}`}>Claro</span>
-          </button>
-
-          <button
-            onClick={() => applyTheme("dark")}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-[2px] border-2 transition-colors ${
-              theme === "dark" ? "border-ouro-acento bg-ouro-bg" : "border-regua hover:border-ouro-acento"
-            }`}
-          >
-            <Moon size={22} className={theme === "dark" ? "text-ouro-acento" : "text-tx-2"} />
-            <span className={`text-corpo font-medium ${theme === "dark" ? "text-ouro-acento" : "text-tx"}`}>Escuro</span>
-          </button>
-
-          <button
-            onClick={() => applyTheme("auto")}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-[2px] border-2 transition-colors ${
-              theme === "auto" ? "border-ouro-acento bg-ouro-bg" : "border-regua hover:border-ouro-acento"
-            }`}
-          >
-            <Monitor size={22} className={theme === "auto" ? "text-ouro-acento" : "text-tx-2"} />
-            <span className={`text-corpo font-medium ${theme === "auto" ? "text-ouro-acento" : "text-tx"}`}>Automático</span>
-          </button>
+        <div role="radiogroup" aria-label="Tema do aplicativo" className="grid grid-cols-3 gap-2">
+          {OPCOES.map(({ valor, Icone, ajuda }) => {
+            const escolhida = pref === valor;
+            return (
+              <button
+                key={valor}
+                type="button"
+                role="radio"
+                aria-checked={escolhida}
+                onClick={() => definir(valor)}
+                className={`flex min-h-20 flex-col items-center justify-center gap-1 rounded-[2px] border-2 p-3 transition-colors ${
+                  escolhida ? "border-ouro-acento bg-ouro-bg" : "border-regua hover:border-ouro-acento"
+                }`}
+              >
+                <Icone size={22} aria-hidden="true" className={escolhida ? "text-ouro-acento" : "text-tx-2"} />
+                <span className={`text-corpo font-semibold ${escolhida ? "text-ouro-acento" : "text-tx"}`}>{ROTULO_DO_TEMA[valor]}</span>
+                <span className="text-etiqueta text-tx-3">{ajuda}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

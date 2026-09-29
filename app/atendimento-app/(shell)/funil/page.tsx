@@ -4,30 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { whereDoAtendimento, veTodoOAtendimento } from "@/lib/acessoAtendimento";
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Badge, formatCurrency } from "@/components/ui";
-import { ArrowLeft } from "lucide-react";
+import { stageOptions as STAGES, stageLabels, stageDot } from "@/lib/funil";
 import EstagioDoLeadSelect from "@/components/atendimento/EstagioDoLeadSelect";
 
 export const dynamic = "force-dynamic";
-
-const STAGES = ["NOVO", "QUALIFICACAO", "PROPOSTA", "AGUARDANDO_RESPOSTA", "FECHADO", "PERDIDO"];
-
-const stageLabels: Record<string, string> = {
-  NOVO: "Novo",
-  QUALIFICACAO: "Qualificação",
-  PROPOSTA: "Proposta",
-  AGUARDANDO_RESPOSTA: "Aguardando Resposta",
-  FECHADO: "Fechado",
-  PERDIDO: "Recusado",
-};
-
-const stageDot: Record<string, string> = {
-  NOVO: "var(--tx-3)",
-  QUALIFICACAO: "var(--acao)",
-  PROPOSTA: "var(--aviso)",
-  AGUARDANDO_RESPOSTA: "var(--ouro-acento)",
-  FECHADO: "var(--concluido)",
-  PERDIDO: "var(--urgente)",
-};
 
 const leadSourceLabels: Record<string, string> = {
   INDICACAO: "Indicação",
@@ -74,10 +54,6 @@ export default async function FunilAppPage() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/atendimento-app" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
-        <ArrowLeft size={13} /> Triagem
-      </Link>
-
       <div>
         <h1 className="text-xl font-bold text-tx">Funil Comercial</h1>
         <p className="text-sm text-tx-2">Acompanhamento da captação por estágio</p>
@@ -137,7 +113,7 @@ export default async function FunilAppPage() {
                           <EstagioDoLeadSelect
                             atendimentoId={a.id}
                             estagioAtual={a.stage}
-                            opcoes={STAGES.map((s) => ({ valor: s, rotulo: stageLabels[s] }))}
+                            opcoes={STAGES.filter((s) => s !== "PERDIDO" || a.stage === "PERDIDO").map((s) => ({ valor: s, rotulo: stageLabels[s] }))}
                           />
                         </div>
                       </div>

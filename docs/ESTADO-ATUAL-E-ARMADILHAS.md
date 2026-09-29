@@ -393,3 +393,38 @@ MCP (`lib/assistantTools.ts` `consultarAtendimento`, sem o viewer no contexto), 
 personalizado (`lib/actions/relatorioPersonalizado.ts`), agregados de `/indicadores/[secao]` e
 `m/(shell)/relatorios` (só contagens), `relatorio-pastas` (contagem), export do escritório (admin),
 e `painel` (consulta do funil roda para todos, mas só é exibida ao nível total).
+
+## 16. O aplicativo de Atendimento (PWA de celular): casca, Conversas e chat em leitura (Onda A, 29/09/2026)
+
+Primeira de três ondas da proposta "conversar de verdade" (a lista do que falta está na descrição do PR).
+O que esta onda deixou de pé e **não pode voltar atrás**:
+
+- **A barra inferior é `Conversas · Funil · + · Triagem · Mais` e muda por nível** (`itensDaBarra`,
+  `lib/navegacaoDoAtendimentoApp.ts`): nível `total` tem as cinco, `proprios` tem quatro (sem Funil — o
+  funil é do escritório inteiro e a página também barra), `nenhum` não tem barra (só "Sem acesso ao
+  Atendimento" e o Sair, renderizados no `layout`, sem nenhum filho). `/atendimento-app` agora é a lista de
+  **Conversas**; a antiga Triagem foi para `/atendimento-app/triagem`.
+- **A conversa é tela cheia**: `/atendimento-app/<id>` (Chat) e `/atendimento-app/<id>/detalhes` não têm o
+  cabeçalho do app nem a barra (`ehTelaCheia`); o "+" (`/novo`) também. Ao acrescentar uma tela estática nova,
+  inclua o nome em `SEGMENTOS_ESTATICOS` — qualquer outro primeiro segmento é lido como id de conversa.
+- **A conversa alheia não vaza nada**: `[id]/dados.ts` lê pelo `whereDeUmAtendimento`; sem resultado, a tela é
+  "Sem acesso a esta conversa" (uma frase para id inexistente, de outro escritório ou de outro dono) e nenhuma
+  mensagem, nome ou número foi lido do banco. As mensagens só são lidas **depois** disso, e a rota JSON
+  `GET /api/atendimento/[id]/mensagens` chama `atendimentoDaRota` antes de tudo.
+- **O chat traz as últimas 60 mensagens** e "Carregar mensagens anteriores" por **cursor (instante, id)**, não
+  por offset (chega mensagem enquanto se lê) e não só por instante (rajada no mesmo milissegundo).
+- **Mídia é rótulo** (`[imagem]`, `[documento: x.pdf]`… vêm de `rotuloDaMidiaWhatsapp`) e o áudio mostra o rótulo
+  e a transcrição — a transcrição nunca é mensagem (ver o modelo `TranscricaoDeAudio`). Nada de player, envio
+  ou nota interna ainda: o pé do chat diz isso em vez de mostrar um campo que não funciona.
+- **A lista de Conversas ordena por `ultimaAtividadeEm`** (`ORDEM_POR_ATIVIDADE`) e o `take` vem depois da
+  ordem. "Esperando resposta" é FATO (última mensagem do cliente), não fase; não há contador de não lidas.
+- **Tema Dia / Noite / Automático** (`lib/temaDoAtendimentoApp.ts`, chave `rp-atendimento-theme`): o
+  Automático acompanha o sistema com ouvinte; o script que evita piscar o Dia fica **dentro** do
+  `#atendimento-shell` (fora dele não achava a caixa). Texto sobre o ouro é tinta escura (`--atd-ouro-tx`),
+  não o `#fffdf7` de 2,7:1; ouro como texto usa `--atd-ouro-texto`.
+- **O seletor de fase do funil do app usa `setAttendanceStage`** (com recorte e regra do motivo de perda), e
+  não mais `PATCH .../stage`, cujo vocabulário (`AGUARDANDO_RESPOSTA`) não existe em `lib/funil.ts`. A rota
+  antiga continua de pé (com recorte) e sai no PR do envio. Perdido não é oferecido no celular ainda: exige
+  motivo.
+- O teste `lib/testes/atendimentoAppOndaA.teste.ts` prova a regra (barra por nível, tela cheia, tema, filtros,
+  ordem, paginação, mídia) e varre as telas novas atrás do recorte de dono.

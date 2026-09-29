@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Card } from "@/components/ui";
-import { ArrowLeft, User, Users, Palette, LogOut, ExternalLink } from "lucide-react";
+import { User, Users, Palette, LogOut, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +10,6 @@ export default async function MaisAppPage() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/atendimento-app" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
-        <ArrowLeft size={13} /> Triagem
-      </Link>
-
       <h1 className="text-xl font-bold text-tx">Mais</h1>
 
       <Card className="p-4 space-y-3">
@@ -27,7 +23,7 @@ export default async function MaisAppPage() {
         </Link>
         <Link href="/atendimento-app/tema" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
           <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Palette size={18} className="text-ouro-acento" /></div>
-          <div className="flex-1"><p className="font-medium text-tx">Tema</p><p className="text-xs text-tx-2">Claro / Escuro / Automático</p></div>
+          <div className="flex-1"><p className="font-medium text-tx">Tema</p><p className="text-xs text-tx-2">Dia, Noite ou Automático</p></div>
         </Link>
         <Link href="/" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
           <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><ExternalLink size={18} className="text-ouro-acento" /></div>

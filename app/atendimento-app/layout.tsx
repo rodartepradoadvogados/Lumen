@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 // Manifesto próprio do PWA de Atendimento (ver app/atendimento-app/manifest.webmanifest/route.ts),
 // ligado em TODAS as rotas do escopo — inclusive a tela de entrada (/atendimento-app/entrar), que
@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Atendimento" },
 };
+
+// `viewport-fit=cover`: sem isso o `env(safe-area-inset-*)` do iPhone vale zero e o cabeçalho e a barra
+// inferior ficam sob o entalhe e o indicador de "voltar ao início".
+export const viewport: Viewport = { themeColor: "#16191d", viewportFit: "cover" };
 
 export default function AtendimentoAppRootLayout({ children }: { children: React.ReactNode }) {
   return children;
