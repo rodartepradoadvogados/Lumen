@@ -498,8 +498,7 @@ Nunca aparece para Evolution nem sem WhatsApp. O que **não pode voltar atrás**
   Agenda), título padrão "Retomar contato com <nome>", data padrão amanhã em Brasília.
 - **Número**: `digitosParaContato` só acrescenta 55 quando tem cara de número brasileiro (11 dígitos com o 3º = 9; 10 com o 3º de 2 a 5);
   número estrangeiro com DDI não ganha 55. Número que não passa disso não mostra Ligar nem wa.me.
-- Site (`WhatsappReplyBox`, `replyWhatsapp`) NÃO avisa antes: deixa tentar e mostra o erro da Meta ("o cliente precisa enviar uma nova
-  mensagem primeiro"), sem saída. Não foi mexido.
+- Site (`WhatsappReplyBox`, `replyWhatsapp`): a janela agora também é conferida antes (ver item 22).
 - Teste: `lib/testes/atendimentoAppJanela.teste.ts`.
 
 ## 20. "Ana responde": o motivo real do erro do Hermes, o botão no app e o interruptor que parece botão (29/09/2026)
@@ -562,3 +561,26 @@ desenho é sempre recolhido (sem divergência de hidratação). **Arrastar:** os
 coluna inteira, não no corpo que some — soltar num cabeçalho recolhido move o card (não abre sozinha ao passar, para a
 coluna não crescer no meio do gesto). A página do site agora tem as seis colunas (antes faltava Aguardando e os cards
 dela apareciam em Novo). Testes: `lib/testes/funilColunasRecolhidas.teste.ts`.
+
+## 22. A janela de 24 h também vale no SITE e no /m: avisa antes, com as mesmas saídas, e o servidor recusa cedo (29/09/2026)
+
+Antes, `WhatsappReplyBox` -> `replyWhatsapp` só descobria a janela fechada DEPOIS de tentar a Meta e mostrava o erro dela, sem saída.
+Agora:
+
+- **As três telas que hospedam a caixa** (`/atendimento/[id]`, `/atendimento-central`, `/m/atendimento/[id]`) calculam
+  `janelaDaConversa` (última entrada IN + provedor; a MESMA regra pura de `lib/janelaDe24h.ts` do app) e passam `janela` e
+  `telefone` ao `WhatsappReplyBox`. Janela fechada: o campo é trocado pela `FaixaDaJanelaFechada` do app (Ligar `tel:`, Abrir no meu
+  WhatsApp `wa.me` com o aviso de número pessoal, Criar tarefa com o recorte de `atendimentoDaAcao`, Como reabrir?). Sem `janela`,
+  aberta ou Evolution: o campo de sempre. Os textos e os links continuam em `lib/faixaDaJanela.ts` (não duplicar).
+- **Um componente, dois temas.** `FaixaDaJanelaFechada` ganhou `tema` (`"app"` padrão, `"site"`). Os tokens `--atd-*` só existem
+  dentro de `.atendimento-shell`; no site eles NÃO existem e a borda/fundo dos campos ficaria transparente. Por isso o tema do site usa
+  `regua-forte`/`sf`/`marca-tx`. Não passe `--atd-*` para o tema do site, e não mude o tema do app (o teste trava os dois).
+- **Servidor:** `replyWhatsapp` confere a janela depois do recorte e ANTES de `sendWhatsappText` e recusa com `recusaDaJanelaFechada`
+  (motivo + saídas, sem tentar a Meta). A Evolution segue sem janela (é a regra pura que decide, não um `if` em `replyWhatsapp`).
+  O erro da própria Meta (`ehErroDeJanela`) continua sendo a autoridade quando esta conta erra.
+- `nomeParaAFaixa` (em `lib/faixaDaJanela.ts`) repete de propósito `nomeEhTemporario` + `pareceTelefone`: importar aqueles módulos
+  levaria código de servidor ao componente de cliente. O teste compara as três regras e o prefixo, para não divergirem.
+- **Pontos frágeis conhecidos:** a janela é lida quando a página é renderizada; se ela fechar com a tela aberta, o servidor recusa
+  com o motivo claro, mas a faixa só aparece no próximo refresh (a Central já atualiza ao vivo). Escritório sem `WhatsappConfig` e
+  conversa sem nenhuma entrada conta como janela fechada no servidor (na tela `podeResponder` já esconde a caixa nesse caso).
+- Teste: `lib/testes/siteJanela24h.teste.ts`. NÃO provado: renderização real no navegador (tema Dia/Noite do site) e envio real pela Meta.

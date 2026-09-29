@@ -47,3 +47,8 @@ export function fraseDaJanelaFechada(nome: string, janela: Extract<JanelaDoWhats
       : `${nome} escreveu pela última vez há ${janela.horasDesdeAUltimaEntrada} h.`;
   return `${quando} O WhatsApp não deixa responder por texto agora. Quando o cliente escrever, o campo volta sozinho.`;
 }
+
+/** A recusa do SERVIDOR (site) quando a janela está fechada: o motivo claro, sem tentar a Meta. */
+export function recusaDaJanelaFechada(nome: string, janela: Extract<JanelaDoWhatsapp, { aberta: false }>): string {
+  return `Fora da janela de 24 h. ${fraseDaJanelaFechada(nome || "O cliente", janela)} Se precisar falar agora, ligue ou use o seu WhatsApp e registre o retorno com uma tarefa.`;
+}

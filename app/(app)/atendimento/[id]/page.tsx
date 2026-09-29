@@ -13,6 +13,7 @@ import AttendanceCommercialForm from "@/components/AttendanceCommercialForm";
 import AttendancePendenciasPanel from "@/components/AttendancePendenciasPanel";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
+import { janelaDaConversa } from "@/lib/envioDeMensagemDb";
 import AtendenteIaControle from "@/components/AtendenteIaControle";
 import EmailReplyPanel from "@/components/EmailReplyPanel";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
@@ -133,6 +134,8 @@ export default async function AttendanceDetailPage({
       })
     )?.agenteNome?.trim() || "O atendente";
   const podeResponder = Boolean(a.waPhone) && whatsappConfigured;
+  // A janela de 24 h (só Meta) ANTES do campo: fechada, a caixa vira a faixa com as saídas.
+  const janelaDoWhatsapp = podeResponder ? await janelaDaConversa(a.id, viewer.officeId, new Date()) : undefined;
 
   const [users, columns, storageConnected] = await Promise.all([
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
@@ -353,7 +356,7 @@ export default async function AttendanceDetailPage({
                       }
                       nomeDoAtendente={nomeDoAtendente}
                     />
-                    <WhatsappReplyBox attendanceId={a.id} nomeDoCliente={a.clientName} />
+                    <WhatsappReplyBox attendanceId={a.id} nomeDoCliente={a.clientName} janela={janelaDoWhatsapp} telefone={a.waPhone} />
                   </>
                 ) : (
                   <p className="py-2 text-xs text-tx-3">

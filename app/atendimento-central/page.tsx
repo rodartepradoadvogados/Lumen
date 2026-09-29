@@ -36,6 +36,7 @@ import AtualizarAoVivo from "@/components/atendimento/AtualizarAoVivo";
 import SeletorDeFase from "@/components/atendimento/SeletorDeFase";
 import ListaDeConversas, { type LinhaDaLista } from "@/components/atendimento/ListaDeConversas";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
+import { janelaDaConversa } from "@/lib/envioDeMensagemDb";
 import AtendenteIaControle from "@/components/AtendenteIaControle";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
 
@@ -328,6 +329,9 @@ export default async function AtendimentoCentralPage({
   // Mesma regra da tela do atendimento: há número do cliente E o canal do escritório está ligado.
   const podeResponder = Boolean(selecionado?.waPhone) && (selecionado ? await isWhatsappConfigured(viewer.officeId) : false);
 
+  // A janela de 24 h (só Meta) ANTES do campo: fechada, a caixa vira a faixa com as saídas. Só é lida quando dá para responder.
+  const janelaDoWhatsapp = selecionado && podeResponder ? await janelaDaConversa(selecionado.id, viewer.officeId, agora) : undefined;
+
   // Pediram uma conversa por id e ela não voltou: a reconferência recusou (outro escritório, de
   // outra pessoa, ou não existe). Ver CONVERSA_FORA_DO_SEU_ALCANCE — uma frase para os três.
   const pedidoNegado = Boolean(idPedido) && !selecionado;
@@ -565,7 +569,7 @@ export default async function AtendimentoCentralPage({
                           ultimaEhDoCliente={esperandoResposta}
                           nomeDoAtendente={nomeDoAtendente}
                         />
-                        <WhatsappReplyBox attendanceId={selecionado.id} nomeDoCliente={selecionado.clientName} />
+                        <WhatsappReplyBox attendanceId={selecionado.id} nomeDoCliente={selecionado.clientName} janela={janelaDoWhatsapp} telefone={selecionado.waPhone} />
                       </>
                     ) : (
                       <p className="py-2 text-etiqueta text-tx-3">

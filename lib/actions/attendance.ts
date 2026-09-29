@@ -19,6 +19,9 @@ import { podeVerAtendimentos, veTodoOAtendimento, filtroDoAtendimento, SEM_ACESS
 import { recorteDaConversa } from "@/lib/conversaDaCentral";
 import { prazoAutomaticoDeFollowUp } from "@/lib/followUpAutomatico";
 import { assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoLead";
+import { janelaDaConversa } from "@/lib/envioDeMensagemDb";
+import { recusaDaJanelaFechada } from "@/lib/janelaDe24h";
+import { nomeParaAFaixa } from "@/lib/faixaDaJanela";
 import { composePhoneWithDdi } from "@/lib/documentoEnvios";
 import { somenteDigitos } from "@/lib/whatsappEvolution";
 import { agendaDoEscritorio } from "@/lib/identificarNumero";
@@ -565,6 +568,13 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
   const attendance = await prisma.attendance.findFirst({ where: recorteDaConversa(user, attendanceId) });
   if (!attendance) return { error: "Atendimento não encontrado." };
   if (!attendance.waPhone) return { error: "Este atendimento não tem WhatsApp vinculado." };
+
+  // A JANELA DE 24 H, ANTES DE TENTAR (só Meta; a Evolution nunca tem janela): fora dela a Meta recusa, então não
+  // chamamos a Meta e o motivo sai claro. Mesma regra pura do aplicativo (lib/janelaDe24h.ts: última entrada IN).
+  const janela = await janelaDaConversa(attendanceId, user.officeId, new Date());
+  if (!janela.aberta) {
+    return { error: recusaDaJanelaFechada(nomeParaAFaixa(attendance.clientName).primeiroNome || "O cliente", janela) };
+  }
 
   const result = await sendWhatsappText(user.officeId, attendance.waPhone, text);
   if (!result.ok) {

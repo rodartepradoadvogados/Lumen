@@ -20,7 +20,22 @@ import {
 // Diz o motivo, sem jargão, e dá as saídas que EXISTEM: ligar (ligação normal do celular), abrir o WhatsApp
 // pessoal da pessoa, criar a tarefa de retorno e o "Como reabrir?". Nada aqui envia mensagem pelo número do
 // escritório. Alvos de 44 px, sem faixa lateral colorida, tokens do sistema (Dia e Noite).
-const BOTAO = "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[2px] border border-regua-forte bg-sf px-3 text-corpo font-semibold text-tx hover:bg-sf-apoio focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--atd-foco)]";
+//
+// DOIS LUGARES USAM ESTA MESMA FAIXA (PR do site): o aplicativo (`tema="app"`, o padrão, dentro de `.atendimento-shell`, onde
+// existem os tokens `--atd-*`) e a caixa de resposta do site e do /m (`tema="site"`). Fora de `.atendimento-shell` os tokens
+// `--atd-*` NÃO existem (borda e fundo do campo ficariam transparentes), então o tema do site usa os tokens do sistema
+// (`regua-forte`, `sf`, `marca-tx`). O texto, as saídas e a regra (lib/faixaDaJanela.ts) são os mesmos.
+const BOTAO_BASE = "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[2px] border border-regua-forte bg-sf px-3 text-corpo font-semibold text-tx hover:bg-sf-apoio focus-visible:outline-none focus-visible:ring-2";
+const TEMAS = {
+  app: {
+    botao: `${BOTAO_BASE} focus-visible:ring-[var(--atd-foco)]`,
+    campo: "mt-0.5 block min-h-11 w-full rounded-[2px] border border-atd-campo bg-atd-bolha-in px-3 text-base font-normal text-tx focus:border-atd-ouro-texto focus:outline-none focus:ring-2 focus:ring-[var(--atd-foco)]",
+  },
+  site: {
+    botao: `${BOTAO_BASE} focus-visible:ring-marca-tx`,
+    campo: "mt-0.5 block min-h-11 w-full rounded-[2px] border border-regua-forte bg-sf px-3 text-base font-normal text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx",
+  },
+} as const;
 
 export default function FaixaDaJanelaFechada({
   idDaConversa,
@@ -29,6 +44,7 @@ export default function FaixaDaJanelaFechada({
   primeiroNome,
   nomeTemporario,
   telefone,
+  tema = "app",
 }: {
   idDaConversa: string;
   janela: Extract<JanelaDoWhatsapp, { aberta: false }>;
@@ -36,7 +52,10 @@ export default function FaixaDaJanelaFechada({
   primeiroNome: string;
   nomeTemporario: boolean;
   telefone: string | null;
+  tema?: "app" | "site";
 }) {
+  const BOTAO = TEMAS[tema].botao;
+  const CAMPO = TEMAS[tema].campo;
   const idAjuda = useId();
   const idTarefa = useId();
   const [ajuda, setAjuda] = useState(false);
@@ -121,7 +140,7 @@ export default function FaixaDaJanelaFechada({
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
                 maxLength={200}
-                className="mt-0.5 block min-h-11 w-full rounded-[2px] border border-atd-campo bg-atd-bolha-in px-3 text-base font-normal text-tx focus:border-atd-ouro-texto focus:outline-none focus:ring-2 focus:ring-[var(--atd-foco)]"
+                className={CAMPO}
               />
             </label>
             <label className="block text-etiqueta font-semibold text-tx-2">
@@ -130,7 +149,7 @@ export default function FaixaDaJanelaFechada({
                 type="date"
                 value={dia}
                 onChange={(e) => setDia(e.target.value)}
-                className="mt-0.5 block min-h-11 w-full rounded-[2px] border border-atd-campo bg-atd-bolha-in px-3 text-base font-normal text-tx focus:border-atd-ouro-texto focus:outline-none focus:ring-2 focus:ring-[var(--atd-foco)]"
+                className={CAMPO}
               />
             </label>
             {erro && (
