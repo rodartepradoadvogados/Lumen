@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Clock, Info, Phone, Send } from "lucide-react";
-import { fraseDaJanelaFechada } from "@/lib/janelaDe24h";
+import { Info, Phone, Send } from "lucide-react";
+import FaixaDaJanelaFechada from "@/components/atendimento-app/FaixaDaJanelaFechada";
 import { gravarRascunho, lerRascunho } from "@/lib/filaDoChat";
 import type { EstadoDoChat } from "@/lib/estadoDoChat";
 
@@ -18,8 +18,8 @@ import type { EstadoDoChat } from "@/lib/estadoDoChat";
 //   encontra o campo vazio. É a primeira camada contra a duplicata; a garantia real é a reserva do servidor.
 // - RASCUNHO POR CONVERSA em `sessionStorage`: trocar de guia (Detalhes) e voltar, ou a atualização a cada
 //   15 s, não perde o que estava sendo escrito.
-// - JANELA FECHADA: em vez do campo, o aviso honesto (o desenho completo, com Ligar e Criar tarefa, é
-//   outra etapa). SEM WHATSAPP: o campo dá lugar a uma frase.
+// - JANELA FECHADA: em vez do campo, a faixa (FaixaDaJanelaFechada: Ligar, meu WhatsApp, Criar tarefa,
+//   Como reabrir). SEM WHATSAPP: o campo dá lugar a uma frase.
 // - Nada de anexo, modelo ou nota interna nesta etapa: o campo só faz o que o código faz.
 const MAX_LINHAS_EM_PX = 132;
 
@@ -29,6 +29,7 @@ export default function CompositorDoChat({
   nomeDoContato,
   primeiroNome,
   nomeTemporario,
+  telefone,
   nomeDoAtendente,
   aoEnviar,
 }: {
@@ -37,6 +38,7 @@ export default function CompositorDoChat({
   nomeDoContato: string;
   primeiroNome: string;
   nomeTemporario: boolean;
+  telefone: string | null;
   nomeDoAtendente: string;
   aoEnviar: (texto: string) => void;
 }) {
@@ -116,13 +118,15 @@ export default function CompositorDoChat({
 
   if (!estado.janela.aberta) {
     return (
-      <div className={`${rodape} pt-2`} data-compositor="" data-janela-fechada="">
-        <div role="status" className="rounded-[2px] border border-regua-forte bg-aviso-bg px-3 py-2 text-corpo text-tx">
-          <p className="flex items-center gap-2 font-semibold">
-            <Clock size={16} aria-hidden="true" /> Fora da janela de 24 h
-          </p>
-          <p className="mt-0.5">{fraseDaJanelaFechada(nomeTemporario ? "O cliente" : primeiroNome || "O cliente", estado.janela)}</p>
-        </div>
+      <div className={`${rodape} max-h-[60dvh] overflow-y-auto pt-2`} data-compositor="" data-janela-fechada="">
+        <FaixaDaJanelaFechada
+          idDaConversa={idDaConversa}
+          janela={estado.janela}
+          nomeDoContato={nomeDoContato}
+          primeiroNome={primeiroNome}
+          nomeTemporario={nomeTemporario}
+          telefone={telefone}
+        />
       </div>
     );
   }
