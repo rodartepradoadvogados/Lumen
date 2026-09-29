@@ -54,7 +54,7 @@ export default function BolhaDaMensagem({
     <div className={`flex flex-col ${saiu ? "items-end" : "items-start"}`} data-mensagem={m.id} data-envio={local?.estado ?? (m.enviada ? "enviada" : undefined)}>
       <div
         className={`max-w-[84%] break-words rounded-[2px] border px-2.5 pb-1 pt-1.5 [overflow-wrap:anywhere] ${
-          falhou ? "border-urgente bg-urgente-bg" : duvida ? "border-aviso bg-aviso-bg" : `${saiu ? "bg-atd-bolha-out" : "bg-atd-bolha-in"} ${m.porAgente ? "border-ouro-acento" : saiu ? "border-regua-forte" : "border-regua"}`
+          falhou ? "border-urgente bg-urgente-bg" : duvida ? "border-aviso bg-aviso-bg" : `${saiu ? "bg-atd-bolha-out" : "bg-atd-bolha-in"} ${m.porAgente ? "border-ouro-acento" : saiu ? "border-atd-borda-out" : "border-atd-borda-in"}`
         }`}
       >
         <span className="sr-only">{autor} disse: </span>
@@ -82,7 +82,7 @@ export default function BolhaDaMensagem({
             </p>
           </div>
         )}
-        <p className="mt-0.5 flex items-center justify-end gap-1.5 text-etiqueta tabular-nums text-tx-3">
+        <p className="mt-0.5 flex items-center justify-end gap-1.5 text-etiqueta tabular-nums text-tx-2">
           {enviando && (
             <span className="inline-flex items-center gap-1">
               <Clock size={12} aria-hidden="true" /> Enviando…
