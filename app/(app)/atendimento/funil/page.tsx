@@ -4,26 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Badge, formatCurrency } from "@/components/ui";
 import FunnelStageSelect from "@/components/FunnelStageSelect";
+import { ColunasRecolhiveis, ColunaRecolhivel } from "@/components/atendimento/ColunasRecolhiveis";
 // stageLabels vem do módulo neutro, nunca do componente "use client" — ver lib/funil.ts.
-import { stageLabels } from "@/lib/funil";
+import { stageOptions as STAGES, stageLabels, stageDot } from "@/lib/funil";
 import { List } from "lucide-react";
 import { veTodoOAtendimento, whereDoAtendimento } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
-
-const STAGES = ["NOVO", "QUALIFICACAO", "PROPOSTA", "FECHADO", "PERDIDO"];
-
-// Cores lidas das variáveis CSS (app/globals.css) — nenhum hex cravado aqui (DESIGN-SYSTEM.md §16).
-// Remapeado por significado, não por posição — mesmo mapa da seção "Funil Comercial" de
-// Relatórios: Novo = neutro (ainda sem opinião), Qualificação = --acao (em andamento), Proposta =
-// --aviso (aguardando decisão do cliente), Fechado = --concluido, Perdido = --urgente.
-const stageDot: Record<string, string> = {
-  NOVO: "var(--tx-3)",
-  QUALIFICACAO: "var(--acao)",
-  PROPOSTA: "var(--aviso)",
-  FECHADO: "var(--concluido)",
-  PERDIDO: "var(--urgente)",
-};
 
 const leadSourceLabels: Record<string, string> = {
   INDICACAO: "Indicação",
@@ -96,25 +83,23 @@ export default async function FunilPage() {
         )}
       </div>
 
+      {/* TODAS AS COLUNAS COMEÇAM RECOLHIDAS (lib/colunasDoFunil.ts): nome e contagem à vista, cartões ao abrir. */}
+      <ColunasRecolhiveis superficie="site" estagios={STAGES}>
       <div className="flex gap-4 overflow-x-auto pb-4 items-start funil-cols">
         {STAGES.map((stage) => {
           const cards = byStage[stage];
           const total = totals.find((t) => t.stage === stage)!;
           return (
-            <div key={stage} className="w-80 shrink-0 bg-sf-apoio border border-regua flex flex-col funil-col">
-              <div className="px-4 py-3 border-b border-regua">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stageDot[stage] }} />
-                    <h3 className="font-semibold text-sm text-tx">{stageLabels[stage]}</h3>
-                  </div>
-                  <span className="text-xs font-semibold text-tx-2 bg-sf border border-regua rounded-full px-2 py-0.5">{total.count}</span>
-                </div>
-                {total.sum > 0 && (
-                  <p className="text-xs text-tx-3 mt-1">{formatCurrency(total.sum)} estimado</p>
-                )}
-              </div>
-              <div className="p-2.5 space-y-2">
+            <ColunaRecolhivel
+              key={stage}
+              estagio={stage}
+              nome={stageLabels[stage]}
+              cor={stageDot[stage]}
+              total={total.count}
+              resumo={total.sum > 0 ? <p className="text-xs text-tx-3 mb-1.5">{formatCurrency(total.sum)} estimado</p> : undefined}
+              className="w-80 shrink-0 bg-sf-apoio border border-regua flex flex-col funil-col"
+              classeDoCorpo="p-2.5 space-y-2"
+            >
                 {cards.length === 0 ? (
                   <p className="text-xs text-center text-tx-3 py-6">Sem atendimentos neste estágio</p>
                 ) : (
@@ -170,11 +155,11 @@ export default async function FunilPage() {
                     );
                   })
                 )}
-              </div>
-            </div>
+            </ColunaRecolhivel>
           );
         })}
       </div>
+      </ColunasRecolhiveis>
     </div>
   );
 }

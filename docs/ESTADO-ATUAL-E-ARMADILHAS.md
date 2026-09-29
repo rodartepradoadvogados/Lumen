@@ -535,6 +535,33 @@ disponível". Duas causas de código e uma provável de ambiente:
   chamada HTTP e as frases contra um provedor falso local (200, 401, 403, 404, 500 ecoando o token, vazio, lento, porta fechada,
   variável faltando).
 
+## 21. O tema do aplicativo de Atendimento não pode herdar o `dark` do site; e o funil abre recolhido (29/09/2026)
+
+**Tema — a causa do botão "que não funcionava".** O layout raiz (`lib/theme.ts`, `THEME_INIT_SCRIPT`) põe a classe
+`dark` no `<html>` de TODA rota quando o sistema está escuro ou o site foi usado em Noite (mesma origem, mesmo
+`localStorage`). O **Dia** do Atendimento não define paleta própria — herda a do `:root` —, então com `html.dark`
+ligado o "Dia" saía escuro: o botão só trocava entre "Noite" e "Noite" (medido em Chromium com `colorScheme: dark`:
+`background-color` do `#atendimento-shell` ficava `rgb(24, 27, 31)` nos dois). Em sistema claro tudo funcionava, por
+isso a falha só aparecia em alguns aparelhos. O que **não pode voltar atrás**:
+
+- Dentro do app, o `<html>` não fica `dark`: o script inicial (`SCRIPT_INICIAL_DO_TEMA`) e `aplicar()`
+  (`components/atendimento-app/tema.ts`) tiram a classe; ao sair do app, `SeguidorDeNavegacao` devolve o tema do site
+  (`devolverTemaDoSite`, via `temaEfetivo()`). A paleta escura do app é toda de `.atendimento-dark`.
+- Testes: `lib/testes/atendimentoAppCasca.teste.ts` executa o script com `html.dark` vazado. Tela/`fixed inset-0`,
+  service worker (não guarda nada) e re-render do React foram investigados e NÃO eram a causa.
+- Ainda de fora do tema (de propósito ou não medido): o `<body>`/`<html>` ficam claros nos dois temas (só a caixa
+  `#atendimento-shell` muda) — visível em rolagem elástica do iOS; a tela de entrada não tem tema.
+
+**Funil — todas as colunas começam RECOLHIDAS.** Regra em `lib/colunasDoFunil.ts`, navegador em
+`components/atendimento/ColunasRecolhiveis.tsx`, usado pelo quadro da Central (arrasta), pela página do site
+(`/atendimento/funil`) e pela do aplicativo (`/atendimento-app/funil`). Nome e contagem ficam à vista; o cabeçalho é um
+botão (`aria-expanded`, 44 px) e há "Expandir todas / Recolher todas". A escolha vai para `localStorage`
+(`rp-funil-abertas-<tela>`, em try/catch); quem nunca escolheu, ou tem lixo gravado, vê tudo recolhido, e o primeiro
+desenho é sempre recolhido (sem divergência de hidratação). **Arrastar:** os ouvintes `onDragOver/onDrop` ficam na
+coluna inteira, não no corpo que some — soltar num cabeçalho recolhido move o card (não abre sozinha ao passar, para a
+coluna não crescer no meio do gesto). A página do site agora tem as seis colunas (antes faltava Aguardando e os cards
+dela apareciam em Novo). Testes: `lib/testes/funilColunasRecolhidas.teste.ts`.
+
 ## 22. A janela de 24 h também vale no SITE e no /m: avisa antes, com as mesmas saídas, e o servidor recusa cedo (29/09/2026)
 
 Antes, `WhatsappReplyBox` -> `replyWhatsapp` só descobria a janela fechada DEPOIS de tentar a Meta e mostrava o erro dela, sem saída.

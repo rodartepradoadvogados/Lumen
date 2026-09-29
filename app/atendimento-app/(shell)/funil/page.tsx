@@ -5,6 +5,7 @@ import { whereDoAtendimento, veTodoOAtendimento } from "@/lib/acessoAtendimento"
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Badge, formatCurrency } from "@/components/ui";
 import { stageOptions as STAGES, stageLabels, stageDot } from "@/lib/funil";
+import { ColunasRecolhiveis, ColunaRecolhivel } from "@/components/atendimento/ColunasRecolhiveis";
 import EstagioDoLeadSelect from "@/components/atendimento/EstagioDoLeadSelect";
 
 export const dynamic = "force-dynamic";
@@ -69,23 +70,23 @@ export default async function FunilAppPage() {
         )}
       </div>
 
+      {/* TODAS AS COLUNAS COMEÇAM RECOLHIDAS (lib/colunasDoFunil.ts): nome e contagem à vista, cartões ao abrir. */}
+      <ColunasRecolhiveis superficie="app" estagios={STAGES}>
       <div className="flex gap-3 overflow-x-auto pb-4 items-start funil-cols-app">
         {STAGES.map((stage) => {
           const cards = byStage[stage];
           const total = totals.find((t) => t.stage === stage)!;
           return (
-            <div key={stage} className="w-full min-w-[280px] shrink-0 bg-sf-apoio border border-regua rounded-[2px] flex flex-col funil-col-app">
-              <div className="px-4 py-3 border-b border-regua">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stageDot[stage] }} />
-                    <h3 className="font-semibold text-sm text-tx">{stageLabels[stage]}</h3>
-                  </div>
-                  <span className="text-xs font-semibold text-tx-2 bg-sf border border-regua rounded-full px-2 py-0.5">{total.count}</span>
-                </div>
-                {total.sum > 0 && <p className="text-xs text-tx-3 mt-1">{formatCurrency(total.sum)} estimado</p>}
-              </div>
-              <div className="p-2.5 space-y-2 flex-1 overflow-y-auto">
+            <ColunaRecolhivel
+              key={stage}
+              estagio={stage}
+              nome={stageLabels[stage]}
+              cor={stageDot[stage]}
+              total={total.count}
+              resumo={total.sum > 0 ? <p className="text-xs text-tx-3 mb-1.5">{formatCurrency(total.sum)} estimado</p> : undefined}
+              className="w-full min-w-[280px] shrink-0 bg-sf-apoio border border-regua rounded-[2px] flex flex-col funil-col-app"
+              classeDoCorpo="p-2.5 space-y-2 flex-1 overflow-y-auto"
+            >
                 {cards.length === 0 ? (
                   <p className="text-xs text-center text-tx-3 py-6">Sem atendimentos neste estágio</p>
                 ) : (
@@ -120,11 +121,11 @@ export default async function FunilAppPage() {
                     );
                   })
                 )}
-              </div>
-            </div>
+            </ColunaRecolhivel>
           );
         })}
       </div>
+      </ColunasRecolhiveis>
     </div>
   );
 }
