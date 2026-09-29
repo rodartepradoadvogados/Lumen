@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
 import {
-  THEME_KEY,
+  temaEfetivo,
+  salvarTema,
   THEME_ORDER,
   THEME_LABEL,
   THEME_CHANGE_EVENT,
-  isThemeMode,
   resolveIsDark,
   type ThemeMode,
 } from "@/lib/theme";
@@ -29,21 +29,15 @@ const ICONS: Record<ThemeMode, typeof Sun> = {
 // lógica de leitura/persistência do tema continua só aqui, o controle segmentado só invoca
 // setMode(). O app mobile tem seu próprio toggle, decoupled deste (ver
 // components/mobile/MobileThemeToggle.tsx — 3 estados, Dia/Tarde/Noite, não 2).
-export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu" | "segmented" | "cromo" | "folha" }) {
+export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu" | "segmented" | "cromo" | "capa" | "capaSeg" }) {
   const [mode, setMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
 
-  // Lê a preferência salva assim que monta (o valor real já foi aplicado no <html> pelo
-  // script inline; aqui só sincronizamos o estado do React/ícone do botão). Sem preferência
-  // salva, o padrão é "light" (Dia) — ver THEME_INIT_SCRIPT em lib/theme.ts.
+  // Lê a preferência assim que monta (o valor real já foi aplicado no <html> pelo script inline;
+  // aqui só sincronizamos o estado do React/ícone do botão). Escolha salva (chave do portal, depois a
+  // do site) ou `prefers-color-scheme` — ver lib/theme.ts.
   useEffect(() => {
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem(THEME_KEY);
-    } catch {
-      // localStorage indisponível (modo privado etc.) — segue com "light".
-    }
-    setMode(isThemeMode(stored) ? stored : "light");
+    setMode(temaEfetivo());
     setMounted(true);
   }, []);
 
@@ -56,13 +50,10 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
     window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: mode }));
   }, [mode, mounted]);
 
+  // Grava nas duas chaves: a escolha feita aqui vale também no app logado (lib/theme.ts).
   function applyMode(next: ThemeMode) {
     setMode(next);
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch {
-      // ignora falha ao persistir; o toggle ainda funciona na sessão atual
-    }
+    salvarTema(next);
   }
 
   function cycle() {
@@ -71,7 +62,7 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
 
   if (!mounted) {
     // Evita mismatch de hidratação até sabermos a preferência real; ocupa o mesmo espaço do botão.
-    return <span className={variant === "icon" || variant === "cromo" ? "block h-9 w-9 shrink-0" : variant === "folha" ? "block min-h-[48px] border-b border-regua" : "block h-9"} aria-hidden="true" />;
+    return <span className={variant === "icon" || variant === "cromo" ? "block h-9 w-9 shrink-0" : variant === "capa" ? "block h-11 w-11 shrink-0" : variant === "capaSeg" ? "block min-h-[48px]" : "block h-9"} aria-hidden="true" />;
   }
 
   const Icon = ICONS[mode];
@@ -109,20 +100,42 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
     );
   }
 
-  // Linha inteira, 48px de altura, para a folha do menu do celular (components/site/MobileNav.tsx):
-  // abaixo de `sm` o alternador sai da barra (a barra não cabe em 390px, ver SiteHeader) e mora aqui.
-  if (variant === "folha") {
+  // Capa (homepage pública): botão-ícone de 44px, o alvo mínimo de toque.
+  if (variant === "capa") {
     return (
       <button
         type="button"
         onClick={cycle}
         aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
-        className="w-full min-h-[48px] flex items-center gap-3 px-6 text-corpo font-semibold text-tx border-b border-regua transition-colors duration-100 ease-out active:bg-acao-bg"
+        className="inline-flex items-center justify-center h-11 w-11 shrink-0 rounded-[2px] text-tx hover:bg-acao-bg transition-colors duration-100 ease-out"
       >
-        <Icon size={18} className="text-tx-2" />
-        Tema: {THEME_LABEL[mode]}
-        <span className="ml-auto text-etiqueta font-medium text-tx-2">Mudar para {nextLabel}</span>
+        <Icon size={22} aria-hidden="true" />
       </button>
+    );
+  }
+
+  // Capa, folha do menu do celular (abaixo de 640px o alternador sai da barra e mora aqui): duas
+  // opções lado a lado, cada uma com 44px de altura e `aria-pressed`.
+  if (variant === "capaSeg") {
+    return (
+      <div role="group" aria-label="Tema da página" className="grid grid-cols-2 border-2 border-regua-forte rounded-[2px]">
+        {THEME_ORDER.map((m) => {
+          const OptIcon = ICONS[m];
+          const ativo = m === mode;
+          return (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={ativo}
+              onClick={() => applyMode(m)}
+              className={`inline-flex items-center justify-center gap-2 min-h-[44px] text-capa-mini font-semibold transition-colors duration-100 ease-out ${ativo ? "bg-acao text-acao-tx" : "text-tx hover:bg-acao-bg"}`}
+            >
+              <OptIcon size={18} aria-hidden="true" />
+              {THEME_LABEL[m]}
+            </button>
+          );
+        })}
+      </div>
     );
   }
 

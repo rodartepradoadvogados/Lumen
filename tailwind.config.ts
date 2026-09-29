@@ -75,6 +75,16 @@ const config: Config = {
         autuacao: ["1.75rem", { lineHeight: "1.15", letterSpacing: "-0.015em" }],
         tarja: ["2.5rem", { lineHeight: "1", letterSpacing: "-0.02em" }],
 
+        // ESCALA DA CAPA (homepage pública, redesenho de 29/09/2026). A Capa é vitrine e leitura, não
+        // tela de trabalho: precisa de um display fluido e de um corpo de 16px, que a rampa acima
+        // (pensada para o produto) não tem. Junto com etiqueta (12), destaque (18) e tarja (40), são
+        // OITO tamanhos no total — eram quinze. Pesos: só 400, 600 e 700.
+        "capa-display": ["clamp(2.125rem, 6.2vw, 3.75rem)", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
+        "capa-h2": ["clamp(1.625rem, 3.6vw, 2.375rem)", { lineHeight: "1.12", letterSpacing: "-0.015em" }],
+        "capa-h3": ["1.25rem", { lineHeight: "1.3", letterSpacing: "-0.005em" }],
+        "capa-corpo": ["1rem", { lineHeight: "1.6" }],
+        "capa-mini": ["0.875rem", { lineHeight: "1.5" }],
+
         xs: ["0.75rem", { lineHeight: "1.35" }],
         sm: ["0.9375rem", { lineHeight: "1.55" }],
         base: ["0.9375rem", { lineHeight: "1.55" }],
@@ -119,7 +129,12 @@ const config: Config = {
           vencido: "var(--risco-vencido)",
           hoje: "var(--risco-hoje)",
           "em-dia": "var(--risco-em-dia)",
+          // Variantes para TEXTO de risco (contraste de 4,5:1 nos dois temas; ver globals.css).
+          "vencido-tx": "var(--risco-vencido-tx)",
+          "hoje-tx": "var(--risco-hoje-tx)",
+          "em-dia-tx": "var(--risco-em-dia-tx)",
         },
+        foco: "var(--foco)",
         // Papel de texto sobre uma faixa PREENCHIDA (guia ativa, botao primario, tarja). Troca
         // com o tema — claro sobre a faixa escura do tema manila, escuro sobre a faixa clara do
         // tema gaveta. E o token que impede o defeito de `text-white` cravado, que hoje deixa

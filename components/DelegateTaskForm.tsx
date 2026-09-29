@@ -117,7 +117,7 @@ export default function DelegateTaskForm({
   // sucesso!" aparecer), com os ids dos responsáveis escolhidos — usado pela triagem por teclado
   // de /publicacoes para avançar para a próxima publicação da fila sem esperar o usuário fechar
   // o modal manualmente, e para atualizar o responsável exibido sem esperar o servidor.
-  onSuccess?: (responsibleIds: string[]) => void;
+  onSuccess?: (responsibleIds: string[], info: { taskIds: string[]; dueDate: string }) => void;
 }) {
   const [state, setState] = useState(() => ({
     ...emptyState,
@@ -231,7 +231,7 @@ export default function DelegateTaskForm({
     }
     const responsibleNames = users.filter((u) => state.responsibleIds.includes(u.id)).map((u) => u.name);
     setSuccess({ responsibleNames, title: state.title.trim() });
-    onSuccess?.(state.responsibleIds);
+    onSuccess?.(state.responsibleIds, { taskIds: result.taskIds ?? [], dueDate: state.dueDate });
   }
 
   if (success) {
@@ -258,7 +258,7 @@ export default function DelegateTaskForm({
         {initial?.publicationId && (
           <p className="text-sm text-tx-2 max-w-sm">
             Como agora existe responsável, a publicação sai da lista de pendências de <span className="font-semibold">todo o escritório</span> —
-            continua acessível na aba <span className="font-semibold">Lidas</span> e dentro do processo.
+            continua acessível na aba <span className="font-semibold">Tratadas</span> e dentro do processo.
           </p>
         )}
         <button

@@ -125,7 +125,7 @@ export default function ModalShell({
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="shrink-0 text-tx-3 hover:text-tx"
+            className="shrink-0 text-tx-3 hover:text-tx min-h-11 min-w-11 grid place-items-center"
           >
             <X size={18} aria-hidden="true" />
           </button>

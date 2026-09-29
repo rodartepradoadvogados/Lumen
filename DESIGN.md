@@ -71,6 +71,11 @@ colors:
   risco-vencido-escuro: "#e3625a"
   risco-hoje-escuro: "#bd7e00"
   risco-em-dia-escuro: "#299d78"
+  # texto de risco (12px) e anel de foco de 3px — Publicações; Dia/Noite
+  risco-vencido-tx: "#8a2f42"   # Noite: "#f3a19b"
+  risco-hoje-tx: "#7a5000"      # Noite: "#e2b04a"
+  risco-em-dia-tx: "#1c6b52"    # Noite: "#57c6a1"
+  foco: "#3b4a86"               # Noite: "#9fb0f0"
   rotulo-escuro: "#14161a"
   marca-tx-escuro: "#cd6e82"
 typography:

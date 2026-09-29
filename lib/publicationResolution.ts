@@ -74,7 +74,9 @@ export async function resolvePublicationGroupForOffice(
   // "Lidas", por que ele saiu da fila: não foi alguém marcando como lido, foi compromisso criado.
   await prisma.publication.updateMany({
     where: { id: { in: ids }, officeId },
-    data: { deadlineGenerated: true },
+    // triageStatus TRATADA: a fila "A tratar" é definida pelo status do escritório, e compromisso
+    // criado = alguém assumiu = tratada. Sem isto a publicação ficaria em "A tratar" para sempre.
+    data: { deadlineGenerated: true, triageStatus: "TRATADA" },
   });
 
   return { publications: ids.length, users: members.length };

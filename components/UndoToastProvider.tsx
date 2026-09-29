@@ -11,6 +11,8 @@ type UndoToastContextValue = {
   // (components/PublicationsTriage.tsx) passa 4s, pra bater com o ritmo mais rápido de triar
   // várias publicações em sequência pelo teclado.
   showUndo: (opts: { message: string; onUndo: () => void | Promise<void>; durationMs?: number }) => void;
+  // Desfaz o toast em exibição (atalho U / Ctrl+Z da triagem de publicações). false se não há.
+  undoLast: () => boolean;
 };
 
 const UndoToastContext = createContext<UndoToastContextValue | null>(null);
@@ -31,6 +33,17 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
     timerRef.current = setTimeout(() => setToast((t) => (t?.id === id ? null : t)), durationMs);
   }, []);
 
+  const toastRef = useRef<UndoToast | null>(null);
+  toastRef.current = toast;
+  const undoLast = useCallback(() => {
+    const t = toastRef.current;
+    if (!t) return false;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast(null);
+    void t.onUndo();
+    return true;
+  }, []);
+
   async function handleUndo() {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (toast) await toast.onUndo();
@@ -38,8 +51,10 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <UndoToastContext.Provider value={{ showUndo }}>
+    <UndoToastContext.Provider value={{ showUndo, undoLast }}>
       {children}
+      {/* Região viva SEMPRE montada: leitor de tela só anuncia o que entra numa região que já existia. */}
+      <div role="status" aria-live="polite" className="contents">
       {toast && (
         // Toast flutuante — grafite fixo nos dois temas, de propósito, igual ao rail e ao
         // botão do assistente: precisa continuar legível sobre qualquer fundo por trás dele.
@@ -48,7 +63,7 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
             <span className="text-sm">{toast.message}</span>
             <button
               onClick={handleUndo}
-              className="flex items-center gap-1 text-sm font-semibold text-rail-marca hover:opacity-80 shrink-0"
+              className="flex items-center gap-1 min-h-11 px-2 text-sm font-semibold text-rail-marca hover:opacity-80 shrink-0"
             >
               <Undo2 size={14} /> Desfazer
             </button>
@@ -60,6 +75,7 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
           />
         </div>
       )}
+      </div>
     </UndoToastContext.Provider>
   );
 }

@@ -46,6 +46,8 @@ export default function TelaSessao({
   largura = "sm",
   rodape,
   saida = true,
+  saidaHref = "/",
+  saidaRotulo = "Voltar ao site",
   marcaHref = "/",
   children,
 }: {
@@ -55,6 +57,9 @@ export default function TelaSessao({
   rodape?: React.ReactNode;
   /** `false` só quando a tela tem uma saída própria mais correta — hoje, apenas /escolher. */
   saida?: boolean;
+  /** Destino da saída do alto da tela. Padrão: a Capa. Recuperar e redefinir senha voltam para /login. */
+  saidaHref?: string;
+  saidaRotulo?: string;
   /** Destino da marca. `null` = sem link (telas de entrada dos PWAs: qualquer link para "/" sairia do escopo do app). */
   marcaHref?: string | null;
   children: React.ReactNode;
@@ -63,16 +68,16 @@ export default function TelaSessao({
     // <main>: as telas de sessão não tinham nenhum marco de conteúdo principal (auditoria da Capa,
     // 29/09/2026) — leitor de tela e o atalho "ir para o conteúdo principal" não achavam onde
     // começava a tela.
-    <main className="min-h-screen bg-sf-fundo flex items-center justify-center p-4">
+    <main className="tela-sessao min-h-screen bg-sf-fundo flex items-center justify-center p-4">
       <div className={largura === "md" ? "w-full max-w-md" : "w-full max-w-sm"}>
         {/* A SAÍDA — sempre, no alto e à esquerda. Alvo de 44px de altura, como o resto do
             produto. Ver a nota longa acima. */}
         {saida ? (
           <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 min-h-[44px] -ml-2 px-2 mb-1 text-etiqueta font-semibold uppercase tracking-[.06em] text-tx-2 hover:text-tx transition-colors duration-100 ease-out"
+            href={saidaHref}
+            className="inline-flex items-center gap-1.5 min-h-[44px] -ml-2 px-2 mb-1 text-corpo font-semibold text-tx-2 hover:text-tx transition-colors duration-100 ease-out"
           >
-            <span aria-hidden="true">←</span> Voltar ao site
+            <span aria-hidden="true">←</span> {saidaRotulo}
           </Link>
         ) : null}
         {/* A marca também é link para "/", mas é a marca — quem procura a porta procura o botão

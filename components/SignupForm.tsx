@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { signupOffice } from "@/lib/actions/signup";
 
-export default function SignupForm() {
+export default function SignupForm({ plano }: { plano?: { key: string; name: string } | null } = {}) {
   const [officeName, setOfficeName] = useState("");
   const [adminName, setAdminName] = useState("");
   const [email, setEmail] = useState("");
@@ -20,7 +20,7 @@ export default function SignupForm() {
       return;
     }
     startTransition(async () => {
-      const result = await signupOffice({ officeName, adminName, email, password });
+      const result = await signupOffice({ officeName, adminName, email, password, planKey: plano?.key });
       if (result?.error) setError(result.error);
     });
   }
@@ -33,6 +33,13 @@ export default function SignupForm() {
   // resto do produto, em vez de borda própria mais fraca que a do formulário de login.
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3.5" noValidate={false}>
+      {/* Plano de interesse vindo da Capa. É só o registro do interesse (Office.planId): a ativação
+          dos módulos e a cobrança continuam sendo feitas pelo Painel Mestre, nunca por aqui. */}
+      {plano && (
+        <p className="self-start px-2.5 py-1 border-2 border-marca-tx text-marca-tx text-etiqueta font-bold uppercase tracking-[.06em] rounded-[2px]">
+          Plano de interesse: {plano.name}
+        </p>
+      )}
       <div className="grid gap-1.5">
         <label htmlFor="cad-escritorio" className="text-etiqueta font-semibold uppercase tracking-[.07em] text-tx-2">
           Nome do escritório

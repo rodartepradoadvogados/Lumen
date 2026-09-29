@@ -9,7 +9,7 @@ import ProcessNumberChip from "@/components/ProcessNumberChip";
 type UserOption = { id: string; name: string };
 type RowState = { userIds: string[]; dueDate: string; requireConfirmation: boolean };
 
-export default function DistributePublicationsButton() {
+export default function DistributePublicationsButton({ count }: { count?: number }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -69,11 +69,15 @@ export default function DistributePublicationsButton() {
 
   return (
     <div>
+      {/* Secundário: a única ação em bordô da tela é "Registrar prazo", a decisão da publicação. */}
       <button
+        type="button"
         onClick={handleOpen}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-md"
+        title={count ? `Distribuir ${count} publicações sem responsável` : "Distribuir publicações sem responsável"}
+        aria-label={count ? `Distribuir ${count} publicações sem responsável` : "Distribuir publicações sem responsável"}
+        className="inline-flex items-center gap-1.5 min-h-11 md:min-h-9 border border-regua-forte bg-transparent hover:bg-sf-apoio text-tx text-sm font-semibold px-3"
       >
-        <Shuffle size={15} /> Distribuir pendentes
+        <Shuffle size={15} aria-hidden="true" /> Distribuir{count ? ` ${count}` : ""}
       </button>
 
       {open && (
