@@ -1367,6 +1367,7 @@ model Attendance {
   attachments      Attachment[]
   whatsappMessages WhatsappMessage[]
   pedidosDeEnvio   PedidoDeEnvioWhatsapp[]
+  notasDaConversa  NotaDaConversa[]
   emailMessages    EmailMessage[]
   driveSyncIssues  DriveSyncIssue[]
   pendencias       AtendimentoPendencia[]
@@ -1489,6 +1490,37 @@ model PedidoDeEnvioWhatsapp {
 
   @@unique([officeId, clientMessageId])
   @@index([attendanceId, estado, updatedAt])
+}
+
+// ============ NOTA INTERNA E AVISO DE SISTEMA DA CONVERSA (só a equipe; NUNCA vai ao WhatsApp) ============
+//
+// REGISTRO PRÓPRIO, pelo mesmo motivo de TranscricaoDeAudio: uma WhatsappMessage marcada "interna" depende
+// de TODO `where` que lê mensagem lembrar de excluí-la, e um esquecimento no caminho de saída
+// (sendWhatsappText, atendenteResponde, relatório) mandaria a nota ao cliente ou a faria de "fala do
+// cliente" para a Ana. Um registro que não É mensagem não tem como ser enviado por engano: nenhum código
+// de envio sabe que esta tabela existe. Não move `ultimaAtividadeEm`, não conta como saída do relógio de
+// 15 min, não silencia a Ana.
+//
+// tipo NOTA    = escrita por uma pessoa (userId/autorNome preenchidos).
+// tipo SISTEMA = aviso do próprio Lúmen ("A Ana não respondeu: ..."); sem autor.
+// `clientMessageId` é a chave de idempotência (única por escritório): a do aparelho, na NOTA; uma chave
+// determinística por fato, no SISTEMA ("ana-desistiu-<id da pergunta>"), para não repetir a cada tentativa.
+model NotaDaConversa {
+  id              String     @id @default(cuid())
+  officeId        String
+  attendanceId    String
+  attendance      Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  tipo            String     @default("NOTA") // NOTA | SISTEMA
+  userId          String?
+  autorNome       String?
+  texto           String
+  clientMessageId String
+  /// sha256 do texto: a mesma chave com outro texto é erro do aparelho, nunca um "reenvio".
+  textoHash       String
+  createdAt       DateTime   @default(now())
+
+  @@unique([officeId, clientMessageId])
+  @@index([attendanceId, createdAt, id])
 }
 
 // ============ TRANSCRIÇÃO DE ÁUDIO DO WHATSAPP (ouvir, sem virar mensagem) ============

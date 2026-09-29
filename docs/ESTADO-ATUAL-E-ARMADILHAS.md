@@ -608,3 +608,51 @@ Agora:
 **Lição:** depois de resolver conflito de merge em favor de "a minha branch", rode `npm run testar` antes de mergear e
 olhe o diff do MERGE contra a `main` (`git diff <main> <merge>`), não só o da branch: arquivos que a branch nunca
 pretendeu tocar podem voltar no tempo sem erro de compilação.
+
+## 24. Nota interna, aviso "A Ana não respondeu" e aviso de mensagem nova no aplicativo de Atendimento (R1, 29/09/2026)
+
+Propostas v2: PR 7 (nota interna), o aviso quando a Ana desiste e o que couber do PR 11 sem push. O que **não pode voltar atrás**:
+
+- **A nota é um MODELO PRÓPRIO (`NotaDaConversa`), nunca uma `WhatsappMessage` marcada "interna"** (mesma decisão de `TranscricaoDeAudio`).
+  Uma mensagem "interna" depende de todo `where` lembrar de excluí-la; um esquecimento no caminho de saída manda a nota ao cliente ou a
+  faz virar "fala do cliente" para a Ana. Nenhum código de envio ou de leitura da Ana conhece a tabela: o teste
+  `lib/testes/atendimentoAppNota.teste.ts` varre `whatsapp.ts`, `hermesPonte.ts`, `registrarMensagem.ts`, `envioDeMensagemDb.ts`,
+  `anaReleOSilencio.ts`, `estadoDoChat*`, `janelaDe24h.ts`, transcrição e `transferirLead.ts` atrás do nome. `atendenteResponde` só importa
+  `registrarAvisoDaAna` (grava, nunca lê).
+- **Schema (aditivo, `db push`):** tabela nova `NotaDaConversa` (`tipo` NOTA | SISTEMA, `userId`/`autorNome` só na NOTA, `texto`,
+  `clientMessageId`, `textoHash`), `@@unique([officeId, clientMessageId])`, cascata com o Attendance, índice `(attendanceId, createdAt, id)`.
+  Nenhuma coluna existente mudou.
+- **Mesma rota, `modo` no corpo:** `POST /api/atendimento/[id]/mensagens` com `modo: "nota"` salva a nota. Ausente ou `"mensagem"` = envio ao
+  cliente, como sempre; QUALQUER outro valor é 400 (nunca "na dúvida, envia"). O despacho é `lib/pedidoDoChatDb.ts` (`despacharPedidoDoChat`):
+  a nota RETORNA antes de `enviarMensagemDoApp`. A guarda `atendimentoDaRota` continua antes de ler o corpo; o autor vem da sessão
+  (`viewer.name`), nunca do corpo.
+- **Idempotência da nota** por `clientMessageId` (único por escritório): mesma chave = a MESMA nota; outro texto, outra conversa ou chave de
+  aviso de sistema = 409, sem devolver o texto alheio. Como não existe "duplicar no WhatsApp", a nota NÃO tem o estado "sem confirmação":
+  falha de rede = "Não salva · tente de novo, repetir não duplica".
+- **A nota não assume a conversa e não conta como saída**: não chama `silenciarAtendente`, não grava `waLastMessageAt`, `firstResponseAt`,
+  `ultimaAtividadeEm` nem o prazo de 15 min (o arquivo não toca em `Attendance`; o teste trava). A lista e a prévia continuam lendo só
+  mensagens. A nota não depende de telefone nem da janela de 24 h: o seletor "Para <nome> / Nota interna" existe também no atendimento sem
+  WhatsApp e com janela fechada (só o campo AO CLIENTE dá lugar à frase/faixa).
+- **Leitura unificada:** `carregarPaginaDoChat` e `carregarMensagensDepois` leem as duas tabelas com o mesmo cursor (instante, id) e juntam
+  pela mesma ordem; toda consulta de nota tem `attendanceId` E `officeId` no where. `MensagemDoChat` ganhou `tipo?: "nota" | "sistema"` e
+  `autor?` (opcionais: quem monta mensagem de WhatsApp não muda).
+- **Visual (não só cor):** nota = borda tracejada de ardósia, cadeado, "Nota interna · só a equipe", autor e hora; aviso de sistema =
+  centralizado, borda contínua, ícone de informação, "Aviso do sistema · só a equipe". Campo: dois botões `aria-pressed` de 44 px, "Salvar nota"
+  com cadeado, rascunho SEPARADO por modo (`atd-rascunho:nota:<id>`, apagado ao Sair), modo abre sempre em "ao cliente". Contraste da ardósia
+  medido no CSS em Dia e Noite.
+- **"A Ana não respondeu: <motivo>"**: quando `relerAntesDeEnviar` manda desistir, `atendenteResponde` chama `desistirComAviso`, que grava um
+  registro SISTEMA com a frase do motivo (o mesmo texto de `decidirDepoisDaReleitura`). Chave `sistema:ana-desistiu:<id da pergunta>`: UMA por
+  pergunta do cliente, então novas tentativas e o botão "responder agora" não repetem o aviso (o `:` não passa na validação da chave do
+  aparelho, então nenhuma nota digitada colide). Não lança (o aviso nunca derruba a Ana) e a chamada é `return desistirComAviso(...)` sem
+  `await` entre a releitura e o envio (o teste da janela continua valendo). O texto diz "A Ana" fixo; um escritório que renomeou o atendente
+  ainda vê "A Ana".
+- **Aviso de mensagem nova SEM push:** `lib/avisoDeMensagemNova.ts` + `useAvisoDeMensagemNova`. Com o chat aberto e a aba fora de vista o
+  título vira "(N) Nova mensagem · <título>" e o selo do app instalado (`navigator.setAppBadge`, opcional, em try/catch) mostra N; volta ao
+  normal ao voltar à aba ou sair da conversa. Só o NÚMERO (nunca nome nem texto) e só mensagens do CLIENTE (nota e aviso não contam). A busca
+  de 15 s continua à vista; fora de vista anda a cada 1 min. A região `aria-live` do chat só fala com a aba à vista; o log continua sem
+  `aria-live` e o contador do "↓ N novas" segue o único `aria-live` de `RolarParaOFim` (ganhou `aria-label` que diz o que o botão faz).
+  **NÃO EXISTE aviso com o aplicativo fechado (push, N17/PR 14):** a tela Mais diz "a construir" e a política de privacidade não mudou
+  porque nada novo sai do aparelho.
+- **NÃO provado:** banco real (o teste usa repositório em memória e provedor/`fetch` falsos), o navegador (título, selo, rolagem, tema),
+  `atendenteResponde` inteira (precisa de banco) e o comportamento do selo em iOS/Android reais. Ainda sem "excluir nota com desfazer"
+  (proposta 6.8) e sem editar nota. Notas e avisos NÃO entram em exportação de escritório nem em relatórios (nenhum deles foi tocado).
