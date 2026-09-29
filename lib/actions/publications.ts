@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
 import { delegateTask, acknowledgeDelegation } from "@/lib/actions/tasks";
 import { collectPublicationGroupIds } from "@/lib/publicationResolution";
+import { extrairMelhorDoGrupo } from "@/lib/prazoExtraido";
 
 // Usado pelo AppBadgeSync (badge no ícone do PWA instalado, via Badging API) para saber se o
 // número mudou desde a última checagem, sem precisar recarregar a página inteira.
@@ -375,4 +376,113 @@ export async function unblockProcessNumber(id: string): Promise<{ error?: string
   await prisma.blockedProcessNumber.delete({ where: { id } });
   revalidatePath("/configuracoes");
   return {};
+}
+
+
+// ===== Triagem em lote (redesenho de /publicacoes) =====
+
+// "Marcar como vistas" em lote. Recebe os GRUPOS (cada grupo é um card: as publicações do mesmo
+// processo no mesmo dia) e o SERVIDOR decide quem fica de fora: grupo cuja extração de prazo acha
+// prazo, audiência, números divergentes ou menção a prazo NÃO é marcado — ver o que ele diz antes de
+// dar como visto é justamente o que o lote não pode dispensar. Vista é marca pessoal: não tira nada
+// da fila do escritório.
+export async function markPublicationsReadBatch(
+  groups: string[][]
+): Promise<{ marcadas: string[][]; excluidas: string[][] }> {
+  const user = await getCurrentUser();
+  if (!user || groups.length === 0) return { marcadas: [], excluidas: [] };
+  const allIds = groups.flat();
+  const pubs = await prisma.publication.findMany({
+    where: { id: { in: allIds }, officeId: user.officeId },
+    select: { id: true, kind: true, content: true, publishedAt: true },
+  });
+  const byId = new Map(pubs.map((p) => [p.id, p]));
+  const holidays = await prisma.holiday.findMany({ where: { officeId: user.officeId }, select: { date: true } });
+  const extras = holidays.map((h) => ({ date: h.date.toISOString().slice(0, 10) }));
+
+  const marcadas: string[][] = [];
+  const excluidas: string[][] = [];
+  for (const g of groups) {
+    const itens = g.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
+    if (itens.length === 0) continue;
+    const e = extrairMelhorDoGrupo(
+      itens.map((p) => ({ id: p.id, kind: p.kind, publishedAt: p.publishedAt, content: decodificarEntidadesHtml(p.content) })),
+      extras
+    );
+    const citaPrazo = e.tipo !== "NENHUM" || Boolean(e.mencionaPrazo);
+    (citaPrazo ? excluidas : marcadas).push(itens.map((p) => p.id));
+  }
+  const ids = marcadas.flat();
+  if (ids.length > 0) {
+    await prisma.publicationRead.createMany({ data: ids.map((id) => ({ publicationId: id, userId: user.id })), skipDuplicates: true });
+    revalidatePath("/publicacoes");
+    revalidatePath("/alertas");
+    revalidatePath("/painel");
+  }
+  return { marcadas, excluidas };
+}
+
+export type PublicationSnapshot = { id: string; assignedToId: string | null; triageStatus: string; deadlineGenerated: boolean };
+
+// Atribuir em lote: define o responsável do grupo e, se ainda PENDENTE, passa a EM_ANALISE. Não cria
+// tarefa nem prazo (o prazo continua sendo de quem decide até alguém registrá-lo). Devolve o estado
+// anterior para o "Desfazer" restaurar exatamente, por publicação.
+export async function assignPublicationsBatch(
+  groups: string[][],
+  userId: string
+): Promise<{ error?: string; before?: PublicationSnapshot[] }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+  const alvo = await prisma.user.findFirst({ where: { id: userId, officeId: viewer.officeId, active: true }, select: { id: true } });
+  if (!alvo) return { error: "Responsável não encontrado." };
+  const ids = groups.flat();
+  const before = await prisma.publication.findMany({
+    where: { id: { in: ids }, officeId: viewer.officeId },
+    select: { id: true, assignedToId: true, triageStatus: true, deadlineGenerated: true },
+  });
+  const okIds = before.map((b) => b.id);
+  if (okIds.length === 0) return { before: [] };
+  await prisma.publication.updateMany({ where: { id: { in: okIds } }, data: { assignedToId: userId } });
+  await prisma.publication.updateMany({ where: { id: { in: okIds }, triageStatus: "PENDENTE" }, data: { triageStatus: "EM_ANALISE" } });
+  revalidatePath("/publicacoes");
+  revalidatePath("/painel");
+  return { before };
+}
+
+// Restaura o estado anterior por publicação (desfazer de "atribuir em lote" e de "só ciência").
+export async function restorePublicationSnapshots(before: PublicationSnapshot[]): Promise<void> {
+  const viewer = await getCurrentUser();
+  if (!viewer || before.length === 0) return;
+  for (const b of before) {
+    await prisma.publication.updateMany({
+      where: { id: b.id, officeId: viewer.officeId },
+      data: { assignedToId: b.assignedToId, triageStatus: b.triageStatus, deadlineGenerated: b.deadlineGenerated },
+    });
+  }
+  revalidatePath("/publicacoes");
+  revalidatePath("/painel");
+}
+
+// Desfaz "Registrar prazo": cancela as tarefas criadas e restaura a publicação (responsável, status,
+// marca de compromisso gerado). A leitura que a criação gravou para o escritório não é restaurada.
+export async function undoPublicationDeadlines(taskIds: string[], before: PublicationSnapshot[]): Promise<void> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
+  if (taskIds.length > 0) {
+    await prisma.task.updateMany({ where: { id: { in: taskIds }, officeId: viewer.officeId }, data: { status: "CANCELADO" } });
+  }
+  await restorePublicationSnapshots(before);
+  revalidatePath("/agenda");
+  revalidatePath("/m/agenda");
+  revalidatePath("/kanban");
+}
+
+// Estado atual de publicações (para o snapshot antes de registrar prazo em lote).
+export async function getPublicationSnapshots(ids: string[]): Promise<PublicationSnapshot[]> {
+  const viewer = await getCurrentUser();
+  if (!viewer || ids.length === 0) return [];
+  return prisma.publication.findMany({
+    where: { id: { in: ids }, officeId: viewer.officeId },
+    select: { id: true, assignedToId: true, triageStatus: true, deadlineGenerated: true },
+  });
 }
