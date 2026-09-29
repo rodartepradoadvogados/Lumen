@@ -1,8 +1,9 @@
 "use client";
 
-import { AlertTriangle, Check, Clock, Ear, FileText, HelpCircle, Image as ImageIcon, Info, Lock, Mic, RefreshCw, Smile, Trash2, Video } from "lucide-react";
+import { AlertTriangle, Check, Clock, Ear, HelpCircle, Info, Lock, MoreVertical, Pin, RefreshCw, Trash2 } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
-import type { MensagemDoChat, MidiaDaMensagem } from "@/lib/mensagensDoChat";
+import MidiaDaBolha from "@/components/atendimento-app/MidiaDaBolha";
+import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 
 // O BALÃO. Recebida em branco; enviada por pessoa em ouro suave; da Ana com borda de ouro e o nome.
 // Quem falou nunca depende de cor: a bolha tem lado, e o leitor de tela ouve "Cliente" ou "Escritório".
@@ -22,17 +23,12 @@ import type { MensagemDoChat, MidiaDaMensagem } from "@/lib/mensagensDoChat";
 // de borda contínua, com ícone de informação e "Aviso do sistema · só a equipe". Rótulo e ícone dizem o que é;
 // a cor só reforça.
 
-const ICONE_DA_MIDIA: Record<MidiaDaMensagem["tipo"], typeof FileText> = {
-  imagem: ImageIcon,
-  documento: FileText,
-  audio: Mic,
-  video: Video,
-  figurinha: Smile,
-};
-
 export default function BolhaDaMensagem({
   m,
+  idDaConversa,
   nomeDoAtendente,
+  fixada,
+  aoAbrirAcoes,
   aoTentarDeNovo,
   aoDescartar,
   confirmandoReenvio,
@@ -40,7 +36,13 @@ export default function BolhaDaMensagem({
   aoCancelarReenvio,
 }: {
   m: MensagemDoChat;
+  /** A conversa: a mídia do balão vem da rota autenticada dela (PR 8). */
+  idDaConversa: string;
   nomeDoAtendente: string;
+  /** Esta é a mensagem fixada no topo (PR 10). */
+  fixada?: boolean;
+  /** Abre o menu Responder / Fixar (PR 10); só existe para mensagem que o servidor já gravou. */
+  aoAbrirAcoes?: (m: MensagemDoChat) => void;
   aoTentarDeNovo?: (clientMessageId: string) => void;
   aoDescartar?: (clientMessageId: string) => void;
   confirmandoReenvio?: boolean;
@@ -49,7 +51,6 @@ export default function BolhaDaMensagem({
 }) {
   const saiu = m.direction === "OUT";
   const autor = saiu ? (m.porAgente ? nomeDoAtendente : "Escritório") : "Cliente";
-  const Icone = m.midia ? ICONE_DA_MIDIA[m.midia.tipo] : null;
   const local = m.envioLocal;
   const falhou = m.falhou || local?.estado === "falhou";
   const duvida = local?.estado === "sem-confirmacao";
@@ -77,8 +78,9 @@ export default function BolhaDaMensagem({
 
   return (
     <div className={`flex flex-col ${saiu ? "items-end" : "items-start"}`} data-mensagem={m.id} data-tipo={ehNota ? "nota" : undefined} data-envio={local?.estado ?? (m.enviada ? "enviada" : undefined)}>
+      <div className={`flex w-full items-end gap-0.5 ${saiu ? "flex-row-reverse" : ""}`}>
       <div
-        className={`max-w-[84%] break-words rounded-[2px] border px-2.5 pb-1 pt-1.5 [overflow-wrap:anywhere] ${
+        className={`min-w-0 max-w-[84%] break-words rounded-[2px] border px-2.5 pb-1 pt-1.5 [overflow-wrap:anywhere] ${
           falhou ? "border-urgente bg-urgente-bg" : duvida ? "border-aviso bg-aviso-bg" : ehNota ? "border-dashed border-atd-ardosia bg-atd-ardosia-bg" : `${saiu ? "bg-atd-bolha-out" : "bg-atd-bolha-in"} ${m.porAgente ? "border-ouro-acento" : saiu ? "border-atd-borda-out" : "border-atd-borda-in"}`
         }`}
       >
@@ -95,12 +97,7 @@ export default function BolhaDaMensagem({
             {nomeDoAtendente}
           </p>
         )}
-        {m.midia && Icone && (
-          <p className="mb-1 flex items-center gap-2 rounded-[2px] border border-regua bg-sf-apoio px-2 py-1.5 text-corpo font-semibold text-tx">
-            <Icone size={18} aria-hidden="true" className="shrink-0 text-tx-2" />
-            <span className="min-w-0 [overflow-wrap:anywhere]">{m.midia.nome ? `${m.midia.rotulo}: ${m.midia.nome}` : m.midia.rotulo}</span>
-          </p>
-        )}
+        {m.midia && <MidiaDaBolha idDaConversa={idDaConversa} idDaMensagem={m.id} midia={m.midia} recebida={!saiu} />}
         {m.texto && <p className="whitespace-pre-wrap text-corpo text-tx">{m.texto}</p>}
         {m.transcricao && (
           <div className="mt-1.5 rounded-[2px] border border-regua bg-atd-ardosia-bg px-2 py-1.5">
@@ -136,8 +133,19 @@ export default function BolhaDaMensagem({
               <span className="sr-only">{ehNota ? "Salva" : "Enviada"}</span>
             </span>
           )}
+          {fixada && (
+            <span className="inline-flex items-center gap-0.5 font-semibold">
+              <Pin size={12} aria-hidden="true" /> Fixada
+            </span>
+          )}
           <time dateTime={m.criadoEm}>{m.hora}</time>
         </p>
+      </div>
+      {aoAbrirAcoes && !local && !m.id.startsWith("local-") && (
+        <button type="button" onClick={() => aoAbrirAcoes(m)} aria-label={`Mais ações da mensagem de ${autor}, ${m.hora}`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] text-tx-3 hover:bg-sf-apoio hover:text-tx">
+          <MoreVertical size={16} aria-hidden="true" />
+        </button>
+      )}
       </div>
 
       {local && (falhou || duvida) && chave && (

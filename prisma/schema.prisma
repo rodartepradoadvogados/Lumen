@@ -1367,6 +1367,7 @@ model Attendance {
   attachments      Attachment[]
   whatsappMessages WhatsappMessage[]
   pedidosDeEnvio   PedidoDeEnvioWhatsapp[]
+  mensagemFixada   MensagemFixada?
   notasDaConversa  NotaDaConversa[]
   emailMessages    EmailMessage[]
   driveSyncIssues  DriveSyncIssue[]
@@ -1449,6 +1450,17 @@ model WhatsappMessage {
   // Nula em toda mensagem que não saiu por essa rota (entrada, Ana, Central).
   clientMessageId              String?
 
+  // O ARQUIVO DA MÍDIA RECEBIDA (PR 8 do aplicativo de Atendimento). Aponta para o `Attachment` que
+  // `processarMidiaRecebida` (lib/whatsapp.ts) cria no Drive do escritório; o balão do chat serve o arquivo pela
+  // rota autenticada /api/atendimento/[id]/midia/[mensagemId], NUNCA por URL do Drive. Sem @relation de propósito
+  // (aditivo, sem cascata): quem apaga o anexo deixa este id solto, e a rota responde "indisponível". Nulo em
+  // texto, em figurinha (não é guardada) e em toda mídia anterior a esta coluna (a rota tenta achar o anexo pelo
+  // nome do arquivo, que carrega o id da mensagem; não achando, "indisponível"). Tipo e tamanho são o que o
+  // download devolveu, para o cartão dizer "PDF, 1,2 MB" sem baixar nada.
+  attachmentId String?
+  midiaMime    String?
+  midiaBytes   Int?
+
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
@@ -1490,6 +1502,42 @@ model PedidoDeEnvioWhatsapp {
 
   @@unique([officeId, clientMessageId])
   @@index([attendanceId, estado, updatedAt])
+}
+
+// ============ MENSAGEM FIXADA NO TOPO DA CONVERSA (PR 10 do aplicativo de Atendimento) =====}
+
+//
+// UMA por atendimento (`attendanceId @unique`), do ATENDIMENTO e não de quem fixou: a equipe que tem acesso ao
+// lead vê a mesma mensagem no topo. Fixar de novo troca a anterior. `whatsappMessageId` é texto puro, sem
+// @relation (aditivo): a mensagem é conferida como sendo DESTE atendimento e deste escritório ao fixar e ao
+// ler; uma mensagem que sumiu simplesmente não aparece. Apagar o atendimento apaga a fixação (cascata).
+model MensagemFixada {
+  id                String     @id @default(cuid())
+  officeId          String
+  attendanceId      String     @unique
+  attendance        Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  whatsappMessageId String
+  fixadaPorId       String?
+  createdAt         DateTime   @default(now())
+
+  @@index([officeId])
+}
+
+// ============ RESPOSTAS RÁPIDAS DO ESCRITÓRIO (PR 10) ============
+//
+// Textos salvos, POR ESCRITÓRIO: quem tem acesso ao Atendimento cria; edita/exclui o autor ou o nível total.
+// O texto só é INSERIDO no campo de mensagem, com um toque; quem envia é a pessoa. Sem @relation de propósito
+// (aditivo): `officeId` e `criadaPorId` são texto, e TODA consulta filtra por `officeId`.
+model RespostaRapida {
+  id          String   @id @default(cuid())
+  officeId    String
+  titulo      String
+  texto       String
+  criadaPorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([officeId, titulo])
 }
 
 // ============ NOTA INTERNA E AVISO DE SISTEMA DA CONVERSA (só a equipe; NUNCA vai ao WhatsApp) ============

@@ -656,3 +656,58 @@ Propostas v2: PR 7 (nota interna), o aviso quando a Ana desiste e o que couber d
 - **NÃO provado:** banco real (o teste usa repositório em memória e provedor/`fetch` falsos), o navegador (título, selo, rolagem, tema),
   `atendenteResponde` inteira (precisa de banco) e o comportamento do selo em iOS/Android reais. Ainda sem "excluir nota com desfazer"
   (proposta 6.8) e sem editar nota. Notas e avisos NÃO entram em exportação de escritório nem em relatórios (nenhum deles foi tocado).
+
+## 25. Mídia no balão, anexos pelo celular, fixar e respostas rápidas (PR 8, 9 e 10 do aplicativo de Atendimento, 29/09/2026)
+
+Muda o item 16 ("mídia é rótulo"): a mídia RECEBIDA agora aparece no balão. O que **não pode voltar atrás**:
+
+**Mídia no balão (PR 8)**
+- **O arquivo sai só por `GET /api/atendimento/[id]/midia/[mensagemId]`.** A decisão mora em `lib/midiaDoChatServico.ts`
+  (portas por parâmetro, testável sem banco) e a ordem é o recorte: **guarda `atendimentoDaRota` (401/403/404) -> mensagem da MESMA
+  conversa e escritório -> só mídia recebida e guardada -> anexo dentro da mesma conversa -> download**. O `attendanceId` e o
+  `officeId` da consulta vêm da GUARDA, nunca do pedido. Mensagem de outra conversa = o mesmo 404 (nada vaza). Frases da rota
+  (`FRASES_DA_MIDIA`) não têm id, endereço do Drive nem o texto do erro do provedor (erro do Drive = 502 com frase fixa).
+- **Nunca URL do Drive no balão** (`MidiaDaBolha` só conhece `enderecoDaMidia`) e nunca redirecionar para ele.
+- **Só imagem raster, áudio, vídeo e PDF saem inline** (`tipoParaServir`). SVG, HTML, XML, Office, zip e tipo desconhecido vão como
+  `application/octet-stream` + `attachment`. O nome do arquivo só escolhe o tipo quando o Drive devolveu octet-stream, e só entre os tipos
+  seguros. `nosniff`, `CORP: same-origin`, `no-referrer`, `Vary: Cookie` e `CSP: sandbox` (menos no PDF: o leitor de PDF não abre em sandbox).
+- **Cache: `private, no-store`** na rota, e o `sw-atendimento.js` não usa `caches` nem `respondWith` (o teste falha se usar). O preço: cada
+  abertura de foto busca o arquivo de novo no Drive. É de propósito: mídia de cliente não fica no aparelho de quem sai do app.
+- **Sem baixar sozinho:** imagem = miniatura `loading="lazy"` (a rota entrega o arquivo inteiro; foto do WhatsApp é leve); áudio =
+  `<audio preload="none">`; vídeo = cartão + "Carregar vídeo"; documento = cartão com "Abrir" (outra aba, `noopener noreferrer`).
+  Figurinha não é guardada, e o balão diz isso. Limite de 30 MB (`LIMITE_DA_MIDIA_BYTES`); o WhatsApp corta em 16 MB. **Range** (206/416)
+  existe porque o player do iPhone só toca áudio/vídeo se o servidor responder a `bytes=0-1`.
+- **Schema (aditivo):** `WhatsappMessage.attachmentId`, `midiaMime`, `midiaBytes`, gravados por `ingestIncomingWhatsapp` depois do upload.
+  Sem `@relation`: se alguém apagar o anexo, o id fica solto e a rota responde "indisponível". **Mídia anterior à coluna:** foto, áudio e
+  vídeo são achados pelo nome do arquivo (`-<hash do id da mensagem>.`, `restoDoNomeDeMidiaSemNome`, sempre dentro do mesmo atendimento;
+  dois candidatos = "indisponível"). **Documento antigo (nome do cliente) fica "indisponível"** até haver um backfill.
+- Tamanho e tipo do cartão vêm dessas colunas; sem elas o cartão omite (não inventa).
+
+**Anexos pelo celular (PR 9)** — `Detalhes > Anexos`: "Tirar foto" (`capture="environment"`) e "Escolher arquivo".
+- Mesmo fluxo do site: Vercel Blob (com progresso) -> `finalizeAttachmentUpload` -> Drive, pasta do atendimento. O limite é o MESMO
+  (25 MB do `blob-token`; o teste compara os dois números). O site aceita qualquer tipo; o celular aceita a lista de
+  `lib/anexoDoCelular.ts` (documentos, imagens incluindo HEIC, áudio, vídeo, zip) e recusa exe/bat/js/html/svg... pela EXTENSÃO
+  (o `type` que o navegador declara não abre a porta). Foto da câmera sem nome ganha `foto.<ext do tipo>`.
+- `anexarArquivoDoCelular` começa por `atendimentoDaAcao` (recorte por dono) e prende o anexo ao atendimento AUTORIZADO.
+  **Desfazer** (`desfazerAnexoDoCelular`): só quem enviou, em 10 minutos, nunca a mídia do cliente, nunca anexo de protocolo.
+- **Não é envio ao cliente**: nada aqui chama o WhatsApp (mídia de saída é o PR 14). A URL do Blob é pública e temporária (padrão do site).
+
+**Responder, fixar, respostas rápidas (PR 10)**
+- **Responder é citação LOCAL.** O WhatsApp aceita `context.message_id`, mas isso muda o que se envia e a chave de idempotência
+  (`textoHash`): a mesma chave com outro alvo seria "outro texto". Sem esse desenho, a citação só ajuda quem escreve; a barra do campo e o
+  menu dizem que o cliente NÃO a vê, e `enviarMensagemDoApp` não conhece citação (o teste trava).
+- **Fixar:** `MensagemFixada` (uma por atendimento, `attendanceId @unique`, cascata). Visível a quem tem acesso ao atendimento e
+  sincronizada pela atualização de 15 s (`EstadoDoChat.fixada`). `fixarMensagem`/`desafixarMensagem` começam por `atendimentoDaAcao` e
+  conferem que a mensagem é deste atendimento e escritório; a leitura confere de novo. O balão "enviando" do aparelho não se fixa.
+- **Respostas rápidas:** `RespostaRapida` por escritório (limite 100, título único sem diferenciar maiúscula, texto até 1.000
+  caracteres, sempre menor que o limite do envio). **Quem cria:** quem tem acesso ao Atendimento. **Quem edita/exclui:** o autor ou o nível
+  total (e quem perdeu o acesso, ninguém). Toda consulta e escrita leva `officeId` (`updateMany`/`deleteMany` com o escritório no WHERE).
+  **Inserir NUNCA envia**: o toque põe o texto no campo, depois do que já estava escrito. Gerenciar em `Mais > Respostas rápidas`.
+  O atalho `/` da proposta NÃO foi feito.
+- **Schema (aditivo):** `MensagemFixada` e `RespostaRapida` (sem relação com Office; só `MensagemFixada` -> Attendance, com cascata).
+
+**Não provado (só código e teste de mesa):** streaming da resposta com arquivo de vários MB na Vercel (o corpo já está todo na memória da função;
+o limite de 4,5 MB da plataforma vale para resposta NÃO transmitida, e a rota transmite em pedaços), o Drive/OneDrive/Dropbox reais, o player do
+iPhone com Range, a câmera e o `capture` em aparelho de verdade, o contraste no navegador (usei só tokens `--atd-*`).
+**Armadilha de ambiente:** `node_modules` compartilhado entre clones faz um `prisma generate` de outra branch apagar do cliente os modelos
+novos desta; se o `tsc` reclamar de `respostaRapida`/`mensagemFixada`, rode `npx prisma generate` de novo.

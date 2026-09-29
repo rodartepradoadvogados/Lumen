@@ -598,12 +598,21 @@ export async function ingestIncomingWhatsapp({
       return null;
     });
 
-    let uploadInfo: { storageProvider: StorageProvider; storageFileId: string } | null = null;
+    let uploadInfo: { storageProvider: StorageProvider; storageFileId: string; attachmentId: string; mimeType: string; bytes: number } | null = null;
     if (baixado) {
       uploadInfo = await processarMidiaRecebida(officeId, attendance.id, attendance.subject, waMessageId, midia, recebidoEm, baixado).catch((e) => {
         console.error(`[whatsapp] falha ao subir a mídia da mensagem ${waMessageId} para o Drive:`, e);
         return null;
       });
+    }
+
+    // PR 8: liga a mensagem ao arquivo, para o balão do aplicativo de Atendimento servi-lo pela rota autenticada
+    // (e o cartão dizer tipo e tamanho). Falhar aqui não derruba nada: sem o vínculo, a rota ainda acha fotos,
+    // áudios e vídeos pelo nome do arquivo.
+    if (uploadInfo) {
+      await prisma.whatsappMessage
+        .update({ where: { id: novaMensagem.id }, data: { attachmentId: uploadInfo.attachmentId, midiaMime: uploadInfo.mimeType.slice(0, 120), midiaBytes: uploadInfo.bytes } })
+        .catch((e) => console.error(`[whatsapp] falha ao ligar a mídia da mensagem ${waMessageId} ao anexo:`, e));
     }
 
     if (midia.tipo === "AUD") {
@@ -657,7 +666,7 @@ async function processarMidiaRecebida(
   midia: IncomingMidia,
   recebidoEm: Date,
   baixado: { buffer: Buffer; mimeType: string },
-): Promise<{ storageProvider: StorageProvider; storageFileId: string }> {
+): Promise<{ storageProvider: StorageProvider; storageFileId: string; attachmentId: string; mimeType: string; bytes: number }> {
   const nomeArquivo = montarNomeArquivoWhatsapp({
     recebidoEm,
     // O MIME devolvido no DOWNLOAD é a fonte mais confiável (vem do arquivo de verdade); o do
@@ -671,7 +680,7 @@ async function processarMidiaRecebida(
   const folderId = await getOrCreateAttendanceFolder(attendanceId, subject, officeId);
   const upload = await uploadFileToDriveFolder(nomeArquivo, baixado.mimeType || midia.mimeType, baixado.buffer, folderId, officeId);
 
-  await prisma.attachment.create({
+  const anexo = await prisma.attachment.create({
     data: {
       officeId,
       attendanceId,
@@ -681,11 +690,12 @@ async function processarMidiaRecebida(
       storageProvider: upload.storageProvider,
       storageFileId: upload.id,
     },
+    select: { id: true },
   });
 
   revalidatePath(`/atendimento/${attendanceId}`);
 
-  return { storageProvider: upload.storageProvider, storageFileId: upload.id };
+  return { storageProvider: upload.storageProvider, storageFileId: upload.id, attachmentId: anexo.id, mimeType: baixado.mimeType || midia.mimeType, bytes: baixado.buffer.length };
 }
 
 /**

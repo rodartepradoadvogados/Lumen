@@ -4,6 +4,11 @@
 
 // Handler de fetch vazio (não intercepta nada, a rede responde normalmente): o Chrome mais antigo só
 // considera o app instalável se o service worker tiver um listener de "fetch".
+//
+// NUNCA GUARDAR MÍDIA (PR 8): este worker não usa `caches` nem responde nada por conta própria. Foto, áudio, vídeo e
+// documento de cliente saem de /api/atendimento/<id>/midia/<mensagem> com `Cache-Control: private, no-store`, e um
+// worker que os guardasse os entregaria a quem usasse o aparelho depois do Sair. O teste
+// lib/testes/atendimentoAppMidia.teste.ts falha se este arquivo passar a usar `caches`.
 self.addEventListener("fetch", () => {});
 
 self.addEventListener("push", (event) => {

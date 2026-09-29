@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Info, Lock, Phone, Send } from "lucide-react";
+import { CornerUpLeft, Info, Lock, Phone, Send, X, Zap } from "lucide-react";
 import FaixaDaJanelaFechada from "@/components/atendimento-app/FaixaDaJanelaFechada";
+import RespostasRapidasDoChat from "@/components/atendimento-app/RespostasRapidasDoChat";
+import { textoDepoisDeInserir } from "@/lib/respostasRapidas";
 import { gravarRascunho, lerRascunho } from "@/lib/filaDoChat";
 import type { EstadoDoChat } from "@/lib/estadoDoChat";
 
@@ -20,12 +22,15 @@ import type { EstadoDoChat } from "@/lib/estadoDoChat";
 //   15 s, não perde o que estava sendo escrito.
 // - JANELA FECHADA: em vez do campo, a faixa (FaixaDaJanelaFechada: Ligar, meu WhatsApp, Criar tarefa,
 //   Como reabrir). SEM WHATSAPP: o campo dá lugar a uma frase.
+// - RESPOSTAS RÁPIDAS (PR 10): o botão com o raio abre a lista do escritório; um toque INSERE o texto no campo
+//   (depois do que já estava escrito) e NUNCA envia. CITAÇÃO (Responder): a barra acima do campo é local — o
+//   cliente não a vê (ver AcoesDaMensagem); some ao enviar ou em "Cancelar".
 // - DOIS MODOS, sempre à vista: "Para <nome>" (mensagem ao cliente, pelo WhatsApp) e "Nota interna" (só a
 //   equipe; NUNCA vai ao WhatsApp nem é lida pela Ana). O modo aparece em TEXTO, ícone, borda tracejada e no
 //   texto do botão ("Enviar" x "Salvar nota"), não só em cor. Cada modo guarda o SEU rascunho. Ao abrir a
 //   conversa o modo é sempre "ao cliente" (não fica gravado: ninguém escreve nota sem querer). A nota não
 //   depende de WhatsApp nem da janela de 24 h, então o seletor existe mesmo quando o campo ao cliente não.
-// - Nada de anexo ou modelo nesta etapa: o campo só faz o que o código faz.
+// - Nada de anexo ou modelo no campo: o campo só faz o que o código faz.
 const MAX_LINHAS_EM_PX = 132;
 
 export default function CompositorDoChat({
@@ -37,6 +42,8 @@ export default function CompositorDoChat({
   telefone,
   nomeDoAtendente,
   aoEnviar,
+  citando = null,
+  aoLimparCitacao,
 }: {
   idDaConversa: string;
   estado: EstadoDoChat;
@@ -46,7 +53,10 @@ export default function CompositorDoChat({
   telefone: string | null;
   nomeDoAtendente: string;
   aoEnviar: (texto: string, nota?: boolean) => void;
+  citando?: { id: string; autor: string; trecho: string } | null;
+  aoLimparCitacao?: () => void;
 }) {
+  const [respostas, setRespostas] = useState(false);
   const campo = useRef<HTMLTextAreaElement>(null);
   const texto = useRef("");
   const [vazio, setVazio] = useState(true);
@@ -83,6 +93,20 @@ export default function CompositorDoChat({
     crescer();
   }
 
+  // Insere a resposta rápida DEPOIS do que já está escrito e deixa o cursor no fim. Não envia.
+  function inserir(resposta: string) {
+    const c = campo.current;
+    if (!c) return;
+    const novo = textoDepoisDeInserir(texto.current, resposta);
+    c.value = novo;
+    texto.current = novo;
+    setVazio(!novo.trim());
+    gravarRascunho(idDaConversa, novo);
+    crescer();
+    c.focus({ preventScroll: true });
+    c.setSelectionRange(novo.length, novo.length);
+  }
+
   function enviar() {
     const t = texto.current.trim();
     if (!t) return;
@@ -95,6 +119,7 @@ export default function CompositorDoChat({
     setVazio(true);
     gravarRascunho(idDaConversa, "", nota);
     aoEnviar(t, nota);
+    aoLimparCitacao?.();
     campo.current?.focus({ preventScroll: true });
   }
 
@@ -188,7 +213,30 @@ export default function CompositorDoChat({
           <span>{apoio.join(" ")}</span>
         </p>
       )}
+      {citando && (
+        <div role="group" aria-label="Você está respondendo a uma mensagem" className="mb-1 flex items-start gap-1.5 rounded-[2px] border border-regua bg-sf-apoio px-2 py-1" data-citacao="">
+          <CornerUpLeft size={14} aria-hidden="true" className="mt-1 shrink-0 text-tx-2" />
+          <div className="min-w-0 flex-1">
+            <p className="text-etiqueta font-bold text-tx-2">Respondendo a {citando.autor}</p>
+            <p className="line-clamp-2 break-words text-corpo text-tx [overflow-wrap:anywhere]">{citando.trecho}</p>
+            <p className="text-etiqueta text-tx-2">Só você vê esta citação; o cliente recebe apenas o seu texto.</p>
+          </div>
+          <button type="button" onClick={aoLimparCitacao} aria-label="Cancelar a citação" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] text-tx-2 hover:bg-sf">
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
       <div className="flex items-end gap-1.5">
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setRespostas(true)}
+          aria-label="Respostas rápidas"
+          aria-haspopup="dialog"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] border border-regua-forte bg-sf text-tx hover:bg-sf-apoio"
+        >
+          <Zap size={18} aria-hidden="true" />
+        </button>
         <textarea
           ref={campo}
           rows={1}
@@ -213,6 +261,7 @@ export default function CompositorDoChat({
           <span>{nota ? "Salvar nota" : "Enviar"}</span>
         </button>
       </div>
+      {respostas && <RespostasRapidasDoChat aoInserir={inserir} aoFechar={() => setRespostas(false)} />}
     </div>
   );
 }

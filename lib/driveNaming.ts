@@ -221,6 +221,16 @@ function hashCurto(texto: string): string {
   return Math.abs(h).toString(36);
 }
 
+/**
+ * O "resto" do nome de uma mídia SEM nome original (foto, áudio, vídeo): é o hash do id da mensagem. Serve para
+ * achar, numa mensagem anterior à coluna `WhatsappMessage.attachmentId`, o arquivo que ela gerou — sempre
+ * dentro do MESMO atendimento (lib/midiaDoChatDb.ts). Mídia com nome original (documento) não é achável por
+ * aqui: o nome vem do cliente, e dois arquivos iguais no mesmo dia colidiriam.
+ */
+export function restoDoNomeDeMidiaSemNome(waMessageId: string): string {
+  return hashCurto(waMessageId);
+}
+
 export type NomeArquivoWhatsappInput = {
   /** Quando a MENSAGEM chegou (não "agora") — ver comentário de diaEmBrasilia. */
   recebidoEm: Date | string;

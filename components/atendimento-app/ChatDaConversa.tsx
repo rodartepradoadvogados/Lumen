@@ -5,6 +5,9 @@ import RolarParaOFim from "@/components/atendimento/RolarParaOFim";
 import BarraDoChat from "@/components/atendimento-app/BarraDoChat";
 import BolhaDaMensagem from "@/components/atendimento-app/BolhaDaMensagem";
 import CompositorDoChat from "@/components/atendimento-app/CompositorDoChat";
+import AcoesDaMensagem from "@/components/atendimento-app/AcoesDaMensagem";
+import FixadaDoChatTopo from "@/components/atendimento-app/FixadaDoChat";
+import { trechoDaMensagem } from "@/lib/mensagemFixada";
 import { agruparMensagensPorDia, cursorDaMaisNova, mesclarMensagens, type MensagemDoChat } from "@/lib/mensagensDoChat";
 import type { EstadoDoChat } from "@/lib/estadoDoChat";
 import { useAvisoDeMensagemNova } from "@/components/atendimento-app/useAvisoDeMensagemNova";
@@ -71,6 +74,9 @@ export default function ChatDaConversa({
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => new Date(agoraIso));
   const [aviso, setAviso] = useState("");
+  // PR 10: o menu da mensagem (Responder / Fixar) e a citação local (só na tela de quem responde).
+  const [acoesDe, setAcoesDe] = useState<MensagemDoChat | null>(null);
+  const [citando, setCitando] = useState<{ id: string; autor: string; trecho: string } | null>(null);
   // O ponto de corte: só o que é MAIS NOVO que a primeira mensagem da primeira página conta como
   // "nova" para o aviso "↓ N novas" (carregar anteriores não pode acender o aviso).
   const corte = useRef(inicial.mensagens[0]?.criadoEm ?? "");
@@ -137,6 +143,21 @@ export default function ChatDaConversa({
 
   const anunciar = useCallback((texto: string) => setAviso(texto), []);
   const avisarEmSegundoPlano = useAvisoDeMensagemNova();
+
+  // Vai até a mensagem fixada, se ela está na tela (mexe só na rolagem da conversa, nunca em `scrollIntoView`).
+  const irParaAMensagem = useCallback(
+    (id: string) => {
+      const c = caixa.current;
+      const alvo = c?.querySelector<HTMLElement>(`[data-mensagem="${CSS.escape(id)}"]`);
+      if (!c || !alvo) return anunciar("A mensagem fixada é mais antiga. Toque em Carregar mensagens anteriores para chegar até ela.");
+      c.scrollTop += alvo.getBoundingClientRect().top - c.getBoundingClientRect().top - 8;
+    },
+    [anunciar],
+  );
+  const responderA = useCallback((m: MensagemDoChat) => {
+    const autor = m.direction === "OUT" ? (m.porAgente ? nomeDoAtendente : "Escritório") : "Cliente";
+    setCitando({ id: m.id, autor, trecho: trechoDaMensagem(m.midia ? `[${m.midia.rotulo.toLowerCase()}] ${m.texto}` : m.texto, 140) });
+  }, [nomeDoAtendente]);
 
   // ── A ATUALIZAÇÃO A CADA 15 SEGUNDOS ─────────────────────────────────────────────────────────────
   const buscarNovas = useCallback(async () => {
@@ -315,6 +336,9 @@ export default function ChatDaConversa({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <BarraDoChat idDaConversa={idDaConversa} estado={estado} agora={agora} nomeDoAtendente={nomeDoAtendente} aoMudar={(parte) => setEstado((e) => ({ ...e, ...parte }))} aoResponder={() => void buscarNovas()} />
+      {estado.fixada && (
+        <FixadaDoChatTopo idDaConversa={idDaConversa} fixada={estado.fixada} aoIr={irParaAMensagem} aoDesafixar={() => setEstado((e) => ({ ...e, fixada: null }))} />
+      )}
       <div
         ref={caixa}
         data-rolagem-da-conversa=""
@@ -357,7 +381,10 @@ export default function ChatDaConversa({
                   <BolhaDaMensagem
                     key={m.id}
                     m={m}
+                    idDaConversa={idDaConversa}
                     nomeDoAtendente={nomeDoAtendente}
+                    fixada={estado.fixada?.mensagemId === m.id}
+                    aoAbrirAcoes={setAcoesDe}
                     aoTentarDeNovo={tentarDeNovo}
                     aoDescartar={descartar}
                     confirmandoReenvio={confirmando !== null && confirmando === m.clientMessageId}
@@ -371,7 +398,18 @@ export default function ChatDaConversa({
           </div>
         )}
       </div>
-      <CompositorDoChat idDaConversa={idDaConversa} estado={estado} nomeDoContato={nomeDoContato} primeiroNome={primeiroNome} nomeTemporario={nomeTemporario} telefone={telefone} nomeDoAtendente={nomeDoAtendente} aoEnviar={enviar} />
+      <CompositorDoChat idDaConversa={idDaConversa} estado={estado} nomeDoContato={nomeDoContato} primeiroNome={primeiroNome} nomeTemporario={nomeTemporario} telefone={telefone} nomeDoAtendente={nomeDoAtendente} aoEnviar={enviar} citando={citando} aoLimparCitacao={() => setCitando(null)} />
+      {acoesDe && (
+        <AcoesDaMensagem
+          m={acoesDe}
+          idDaConversa={idDaConversa}
+          autor={acoesDe.direction === "OUT" ? (acoesDe.porAgente ? nomeDoAtendente : "Escritório") : "Cliente"}
+          fixadaAgora={estado.fixada?.mensagemId === acoesDe.id}
+          aoResponder={responderA}
+          aoMudarFixada={(f) => setEstado((e) => ({ ...e, fixada: f }))}
+          aoFechar={() => setAcoesDe(null)}
+        />
+      )}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-aviso-vivo="">
         {aviso}
       </div>
