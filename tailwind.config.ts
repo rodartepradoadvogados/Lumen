@@ -145,6 +145,20 @@ const config: Config = {
         papel: "var(--papel)",
         ficha: "var(--ficha)",
         "ficha-alt": "var(--ficha-alt)",
+        // APLICATIVO DE ATENDIMENTO (PWA de celular): tokens próprios de app/globals.css
+        // (.atendimento-shell / .atendimento-dark). Trocam sozinhos entre Dia e Noite.
+        atd: {
+          hdr: "var(--atd-hdr)",
+          "hdr-tx": "var(--atd-hdr-tx)",
+          "hdr-tx2": "var(--atd-hdr-tx2)",
+          "hdr-linha": "var(--atd-hdr-linha)",
+          campo: "var(--atd-campo)",
+          "ouro-texto": "var(--atd-ouro-texto)",
+          "bolha-in": "var(--atd-bolha-in)",
+          "bolha-out": "var(--atd-bolha-out)",
+          ardosia: "var(--atd-ardosia)",
+          "ardosia-bg": "var(--atd-ardosia-bg)",
+        },
         gaveta: {
           DEFAULT: "var(--gaveta)",
           fundo: "var(--gaveta-fundo)",

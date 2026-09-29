@@ -18,8 +18,8 @@ export default async function AlertasAppPage() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/atendimento-app" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
-        <ArrowLeft size={13} /> Triagem
+      <Link href="/atendimento-app/mais" className="inline-flex min-h-11 items-center gap-1 text-corpo font-semibold text-tx-2">
+        <ArrowLeft size={13} /> Mais
       </Link>
 
       <h1 className="text-xl font-bold text-tx">Alertas</h1>

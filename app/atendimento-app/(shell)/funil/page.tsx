@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { whereDoAtendimento, veTodoOAtendimento } from "@/lib/acessoAtendimento";
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Badge, formatCurrency } from "@/components/ui";
-import { ArrowLeft } from "lucide-react";
 import EstagioDoLeadSelect from "@/components/atendimento/EstagioDoLeadSelect";
 
 export const dynamic = "force-dynamic";
@@ -74,10 +73,6 @@ export default async function FunilAppPage() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/atendimento-app" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
-        <ArrowLeft size={13} /> Triagem
-      </Link>
-
       <div>
         <h1 className="text-xl font-bold text-tx">Funil Comercial</h1>
         <p className="text-sm text-tx-2">Acompanhamento da captação por estágio</p>

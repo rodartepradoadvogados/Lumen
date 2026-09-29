@@ -49,7 +49,7 @@ export default async function AtendimentoAppDetail({ params }: { params: { id: s
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <Link href="/atendimento-app" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
-        <ArrowLeft size={13} /> Triagem
+        <ArrowLeft size={13} /> Conversas
       </Link>
 
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -73,7 +73,7 @@ export default async function AtendimentoAppDetail({ params }: { params: { id: s
         {a.convertedCase && (
           <div className="flex justify-between gap-3 text-sm pb-0">
             <span className="text-tx-2 shrink-0">Convertido em</span>
-            <Link href={`/atendimento-app/${a.convertedCase.id}`} className="font-medium text-ouro-acento text-right">{a.convertedCase.title}</Link>
+            <span className="font-medium text-tx text-right">{a.convertedCase.title}</span>
           </div>
         )}
       </Card>
