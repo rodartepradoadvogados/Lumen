@@ -19,6 +19,7 @@ import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
 import ImportManualModal from "@/components/ImportManualModal";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import TaskTypePointsManager from "@/components/TaskTypePointsManager";
+import { contar } from "@/lib/plural";
 import WorkflowsManager from "@/components/WorkflowsManager";
 import BlogReviewManager from "@/components/BlogReviewManager";
 import BlogPublishedManager from "@/components/BlogPublishedManager";
@@ -705,7 +706,7 @@ export default async function ConfiguracoesPage({
               <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.color }} />
               <p className="text-sm text-tx flex-1">{c.name}</p>
               {c.isDoneCol && <Badge color="green">Coluna de conclusão</Badge>}
-              <span className="text-xs text-tx-3">{c._count.tasks} tarefa(s)</span>
+              <span className="text-xs text-tx-3">{contar(c._count.tasks, "tarefa")}</span>
               <DeleteButton
                 id={c.id}
                 confirmMessage={`Excluir a coluna "${c.name}"? Só é possível se não houver tarefas nela.`}
@@ -823,7 +824,7 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && secao === "equipe" && (
       <Card>
-        <CardHeader title="Equipe (usuários)" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais, conceda acesso ao Financeiro e escolha quem entra no rodízio de leads do WhatsApp`} />
+        <CardHeader title="Equipe (usuários)" subtitle={`${contar(users.length, "membro")} · edite telefone, defina credenciais, conceda acesso ao Financeiro e escolha quem entra no rodízio de leads do WhatsApp`} />
         <div className="divide-y divide-regua">
           {users.map((u) => (
             <UserRow key={u.id} user={u} canManage={isAdmin} />

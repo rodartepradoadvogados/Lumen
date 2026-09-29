@@ -9,6 +9,7 @@ import DeleteButton from "@/components/DeleteButton";
 import { deleteLawyer } from "@/lib/actions/contatos";
 import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
 import IniciarConversaContatoButton from "@/components/atendimento/IniciarConversaContatoButton";
+import { contar } from "@/lib/plural";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function AdvogadosPage({ searchParams }: { searchParams: { 
       <Link href="/contatos" className="text-xs font-semibold text-tx-3 hover:text-tx">
         ← Contatos
       </Link>
-      <PageHeader title="Advogados" subtitle={`${lawyers.length} registro(s)`} action={<NewContactModal kind="lawyer" />} />
+      <PageHeader title="Advogados" subtitle={contar(lawyers.length, "registro")} action={<NewContactModal kind="lawyer" />} />
 
       {q && <FiltradoPorNome q={q} href={searchParams.side ? `/contatos/advogados?side=${searchParams.side}` : "/contatos/advogados"} total={lawyers.length} />}
 
