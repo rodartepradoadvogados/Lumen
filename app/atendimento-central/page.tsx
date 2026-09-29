@@ -31,6 +31,7 @@ import TrilhoDoAtendimento from "@/components/atendimento/TrilhoDoAtendimento";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
 import RecusarLeadPainel from "@/components/atendimento/RecusarLeadPainel";
 import BotaoDaGaveta from "@/components/atendimento/BotaoDaGaveta";
+import AtualizarAoVivo from "@/components/atendimento/AtualizarAoVivo";
 import SeletorDeFase from "@/components/atendimento/SeletorDeFase";
 import ListaDeConversas, { type LinhaDaLista } from "@/components/atendimento/ListaDeConversas";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
@@ -424,6 +425,9 @@ export default async function AtendimentoCentralPage({
         // `data-vista` só importa em janela de celular (<=760px): ver atendimento-central.css. Com `?id=`
         // pedido na URL é a conversa; sem ele, a lista.
         <div className="atd-corpo" data-vista={idPedido ? "conversa" : "lista"}>
+          {/* A cada 15 s, com a aba visível e sem texto digitado na resposta (components/atendimento/
+              AtualizarAoVivo.tsx). Só nesta aba: o quadro do funil da Triagem tem arrastar-e-soltar. */}
+          <AtualizarAoVivo />
           {/* ── COLUNA DE LISTA ─────────────────────────────────────────────────────────────── */}
           <div className="atd-lista">
             <div className="shrink-0 border-b border-[var(--frame-border)] bg-[var(--frame-bg-raised)] p-3">
