@@ -55,3 +55,12 @@ export function amanhaEmBrasilia(agora: Date = new Date()): string {
   const [a, m, d] = hojeEmBrasilia(agora).split("-").map(Number);
   return new Date(Date.UTC(a, m - 1, d + 1)).toISOString().slice(0, 10);
 }
+
+/** O nome como a faixa e a recusa do servidor o tratam: nome temporário ou que parece telefone vira "o cliente" e "este número". */
+export function nomeParaAFaixa(clientName: string | null | undefined): { nomeTemporario: boolean; primeiroNome: string } {
+  const nome = (clientName || "").trim();
+  // Mesma regra de nomeEhTemporario + pareceTelefone, escrita aqui de propósito: importar aqueles módulos levaria código de servidor
+  // (Evolution, telefones) para dentro do componente de cliente que usa esta regra.
+  const nomeTemporario = !nome || nome.startsWith("Novo contato") || (/^[+\d()\s.-]+$/.test(nome) && nome.replace(/\D/g, "").length >= 8);
+  return { nomeTemporario, primeiroNome: nomeTemporario ? "" : nome.split(/\s+/)[0] };
+}
