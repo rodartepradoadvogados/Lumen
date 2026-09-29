@@ -1,6 +1,6 @@
 # Estado atual do Lúmen e armadilhas conhecidas
 
-**Última atualização: 26 de setembro de 2026.**
+**Última atualização: 29 de setembro de 2026.**
 
 Este documento existe para que quem chega ao projeto — pessoa ou agente — não desfaça
 sem querer decisões tomadas por um motivo. Cada item abaixo diz **o que é**, **por que é
@@ -207,3 +207,44 @@ em computador. Defeitos que isto corrigiu e que voltam se for desfeito:
   redirecionamento é recusado pelo navegador).
 - O PWA do site (escopo "/") engloba os outros dois; em celular/tablet o layout do site herda
   o manifesto mobile (`lib/pwaManifestoDoSite.ts`).
+
+---
+
+## 12. A nova Gestão (29/09/2026): rotas movidas, e nenhum link salvo pode quebrar
+
+A seção Gestão passou a ser **Indicadores, Pessoas, Conexões, Configurações**, nesta ordem, e o
+ícone do rail abre `/indicadores` (a Visão geral). Isso **substitui** a ordem que o dono fixou em
+24/09/2026 (Configurações, Conexões, Contatos, Produtividade, Relatórios), por aprovação dele do
+plano `gestao-plano.md`. O teste `lib/testes/navegacaoRail.teste.ts` guarda a ordem nova.
+
+Rotas antigas que **continuam existindo só para redirecionar** (guias abertas, favoritos e e-mails
+guardam a URL; remover qualquer uma dá 404 em silêncio). Só apague depois de um ciclo de uso:
+
+| Antiga | Vai para |
+|---|---|
+| `/relatorios` (`?secao=`, `?meses=`) | `/indicadores` e `/indicadores/{processos,funil,publicacoes,financeiro,personalizado}`; `?secao=produtividade` vai para `/indicadores/produtividade` |
+| `/produtividade` (`?mes=`, `?aba=`) | `/indicadores/produtividade?visao=equipe\|pessoa\|tempo`; `?aba=delegar` vai para `/delegar` |
+| `/contatos` | `/contatos/clientes` (a rota das listas não mudou) |
+| `/configuracoes/duplicados` | `/contatos/duplicados` |
+| `/configuracoes/relatorio-pastas` | `/conexoes/relatorio-pastas` |
+| `/configuracoes?secao=equipe` | `/contatos/equipe` (uma só lista de pessoas) |
+
+`/relatorios/personalizado/imprimir` **não** foi movida (é a folha de impressão, aberta por
+`window.open`); o `alias` em `lib/navSections.ts` a mantém na seção Gestão. Se mover, atualize
+também `RelatorioPersonalizadoView.tsx`.
+
+`/configuracoes?secao=` agora é a chave de um item do menu (`lib/gestao/configuracoes.ts`); os oito
+nomes antigos (geral, financeiro, workflows...) seguem valendo pela tabela `SECAO_LEGADA`.
+
+**Definições únicas (não recrie uma segunda):** "sem triagem" = `triageStatus === "PENDENTE"` no
+escritório inteiro (`lib/gestao/semTriagem.ts`); a fila de Publicações ainda conta por outra régua
+(grupos não lidos pelo usuário), e é por isso que o selo do rail e o número da Visão geral podem
+diferir; "pontos" = `Task.points` das tarefas concluídas, do responsável (`lib/gestao/pontos.ts`);
+"prazo em risco" = tarefas abertas (PENDENTE ou EM_ANDAMENTO) de qualquer tipo, dias corridos, hoje =
+dia de Brasília comparado em meia-noite UTC (`lib/gestao/dias.ts`). Comparar `dueDate` com
+`new Date()` cru erra um dia em Brasília.
+
+**Acesso:** receita, inadimplência e a carga da equipe inteira só para quem tem acesso ao Financeiro
+(`isAdmin || financeAccess`); os demais veem a própria carga. O funil só a quem vê o Atendimento
+inteiro. "Cobrar" (enviar lembrete ao cliente) **não existe**: é comportamento novo que depende de
+decisão do dono; hoje o bloco leva ao Financeiro.

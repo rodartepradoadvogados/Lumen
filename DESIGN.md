@@ -210,15 +210,10 @@ de faixas por decisão do dono em 2026-09-16.
 
 ### 2.3 O mapa de seções
 
-A faixa de cada seção vive em `lib/navSections.ts`, campo `faixa` de `SectionDef`:
-
-| Seção | Faixa |
-|---|---|
-| Agenda | ardósia |
-| Comunicação | ocre |
-| Jurídico | anil |
-| Financeiro | oliva |
-| Gestão | ameixa |
+A cor de SEÇÃO vive só no rail (o ícone da seção ativa); não pinta aba, gráfico nem cartão. A seção
+Gestão é **bronze** (`--guia-ativa`), e não ameixa como a versão anterior deste documento dizia. A
+seção Comunicação deixou de existir em 24/09/2026 e as faixas ameixa e anil saíram em 17/09/2026;
+o registro das faixas que restam é a paleta do sistema, que lê `var(--faixa-*)` de `app/globals.css`.
 
 Use `CLASSES_FAIXA[...]`, nunca escreva `faixa-anil` à mão, e **nunca monte `faixa-${x}` em tempo de
 execução**: o Tailwind gera CSS a partir do que consegue *ler* no código-fonte, e um nome montado em
@@ -248,6 +243,20 @@ regra nenhuma**, e o elemento cai no padrão do Tailwind — medido no navegador
 Havia 184 classes assim. Para tinta suave existe a rampa (`tx-2`, `tx-3`); para fundo suave existem
 os `-bg`; para filete suave existe a família `linha-*`. Opacidade só funciona sobre cor **literal**
 (`white`, `black`, `grafite-*`).
+
+### 2.6 Cor na Gestão (nova Gestão, 29/09/2026)
+
+- **Barra de gráfico é ardósia neutra** (`--faixa-ardosia`), nunca bordô. Bordô é ação e risco; um
+  gráfico todo em bordô lê como alerta e esconde o que está vencido de verdade.
+- **Nenhuma cor por pessoa.** A cor cadastrada de um usuário serve à Agenda; avatares na Gestão são
+  neutros (`bg-sf-apoio` com filete).
+- **Anel de foco neutro no portal** (`--foco`: tinta no Noite, tinta escura no Dia). O bordô mede
+  ~1,9:1 sobre a ficha escura; o foco mede 12,9:1 (Noite) e 18,1:1 (Dia).
+- **Borda de campo** (`--campo-borda`): 3,3:1 no Noite e 3,5:1 no Dia (a `--linha-forte` media 1,9:1).
+- **Selos de risco no Noite**: `--risco-vencido #ee8891`, `--risco-hoje #e0a020`,
+  `--risco-em-dia #4fbf98` (o texto do selo sobre o próprio risco a 14% mede 5,3 a 5,7:1; antes o de
+  "hoje" e o de "em dia" mediam 3,8:1).
+- Risco sempre com ícone E palavra; "pago" em gráfico se distingue por hachura, não só por cor.
 
 ## 3. Tipografia
 
@@ -289,6 +298,18 @@ sessão, onde ela carrega o título da página.
 O Painel da Empresa **não** usa a guia, e isso é decisão, não esquecimento: separar a ferramenta da
 plataforma da ferramenta do escritório é o que a torna legível. Lá o filete inferior de 2px é a
 linguagem.
+
+### O gabarito de página da Gestão
+
+`components/gestao/PaginaGestao.tsx`. Toda página de Indicadores, Pessoas, Conexões e Configurações
+tem, de cima para baixo: **trilha** (20px, sempre presente) · **título 28/700 que é o nome do
+destino** (não muda ao trocar de guia) · **uma frase** de 15px · **ação** à direita (no máximo uma
+em bordô) · **guias** de 40px (`SubNav`, um estilo só: texto e sublinhado de 2px na tinta) ·
+conteúdo em cartões com 24px de intervalo. Páginas de registro (a ficha de um cliente, um processo)
+têm o próprio título e ficam fora do gabarito. Estados: vazio em texto honesto (nunca número
+inventado), carregando com esqueleto que guarda a forma (`app/(app)/loading.tsx`), erro com
+`role="alert"` e "Tentar de novo". `lib/testes/gestaoRedesenho.teste.ts` vigia: nenhuma página de
+Gestão monta o próprio `<h1>`.
 
 ## 5. Movimento
 
