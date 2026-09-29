@@ -19,6 +19,7 @@ import { esperaParaHermes } from "@/lib/orcamentoDoPedido";
 import { nomeEhTemporario, assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoLead";
 import { renomearPastaSeExistir } from "@/lib/renomeacaoDoAtendimento";
 import { relerAntesDeEnviar } from "@/lib/anaReleOSilencio";
+import { motivoDaFalhaDoHermes, motivoDePonteNaoConfigurada, semSegredoDaPonte } from "@/lib/motivoDoAtendente";
 
 // ============================================================================
 // O ATENDENTE RESPONDE (ou explica por que não).
@@ -174,7 +175,7 @@ export async function atendenteResponde(
     if (!veredito.responde) return { respondeu: false, motivo: veredito.motivo };
 
     if (!hermesConfigurado()) {
-      return { respondeu: false, motivo: "a ponte com o agente não está configurada" };
+      return { respondeu: false, motivo: motivoDePonteNaoConfigurada() };
     }
 
     const mensagens = await prisma.whatsappMessage.findMany({
@@ -244,9 +245,10 @@ export async function atendenteResponde(
       const r = await perguntarAoHermes({ slug: atendimento.office.slug, mensagem: pergunta, esperaMs });
       resposta = (r.resposta || "").trim();
     } catch (erro) {
-      const motivo = erro instanceof FalhaDoHermes ? erro.motivo : mensagemDeErro(erro);
-      console.error("[atendente] agente indisponível:", motivo);
-      return { respondeu: false, motivo: `agente indisponível: ${motivo}` };
+      // O motivo REAL, em frase (não configurado / sem resposta / recusou / perfil), sem segredo:
+      // lib/motivoDoAtendente.ts. O registro técnico completo continua indo só para o log do servidor.
+      console.error("[atendente] agente indisponível:", semSegredoDaPonte(erro instanceof FalhaDoHermes ? `${erro.causa ?? "?"} ${erro.status ?? ""} ${erro.motivo}` : mensagemDeErro(erro)));
+      return { respondeu: false, motivo: motivoDaFalhaDoHermes(erro) };
     }
 
     // AS MARCAS SAEM ANTES DE QUALQUER COISA. Elas são combinadas entre nós e o agente; vazar

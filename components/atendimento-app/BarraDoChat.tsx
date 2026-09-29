@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Bot, Lock, PowerOff } from "lucide-react";
-import { definirAtendenteResponde, devolverAtendenteResponde } from "@/lib/actions/attendance";
+import { Bot, CornerUpLeft, Lock, PowerOff } from "lucide-react";
+import InterruptorDaAna from "@/components/InterruptorDaAna";
+import { definirAtendenteResponde, devolverAtendenteResponde, responderUltimaPergunta } from "@/lib/actions/attendance";
 import { barraDoChat, type EstadoDoChat } from "@/lib/estadoDoChat";
 
 // A BARRA DE ESTADO DO CHAT, UMA LINHA SÓ (48 px): ícone, título ("Ana responde aqui", "Atendimento
@@ -13,24 +14,35 @@ import { barraDoChat, type EstadoDoChat } from "@/lib/estadoDoChat";
 // (com o recorte de acesso), a chave que `deveResponder` lê — e não mais o `metadata.anaResponde` do app
 // antigo, que ninguém lia. Ligar vale da PRÓXIMA mensagem do cliente. "Devolver à Ana" (quando uma pessoa
 // assumiu) pede confirmação e chama `devolverAtendenteResponde`, que deixa rastro de quem devolveu.
+//
+// "RESPONDER ÚLTIMA MENSAGEM" mora logo abaixo do interruptor (onde o site já tinha o botão) e só aparece quando
+// a última mensagem é do cliente e a Ana pode falar (interruptor presente = escritório com o atendente ligado e
+// nenhuma pessoa assumiu). Chama `responderUltimaPergunta` (a mesma ação do site, com o recorte de acesso), pede
+// à conversa que busque as mensagens ao terminar e MOSTRA o motivo real quando a Ana não responde.
 export default function BarraDoChat({
   idDaConversa,
   estado,
   agora,
   nomeDoAtendente,
   aoMudar,
+  aoResponder,
 }: {
   idDaConversa: string;
   estado: EstadoDoChat;
   agora: Date;
   nomeDoAtendente: string;
   aoMudar: (parte: Partial<EstadoDoChat>) => void;
+  /** Chamado quando a Ana respondeu: a conversa busca as mensagens novas na hora, sem esperar os 15 s. */
+  aoResponder?: () => void;
 }) {
   const barra = barraDoChat(estado, agora, nomeDoAtendente);
   const [erro, setErro] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [pendente, comecar] = useTransition();
   const botaoDevolver = useRef<HTMLButtonElement>(null);
+  const [respondendo, setRespondendo] = useState(false);
+  const [erroDaResposta, setErroDaResposta] = useState<string | null>(null);
+  const [respondida, setRespondida] = useState(false);
 
   if (!estado.temWhatsapp) return null;
 
@@ -48,6 +60,23 @@ export default function BarraDoChat({
     });
   }
 
+  function responderUltima() {
+    if (respondendo) return;
+    setRespondendo(true);
+    setErroDaResposta(null);
+    setRespondida(false);
+    void responderUltimaPergunta(idDaConversa)
+      .then((r) => {
+        if (r.error) setErroDaResposta(r.error);
+        else {
+          setRespondida(true);
+          aoResponder?.();
+        }
+      })
+      .catch(() => setErroDaResposta("Não foi possível responder agora. Verifique a conexão e tente de novo."))
+      .finally(() => setRespondendo(false));
+  }
+
   function devolver() {
     setConfirmando(false);
     setErro(null);
@@ -63,11 +92,13 @@ export default function BarraDoChat({
   const frase = erro ?? barra.frase;
   const grave = erro ? true : barra.grave;
 
+  const podeResponderUltima = barra.controle === "interruptor" && estado.ultimaDirecao === "IN";
+
   return (
+    <div data-oculta-com-teclado="" className="shrink-0">
     <div
-      data-oculta-com-teclado=""
       data-barra-do-chat=""
-      className={`flex min-h-12 shrink-0 items-center gap-2.5 border-b border-regua px-3 py-0.5 ${grave ? "bg-urgente-bg text-urgente" : "bg-sf-apoio text-tx-2"}`}
+      className={`flex min-h-12 items-center gap-2.5 border-b border-regua px-3 py-0.5 ${grave ? "bg-urgente-bg text-urgente" : "bg-sf-apoio text-tx-2"}`}
     >
       <Icone size={18} aria-hidden="true" className="shrink-0" />
       <div className="min-w-0 flex-1 leading-tight">
@@ -77,21 +108,14 @@ export default function BarraDoChat({
         </p>
       </div>
       {barra.controle === "interruptor" && (
-        <button
-          type="button"
-          role="switch"
-          aria-checked={barra.ligada}
-          aria-label={`${nomeDoAtendente} responde nesta conversa`}
-          onClick={alternar}
-          disabled={pendente}
-          className="relative h-11 w-[52px] shrink-0 disabled:opacity-60"
-        >
-          <span aria-hidden="true" className={`absolute left-0 top-2.5 h-6 w-[52px] rounded-[2px] border transition-colors motion-reduce:transition-none ${barra.ligada ? "border-atd-ouro-texto bg-acao" : "border-atd-campo bg-sf"}`} />
-          <span
-            aria-hidden="true"
-            className={`absolute top-[13px] h-[18px] w-[18px] rounded-[2px] border border-regua-forte bg-sf-fundo transition-transform motion-reduce:transition-none ${barra.ligada ? "translate-x-[31px]" : "translate-x-[3px]"}`}
-          />
-        </button>
+        <InterruptorDaAna
+          ligado={barra.ligada}
+          desabilitado={pendente}
+          nome={nomeDoAtendente}
+          aoAlternar={alternar}
+          bordaLigada="border-atd-ouro-texto"
+          bordaDesligada="border-atd-campo"
+        />
       )}
       {barra.controle === "devolver" && (
         <button
@@ -105,6 +129,33 @@ export default function BarraDoChat({
         </button>
       )}
       {confirmando && <ConfirmarDevolucao nome={nomeDoAtendente} aoConfirmar={devolver} aoCancelar={() => { setConfirmando(false); botaoDevolver.current?.focus(); }} />}
+    </div>
+    {(podeResponderUltima || erroDaResposta || respondida) && (
+      <div data-responder-ultima="" className="flex flex-col gap-1 border-b border-regua bg-sf-apoio px-3 py-1.5">
+        {podeResponderUltima && (
+          <button
+            type="button"
+            onClick={responderUltima}
+            disabled={respondendo}
+            aria-busy={respondendo}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[2px] border-2 border-atd-campo bg-sf px-3 text-corpo font-semibold text-tx disabled:opacity-60"
+          >
+            <CornerUpLeft size={16} aria-hidden="true" className="shrink-0" />
+            {respondendo ? `${nomeDoAtendente} está respondendo…` : "Responder última mensagem"}
+          </button>
+        )}
+        {erroDaResposta && (
+          <p role="alert" className="text-etiqueta font-semibold text-urgente">
+            {erroDaResposta}
+          </p>
+        )}
+        {respondida && !erroDaResposta && !respondendo && (
+          <p role="status" className="text-etiqueta text-tx-2">
+            {nomeDoAtendente} respondeu.
+          </p>
+        )}
+      </div>
+    )}
     </div>
   );
 }

@@ -300,7 +300,7 @@ export default function ChatDaConversa({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <BarraDoChat idDaConversa={idDaConversa} estado={estado} agora={agora} nomeDoAtendente={nomeDoAtendente} aoMudar={(parte) => setEstado((e) => ({ ...e, ...parte }))} />
+      <BarraDoChat idDaConversa={idDaConversa} estado={estado} agora={agora} nomeDoAtendente={nomeDoAtendente} aoMudar={(parte) => setEstado((e) => ({ ...e, ...parte }))} aoResponder={() => void buscarNovas()} />
       <div
         ref={caixa}
         data-rolagem-da-conversa=""

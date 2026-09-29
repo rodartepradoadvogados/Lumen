@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CornerUpLeft, Lock, Undo2 } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
+import InterruptorDaAna from "@/components/InterruptorDaAna";
 import { definirAtendenteResponde, devolverAtendenteResponde, responderUltimaPergunta } from "@/lib/actions/attendance";
 
 // ============================================================================
@@ -51,6 +52,10 @@ export default function AtendenteIaControle({
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, comecar] = useTransition();
+  // A chave responde ao toque NA HORA (o servidor grava e o `router.refresh()` confirma); se a gravação
+  // falhar, volta ao que era e a frase de erro aparece embaixo.
+  const [ligado, setLigado] = useState(responde);
+  useEffect(() => setLigado(responde), [responde]);
 
   // DEVOLVER É ATO DELIBERADO: confirmação antes de valer, e o texto diz o que vai acontecer —
   // mesmo padrão de confirmação usado no resto do Lúmen (window.confirm, ver p.ex.
@@ -104,9 +109,13 @@ export default function AtendenteIaControle({
 
   function alternar(valor: boolean) {
     setErro(null);
+    setLigado(valor);
     comecar(async () => {
       const r = await definirAtendenteResponde(attendanceId, valor);
-      if (r.error) setErro(r.error);
+      if (r.error) {
+        setErro(r.error);
+        setLigado(!valor);
+      }
       router.refresh();
     });
   }
@@ -127,20 +136,17 @@ export default function AtendenteIaControle({
   return (
     <div className={compacto ? "border border-regua bg-sf-apoio px-2.5 py-1.5" : "mt-3 border border-regua bg-sf-apoio px-3 py-2"}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <label className={`flex cursor-pointer items-center gap-2 text-xs text-tx ${compacto ? "min-h-[36px]" : "min-h-11"}`}>
-          <input
-            type="checkbox"
-            checked={responde}
-            disabled={pendente}
-            onChange={(e) => alternar(e.target.checked)}
-            className="h-4 w-4 accent-[var(--acao)]"
-          />
+        <div className="flex items-center gap-2">
           <IconeAgente size={16} className="text-tx-2" />
-          <span>
-            <strong className="text-tx">{nomeDoAtendente}</strong>
-            {compacto ? " responde" : " responde nesta conversa"}
-          </span>
-        </label>
+          <InterruptorDaAna
+            ligado={ligado}
+            desabilitado={pendente}
+            nome={nomeDoAtendente}
+            aoAlternar={() => alternar(!ligado)}
+            bordaLigada="border-tx"
+            bordaDesligada="border-tx-3"
+          />
+        </div>
 
         {/* Só aparece quando há de fato uma pergunta do cliente esperando. Um botão que não tem o
             que fazer é um botão que ensina a pessoa a duvidar dos botões. */}
@@ -149,9 +155,7 @@ export default function AtendenteIaControle({
             type="button"
             onClick={responderAgora}
             disabled={pendente}
-            className={`inline-flex items-center gap-1.5 border border-regua px-3 text-xs font-semibold text-tx-2 hover:bg-sf disabled:opacity-50 ${
-              compacto ? "min-h-[36px]" : "min-h-11"
-            }`}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-[2px] border-2 border-tx-3 bg-sf px-3 text-xs font-semibold text-tx hover:bg-sf-apoio disabled:opacity-50"
           >
             <CornerUpLeft size={13} />
             {pendente ? "Respondendo…" : compacto ? "Responder agora" : "Responder à última pergunta"}
@@ -163,7 +167,7 @@ export default function AtendenteIaControle({
           "desligar"; o que a pessoa precisa saber é que enviar uma mensagem já assume a conversa —
           não existe botão de assumir, e não deve existir: quem escreveu, assumiu. */}
       <p className={`text-etiqueta leading-snug text-tx-3 ${compacto ? "" : "mt-1"}`}>
-        {responde ? (
+        {ligado ? (
           /* Não repete o que a caixa acima já diz: a caixa diz QUEM responde, a frase diz o que
              acontece se você escrever. */
           <>Ao enviar {compacto ? "" : "uma mensagem "}você assume, e ele não fala mais aqui.</>
@@ -176,7 +180,7 @@ export default function AtendenteIaControle({
         )}
       </p>
 
-      {erro && <p className="mt-2 text-xs font-medium text-urgente">{erro}</p>}
+      {erro && <p role="alert" className="mt-2 text-xs font-medium text-urgente">{erro}</p>}
     </div>
   );
 }
