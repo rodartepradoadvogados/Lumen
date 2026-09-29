@@ -255,14 +255,17 @@ void teste("a confirmação enviada ao cliente TAMBÉM é gravada na conversa", 
   // mensagem" e cala a Ana para sempre — foi o defeito crítico desta rodada.
   const corpo = corpoDaFuncao(confirmacaoFonte, "confirmarRecebimentoDeAudio");
   verdade(corpo.length > 0, "confirmarRecebimentoDeAudio sumiu");
-  verdade(/prisma\.whatsappMessage\.create\(/.test(corpo),
+  // Desde 29/09/2026 (A3 do plano do Atendimento) a mensagem é gravada por `registrarMensagem`
+  // (lib/registrarMensagem.ts), a única porta de escrita — é ela que também move a atividade do
+  // atendimento na mesma transação. O que esta asserção guarda não mudou: a confirmação É gravada.
+  verdade(/registrarMensagem\(/.test(corpo),
     "a confirmação deixou de ser gravada na conversa — a tela passa a mentir sobre o que o cliente recebeu");
   verdade(/direction: "OUT"/.test(corpo), "a confirmação não é gravada como mensagem de saída");
   verdade(/confirmacaoAutomaticaDeAudio: true/.test(corpo),
     "a confirmação é gravada SEM a marca — ela volta a calar a Ana para sempre");
   // O envio vem antes da gravação: gravar primeiro e falhar o envio mostraria na tela uma
   // mensagem que o cliente nunca recebeu, que é a mentira na direção contrária.
-  verdade(corpo.indexOf("sendWhatsappText") < corpo.indexOf("prisma.whatsappMessage.create"),
+  verdade(corpo.indexOf("sendWhatsappText") < corpo.indexOf("registrarMensagem("),
     "a confirmação é gravada antes de ser enviada — a tela mostraria o que o cliente não recebeu");
   // E o envio que FALHA não pode ser gravado. É a mesma mentira na direção contrária: a tela diria
   // que o cliente foi avisado quando ele não foi, e ninguém iria atrás do áudio parado.

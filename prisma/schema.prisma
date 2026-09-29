@@ -1262,7 +1262,7 @@ model Attendance {
   createdAt     DateTime  @default(now())
 
   // Funil comercial (CRM de captação) — eixo independente do status operacional acima
-  stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO
+  stage          String    @default("NOVO") // NOVO | AGUARDANDO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO (lib/funil.ts)
   estimatedValue Float? // valor estimado do contrato — dobra de "valor em dinheiro" do honorário
   // pretendido (feeMode abaixo) quando ele inclui DINHEIRO, para não duplicar o mesmo número em
   // dois campos.
@@ -1313,6 +1313,28 @@ model Attendance {
   waPhone         String? // telefone do cliente no WhatsApp (E.164), usado como chave de conversa
   waLastMessageAt DateTime? // instante da última mensagem trocada nesta conversa
 
+  // A ATIVIDADE MAIS RECENTE da conversa — a chave de ordem da lista de Atendimentos da Central
+  // (última mensagem, de entrada ou de saída; sem mensagem, a data de criação do lead).
+  //
+  // POR QUE UMA COLUNA. O Prisma não ordena por `max()` de uma relação; a alternativa era um
+  // $queryRaw com LATERAL JOIN, que perderia o `where` tipado (recorte por dono, busca por nome,
+  // filtro de fase) e o índice. Denormalizada, a lista é um `orderBy` comum com índice.
+  //
+  // NUNCA NULA, DE PROPÓSITO (`@default(now())`): um lead criado por qualquer caminho que não
+  // grave mensagem (formulário, e-mail, "Novo atendimento") já nasce com a data dele — não existe
+  // "nulo vai para o fim" a tratar, e a ordem antes do backfill é a de criação (ver abaixo).
+  //
+  // QUEM ESCREVE: só `registrarMensagem` (lib/registrarMensagem.ts), na MESMA transação que grava a
+  // WhatsappMessage. Um teste (lib/testes/atividadeDoAtendimento.teste.ts) falha se aparecer
+  // `whatsappMessage.create` fora dela — esquecer um ponto de escrita deixa uma conversa "parada"
+  // na lista, sem erro nenhum.
+  //
+  // BACKFILL: `scripts/backfill-ultima-atividade.ts`, idempotente, roda no build de produção logo
+  // depois do `prisma db push` (package.json). O `db push` cria a coluna já com `now()` nas linhas
+  // antigas; até o backfill rodar, o desempate por `createdAt` (segundo critério do orderBy) mantém
+  // a ordem de hoje em vez de embaralhar.
+  ultimaAtividadeEm DateTime @default(now())
+
   // Integração E-mail (resposta via Gmail da conta Google do próprio advogado)
   // Reaproveitado também como e-mail do contato no formulário de criação do atendimento.
   clientEmail String? // e-mail do cliente para resposta; preenchido manualmente na tela
@@ -1357,6 +1379,7 @@ model Attendance {
 
   @@index([officeId])
   @@index([officeId, waPhone])
+  @@index([officeId, ultimaAtividadeEm])
 }
 
 // ============ PENDÊNCIAS DO ATENDIMENTO (Fase 5) ============
