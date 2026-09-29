@@ -46,6 +46,7 @@ export default function ChatDaConversa({
   nomeDoContato,
   primeiroNome,
   nomeTemporario,
+  telefone,
 }: {
   idDaConversa: string;
   inicial: Pagina;
@@ -55,6 +56,7 @@ export default function ChatDaConversa({
   nomeDoContato: string;
   primeiroNome: string;
   nomeTemporario: boolean;
+  telefone: string | null;
 }) {
   const [todas, setTodas] = useState<MensagemDoChat[]>(inicial.mensagens);
   const [temAnteriores, setTemAnteriores] = useState(inicial.temAnteriores);
@@ -306,7 +308,7 @@ export default function ChatDaConversa({
         aria-label="Mensagens da conversa"
         aria-live="off"
         tabIndex={0}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-sf-fundo px-3 pb-3 pt-2"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-atd-chat-fundo px-3 pb-3 pt-2"
       >
         {exibidas.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-6 text-center text-tx-2">
@@ -355,7 +357,7 @@ export default function ChatDaConversa({
           </div>
         )}
       </div>
-      <CompositorDoChat idDaConversa={idDaConversa} estado={estado} nomeDoContato={nomeDoContato} primeiroNome={primeiroNome} nomeTemporario={nomeTemporario} nomeDoAtendente={nomeDoAtendente} aoEnviar={enviar} />
+      <CompositorDoChat idDaConversa={idDaConversa} estado={estado} nomeDoContato={nomeDoContato} primeiroNome={primeiroNome} nomeTemporario={nomeTemporario} telefone={telefone} nomeDoAtendente={nomeDoAtendente} aoEnviar={enviar} />
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-aviso-vivo="">
         {aviso}
       </div>

@@ -481,7 +481,28 @@ O chat do celular passou a enviar. O que **não pode voltar atrás**:
   Atendimento não guarda nada. Teclado: a moldura usa `visualViewport`.
 - Testes: `lib/testes/atendimentoAppEnvio.teste.ts`.
 
-## 19. "Ana responde": o motivo real do erro do Hermes, o botão no app e o interruptor que parece botão (29/09/2026)
+## 19. Janela de 24 h fechada: a faixa tem saídas, e nenhuma delas é "ligar pelo WhatsApp do escritório" (PR 6, 29/09/2026)
+
+Com a Meta e a janela fechada, o campo do chat dá lugar a `FaixaDaJanelaFechada` (regra pura em `lib/faixaDaJanela.ts`).
+Nunca aparece para Evolution nem sem WhatsApp. O que **não pode voltar atrás**:
+
+- **"Ligar" é `tel:` = ligação normal do celular.** NÃO é chamada pelo WhatsApp. A Calling API da Cloud API existe, mas exige
+  habilitação do número, permissão do cliente por chamada, limite de 2.000 destinatários/dia e softphone/SIP/WebRTC
+  (developers.facebook.com/documentation/business-messaging/whatsapp/calling). O Lúmen não tem nada disso: não escreva "ligar pelo
+  WhatsApp" na tela.
+- **"Abrir no meu WhatsApp" é `https://wa.me/<dígitos>`**: abre o WhatsApp do celular DA PESSOA, do número PESSOAL dela. Não sai do
+  número do escritório e não entra no histórico do Lúmen. O texto de apoio diz isso; não o esconda.
+- **Modelo aprovado NÃO existe aqui** (etapa "modelos aprovados", PR 15). A faixa diz "ainda não disponível". Fora da janela a Meta
+  só aceita modelo (send-messages, "Customer service windows"); quando o PR 15 sair, este é o lugar do botão.
+- **"Criar tarefa"** usa `criarTarefaDoAtendimento` (guarda `atendimentoDaAcao`, recorte por dono, mesma tarefa da aba Detalhes e da
+  Agenda), título padrão "Retomar contato com <nome>", data padrão amanhã em Brasília.
+- **Número**: `digitosParaContato` só acrescenta 55 quando tem cara de número brasileiro (11 dígitos com o 3º = 9; 10 com o 3º de 2 a 5);
+  número estrangeiro com DDI não ganha 55. Número que não passa disso não mostra Ligar nem wa.me.
+- Site (`WhatsappReplyBox`, `replyWhatsapp`) NÃO avisa antes: deixa tentar e mostra o erro da Meta ("o cliente precisa enviar uma nova
+  mensagem primeiro"), sem saída. Não foi mexido.
+- Teste: `lib/testes/atendimentoAppJanela.teste.ts`.
+
+## 20. "Ana responde": o motivo real do erro do Hermes, o botão no app e o interruptor que parece botão (29/09/2026)
 
 **O defeito relatado:** o dono marcou "Ana responde", clicou em "responder última mensagem" e viu "o assistente não está
 disponível". Duas causas de código e uma provável de ambiente:

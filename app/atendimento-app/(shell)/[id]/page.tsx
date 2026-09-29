@@ -52,6 +52,7 @@ export default async function ChatDoAtendimentoPage({ params }: { params: { id: 
       nomeDoContato={nomeDoContato}
       primeiroNome={primeiroNome}
       nomeTemporario={nomeTemporario}
+      telefone={c.waPhone ?? c.contactPhone ?? null}
     />
   );
 }
