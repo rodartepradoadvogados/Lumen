@@ -2167,14 +2167,16 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     padding: 0.25rem 0.75rem;
   }
 
-  /* Funil — colunas viram cartões empilhados */
-  .flex.gap-4.overflow-x-auto,
-  .flex.gap-4.overflow-x-auto > div {
+  /* Funil — colunas viram cartões empilhados. Escopado: esta regra casava com QUALQUER faixa
+     "flex gap-4 overflow-x-auto", inclusive a das abas de seção (.secao-abas, components/
+     PageSectionTabs.tsx) — no celular as abas empilhavam em coluna e cobriam o título da tela. */
+  .flex.gap-4.overflow-x-auto:not(.secao-abas),
+  .flex.gap-4.overflow-x-auto:not(.secao-abas) > div {
     flex-direction: column !important;
     overflow-x: visible !important;
   }
 
-  .flex.gap-4.overflow-x-auto > div {
+  .flex.gap-4.overflow-x-auto:not(.secao-abas) > div {
     width: 100% !important;
     min-width: 0 !important;
   }
@@ -2205,8 +2207,9 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     margin-bottom: 1rem;
   }
 
-  /* Filtros — scroll horizontal se necessário */
-  .flex.gap-2.flex-wrap,
+  /* Filtros — scroll horizontal se necessário. O formulário de filtros de /publicacoes
+     (.pub-filtros) fica de fora: ele precisa QUEBRAR linha, senão media 760px numa tela de 390. */
+  .flex.gap-2.flex-wrap:not(.pub-filtros),
   .atd-filters {
     overflow-x: auto;
     flex-wrap: nowrap;
@@ -2214,7 +2217,7 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     padding-bottom: 0.25rem;
     scrollbar-width: none;
   }
-  .flex.gap-2.flex-wrap::-webkit-scrollbar,
+  .flex.gap-2.flex-wrap:not(.pub-filtros)::-webkit-scrollbar,
   .atd-filters::-webkit-scrollbar {
     display: none;
   }
@@ -2275,7 +2278,7 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     width: 100%;
   }
 
-  .flex.gap-4.overflow-x-auto > div {
+  .flex.gap-4.overflow-x-auto:not(.secao-abas) > div {
     width: 100% !important;
     min-width: 0 !important;
   }

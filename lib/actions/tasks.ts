@@ -187,7 +187,17 @@ export async function delegateTask(data: {
       data: { assignedToId: responsibleIds[0] },
     });
     if (count === 0) {
-      return { error: "Esta publicação já foi atribuída a outra pessoa." };
+      // Já tem responsável. Só é a corrida do achado V7 se for OUTRA pessoa: registrar o prazo de
+      // uma publicação em nome de quem já é o responsável (o caso normal da triagem, que abre o
+      // modal já com o responsável da publicação) é legítimo e não reivindica nada de novo. Sem
+      // esta exceção, "Criar tarefa com prazo" falhava para toda publicação já atribuída.
+      const atual = await prisma.publication.findFirst({
+        where: { id: data.publicationId, officeId: viewer.officeId },
+        select: { assignedToId: true },
+      });
+      if (!atual || !atual.assignedToId || !responsibleIds.includes(atual.assignedToId)) {
+        return { error: "Esta publicação já foi atribuída a outra pessoa." };
+      }
     }
   }
 
