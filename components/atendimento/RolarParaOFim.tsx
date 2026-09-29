@@ -84,6 +84,23 @@ export default function RolarParaOFim({ conversa, chave, total }: { conversa: st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chave, total]);
 
+  // 2b. A CAIXA MUDOU DE TAMANHO — o caso que o efeito 1 não vê. No celular a Central mostra a lista OU
+  // a conversa (display: none na que não está à vista), e a conversa do primeiro da lista já é
+  // montada ESCONDIDA: o efeito de montagem roda com a caixa em `display: none` (altura 0) e o
+  // `scrollTop` gravado ali não vale nada. Tocar nessa mesma linha só troca o CSS — nada remonta —
+  // e a conversa aparecia no COMEÇO (medido em 390x780: 5328px do fim). Vale também para girar o
+  // aparelho e para o teclado virtual que encolhe a caixa. A regra é a mesma do resto: quem está no
+  // fim (última rolagem) continua no fim; quem lê acima não é mexido.
+  useEffect(() => {
+    const c = caixa();
+    if (!c || typeof ResizeObserver === "undefined") return;
+    const obs = new ResizeObserver(() => {
+      if (noFim.current) irAoFim(c);
+    });
+    obs.observe(c);
+    return () => obs.disconnect();
+  }, [conversa]);
+
   // 3. A pessoa rolou: guarda se está no fim e, chegando lá, o aviso some sozinho.
   useEffect(() => {
     const c = caixa();

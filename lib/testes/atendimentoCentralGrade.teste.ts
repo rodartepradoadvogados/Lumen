@@ -21,7 +21,9 @@ const CSS = le("app", "atendimento-central", "atendimento-central.css");
 const TRILHO = codigoDe(le("components", "atendimento", "TrilhoDoAtendimento.tsx"));
 
 teste("a caixa que ROLA a conversa tem data-rolagem-da-conversa — sem ele RolarParaOFim não acha a caixa e o chat abre no COMEÇO", () => {
-  const i = CORPO.indexOf("data-rolagem-da-conversa");
+  // O ATRIBUTO, com o `=`: o nome também aparece num comentário do JSX (que `codigoDe` não tira), e
+  // uma busca só pelo nome passava mesmo com o atributo apagado (mutação pega em 29/09/2026).
+  const i = CORPO.indexOf('data-rolagem-da-conversa=""');
   verdade(i > 0, "a caixa de rolagem da conversa da Central perdeu o atributo que RolarParaOFim procura");
   const abertura = CORPO.slice(CORPO.lastIndexOf("<div", i), CORPO.indexOf(">", i));
   verdade(/overflow-y-auto/.test(abertura), "o atributo não está na caixa que rola (overflow-y-auto)");

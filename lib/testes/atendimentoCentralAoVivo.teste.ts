@@ -55,7 +55,11 @@ teste("a página monta a atualização SÓ na aba Atendimentos, e a caixa de res
 
 teste("RolarParaOFim: vai ao fim ao montar E ao trocar de conversa (dependência `conversa`), sem scrollIntoView", () => {
   const c = codigoDe(ROLAR);
-  verdade(/\}, \[conversa\]\);/.test(c), "o efeito de ir ao fim não depende da conversa — trocar de conversa pela lista deixa a rolagem onde estava");
+  // O efeito de montagem/troca é o trecho entre os marcadores "1." e "2." (o marcador 2b, do
+  // ResizeObserver, também depende de [conversa] — por isso não basta procurar a dependência no arquivo).
+  const efeito1 = ROLAR.slice(ROLAR.indexOf("// 1. Montagem e TROCA"), ROLAR.indexOf("// 2. Chegou mensagem"));
+  verdade(efeito1.length > 200 && /irAoFim\(c\)/.test(efeito1), "não achei o efeito de montagem/troca de conversa");
+  verdade(/\}, \[conversa\]\);\s*$/.test(efeito1.trim()), "o efeito de ir ao fim não depende da conversa — trocar de conversa pela lista deixa a rolagem onde estava");
   verdade(!/scrollIntoView\(/.test(c), "scrollIntoView rola a página inteira e esconde o cabeçalho");
   verdade(/requestAnimationFrame\(\(\) => requestAnimationFrame/.test(c), "sumiram as duas batidas — a última mensagem volta a ficar cortada quando a altura final chega depois");
   verdade(/\[data-rolagem-da-conversa\]/.test(c), "não procura mais a caixa nomeada");
@@ -69,6 +73,15 @@ teste("RolarParaOFim: 'estar no fim' é medido na ÚLTIMA ROLAGEM (tolerância d
   verdade(efeito2.length > 50, "não achei o efeito da mensagem nova");
   verdade(/if \(noFim\.current\)/.test(efeito2) && !/scrollHeight\s*-\s*\w+\.scrollTop/.test(efeito2),
     "o efeito da mensagem nova mede a distância ao fim depois do crescimento — quem estava no fim seria tratado como quem lê acima");
+});
+
+teste("RolarParaOFim: volta ao fim quando a caixa MUDA DE TAMANHO (a conversa montada escondida no celular)", () => {
+  // Medido em 390x780: a conversa do primeiro da lista é montada com `display: none` (a vista é a
+  // lista); o scrollTop gravado ali não vale, e tocar na mesma linha só troca o CSS — nada remonta.
+  // Sem o ResizeObserver a conversa aparecia no COMEÇO (5328px do fim).
+  const c = codigoDe(ROLAR);
+  verdade(/new ResizeObserver\(/.test(c) && /\.observe\(c\)/.test(c), "sumiu o ResizeObserver da caixa");
+  verdade(/if \(noFim\.current\) irAoFim\(c\)/.test(c), "o observador rola mesmo para quem lê acima");
 });
 
 teste("o indicador: aria-live só no contador, botão que rola ao fim e zera, plural correto, sombra só nele", () => {
