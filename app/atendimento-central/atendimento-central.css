@@ -300,6 +300,10 @@ html:has(.atd-central-fixa) body {
   .atd-so-celular {
     display: inline-flex;
   }
+  /* Sem teclado físico esperado: a legenda dos atalhos não ocupa o pé da lista. */
+  .atd-dica {
+    display: none;
+  }
 }
 
 /* Janela BAIXA (a do PWA tem 612px de altura): a barra superior encolhe e as dicas somem — o

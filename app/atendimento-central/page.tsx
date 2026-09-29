@@ -31,6 +31,7 @@ import TrilhoDoAtendimento from "@/components/atendimento/TrilhoDoAtendimento";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
 import RecusarLeadPainel from "@/components/atendimento/RecusarLeadPainel";
 import BotaoDaGaveta from "@/components/atendimento/BotaoDaGaveta";
+import AtalhosDaCentral from "@/components/atendimento/AtalhosDaCentral";
 import AtualizarAoVivo from "@/components/atendimento/AtualizarAoVivo";
 import SeletorDeFase from "@/components/atendimento/SeletorDeFase";
 import ListaDeConversas, { type LinhaDaLista } from "@/components/atendimento/ListaDeConversas";
@@ -428,6 +429,8 @@ export default async function AtendimentoCentralPage({
           {/* A cada 15 s, com a aba visível e sem texto digitado na resposta (components/atendimento/
               AtualizarAoVivo.tsx). Só nesta aba: o quadro do funil da Triagem tem arrastar-e-soltar. */}
           <AtualizarAoVivo />
+          {/* Teclado: / busca · ↑↓ conversas · F fase · Esc volta (components/atendimento/AtalhosDaCentral.tsx). */}
+          <AtalhosDaCentral />
           {/* ── COLUNA DE LISTA ─────────────────────────────────────────────────────────────── */}
           <div className="atd-lista">
             <div className="shrink-0 border-b border-[var(--frame-border)] bg-[var(--frame-bg-raised)] p-3">
@@ -469,6 +472,12 @@ export default async function AtendimentoCentralPage({
               ocultos={ocultos}
               recorteFixoPorStatus={Boolean(searchParams.status)}
             />
+            {/* A legenda dos atalhos some em janela baixa ou estreita (.atd-dica): ali o espaço é da lista. */}
+            <p className="atd-dica flex shrink-0 flex-wrap gap-x-3 gap-y-1 border-t border-[var(--atd-border)] px-4 py-1.5 text-etiqueta text-tx-3">
+              <span><Tecla>↑</Tecla><Tecla>↓</Tecla> navegar</span>
+              <span><Tecla>/</Tecla> buscar</span>
+              <span><Tecla>F</Tecla> fase</span>
+            </p>
           </div>
 
           {/* ── SUPERFÍCIE DE TRABALHO: conversa ────────────────────────────────────────────── */}
@@ -640,6 +649,10 @@ export default async function AtendimentoCentralPage({
       )}
     </div>
   );
+}
+
+function Tecla({ children }: { children: React.ReactNode }) {
+  return <kbd className="mr-0.5 border border-[var(--atd-border-strong)] bg-[var(--work-bg-raised)] px-1 font-semibold text-tx-2">{children}</kbd>;
 }
 
 function SubAba({ href, ativa, numero, rotulo, contagem }: { href: string; ativa: boolean; numero: number; rotulo: string; contagem?: number }) {
