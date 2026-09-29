@@ -306,7 +306,7 @@ export default function ChatDaConversa({
         aria-label="Mensagens da conversa"
         aria-live="off"
         tabIndex={0}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-sf-fundo px-3 pb-3 pt-2"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-atd-chat-fundo px-3 pb-3 pt-2"
       >
         {exibidas.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-6 text-center text-tx-2">

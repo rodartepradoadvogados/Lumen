@@ -299,7 +299,11 @@
   --atd-hdr-linha: #2b3038;
   --atd-hdr-foco: #f0c85a;
   --atd-bolha-in: #ffffff;
-  --atd-bolha-out: #fbf3dc;
+  --atd-bolha-out: #f5e3ac;
+  /* Área das mensagens: mais escura que o papel, para a bolha se destacar (bolha x fundo 1,4:1 e 3:1 nas bordas). */
+  --atd-chat-fundo: #d3d9e0;
+  --atd-borda-in: #6f7d8d;
+  --atd-borda-out: #8f6d12;
   --atd-ardosia: #2f5d73;
   --atd-ardosia-bg: #e3edf2;
   --atd-foco: #8a5c00;
@@ -326,8 +330,11 @@
   --atd-hdr-tx2: #93969d;
   --atd-hdr-linha: #23272e;
   --atd-hdr-foco: #f0c85a;
-  --atd-bolha-in: #262b30;
-  --atd-bolha-out: #3a3117;
+  --atd-bolha-in: #2a3036;
+  --atd-bolha-out: #4a3d17;
+  --atd-chat-fundo: #0e1114;
+  --atd-borda-in: #66727f;
+  --atd-borda-out: #a8862c;
   --atd-ardosia: #5aa3c5;
   --atd-ardosia-bg: #182a33;
   --atd-foco: #f0c85a;
