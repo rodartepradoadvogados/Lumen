@@ -42,8 +42,15 @@ export function DocumentosClient({
     const novo = selecionados.includes(id) ? selecionados.filter((x) => x !== id) : [...selecionados, id];
     setSelecionados(novo);
     marcarTrabalho();
+    const anterior = selecionados;
     iniciar(async () => {
-      await definirDocumentosSelecionados(sessaoId, novo);
+      try {
+        await definirDocumentosSelecionados(sessaoId, novo);
+      } catch {
+        // A ação recusa a gravação inteira se algum id não for do escritório: volta ao que estava.
+        setSelecionados(anterior);
+        setErro("Não foi possível gravar a seleção de documentos. Recarregue a página e tente de novo.");
+      }
     });
   }
 
