@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound, Link2, Copy, Check, PhoneIncoming, PhoneOff } from "lucide-react";
+import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound, Link2, Copy, Check, PhoneIncoming, PhoneOff, ChevronDown } from "lucide-react";
 import {
   updateUser,
   toggleUserActive,
@@ -187,7 +187,10 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             placeholder="Telefone (opcional)"
             className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3"
           />
-          <input name="color" type="color" defaultValue={user.color} className="cfg-input bg-sf border border-regua h-9 p-1" />
+          <label className="flex items-center gap-2 text-xs font-medium text-tx-2">
+            Cor na agenda
+            <input name="color" type="color" defaultValue={user.color} className="cfg-input bg-sf border border-regua h-9 w-16 p-1" />
+          </label>
         </div>
         <div className="flex gap-2">
           <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
@@ -341,87 +344,87 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
       {!user.isAdmin && user.financeAccess && <Badge color="green">Financeiro</Badge>}
       {user.recebeTransferencia && <Badge color="blue">Recebe leads</Badge>}
       {credSuccess && <Badge color="green">Acesso definido</Badge>}
+      {/* AÇÕES COM RÓTULO (consolidado R17): eram até 8 ícones sem texto (só `data-tip`), em número
+          diferente de uma pessoa para outra (sócio: 3; os demais: 7 a 8), e no celular estouravam a
+          linha. Agora: "Editar" e um menu "Gerenciar acesso" com uma ação por linha, escrita por
+          extenso. As REGRAS não mudaram:
+            - Editar (nome/e-mail/OAB/telefone) vale também para sócio: é reversível e o servidor
+              (updateUser) já permitia; só a tela escondia, e sem isso não havia como mudar o e-mail
+              de login de um sócio.
+            - O rodízio de leads também vale para sócio: num escritório de dois sócios e nenhum
+              empregado, esconder o botão deixaria a fila vazia para sempre, sem erro nenhum.
+            - Credenciais, Financeiro, inativar e excluir continuam bloqueados para sócio: um
+              administrador não pode travar nem apagar outro. */}
       {canManage && (
         <button
-          onClick={() => {
-            setLinkResult(null);
-            setLinkError(null);
-            setLinkOpen(true);
-          }}
-          data-tip="Gerar link de redefinição de senha" aria-label="Gerar link de redefinição de senha"
-          className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors rounded-md"
+          onClick={() => setEditing(true)}
+          className="h-8 px-3 inline-flex items-center gap-1.5 border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx text-sm font-semibold transition-colors"
         >
-          <Link2 size={14} />
+          <Pencil size={14} aria-hidden="true" /> Editar
         </button>
       )}
-      {/* Editar (nome/e-mail/OAB/telefone) fica fora do bloco "!user.isAdmin" de propósito —
-          diferente de credenciais/Financeiro/inativar/excluir (abaixo, que continuam bloqueados
-          para sócio por segurança: um admin não pode travar/apagar outro), trocar o e-mail de um
-          sócio é uma edição reversível e não destrutiva, e o servidor (updateUser, lib/actions/
-          settings.ts) já permitia isso sem restrição — só a UI escondia o botão. Sem isso, não
-          havia NENHUM jeito de mudar o e-mail de login de um sócio pelo produto. */}
       {canManage && (
-        <button onClick={() => setEditing(true)} data-tip="Editar" aria-label="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
-          <Pencil size={14} />
-        </button>
-      )}
-      {/* O RODÍZIO DE LEADS fica fora do bloco "!user.isAdmin" abaixo, e não por descuido: sócio é
-          advogado do escritório e a fila de caso triado é de advogados. Num escritório de dois
-          sócios e nenhum empregado, esconder este botão do sócio deixaria a fila vazia para sempre
-          e nenhum lead do WhatsApp chegaria a ninguém — sem nenhuma mensagem de erro dizendo por
-          quê. É diferente de Financeiro/inativar/excluir, que continuam bloqueados entre sócios
-          porque são irreversíveis ou travam o acesso de outro administrador. */}
-      {canManage && (
-        <button
-          onClick={handleToggleTransferencia}
-          disabled={pending}
-          data-tip={user.recebeTransferencia ? "Tirar do rodízio de leads do WhatsApp" : "Incluir no rodízio de leads do WhatsApp"} aria-label={user.recebeTransferencia ? "Tirar do rodízio de leads do WhatsApp" : "Incluir no rodízio de leads do WhatsApp"}
-          className={`p-1.5 transition-colors disabled:opacity-40 rounded-md ${
-            user.recebeTransferencia
-              ? "text-marca-tx hover:text-aviso hover:bg-aviso-bg"
-              : "text-tx-3 hover:text-marca-tx hover:bg-marca-bg"
-          }`}
-        >
-          {user.recebeTransferencia ? <PhoneIncoming size={14} /> : <PhoneOff size={14} />}
-        </button>
-      )}
-      {canManage && !user.isAdmin && (
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => {
-              setCredSuccess(false);
-              setCredError(null);
-              setCredOpen(true);
-            }}
-            data-tip={user.username ? "Redefinir senha" : "Definir acesso"} aria-label={user.username ? "Redefinir senha" : "Definir acesso"}
-            className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors rounded-md"
-          >
-            <KeyRound size={14} />
-          </button>
-          <button
-            onClick={handleToggleFinanceAccess}
-            disabled={pending}
-            data-tip={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"} aria-label={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
-            className={`p-1.5 transition-colors disabled:opacity-40 ${
-              user.financeAccess
-                ? "text-concluido hover:text-atencao hover:bg-grave-bg"
-                : "text-tx-3 hover:text-concluido hover:bg-concluido-bg"
-            }`}
-          >
-            {user.financeAccess ? <Wallet size={14} /> : <WalletCards size={14} />}
-          </button>
-          <button
-            onClick={handleToggleActive}
-            disabled={pending}
-            data-tip={user.active ? "Inativar" : "Reativar"} aria-label={user.active ? "Inativar" : "Reativar"}
-            className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 rounded-md"
-          >
-            <Power size={14} />
-          </button>
-          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" aria-label="Excluir definitivamente" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-grave-bg transition-colors disabled:opacity-40 rounded-md">
-            <Trash2 size={14} />
-          </button>
-        </div>
+        <details className="relative group/menu">
+          <summary className="list-none cursor-pointer h-8 px-3 inline-flex items-center gap-1.5 border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx text-sm font-semibold transition-colors [&::-webkit-details-marker]:hidden">
+            Gerenciar acesso <ChevronDown size={14} aria-hidden="true" />
+          </summary>
+          <div className="absolute right-0 top-full mt-1 z-20 w-72 bg-sf border border-regua-forte shadow-menu py-1">
+            <button
+              onClick={() => {
+                setLinkResult(null);
+                setLinkError(null);
+                setLinkOpen(true);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-tx hover:bg-sf-apoio"
+            >
+              <Link2 size={14} aria-hidden="true" className="text-tx-3" /> Gerar link de redefinição de senha
+            </button>
+            <button
+              onClick={handleToggleTransferencia}
+              disabled={pending}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-tx hover:bg-sf-apoio disabled:opacity-40"
+            >
+              {user.recebeTransferencia ? <PhoneOff size={14} aria-hidden="true" className="text-tx-3" /> : <PhoneIncoming size={14} aria-hidden="true" className="text-tx-3" />}
+              {user.recebeTransferencia ? "Tirar do rodízio de leads do WhatsApp" : "Incluir no rodízio de leads do WhatsApp"}
+            </button>
+            {!user.isAdmin && (
+              <>
+                <button
+                  onClick={() => {
+                    setCredSuccess(false);
+                    setCredError(null);
+                    setCredOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-tx hover:bg-sf-apoio"
+                >
+                  <KeyRound size={14} aria-hidden="true" className="text-tx-3" /> {user.username ? "Redefinir senha" : "Definir acesso"}
+                </button>
+                <button
+                  onClick={handleToggleFinanceAccess}
+                  disabled={pending}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-tx hover:bg-sf-apoio disabled:opacity-40"
+                >
+                  {user.financeAccess ? <Wallet size={14} aria-hidden="true" className="text-concluido" /> : <WalletCards size={14} aria-hidden="true" className="text-tx-3" />}
+                  {user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
+                </button>
+                <button
+                  onClick={handleToggleActive}
+                  disabled={pending}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-tx hover:bg-sf-apoio disabled:opacity-40"
+                >
+                  <Power size={14} aria-hidden="true" className="text-tx-3" /> {user.active ? "Inativar" : "Reativar"}
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={pending}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-urgente hover:bg-grave-bg disabled:opacity-40 border-t border-regua mt-1"
+                >
+                  <Trash2 size={14} aria-hidden="true" /> Excluir definitivamente
+                </button>
+              </>
+            )}
+          </div>
+        </details>
       )}
       {error && (
         <span className="absolute right-5 top-full mt-1 z-10 w-72 text-etiqueta bg-urgente-bg text-urgente border border-linha-urgente px-2.5 py-1.5 shadow-pop rounded-lg flex items-start gap-1.5">

@@ -88,6 +88,10 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
   const [opcoes, setOpcoes] = useState<OpcoesRelatorio>({ assessorias: [], usuarios: [], gruposPeca: [] });
   const [modelos, setModelos] = useState<ModeloSalvo[]>([]);
   const [resultado, setResultado] = useState<RelatorioResultado | null>(null);
+  // Os chips de filtro recolhem depois do primeiro resultado (consolidado R9): a página tinha
+  // 2.917px com os controles ANTES do que a pessoa veio ver. O período e os botões (gerar, Word,
+  // imprimir) ficam sempre à mão; o resto vira "N filtros ativos · Editar filtros".
+  const [mostrarFiltros, setMostrarFiltros] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [gerando, startGerar] = useTransition();
 
@@ -117,6 +121,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
           setResultado(null);
         } else if (r.resultado) {
           setResultado(r.resultado);
+          setMostrarFiltros(false);
         }
       });
     },
@@ -304,6 +309,21 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
 
         <div className="h-px bg-regua-forte opacity-70" />
 
+        {!mostrarFiltros && resultado ? (
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-sm text-tx-2">
+              {(() => {
+                const n = [filtros.contar, filtros.origens, filtros.assessoriaIds, filtros.responsavelIds, filtros.gruposPeca, filtros.tiposCompromisso].filter((v) => v.length > 0).length;
+                return n === 0 ? "Nenhum filtro além do período." : n === 1 ? "1 filtro ativo." : `${n} filtros ativos.`;
+              })()}
+            </p>
+            <button type="button" onClick={() => setMostrarFiltros(true)} className="text-sm font-semibold text-marca-tx hover:underline">
+              Editar filtros
+            </button>
+          </div>
+        ) : (
+          <>
+
         <ChipsFiltro
           rotulo="O que contar"
           opcoes={CONTAGEM_OPCOES.map((o) => ({ value: o.value, label: o.label }))}
@@ -362,6 +382,8 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
           </div>
           <span className="text-etiqueta text-tx-3">{CRITERIO_AUTORIA_OPCOES.find((o) => o.value === filtros.criterioAutoria)?.ajuda}</span>
         </div>
+          </>
+        )}
       </div>
 
       {erro && <p className="text-sm text-urgente bg-urgente-bg rounded-md px-3 py-2">{erro}</p>}

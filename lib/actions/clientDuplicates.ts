@@ -518,7 +518,7 @@ export async function confirmarUnificacaoClientes(canonicoId: string, duplicataI
   revalidatePath("/assessoria");
   revalidatePath("/contatos/clientes");
   revalidatePath("/configuracoes");
-  revalidatePath("/configuracoes/duplicados");
+  revalidatePath("/contatos/duplicados");
 
   return {
     resultado: { movidos, conflitosPastaDrive, pastaDuplicataEsvaziada, avisos, clienteDuplicadoRemovido },
@@ -685,7 +685,7 @@ export async function confirmarMesclaDePastasNoDrive(
 
   revalidatePath("/assessoria");
   revalidatePath("/configuracoes");
-  revalidatePath("/configuracoes/duplicados");
+  revalidatePath("/contatos/duplicados");
 
   return { resultado: { conflitosPastaDrive, pastaDuplicataEsvaziada } };
 }

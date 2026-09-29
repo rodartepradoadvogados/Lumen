@@ -64,15 +64,18 @@ teste("R14: a barra de seção é <nav> e marca a aba ativa com aria-current", (
 });
 
 teste("R4: existe UMA Produtividade — Relatórios não tem a seção e redireciona o link antigo", () => {
-  const r = codigoDe(ler("app/(app)/relatorios/page.tsx"));
-  verdade(!/key: "produtividade"/.test(r), "Relatórios voltou a ter a seção Produtividade");
-  verdade(/redirect\("\/produtividade"\)/.test(r), "o link antigo ?secao=produtividade não redireciona mais");
+  // No PR 2 as seções de Relatórios foram para /indicadores/[secao] e /relatorios virou só um
+  // redirecionamento; o que este teste guarda continua valendo nos arquivos novos.
+  const r = codigoDe(ler("app/(app)/indicadores/[secao]/page.tsx"));
+  verdade(!/produtividade/.test(r.split("SECAO_DE_PARAMETRO")[1] ?? ""), "as seções de Relatórios voltaram a ter Produtividade");
+  const antigo = codigoDe(ler("app/(app)/relatorios/page.tsx"));
+  verdade(/"produtividade"/.test(antigo) && /redirect\(`\/indicadores\/\$\{secao\}/.test(antigo), "o link antigo ?secao=produtividade não redireciona mais");
   const n = codigoDe(ler("lib/navSections.ts"));
   verdade(!/label: "Produtividade", value/.test(n), "o chip Relatórios>Produtividade voltou em navSections");
 });
 
 teste("R12: as barras de Relatórios não são bordô", () => {
-  const r = codigoDe(ler("app/(app)/relatorios/page.tsx"));
+  const r = codigoDe(ler("app/(app)/indicadores/[secao]/page.tsx"));
   verdade(/const NAVY = "var\(--faixa-ardosia\)"/.test(r), "as barras de Relatórios voltaram a usar a cor de ação");
 });
 
@@ -89,11 +92,12 @@ teste("R13: no Noite os três tokens de risco são os clareados e há foco/borda
 
 teste("R18: 'Funil comercial' no menu e sem '(s)' nas telas de Gestão", () => {
   const n = codigoDe(ler("lib/navSections.ts"));
-  verdade(n.includes('"Funil comercial"') && !n.includes('label: "Triagem"'), "o rótulo do funil voltou a ser Triagem");
-  for (const rel of ["app/(app)/relatorios/page.tsx", "app/(app)/produtividade/page.tsx", "app/(app)/contatos/clientes/page.tsx", "app/(app)/conexoes/page.tsx"]) {
+  verdade(!n.includes('label: "Triagem"'), "o rótulo do funil voltou a ser Triagem");
+  verdade(codigoDe(ler("components/indicadores/IndicadoresPagina.tsx")).includes('rotulo: "Funil comercial"'), "a guia do funil não se chama Funil comercial");
+  for (const rel of ["app/(app)/indicadores/[secao]/page.tsx", "app/(app)/indicadores/produtividade/page.tsx", "app/(app)/contatos/clientes/page.tsx", "app/(app)/conexoes/page.tsx"]) {
     verdade(!/\w\(s\)/.test(codigoDe(ler(rel))), `${rel} voltou a ter "(s)"`);
   }
-  verdade(!/capitalize/.test(codigoDe(ler("app/(app)/produtividade/page.tsx"))), "o mês da Produtividade voltou a usar capitalize (Setembro De 2026)");
+  verdade(!/capitalize/.test(codigoDe(ler("app/(app)/indicadores/produtividade/page.tsx"))), "o mês da Produtividade voltou a usar capitalize (Setembro De 2026)");
 });
 
 resumo("Gestão — correções rápidas");

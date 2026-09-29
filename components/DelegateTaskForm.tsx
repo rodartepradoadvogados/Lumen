@@ -85,7 +85,7 @@ function StepDot({ active, done, label }: { active: boolean; done: boolean; labe
           done
             ? "bg-acao text-acao-tx"
             : active
-              ? "bg-marca text-grafite-900"
+              ? "bg-sf-apoio border-2 border-tx text-tx"
               : "bg-sf-apoio text-tx-3"
         }`}
       >

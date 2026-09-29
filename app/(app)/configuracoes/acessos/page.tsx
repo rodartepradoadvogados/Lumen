@@ -1,9 +1,10 @@
 import Link from "next/link";
+import CabecalhoDeSecao from "@/components/configuracoes/SecaoDeConfiguracao";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getActiveSupportSession, listOfficeAccessLog, listPendingAccessRequests } from "@/lib/supportAccess";
 import { ACCESS_REASONS, ACCESS_ACTION_LABEL, type AccessReasonCode } from "@/lib/supportAccessConstants";
-import { PageHeader, Card, CardHeader, Badge, ButtonSecondary } from "@/components/ui";
+import { Card, CardHeader, Badge, ButtonSecondary } from "@/components/ui";
 import EndSupportAccessButton from "@/components/EndSupportAccessButton";
 import SupportAccessPolicyPicker from "@/components/SupportAccessPolicyPicker";
 import AccessRequestQueue from "@/components/AccessRequestQueue";
@@ -35,14 +36,8 @@ export default async function AcessosPage() {
   const totalEntradas = log.filter((l) => l.action === "ENTRADA").length;
 
   return (
-    <div className="tela-leitura space-y-6">
-      <Link
-        href="/configuracoes"
-        className="text-xs font-semibold text-tx-3 hover:text-tx"
-      >
-        ← Configurações
-      </Link>
-      <PageHeader
+    <div className="space-y-6">
+      <CabecalhoDeSecao
         title="Acessos da Lúmen"
         subtitle="Toda vez que o suporte da Lúmen precisa entrar nos dados do seu escritório, fica registrado aqui — com motivo, chamado e prazo curto."
         action={

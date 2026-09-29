@@ -87,7 +87,7 @@ export async function salvarNomeacaoDrive(data: { pastaMae: string; prefixo: str
     data: { drivePastaMae: data.pastaMae.trim(), drivePrefixo: data.prefixo },
   });
   revalidatePath("/configuracoes");
-  revalidatePath("/configuracoes/relatorio-pastas");
+  revalidatePath("/conexoes/relatorio-pastas");
   return {};
 }
 

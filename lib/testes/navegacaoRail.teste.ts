@@ -64,22 +64,22 @@ teste("Publicações não ganhou nem perdeu restrição ao mudar de seção — 
 
 // ── 3. PEDIDO 2 — Contatos em Gestão, na ordem exigida pelo dono ────────────────────────────────
 
-teste("PEDIDO 2: a ordem de Gestão é EXATAMENTE Configurações, Conexões, Contatos, Produtividade, Relatórios", () => {
+teste("NOVA GESTÃO (aprovada em 29/09/2026, substitui a ordem do PEDIDO 2 de 24/09): Indicadores, Pessoas, Conexões, Configurações", () => {
   const gestao = RAIL_SECTIONS.find((s) => s.key === "gestao")!;
-  igual(gestao.items.map((i) => i.label), ["Configurações", "Conexões", "Contatos", "Produtividade", "Relatórios"]);
+  igual(gestao.items.map((i) => i.label), ["Indicadores", "Pessoas", "Conexões", "Configurações"]);
 });
 
 teste("Contatos não ganhou nem perdeu restrição ao mudar de seção — sempre visível, como antes", () => {
-  const contatos = RAIL_SECTIONS.find((s) => s.key === "gestao")!.items.find((i) => i.label === "Contatos")!;
+  const contatos = RAIL_SECTIONS.find((s) => s.key === "gestao")!.items.find((i) => i.label === "Pessoas")!;
   igual(contatos.href, "/contatos");
   igual(Boolean(contatos.adminOnly), false);
   igual(Boolean(contatos.moduleKey), false);
   igual(Boolean(contatos.atendimentoOnly), false);
 });
 
-teste("Configurações virou o primeiro item de Gestão — é para lá que o ícone de Gestão do rail navega agora", () => {
+teste("Indicadores é o primeiro item de Gestão — é para lá (a Visão geral) que o ícone de Gestão do rail navega", () => {
   const gestao = RAIL_SECTIONS.find((s) => s.key === "gestao")!;
-  igual(gestao.items[0].href, "/configuracoes", "o primeiro item de Gestão não é mais /configuracoes — o ícone de Gestão do rail passaria a abrir outra tela, e o antigo atalho 'Ajustes' não teria mesmo destino");
+  igual(gestao.items[0].href, "/indicadores", "o primeiro item de Gestão não é mais /indicadores — o ícone de Gestão do rail passaria a abrir outra tela");
 });
 
 // ── 4. PEDIDO 3 (o DADO) — Atendimento e Peticionamento saem de qualquer seção ───────────────────
@@ -106,10 +106,10 @@ teste("nenhum item de RAIL_SECTIONS repete um href de RAIL_STANDALONE (e vice-ve
 //       duplicado, nas 4 seções + os 2 portais, tudo de uma vez ─────────────────────────────────
 
 const HREFS_ESPERADOS_POR_SECAO: Record<string, string[]> = {
-  agenda: ["/agenda", "/kanban", "/alertas"],
+  agenda: ["/agenda", "/kanban", "/alertas", "/delegar"],
   juridico: ["/publicacoes", "/processos", "/assessoria"],
   financeiro: ["/financeiro", "/financeiro/despesas", "/financeiro/receitas", "/financeiro/fluxo-de-caixa", "/financeiro/dre", "/financeiro/livro-caixa"],
-  gestao: ["/configuracoes", "/conexoes", "/contatos", "/produtividade", "/relatorios"],
+  gestao: ["/indicadores", "/contatos", "/conexoes", "/configuracoes"],
 };
 
 teste("o mapa completo do rail bate exatamente com o esperado — nenhuma rota sumiu, mudou de ordem ou foi duplicada por acidente", () => {

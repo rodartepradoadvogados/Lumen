@@ -1,12 +1,12 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, EmptyState } from "@/components/ui";
+import { Card, EmptyState } from "@/components/ui";
 import UserRow from "@/components/UserRow";
 import { createUser } from "@/lib/actions/settings";
 import { getCurrentUser } from "@/lib/currentUser";
 import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
 import { contar } from "@/lib/plural";
+import PessoasPagina from "@/components/gestao/PessoasPagina";
 
 export const dynamic = "force-dynamic";
 
@@ -41,11 +41,7 @@ export default async function EquipePage({ searchParams }: { searchParams: { q?:
   }
 
   return (
-    <div className="tela">
-      <Link href="/contatos" className="text-xs font-semibold text-tx-3 hover:text-tx">
-        ← Contatos
-      </Link>
-      <PageHeader title="Equipe" subtitle={contar(users.length, "membro")} />
+    <PessoasPagina ativa="equipe" officeId={viewer.officeId} isAdmin={Boolean(viewer.isAdmin)} frase={contar(users.length, "membro") + ". Uma só lista de pessoas: administradores gerenciam o acesso aqui."}>
 
       {q && <FiltradoPorNome q={q} href="/contatos/equipe" total={users.length} />}
 
@@ -73,13 +69,16 @@ export default async function EquipePage({ searchParams }: { searchParams: { q?:
               <option value="Contador">Contador</option>
             </select>
             <input name="oab" placeholder="OAB (opcional)" className={fieldCls} />
-            <input name="color" type="color" defaultValue="#2f5d73" className={`${fieldCls} h-9 p-1`} />
+            <label className="flex items-center gap-2 text-xs font-medium text-tx-2">
+              Cor na agenda
+              <input name="color" type="color" defaultValue="#2f5d73" className={`${fieldCls} h-9 w-14 p-1`} />
+            </label>
             <button type="submit" className="sm:col-span-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3 transition-colors">
               Adicionar membro
             </button>
           </form>
         )}
       </Card>
-    </div>
+    </PessoasPagina>
   );
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
+import { Card, Badge, EmptyState } from "@/components/ui";
 import NewContactModal from "@/components/NewContactModal";
 import EditLawyerModal from "@/components/EditLawyerModal";
 import DeleteButton from "@/components/DeleteButton";
@@ -10,6 +10,7 @@ import { deleteLawyer } from "@/lib/actions/contatos";
 import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
 import IniciarConversaContatoButton from "@/components/atendimento/IniciarConversaContatoButton";
 import { contar } from "@/lib/plural";
+import PessoasPagina from "@/components/gestao/PessoasPagina";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +31,7 @@ export default async function AdvogadosPage({ searchParams }: { searchParams: { 
   });
 
   return (
-    <div className="tela">
-      <Link href="/contatos" className="text-xs font-semibold text-tx-3 hover:text-tx">
-        ← Contatos
-      </Link>
-      <PageHeader title="Advogados" subtitle={contar(lawyers.length, "registro")} action={<NewContactModal kind="lawyer" />} />
+    <PessoasPagina ativa="advogados" officeId={viewer.officeId} isAdmin={Boolean(viewer.isAdmin)} frase={contar(lawyers.length, "registro") + ". Parceiros e adversos, separados pelos filtros abaixo."} acao={<NewContactModal kind="lawyer" />}>
 
       {q && <FiltradoPorNome q={q} href={searchParams.side ? `/contatos/advogados?side=${searchParams.side}` : "/contatos/advogados"} total={lawyers.length} />}
 
@@ -76,7 +73,7 @@ export default async function AdvogadosPage({ searchParams }: { searchParams: { 
           </div>
         )}
       </Card>
-    </div>
+    </PessoasPagina>
   );
 }
 

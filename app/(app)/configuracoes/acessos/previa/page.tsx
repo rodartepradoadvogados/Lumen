@@ -10,7 +10,8 @@ import {
   PREVIEW_SAMPLE_SIZE,
   type PreviewRow,
 } from "@/lib/supportPreview";
-import { PageHeader, Card, CardHeader } from "@/components/ui";
+import { Card, CardHeader } from "@/components/ui";
+import CabecalhoDeSecao from "@/components/configuracoes/SecaoDeConfiguracao";
 import { EyeOff, Eye, ShieldCheck, Lock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -176,14 +177,14 @@ export default async function PreviaSuportePage() {
   ]);
 
   return (
-    <div className="tela space-y-6">
+    <div className="space-y-6">
       <Link
         href="/configuracoes/acessos"
         className="text-xs font-semibold text-tx-3 hover:text-tx"
       >
         ← Acessos da Lúmen
       </Link>
-      <PageHeader
+      <CabecalhoDeSecao
         title="Como o suporte vê o seu escritório"
         subtitle="Uma amostra real dos seus próprios dados, passada pela mesma função que redige o que o suporte enxerga numa sessão normal (sem quebra-vidro)."
       />

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHeader, Card, CardHeader } from "@/components/ui";
+import CabecalhoDeSecao from "@/components/configuracoes/SecaoDeConfiguracao";
+import { Card, CardHeader } from "@/components/ui";
 import ImportForm from "@/components/ImportForm";
 import { importCases, importAgenda, importFinance } from "@/lib/actions/import";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -19,11 +20,8 @@ export default async function ImportarPage() {
   const viewer = await getCurrentUser();
   const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
   return (
-    <div className="tela-leitura">
-      <Link href="/configuracoes" className="text-xs font-semibold text-tx-3 hover:text-tx">
-        ← Configurações
-      </Link>
-      <PageHeader title="Importar Dados" subtitle="Traga contatos, processos, agenda e financeiro de uma planilha (.xlsx ou .csv)" />
+    <div className="space-y-6">
+      <CabecalhoDeSecao title="Importar Dados" subtitle="Traga contatos, processos, agenda e financeiro de uma planilha (.xlsx ou .csv)" />
 
       <div className="space-y-5">
         <Card>
