@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { registrarMensagem } from "@/lib/registrarMensagem";
 import { revalidatePath } from "next/cache";
 import { deveResponder, montarPergunta, lerDecisaoDaAna } from "@/lib/agenteAtendimento";
 import { lerParametros } from "@/lib/actions/parametrosDaAna";
@@ -281,8 +282,8 @@ export async function atendenteResponde(
       return { respondeu: false, motivo: envio.error || "falha ao enviar" };
     }
 
-    await prisma.whatsappMessage.create({
-      data: {
+    await registrarMensagem(
+      {
         officeId: atendimento.officeId,
         attendanceId,
         direction: "OUT",
@@ -292,11 +293,8 @@ export async function atendenteResponde(
         status: "SENT",
         fromNumber: atendimento.waPhone,
       },
-    });
-    await prisma.attendance.update({
-      where: { id: attendanceId },
-      data: { waLastMessageAt: new Date() },
-    });
+      { waLastMessageAt: new Date() },
+    );
 
     // F5.5 — A ANA APRENDEU O NOME. Vem depois do envio (a mensagem de verdade já saiu; se a
     // gravação falhar aqui, o pior que acontece é o cadastro ficar temporário por mais um giro) e

@@ -7,6 +7,7 @@ import { podeVerAtendimentos, veTodoOAtendimento, filtroDoAtendimento } from "@/
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { stageOptions } from "@/lib/funil";
+import { ORDEM_POR_ATIVIDADE } from "@/lib/atividadeDoAtendimento";
 import { quemEstaEsperando } from "@/lib/esperaDoAtendimento";
 import { situacaoDaRecusa, type EstadoDaRecusa } from "@/lib/recusaDoLead";
 import { motivosParaRecusar } from "@/lib/actions/recusaDoLead";
@@ -225,6 +226,7 @@ export default async function AtendimentoCentralPage({
   // vendo os próprios aqui dentro. ──────────────────────────────────────────────────────────────
   let listaAtendimentos: Awaited<ReturnType<typeof carregarLista>> = [];
   let idSelecionado: string | null = null;
+  let conversaAbertaForaDaLista: Awaited<ReturnType<typeof carregarLista>>[number] | null = null;
   // O ID PEDIDO NA URL fica separado do que a tela escolheu sozinha (o primeiro da lista). É a
   // diferença entre "ninguém pediu nada ainda" e "pediram isto e a reconferência recusou" — e sem
   // guardar as duas coisas a segunda viraria a mensagem da primeira ("selecione à esquerda"), que
@@ -233,12 +235,13 @@ export default async function AtendimentoCentralPage({
   if (aba === "atendimentos") {
     listaAtendimentos = await carregarLista(viewer, searchParams.status, searchParams.q);
     idSelecionado = idPedido || listaAtendimentos[0]?.id || null;
-    // ── ETAPA 3 — O REALCE DO ITEM CLICADO, quando o clicado não está nos 200.
+    // ── O LEAD ABERTO QUE ESTÁ FORA DA LISTA (etapa 3, revista no A3 do plano de 29/09/2026).
     //
-    // A lista traz os 200 mais recentes por createdAt (ver carregarLista). Um lead clicado na
-    // Triagem pode ser mais antigo que isso — e era o que acontecia: a conversa CERTA abria à
-    // direita e a esquerda ficava com o realce no primeiro da lista, ou em nada. A pessoa via a
-    // conversa que pediu e a lista dizendo que ela estava em outra.
+    // A lista traz os 200 de atividade mais recente (ver carregarLista) e respeita a busca. Um lead
+    // aberto por link — clicado na Triagem, "Ver a recusa", um endereço colado — pode estar fora
+    // dela: mais antigo que o teto, arquivado/recusado (escondidos por padrão), ou fora da busca. A
+    // conversa CERTA abre à direita; sem uma linha à esquerda a pessoa via a conversa e a lista
+    // dizendo que ela não existe.
     //
     // O CONSERTO É UMA BUSCA A MAIS, POR CHAVE PRIMÁRIA — não alargar o `take` nem tirar o
     // `orderBy`, que é o que transformaria a lista numa varredura da tabela a cada abertura de tela.
@@ -247,17 +250,18 @@ export default async function AtendimentoCentralPage({
     // E ELA PASSA PELO MESMO RECORTE DO CLIQUE (recorteDaConversa: id + escritório de quem pediu +
     // recorte por dono), porque este é um caminho de LEITURA como qualquer outro: sem isso, um id de
     // outro escritório colado na URL não abriria a conversa (essa trava está logo abaixo), mas
-    // ACRESCENTARIA à lista uma linha com o nome e o assunto de um cliente de outro escritório.
+    // ACRESCENTARIA à tela uma linha com o nome e o assunto de um cliente de outro escritório.
     // Vazamento pela lista, não pela conversa.
+    //
+    // NÃO É FIXADA NO TOPO DA LISTA. Era, e isso mentia: a lista agora é ordenada por atividade, e
+    // uma linha antiga no topo se passaria pela mais recente. Ela vira um item À PARTE, rotulado
+    // "Conversa aberta", acima da lista — o rótulo diz o que ela é em vez de dar a ela um lugar que
+    // não é dela.
     if (idPedido && !listaAtendimentos.some((a) => a.id === idPedido)) {
-      const foraDaPagina = await prisma.attendance.findFirst({
+      conversaAbertaForaDaLista = await prisma.attendance.findFirst({
         where: recorteDaConversa(viewer, idPedido),
-        select: { id: true, clientName: true, subject: true, status: true },
+        select: SELECT_DA_LINHA,
       });
-      // No TOPO, e não na posição cronológica dele: a lista está ordenada do mais recente para o
-      // mais antigo, então o lugar "correto" de um lead antigo é o fim de uma lista de 200 linhas —
-      // o realce existiria e ninguém o veria. Quem clicou está lendo esta conversa agora.
-      if (foraDaPagina) listaAtendimentos = [foraDaPagina, ...listaAtendimentos];
     }
   }
 
@@ -433,6 +437,21 @@ export default async function AtendimentoCentralPage({
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              {conversaAbertaForaDaLista && (
+                <div className="border-b border-[var(--atd-border-strong)]">
+                  <p className="px-4 pb-1 pt-3 text-etiqueta font-bold uppercase tracking-wider text-tx-3">Conversa aberta</p>
+                  <Link
+                    href={hrefDaConversa("central", conversaAbertaForaDaLista.id)}
+                    className="block bg-[var(--list-bg-hover)] px-4 pb-3 pt-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      <p className="min-w-0 flex-1 truncate text-corpo font-medium text-tx">{conversaAbertaForaDaLista.clientName}</p>
+                      <Badge color={statusColors[conversaAbertaForaDaLista.status]}>{attendanceStatusLabels[conversaAbertaForaDaLista.status] ?? conversaAbertaForaDaLista.status}</Badge>
+                    </div>
+                    <p className="mt-0.5 truncate text-etiqueta text-tx-3">{conversaAbertaForaDaLista.subject}</p>
+                  </Link>
+                </div>
+              )}
               {listaAtendimentos.length === 0 ? (
                 <p className="p-4 text-etiqueta text-tx-3">Nenhum atendimento encontrado.</p>
               ) : (
@@ -639,6 +658,16 @@ function SubAba({ href, ativa, numero, rotulo, contagem }: { href: string; ativa
   );
 }
 
+// As colunas da linha da lista (e da linha "Conversa aberta", que é a mesma coisa achada por id).
+const SELECT_DA_LINHA = {
+  id: true,
+  clientName: true,
+  subject: true,
+  status: true,
+  createdAt: true,
+  ultimaAtividadeEm: true,
+} satisfies Prisma.AttendanceSelect;
+
 // Mesma consulta de app/(app)/atendimento/page.tsx — extraída aqui para não crescer ainda mais o
 // corpo do componente de página. `soOsMeus` não entra no retorno porque esta etapa não reescreve
 // o rótulo de cabeçalho por nível; o RECORTE por dono, que é o que importa para segurança, já está
@@ -662,8 +691,11 @@ async function carregarLista(
   const matchingIds = termo ? await findAttendanceIdsByLooseName(termo, baseFilters) : [];
   return prisma.attendance.findMany({
     where: { ...baseFilters, ...(termo ? { id: { in: matchingIds } } : {}) },
-    select: { id: true, clientName: true, subject: true, status: true },
-    orderBy: { createdAt: "desc" },
+    select: SELECT_DA_LINHA,
+    // A ORDEM É A ATIVIDADE MAIS RECENTE (lib/atividadeDoAtendimento.ts), e o `take` vem DEPOIS
+    // dela: os 200 que entram são os 200 mais ativos, não os 200 mais novos. Ordenar por
+    // criação cortaria justamente a conversa antiga que acabou de receber mensagem.
+    orderBy: ORDEM_POR_ATIVIDADE,
     take: 200,
   });
 }

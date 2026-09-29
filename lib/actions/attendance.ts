@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { registrarMensagem } from "@/lib/registrarMensagem";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -574,8 +575,10 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
   // que a menos.
   await silenciarAtendente(attendanceId, user.officeId);
 
-  await prisma.whatsappMessage.create({
-    data: {
+  // A mensagem e o que ela muda no atendimento entram JUNTOS (registrarMensagem: mesma transação,
+  // e é ele que move `ultimaAtividadeEm`, a ordem da lista da Central).
+  await registrarMensagem(
+    {
       attendanceId,
       direction: "OUT",
       body: text,
@@ -584,16 +587,12 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
       fromNumber: attendance.waPhone,
       officeId: user.officeId,
     },
-  });
-
-  await prisma.attendance.update({
-    where: { id: attendanceId },
-    data: {
+    {
       waLastMessageAt: new Date(),
       // Primeira resposta ao lead (Fase 5) — só carimba se ainda estiver nula, nunca sobrescreve.
       firstResponseAt: attendance.firstResponseAt ?? new Date(),
     },
-  });
+  );
 
   revalidatePath(`/atendimento/${attendanceId}`);
   return {};
@@ -690,8 +689,8 @@ async function iniciarOuRetomarConversa(
     return { error: envio.error || "Não foi possível enviar a mensagem.", id: attendanceId, jaExistia: Boolean(existente) };
   }
 
-  await prisma.whatsappMessage.create({
-    data: {
+  await registrarMensagem(
+    {
       attendanceId,
       direction: "OUT",
       body: mensagem,
@@ -700,14 +699,11 @@ async function iniciarOuRetomarConversa(
       fromNumber: numeroE164,
       officeId,
     },
-  });
-  await prisma.attendance.update({
-    where: { id: attendanceId },
-    data: {
+    {
       waLastMessageAt: new Date(),
       firstResponseAt: existente?.firstResponseAt ?? new Date(),
     },
-  });
+  );
 
   revalidatePath("/atendimento");
   revalidatePath("/atendimento-central");
