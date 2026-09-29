@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, Card } from "@/components/ui";
+import { Card } from "@/components/ui";
 import NewContactModal from "@/components/NewContactModal";
 import ClientesSearchList from "@/components/ClientesSearchList";
 import { contar } from "@/lib/plural";
+import PessoasPagina from "@/components/gestao/PessoasPagina";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +30,7 @@ export default async function ClientesPage() {
   ]);
 
   return (
-    <div className="tela">
-      <Link href="/contatos" className="text-xs font-semibold text-tx-3 hover:text-tx">
-        ← Contatos
-      </Link>
-      <PageHeader title="Clientes" subtitle={`${contar(clients.length, "cliente cadastrado", "clientes cadastrados")}`} action={<NewContactModal kind="client" />} />
+    <PessoasPagina ativa="clientes" officeId={viewer.officeId} isAdmin={Boolean(viewer.isAdmin)} frase={contar(clients.length, "cliente cadastrado", "clientes cadastrados")} acao={<NewContactModal kind="client" />}>
       {clients.length < totalClients && (
         <p className="text-xs text-tx-3 -mt-3 mb-4">
           Mostrando os primeiros {clients.length} de {totalClients} clientes cadastrados.
@@ -43,6 +39,6 @@ export default async function ClientesPage() {
       <Card>
         <ClientesSearchList clients={clients} />
       </Card>
-    </div>
+    </PessoasPagina>
   );
 }
