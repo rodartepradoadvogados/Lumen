@@ -93,7 +93,11 @@ teste("TRAVA: a tela de contexto pede o chassi de rolagem travada — e nenhuma 
 
   // As demais telas de sessão (wizard, documentos, minuta…) não pedem: elas são texto longo, e
   // travar a rolagem nelas seria transformar a correção de uma tela em defeito nas outras.
-  for (const outra of ["wizard", "documentos", "minuta", "confirmar", "tipo"]) {
+  // EXCEÇÃO (29/09/2026): "documentos" passou a pedir — o seletor recolhido é lista + filtros + resumo,
+  // o mesmo desenho do contexto (só a lista rola). Ver .sel-pagina em peticionamento.css.
+  const documentos = codigoDe(readFileSync(join(RAIZ, "app", "peticionamento", "[id]", "documentos", "page.tsx"), "utf8"));
+  verdade(documentos.includes("rolagemSoNoMiolo"), "a tela de documentos deixou de pedir a rolagem travada — o seletor perde os filtros e o resumo fixos");
+  for (const outra of ["wizard", "minuta", "confirmar", "tipo"]) {
     const fonte = codigoDe(readFileSync(join(RAIZ, "app", "peticionamento", "[id]", outra, "page.tsx"), "utf8"));
     verdade(!fonte.includes("rolagemSoNoMiolo"), `a tela "${outra}" passou a travar a rolagem sem precisar`);
   }
