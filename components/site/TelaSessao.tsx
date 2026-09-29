@@ -60,7 +60,10 @@ export default function TelaSessao({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-sf-fundo flex items-center justify-center p-4">
+    // <main>: as telas de sessão não tinham nenhum marco de conteúdo principal (auditoria da Capa,
+    // 29/09/2026) — leitor de tela e o atalho "ir para o conteúdo principal" não achavam onde
+    // começava a tela.
+    <main className="min-h-screen bg-sf-fundo flex items-center justify-center p-4">
       <div className={largura === "md" ? "w-full max-w-md" : "w-full max-w-sm"}>
         {/* A SAÍDA — sempre, no alto e à esquerda. Alvo de 44px de altura, como o resto do
             produto. Ver a nota longa acima. */}
@@ -92,6 +95,6 @@ export default function TelaSessao({
         </div>
         {rodape ? <div className="mt-5 text-center">{rodape}</div> : null}
       </div>
-    </div>
+    </main>
   );
 }
