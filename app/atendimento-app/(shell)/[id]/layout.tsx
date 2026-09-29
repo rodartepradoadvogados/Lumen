@@ -1,4 +1,5 @@
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
+import TelaCheiaDaConversa from "@/components/atendimento-app/TelaCheiaDaConversa";
 import CabecalhoDaConversa from "@/components/atendimento-app/CabecalhoDaConversa";
 import SemAcessoAConversa from "@/components/atendimento-app/SemAcessoAConversa";
 import { carregarConversaDoApp } from "./dados";
@@ -6,7 +7,7 @@ import { carregarConversaDoApp } from "./dados";
 export const dynamic = "force-dynamic";
 
 // A CONVERSA EM TELA CHEIA (Onda A): cabeçalho grafite + guias Chat/Detalhes + o conteúdo da guia.
-// Cobre a tela toda (`fixed inset-0`) — a casca do app não desenha cabeçalho nem barra aqui — e o
+// Cobre a tela toda (`fixed inset-0`, com a altura do que o aparelho de fato mostra — o teclado virtual não esconde o campo) — a casca do app não desenha cabeçalho nem barra aqui — e o
 // conteúdo rola por dentro, com o cabeçalho fixo. A coluna tem a largura do app (max-w-md).
 export default async function ConversaLayout({ children, params }: { children: React.ReactNode; params: { id: string } }) {
   await exigirAcessoAoAtendimentoNaTela();
@@ -14,11 +15,11 @@ export default async function ConversaLayout({ children, params }: { children: R
   if (!c) return <SemAcessoAConversa />;
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-center bg-sf-fundo">
+    <TelaCheiaDaConversa>
       <div className="flex h-full w-full max-w-md flex-col border-x border-regua bg-sf-fundo">
         <CabecalhoDaConversa id={c.id} clientName={c.clientName} waPhone={c.waPhone} contactPhone={c.contactPhone} subject={c.subject} />
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </div>
-    </div>
+    </TelaCheiaDaConversa>
   );
 }

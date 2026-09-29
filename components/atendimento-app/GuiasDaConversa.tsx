@@ -15,7 +15,7 @@ export default function GuiasDaConversa({ idDaConversa }: { idDaConversa: string
     { chave: "detalhes" as const, rotulo: "Detalhes", href: `/atendimento-app/${idDaConversa}/detalhes` },
   ];
   return (
-    <nav aria-label="Seções da conversa" className="flex">
+    <nav aria-label="Seções da conversa" data-oculta-com-teclado="" className="flex">
       {guias.map((g) => {
         const acesa = aberta === g.chave;
         return (

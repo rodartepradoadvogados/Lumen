@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { LogOut } from "lucide-react";
 import { Card } from "@/components/ui";
 import { logout } from "@/lib/actions/auth";
+import FormularioDeSair from "@/components/atendimento-app/FormularioDeSair";
 import { PWA_APPS } from "@/lib/pwaApps";
 
 export const dynamic = "force-dynamic";
@@ -14,11 +14,7 @@ export default function SairAtendimentoPage() {
     <div className="py-6 space-y-4">
       <Card className="p-5 space-y-4 text-center">
         <p className="font-medium text-tx">Encerrar a sessão neste dispositivo?</p>
-        <form action={logout.bind(null, PWA_APPS.atendimento.entrar)}>
-          <button type="submit" className="w-full h-11 flex items-center justify-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm">
-            <LogOut size={16} /> Sair
-          </button>
-        </form>
+        <FormularioDeSair action={logout.bind(null, PWA_APPS.atendimento.entrar)} />
         <Link href="/atendimento-app/mais" className="inline-block text-xs font-semibold text-tx-2 underline underline-offset-2">Cancelar</Link>
       </Card>
     </div>

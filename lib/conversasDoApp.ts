@@ -136,30 +136,3 @@ export function montarLinha(a: LinhaDaListaApp, agora: Date, nomeDoAtendente: st
     quemAtende: a.agenteResponde && !a.agenteSilenciadoEm ? nomeDoAtendente : a.responsible?.name ?? null,
   };
 }
-
-// ── A LINHA DE STATUS DA CONVERSA (só leitura, no topo do chat) ────────────────────────────────────
-
-export type StatusDaConversa = { quemResponde: string; relogio: string | null; grave: boolean };
-
-/**
- * Quem está respondendo aqui e o relógio de quinze minutos — FATOS do banco (`agenteResponde`,
- * `agenteSilenciadoEm`, `prazoDeRespostaAte` e a direção da última mensagem). No celular é só
- * leitura: o interruptor de verdade chega numa etapa seguinte.
- */
-export function statusDaConversa(
-  a: { agenteResponde: boolean; agenteSilenciadoEm: Date | null; prazoDeRespostaAte: Date | null },
-  ultimaDirecao: string | null,
-  agora: Date,
-  nomeDoAtendente: string,
-): StatusDaConversa {
-  const quemResponde = !a.agenteResponde
-    ? "Resposta automática desligada aqui"
-    : a.agenteSilenciadoEm
-      ? "Atendimento humano"
-      : `${nomeDoAtendente} responde aqui`;
-  if (ultimaDirecao !== "IN") return { quemResponde, relogio: null, grave: false };
-  const estado = estadoDoRelogio(a.prazoDeRespostaAte, agora);
-  if (estado.tipo === "correndo") return { quemResponde, relogio: `${tituloDoRelogio(estado)} · ${detalheDoRelogio(estado)}`, grave: estado.faltam <= 5 };
-  if (estado.tipo === "estourado") return { quemResponde, relogio: `${tituloDoRelogio(estado)} · ${detalheDoRelogio(estado)}`, grave: true };
-  return { quemResponde, relogio: null, grave: false };
-}
