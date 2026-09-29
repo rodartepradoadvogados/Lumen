@@ -37,6 +37,8 @@ export async function signupOffice(data: {
   adminName: string;
   email: string;
   password: string;
+  /** Chave do plano escolhido na Capa (`Plan.key`). Só registra o interesse; ver abaixo. */
+  planKey?: string;
 }): Promise<{ error?: string }> {
   const officeName = data.officeName.trim();
   const adminName = data.adminName.trim();
@@ -54,13 +56,23 @@ export async function signupOffice(data: {
     return { error: "Já existe uma conta cadastrada com esse e-mail." };
   }
 
+  // Plano de interesse (botões "Criar conta no Silver" da Capa): vem do cliente, então é validado
+  // aqui contra o catálogo — só plano ativo e não sob medida. Chave desconhecida é ignorada. Grava
+  // apenas Office.planId (o que o Painel Mestre mostra em "Plano"): NÃO liga nem desliga módulo, NÃO
+  // define preço e NÃO gera cobrança. Isso continua sendo decisão humana no Painel Mestre.
+  const plano = data.planKey
+    ? await prisma.plan.findFirst({ where: { key: String(data.planKey), active: true, isCustom: false }, select: { id: true } })
+    : null;
+
   const slug = await uniqueOfficeSlug(slugify(officeName));
   const passwordHash = await bcrypt.hash(data.password, 10);
 
   const user = await prisma.$transaction(async (tx) => {
     // blogAccess fica explicitamente false pra todo escritório novo — é um recurso da
     // plataforma (não contratável em autosserviço), ver comentário no schema.
-    const office = await tx.office.create({ data: { name: officeName, slug, blogAccess: false } });
+    const office = await tx.office.create({
+      data: { name: officeName, slug, blogAccess: false, ...(plano ? { planId: plano.id } : {}) },
+    });
     await seedDefaultOfficeData(tx, office.id);
     return tx.user.create({
       data: {

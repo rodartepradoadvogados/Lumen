@@ -1,4 +1,3 @@
-import Link from "next/link";
 import RedefinirSenhaForm from "@/components/RedefinirSenhaForm";
 import TelaSessao from "@/components/site/TelaSessao";
 
@@ -11,11 +10,8 @@ export default function RedefinirSenhaPage({ searchParams }: { searchParams: { t
     <TelaSessao
       titulo="Redefinir senha"
       apoio={token ? "Escolha sua nova senha de acesso ao sistema." : undefined}
-      rodape={
-        <Link href="/login" className="text-corpo font-semibold text-tx-2 hover:text-tx underline underline-offset-4 transition-colors duration-100 ease-out">
-          Voltar para entrar
-        </Link>
-      }
+      saidaHref="/login"
+      saidaRotulo="Voltar para entrar"
     >
       {token ? (
         <RedefinirSenhaForm token={token} />
