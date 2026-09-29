@@ -428,3 +428,30 @@ O que esta onda deixou de pé e **não pode voltar atrás**:
   motivo.
 - O teste `lib/testes/atendimentoAppOndaA.teste.ts` prova a regra (barra por nível, tela cheia, tema, filtros,
   ordem, paginação, mídia) e varre as telas novas atrás do recorte de dono.
+
+## 17. A aba Detalhes do aplicativo de Atendimento é ferramenta, não consulta (PR 5, 29/09/2026)
+
+`/atendimento-app/<id>/detalhes` tem blocos que abrem e fecham (Triagem, Pendências e Processo abertos), índice
+preso ao topo, "Voltar ao chat" sempre à vista e `tablist`/`tabpanel` nas guias Chat/Detalhes. O que não pode voltar atrás:
+
+- **Toda ação da aba passa por `atendimentoDaAcao`** (`lib/guardaDoAtendimento.ts`: sessão, acesso e recorte por dono
+  antes de ler o corpo). As ações novas ficam em `lib/actions/detalhesDoAtendimento.ts`; as que já existiam
+  (pendências, recusa, anotações, assunto, cadastro do contato) são chamadas como estão. Tarefa do atendimento tem o
+  ATENDIMENTO no WHERE (a de outro lead do mesmo escritório não é "esta"); `createTask` com `attendanceId` agora confere
+  o recorte. O teste `lib/testes/atendimentoAppDetalhes.teste.ts` varre isso.
+- **Conversão em processo (N19)**: a regra saiu de `convertAttendanceToCase` para `lib/converterAtendimento.ts`,
+  compartilhada com o site. Reserva ATÔMICA (`updateMany where convertedCaseId is null` na mesma transação do Case: duplo
+  toque não cria dois). O app trava CNJ com dígito verificador errado, nome temporário e lead recusado
+  (`OPCOES_DO_APLICATIVO`); o site mantém o comportamento e ganha só a trava de "já convertido". O app mostra ANTES o que
+  será criado/levado (anexos e pasta do Drive vão; **anotações pessoais NÃO são copiadas**) e pede "Entendi que não dá para
+  desfazer". Retorna `{error}|{caseId}`; nunca `redirect`.
+- **"O que a triagem apurou" (N11)** vive em `Attendance.metadata.triagem` (sem mudança de schema): carimbos por campo
+  (confirmado/corrigido, quem, quando) e linhas acrescentadas por pessoas. Sem carimbo o campo é "Da triagem" — o app
+  não finge que a Ana apurou o que ela não gravou. `metadata` é compartilhado: toda escrita preserva as outras chaves.
+  "Manter atendimento" (proposta de recusa da Ana) só esconde o cartão; a nota da Ana não é apagada.
+- **Quadro de tarefas (N21)**: colunas REAIS do escritório. "Mover" só troca a coluna (igual ao arrastar do site);
+  concluir é o círculo (status + coluna de conclusão, com quem concluiu).
+- **Recusa**: quem recusa é quem vê o atendimento; **desfazer recusa é do nível total** (como a fila de recusados). A carta
+  nunca sai sozinha. **Responsável** só é escolhido pelo nível total. **Anotação** editável só pelo autor (N20).
+- Arquivar/desarquivar pedem confirmação e não apagam; o app NÃO promete "volta se o cliente escrever" (o código não faz).
+- Anexo só abre se o endereço for http(s), em outra aba com `noopener noreferrer`. Enviar anexo pelo celular é o PR 9.
