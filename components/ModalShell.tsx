@@ -29,12 +29,14 @@ export type ModalShellSize = "cheio" | "medio" | "compacto";
 const SIZE_CLASSES: Record<ModalShellSize, string> = {
   // 80% da tela a partir do breakpoint `md` — abaixo disso 80% não faz sentido (a tela já É
   // pequena), então cai pra quase tela cheia com margem pequena.
-  cheio: "w-[94vw] h-[90vh] md:w-[80vw] md:h-[80vh] md:max-h-[900px] max-w-[1200px]",
+  // dvh, não vh: no celular a barra de endereço faz 100vh maior que a tela visível e o rodapé do modal
+  // (Salvar) ficava escondido atrás dela.
+  cheio: "w-[94vw] h-[90dvh] md:w-[80vw] md:h-[80dvh] md:max-h-[900px] max-w-[1200px]",
   // Mais espaço que o modal antigo (bom pra formulário com textarea grande ou uns 6-8 campos),
   // sem virar uma caixa vazia — altura acompanha o conteúdo até um teto.
-  medio: "w-[94vw] md:w-[70vw] max-w-[760px] max-h-[88vh] md:max-h-[85vh]",
+  medio: "w-[94vw] md:w-[70vw] max-w-[760px] max-h-[88dvh] md:max-h-[85dvh]",
   // Tamanho de antes da Fase 6 (max-w-md) — não faz parte do alargamento desta fase.
-  compacto: "w-full max-w-md max-h-[90vh]",
+  compacto: "w-full max-w-md max-h-[90dvh]",
 };
 
 export default function ModalShell({

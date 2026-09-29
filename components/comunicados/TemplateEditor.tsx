@@ -78,7 +78,11 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
     });
   };
 
-  const previaHtml = buildDigestEmailHtml({ subject: atual.subject, bodyHtml: atual.bodyHtml, url: SAMPLE_VARS.link, vars: SAMPLE_VARS });
+  // O e-mail tem um <h1> (o assunto). Dentro da tela ele seria um SEGUNDO <h1> da página, e o
+  // título da página é um só (gabarito da Gestão): na prévia vira um bloco com o mesmo estilo.
+  const previaHtml = buildDigestEmailHtml({ subject: atual.subject, bodyHtml: atual.bodyHtml, url: SAMPLE_VARS.link, vars: SAMPLE_VARS })
+    .replace(/<h1/g, "<div")
+    .replace(/<\/h1>/g, "</div>");
 
   return (
     <div className="space-y-4">

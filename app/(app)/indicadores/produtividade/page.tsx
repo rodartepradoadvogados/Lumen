@@ -67,7 +67,7 @@ function Visoes({ atual, mes, responsibleId }: { atual: Visao; mes?: string; res
           key={i.v}
           href={q(i.v)}
           aria-current={atual === i.v ? "true" : undefined}
-          className={clsx("text-xs font-semibold px-3 py-1.5 transition-colors", atual === i.v ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio")}
+          className={clsx("text-xs font-semibold px-3 py-1.5 max-md:py-3.5 transition-colors", atual === i.v ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio")}
         >
           {i.rotulo}
         </Link>
@@ -195,11 +195,11 @@ export default async function ProdutividadePage({
 
   const navegador = (
     <div className="flex items-center gap-2">
-      <Link href={base(prevParam)} className="h-8 w-8 flex items-center justify-center bg-sf border border-regua text-tx-2 hover:bg-sf-apoio" aria-label="Mês anterior">
+      <Link href={base(prevParam)} className="h-8 w-8 max-md:h-11 max-md:w-11 flex items-center justify-center bg-sf border border-regua text-tx-2 hover:bg-sf-apoio" aria-label="Mês anterior">
         <ChevronLeft size={16} aria-hidden="true" />
       </Link>
       <span className="text-sm font-semibold text-tx min-w-[150px] text-center">{label}</span>
-      <Link href={base(nextParam)} className="h-8 w-8 flex items-center justify-center bg-sf border border-regua text-tx-2 hover:bg-sf-apoio" aria-label="Próximo mês">
+      <Link href={base(nextParam)} className="h-8 w-8 max-md:h-11 max-md:w-11 flex items-center justify-center bg-sf border border-regua text-tx-2 hover:bg-sf-apoio" aria-label="Próximo mês">
         <ChevronRight size={16} aria-hidden="true" />
       </Link>
     </div>

@@ -78,7 +78,7 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
         <div key={c.id}>
           <div className="flex items-center gap-2 px-5 py-2 hover:bg-sf-apoio" style={{ paddingLeft: `${20 + depth * 20}px` }}>
             <span className="text-etiqueta text-tx-3 w-16 shrink-0 font-mono">{c.code}</span>
-            <span className="text-sm text-tx flex-1">{c.name}</span>
+            <span className="text-sm text-tx flex-1 min-w-0">{c.name}</span>
             <DeleteButton
               id={c.id}
               confirmMessage={`Excluir a categoria "${c.name}"? Só é possível se não houver subcategorias ou lançamentos vinculados.`}

@@ -100,7 +100,7 @@ teste("Acesso: Financeiro e inadimplência só aparecem a quem tem acesso ao Fin
   verdade(/{socio && \(/.test(v), "o bloco de dinheiro deixou de ser condicionado ao sócio");
   verdade(/vFunil = Boolean\(modulos\.atendimento && veTodoOAtendimento\(viewer\)\)/.test(v), "regra do funil mudou");
   verdade(/somenteUserId: socio \? undefined : viewer\.id/.test(v), "quem não é sócio passou a ver a carga da equipe");
-  verdade(/notFound\(\)/.test(codigoDe(ler("app/(app)/indicadores/[secao]/page.tsx"))), "URL direta de Financeiro sem acesso não devolve 404");
+  verdade(/secao === "financeiro" && !hasFinanceAccess\) redirect\("\/indicadores"\)/.test(codigoDe(ler("app/(app)/indicadores/[secao]/page.tsx"))), "URL direta de Financeiro sem acesso deixou de ser barrada");
   verdade(/if \(!permitido\) return null/.test(codigoDe(ler("lib/gestao/inadimplencia.ts"))) && /if \(!permitido\) return null/.test(codigoDe(ler("lib/gestao/receitaEResultado.ts"))), "as consultas de dinheiro perderam a trava de permissão");
 });
 

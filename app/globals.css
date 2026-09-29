@@ -2186,9 +2186,9 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     justify-content: flex-start;
   }
 
-  /* Badges — tamanho mínimo de toque 44px */
-  .atd-badge,
-  [class*="Badge"] {
+  /* Badges do Atendimento — tamanho mínimo de toque 44px. O seletor `[class*="Badge"]` saiu:
+     emblema/selo não é alvo de toque, e ele inflava todo selo do produto para 44px de altura. */
+  .atd-badge {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
@@ -2261,6 +2261,13 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
   .atd-btn {
     min-height: 44px;
     min-width: 44px;
+  }
+
+  /* Campos de formulário também são alvo de toque (a lista de Configurações e o seletor de
+     ordenação da Visão geral mediam 39 a 41px). */
+  .campo,
+  .cfg-input {
+    min-height: 44px;
   }
 
   /* Grid de 2 colunas vira 1 coluna */

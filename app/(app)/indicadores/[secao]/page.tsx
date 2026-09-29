@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState, formatCurrency } from "@/components/ui";
@@ -554,7 +554,9 @@ const SECAO_DE_PARAMETRO: Record<string, SecaoKey> = {
 
 export default async function IndicadoresSecaoPage({ params, searchParams }: { params: { secao: string }; searchParams: { meses?: string } }) {
   const secao = SECAO_DE_PARAMETRO[params.secao];
-  if (!secao) notFound();
+  // Seção desconhecida: volta à Visão geral. (notFound() aqui derrubava a tela com o erro #310 do
+  // React no navegador; redirecionar é o comportamento certo para um link antigo ou digitado.)
+  if (!secao) redirect("/indicadores");
 
   const meses = parseMeses(searchParams.meses);
   const now = new Date();
@@ -565,8 +567,8 @@ export default async function IndicadoresSecaoPage({ params, searchParams }: { p
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
   const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
-  // Financeiro é só para quem tem acesso ao Financeiro (a guia some e a URL direta devolve 404).
-  if (secao === "financeiro" && !hasFinanceAccess) notFound();
+  // Financeiro é só para quem tem acesso ao Financeiro: a guia some e a URL direta volta à Visão geral.
+  if (secao === "financeiro" && !hasFinanceAccess) redirect("/indicadores");
 
   const periodOptions: { value: 3 | 6 | 12; label: string }[] = [
     { value: 3, label: "3 meses" },
@@ -587,7 +589,7 @@ export default async function IndicadoresSecaoPage({ params, searchParams }: { p
                 key={opt.value}
                 href={`/indicadores/${params.secao}?meses=${opt.value}`}
                 aria-current={meses === opt.value ? "true" : undefined}
-                className={`text-xs font-semibold px-3 py-1.5 transition-colors ${meses === opt.value ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"}`}
+                className={`text-xs font-semibold px-3 py-1.5 max-md:py-3.5 transition-colors ${meses === opt.value ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"}`}
               >
                 {opt.label}
               </Link>

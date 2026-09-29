@@ -104,7 +104,7 @@ teste("a Triagem recebe `isAdmin` de quem está logado, não de um valor cravado
 // ── RELATÓRIOS: a mesma régua na seção "Funil Comercial" ─────────────────────────────────────
 
 teste("a seção Funil dos Relatórios também usa a régua, não soma estimatedValue cru", () => {
-  const fonte = codigoDe(readFileSync("app/(app)/relatorios/page.tsx", "utf8"));
+  const fonte = codigoDe(readFileSync("app/(app)/indicadores/[secao]/page.tsx", "utf8"));
   verdade(fonte.includes("somaEstimadaOuOmissao("), "a seção de relatórios parou de usar a régua de valor estimado");
   verdade(!/\.reduce\(\(x, a\) => x \+ \(a\.estimatedValue/.test(fonte), "os relatórios voltaram a somar estimatedValue direto com reduce");
   // O PERFIL TEM DE SER O DE VERDADE, não uma constante cravada: `{ isAdmin }` (abreviado) é o

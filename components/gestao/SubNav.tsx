@@ -17,7 +17,7 @@ export type ItemDaSubNav = {
 
 export default function SubNav({ rotulo, itens }: { rotulo: string; itens: ItemDaSubNav[] }) {
   return (
-    <nav aria-label={rotulo} className="h-10 flex items-stretch gap-5 overflow-x-auto scrollbar-thin border-b border-regua">
+    <nav aria-label={rotulo} className="h-10 max-md:h-11 flex items-stretch gap-5 overflow-x-auto scrollbar-thin border-b border-regua">
       {itens.map((i) => (
         <Link
           key={i.href}

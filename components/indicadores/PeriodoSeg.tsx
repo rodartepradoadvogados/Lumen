@@ -24,7 +24,7 @@ export default function PeriodoSeg({ atual, base }: { atual: PeriodoDaVisaoGeral
           key={p.valor}
           href={`${base}?periodo=${p.valor}`}
           aria-current={p.valor === atual ? "true" : undefined}
-          className={clsx("text-xs font-semibold px-3 py-1.5 transition-colors", p.valor === atual ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio")}
+          className={clsx("text-xs font-semibold px-3 py-1.5 max-md:py-3.5 transition-colors", p.valor === atual ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio")}
         >
           {p.rotulo}
         </Link>
