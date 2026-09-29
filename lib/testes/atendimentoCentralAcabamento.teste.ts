@@ -380,7 +380,7 @@ teste("o destino do ícone 'Ver a recusa' existe TAMBÉM para lead já convertid
   // leitura do parâmetro da URL (`searchParams.foco === ...`), e contar a comparação faria este teste
   // afirmar sobre linha que não é a que ele pensa estar lendo — a mesma armadilha da janela de
   // caracteres, em outra roupa.
-  const aneis = [...CORPO_PAGE.matchAll(/ring-\[var\(--frame-accent\)\]/g)].length;
+  const aneis = [...CORPO_PAGE.matchAll(/ring-2 ring-inset ring-\[var\(--frame-accent\)\]/g)].length;
   igual(aneis, 2, "o anel de foco tem de ser desenhado nos dois casos — senão quem clicou no ícone não acha o que procurava");
 
   // O bloco do convertido precisa EXPLICAR, não só existir vazio. Asserção sobre o mecanismo

@@ -40,5 +40,5 @@ export default async function AtendimentoCentralLayout({ children }: { children:
     );
   }
 
-  return <div className="atd-central min-h-screen">{children}</div>;
+  return <div className="atd-central atd-central-fixa">{children}</div>;
 }

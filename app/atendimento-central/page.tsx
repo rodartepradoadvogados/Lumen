@@ -14,6 +14,7 @@ import { identificarNumero } from "@/lib/identificarNumero";
 import { getAppUrl } from "@/lib/appUrl";
 import {
   hrefDaConversa,
+  hrefDaLista,
   recorteDaConversa,
   CONVERSA_FORA_DO_SEU_ALCANCE,
   FOCO_DA_RECUSA,
@@ -30,6 +31,7 @@ import Conversa from "@/components/atendimento/Conversa";
 import TrilhoDoAtendimento from "@/components/atendimento/TrilhoDoAtendimento";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
 import RecusarLeadPainel from "@/components/atendimento/RecusarLeadPainel";
+import BotaoDaGaveta from "@/components/atendimento/BotaoDaGaveta";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import AtendenteIaControle from "@/components/AtendenteIaControle";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
@@ -310,19 +312,22 @@ export default async function AtendimentoCentralPage({
   const hrefAba = (destino: AbaCentral) => `/atendimento-central?aba=${destino}`;
   const hrefSub = (destino: SubTriagem) => `/atendimento-central?aba=triagem&sub=${destino}`;
 
-  // ALTURA TRAVADA NA JANELA (h-screen), e não só piso (min-h-screen): com piso, a coluna cresce do
-  // tamanho da conversa, quem rola é a PÁGINA, e a caixa de resposta desce junto para o fim de uma
-  // conversa comprida. Com a altura travada, quem rola é a caixa da conversa (min-h-0 +
-  // overflow-y-auto) e o pé com a resposta fica à vista.
+  // ALTURA TRAVADA NA JANELA, e o DOCUMENTO NUNCA ROLA (A1, 29/09/2026). O invólucro é
+  // `.atd-central-fixa` (layout.tsx + atendimento-central.css): 100dvh, overflow clip, e html/body
+  // sem rolagem. Esta raiz só preenche ele (`h-full`). Com piso (min-h-screen), a coluna cresceria do
+  // tamanho da conversa e a caixa de resposta desceria junto; e com `h-screen` sozinho, a coluna do
+  // trilho — que era mais alta que a linha — empurrava o documento, e o cabeçalho ("Sair para o
+  // Lúmen", "Atendimento", as abas) saía da janela do PWA (877x612). Agora só regiões internas
+  // rolam: a lista, a conversa e a coluna do trilho.
   return (
-    <div className="flex h-screen flex-col bg-[var(--work-bg)]">
+    <div className="flex h-full min-h-0 flex-col bg-[var(--work-bg)]">
       {/* ── MOLDURA: barra superior ─────────────────────────────────────────────────────────── */}
-      <div className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-[var(--frame-border)] bg-[var(--frame-bg)] px-5">
+      <div className="atd-barra-topo flex h-12 shrink-0 items-center justify-between gap-4 border-b border-[var(--frame-border)] bg-[var(--frame-bg)] px-5">
         <a href="/painel" className="text-etiqueta font-semibold text-[var(--frame-tx-2)] transition-colors hover:text-[var(--frame-tx-0)]">
           ← Sair para o Lúmen
         </a>
-        <div className="flex items-center gap-3">
-          <span className="text-etiqueta text-[var(--frame-tx-2)]">{viewer.name}</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="min-w-0 truncate text-etiqueta text-[var(--frame-tx-2)]">{viewer.name}</span>
           {/* Variante "cromo": a MESMA usada pelo rail e pelo blog para uma barra que nunca
               retematiza — a moldura desta tela é fixa nos dois temas, exatamente essa superfície. */}
           <ThemeToggle variant="cromo" />
@@ -403,9 +408,11 @@ export default async function AtendimentoCentralPage({
       )}
 
       {aba === "atendimentos" && (
-        <div className="flex min-h-0 flex-1">
+        // `data-vista` só importa em janela de celular (<=760px): ver atendimento-central.css. Com `?id=`
+        // pedido na URL é a conversa; sem ele, a lista.
+        <div className="atd-corpo" data-vista={idPedido ? "conversa" : "lista"}>
           {/* ── COLUNA DE LISTA ─────────────────────────────────────────────────────────────── */}
-          <div className="flex w-[340px] shrink-0 flex-col border-r border-[var(--atd-border)] bg-[var(--list-bg)]">
+          <div className="atd-lista">
             <div className="shrink-0 border-b border-[var(--frame-border)] bg-[var(--frame-bg-raised)] p-3">
               <form className="flex gap-1.5">
                 {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
@@ -415,7 +422,7 @@ export default async function AtendimentoCentralPage({
                   name="q"
                   defaultValue={searchParams.q}
                   placeholder="Buscar por nome ou assunto"
-                  className="min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-etiqueta text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none"
+                  className="min-h-9 min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-etiqueta text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none"
                 />
               </form>
               {/* F5.5 — "eu só consigo responder reativamente": este botão abre uma conversa nova
@@ -425,7 +432,7 @@ export default async function AtendimentoCentralPage({
                 <NovaConversaModal destino="central" />
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {listaAtendimentos.length === 0 ? (
                 <p className="p-4 text-etiqueta text-tx-3">Nenhum atendimento encontrado.</p>
               ) : (
@@ -447,7 +454,7 @@ export default async function AtendimentoCentralPage({
           </div>
 
           {/* ── SUPERFÍCIE DE TRABALHO: conversa ────────────────────────────────────────────── */}
-          <div className="flex min-w-0 flex-1 flex-col bg-[var(--work-bg)]">
+          <div className="atd-conversa">
             {selecionado ? (
               <>
                 {/* A MEDIDA DE LEITURA (--atd-largura-leitura, ver atendimento-central.css) LIMITA O
@@ -456,9 +463,19 @@ export default async function AtendimentoCentralPage({
                     fundo diferente à direita, que é um defeito no lugar de outro. E o mesmo limite
                     vale no cabeçalho e na conversa, senão o nome do cliente e as mensagens dele
                     ficariam em réguas diferentes. */}
-                <div className="shrink-0 border-b border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 py-3">
+                <div className="shrink-0 border-b border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 py-3 max-[760px]:px-3">
                   <div className="flex w-full max-w-[var(--atd-largura-leitura)] items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    {/* Só em janela de celular: volta da conversa para a lista (o mesmo endereço, sem o
+                        `id`). É <Link>, e não botão com estado: funciona sem JavaScript e o botão
+                        Voltar do navegador leva ao mesmo lugar. */}
+                    <Link
+                      href={hrefDaLista({ q: searchParams.q })}
+                      aria-label="Voltar à lista de conversas"
+                      className="atd-so-celular min-h-11 min-w-11 shrink-0 items-center justify-center border border-[var(--atd-border-strong)] text-etiqueta font-semibold text-tx-2 hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
+                    >
+                      ←
+                    </Link>
+                    <div className="min-w-0 flex-1">
                       <h2 className="flex items-center gap-2 truncate text-corpo font-bold text-tx">
                         {esperandoResposta && (
                           <span className="bolinha-espera" role="img" aria-label="O cliente está esperando resposta" title="O cliente escreveu e ninguém respondeu" />
@@ -468,14 +485,22 @@ export default async function AtendimentoCentralPage({
                       <p className="truncate text-etiqueta text-tx-3">{selecionado.subject}</p>
                     </div>
                     <RelogioDoAtendimento prazoISO={selecionado.prazoDeRespostaAte ? selecionado.prazoDeRespostaAte.toISOString() : null} />
+                    <BotaoDaGaveta modo="abrir" />
                   </div>
                 </div>
                 {/* A caixa que ROLA continua sendo esta (min-h-0 + overflow-y-auto): a medida de
                     leitura entra num invólucro DENTRO dela, e não nela — trocar quem rola por causa
-                    de largura seria mexer no chassi da tela para resolver um problema de texto. */}
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                    de largura seria mexer no chassi da tela para resolver um problema de texto.
+                    `data-rolagem-da-conversa` é o que RolarParaOFim procura (closest): SEM ele o
+                    componente não achava a caixa e a conversa abria no COMEÇO — só as telas antigas
+                    (/atendimento/[id] e /m/atendimento/[id]) tinham o atributo, esta não.
+                    `key` = o lead: ao trocar de conversa pela lista o React reaproveitava o mesmo
+                    Conversa e o efeito de montagem não rodava de novo — a conversa nova abria onde a
+                    anterior tinha parado. */}
+                <div data-rolagem-da-conversa="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 max-[760px]:px-3">
                   <div className="w-full max-w-[var(--atd-largura-leitura)]">
                     <Conversa
+                      key={selecionado.id}
                       mensagens={selecionado.whatsappMessages}
                       agora={agora}
                       nomeDoAtendente={nomeDoAtendente}
@@ -494,7 +519,7 @@ export default async function AtendimentoCentralPage({
                     de leitura do cabeçalho e da conversa, senão desalinha delas.
                     QUEM PODE RESPONDER não se decide aqui: `selecionado` já passou por
                     recorteDaConversa, e replyWhatsapp reconfere com o mesmo recorte no servidor. */}
-                <div className="shrink-0 border-t border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 pb-4 pt-3">
+                <div data-caixa-de-resposta="" className="shrink-0 border-t border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 pb-4 pt-3 max-[760px]:px-3">
                   <div className="w-full max-w-[var(--atd-largura-leitura)]">
                     {podeResponder ? (
                       <>
@@ -528,62 +553,69 @@ export default async function AtendimentoCentralPage({
 
           {/* ── SUPERFÍCIE DE TRABALHO: trilho ──────────────────────────────────────────────── */}
           {selecionado && (
-            <div className="w-[380px] shrink-0 border-l border-[var(--atd-border)] bg-[var(--work-bg)]">
-              <TrilhoDoAtendimento
-                attendanceId={selecionado.id}
-                telefone={telefoneDoContato}
-                contato={contatoConhecido}
-                nomeAtual={selecionado.clientName}
-                area={selecionado.area}
-                canal={channelLabels[selecionado.channel] || selecionado.channel}
-                campanha={selecionado.campanha?.nome ?? null}
-                responsavel={selecionado.responsible?.name ?? null}
-                abertoEm={selecionado.createdAt}
-                descricao={selecionado.description}
-                anexos={selecionado.attachments.map((att) => ({ id: att.id, name: att.name, driveUrl: att.driveUrl }))}
-                pendencias={selecionado.pendencias}
-                jaConvertido={Boolean(selecionado.convertedCaseId)}
-              />
-              {/* ETAPA 3 — ESTE É O DESTINO DO ÍCONE "VER A RECUSA" (ver lib/conversaDaCentral.ts).
-                  O `id` é a âncora que o navegador usa para rolar até aqui, e vem da mesma constante
-                  que monta o endereço — duas palavras iguais em dois arquivos divergiriam calado.
-                  O ANEL É A GARANTIA: quem clicou no ícone está procurando ESTE painel entre dois, e
-                  o anel é desenhado pelo servidor, sem depender de o navegador ter rolado. */}
-              {!selecionado.convertedCaseId && (
-                <div
-                  id={ANCORA_DA_RECUSA}
-                  className={`scroll-mt-4 border-t border-[var(--atd-border)] p-4 ${
-                    foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
-                  }`}
-                  style={{ boxShadow: "var(--atd-shadow-card)" }}
+            <div className="atd-trilho">
+              {/* Só em janela estreita, onde o trilho é gaveta por cima da conversa. */}
+              <BotaoDaGaveta modo="fechar" />
+              <div className="min-h-0 flex-1">
+                <TrilhoDoAtendimento
+                  attendanceId={selecionado.id}
+                  telefone={telefoneDoContato}
+                  contato={contatoConhecido}
+                  nomeAtual={selecionado.clientName}
+                  area={selecionado.area}
+                  canal={channelLabels[selecionado.channel] || selecionado.channel}
+                  campanha={selecionado.campanha?.nome ?? null}
+                  responsavel={selecionado.responsible?.name ?? null}
+                  abertoEm={selecionado.createdAt}
+                  descricao={selecionado.description}
+                  anexos={selecionado.attachments.map((att) => ({ id: att.id, name: att.name, driveUrl: att.driveUrl }))}
+                  pendencias={selecionado.pendencias}
+                  jaConvertido={Boolean(selecionado.convertedCaseId)}
                 >
-                  <RecusarLeadPainel attendanceId={selecionado.id} motivos={motivosDeRecusa} recusa={recusaNaTela} enderecoDoSite={enderecoDoSite} />
-                </div>
-              )}
-              {/* O ÍCONE NUNCA PODE CAIR NO VAZIO. O painel acima não aparece para lead já convertido
-                  em processo — e isso está certo, porque recusar quem já virou cliente não faz sentido.
-                  Só que o ícone "Ver a recusa" CONTINUA na lista nesse caso: a fila de recusados busca
-                  por `estado: EM_ANALISE`, e converter um lead não muda esse estado. Sem este bloco, o
-                  ícone promete mostrar a recusa e entrega uma tela sem nada — o usuário clica de novo,
-                  acha que travou, e desconfia do resto da tela.
-                  A âncora e o anel são os MESMOS do painel, então o destino do ícone existe nos dois
-                  casos; o que muda é o que ele explica. */}
-              {selecionado.convertedCaseId && (
-                <div
-                  id={ANCORA_DA_RECUSA}
-                  className={`scroll-mt-4 border-t border-[var(--atd-border)] p-4 ${
-                    foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
-                  }`}
-                  style={{ boxShadow: "var(--atd-shadow-card)" }}
-                >
-                  <p className="text-etiqueta text-tx-3">Recusa</p>
-                  <p className="mt-1 max-w-[60ch] text-corpo text-tx-2">
-                    Este atendimento foi recusado e depois convertido em processo. O painel de recusa não
-                    se aplica a quem já é cliente — o registro da recusa continua no histórico do
-                    atendimento.
-                  </p>
-                </div>
-              )}
+                  {/* O PAINEL DE RECUSA MORA DENTRO DA REGIÃO QUE ROLA DO TRILHO (A1). Era irmão do
+                      trilho, embaixo dele, e por isso a coluna ficava mais alta que a janela — a
+                      causa do cabeçalho cortado. Agora ele é alcançado rolando DENTRO da coluna, e
+                      "Transformar em processo" (o pé do trilho) continua preso à vista. */}
+                  {/* ETAPA 3 — ESTE É O DESTINO DO ÍCONE "VER A RECUSA" (ver lib/conversaDaCentral.ts).
+                      O `id` é a âncora que o navegador usa para rolar até aqui, e vem da mesma constante
+                      que monta o endereço — duas palavras iguais em dois arquivos divergiriam calado.
+                      O ANEL É A GARANTIA: quem clicou no ícone está procurando ESTE painel entre dois, e
+                      o anel é desenhado pelo servidor, sem depender de o navegador ter rolado. */}
+                  {!selecionado.convertedCaseId && (
+                    <div
+                      id={ANCORA_DA_RECUSA}
+                      className={`scroll-mt-4 border border-regua bg-sf p-4 ${
+                        foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
+                      }`}
+                    >
+                      <RecusarLeadPainel attendanceId={selecionado.id} motivos={motivosDeRecusa} recusa={recusaNaTela} enderecoDoSite={enderecoDoSite} />
+                    </div>
+                  )}
+                  {/* O ÍCONE NUNCA PODE CAIR NO VAZIO. O painel acima não aparece para lead já convertido
+                      em processo — e isso está certo, porque recusar quem já virou cliente não faz sentido.
+                      Só que o ícone "Ver a recusa" CONTINUA na lista nesse caso: a fila de recusados busca
+                      por `estado: EM_ANALISE`, e converter um lead não muda esse estado. Sem este bloco, o
+                      ícone promete mostrar a recusa e entrega uma tela sem nada — o usuário clica de novo,
+                      acha que travou, e desconfia do resto da tela.
+                      A âncora e o anel são os MESMOS do painel, então o destino do ícone existe nos dois
+                      casos; o que muda é o que ele explica. */}
+                  {selecionado.convertedCaseId && (
+                    <div
+                      id={ANCORA_DA_RECUSA}
+                      className={`scroll-mt-4 border border-regua bg-sf p-4 ${
+                        foco === FOCO_DA_RECUSA ? "ring-2 ring-inset ring-[var(--frame-accent)]" : ""
+                      }`}
+                    >
+                      <p className="text-etiqueta text-tx-3">Recusa</p>
+                      <p className="mt-1 max-w-[60ch] text-corpo text-tx-2">
+                        Este atendimento foi recusado e depois convertido em processo. O painel de recusa não
+                        se aplica a quem já é cliente — o registro da recusa continua no histórico do
+                        atendimento.
+                      </p>
+                    </div>
+                  )}
+                </TrilhoDoAtendimento>
+              </div>
             </div>
           )}
         </div>

@@ -59,6 +59,7 @@ export default function TrilhoDoAtendimento({
   anexos,
   pendencias,
   jaConvertido,
+  children,
 }: {
   attendanceId: string;
   telefone: string | null;
@@ -75,13 +76,17 @@ export default function TrilhoDoAtendimento({
   anexos: AnexoDoTrilho[];
   pendencias: ItemDePendencia[];
   jaConvertido: boolean;
+  /** O que mora DENTRO da região que rola, abaixo das seções (na Central, o painel de recusa).
+   * Antes ele era irmão do trilho, embaixo dele, e estourava a altura da coluna: o documento
+   * passava a rolar e o cabeçalho da tela saía da janela (A1, 29/09/2026). */
+  children?: React.ReactNode;
 }) {
   const aguardando = pendencias.filter((p) => p.status !== "CONCLUIDA");
   const faltamChegar = aguardando.filter((p) => p.direction === "SOLICITAR");
   const faltamSair = aguardando.filter((p) => p.direction === "ENVIAR");
 
   return (
-    <div className="flex h-full flex-col bg-sf-fundo">
+    <div className="flex h-full min-h-0 flex-col bg-sf-fundo">
       {/* O MIOLO ROLA, O RODAPÉ NÃO. Antes o trilho inteiro rolava, e "Transformar em processo" —
           que mora no pé — só aparecia depois de rolar o trilho até o fim. Uma ação importante que
           exige rolagem para ser descoberta é, na prática, uma ação que não existe. */}
@@ -161,6 +166,7 @@ export default function TrilhoDoAtendimento({
         </div>
       </section>
 
+      {children}
       </div>
 
       <div className="shrink-0 border-t border-regua bg-sf-fundo px-5 pb-5 pt-4">

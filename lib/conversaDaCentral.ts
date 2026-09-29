@@ -66,6 +66,26 @@ export function hrefDaConversa(destino: DestinoDaConversa, attendanceId: string)
 }
 
 /**
+ * O endereço da LISTA de Atendimentos, com o recorte que a pessoa escolheu (fase, busca, "mostrar
+ * arquivados") e, quando há, a conversa aberta.
+ *
+ * Uma função só, e não três template strings espalhadas, porque o menu de fase, o chip removível, o
+ * "Voltar" do celular e o vazio que oferece "ver todas as fases" precisam escrever o MESMO endereço:
+ * um parâmetro esquecido num deles derruba o recorte da pessoa em silêncio (ela filtra por
+ * Qualificação, volta da conversa e a lista voltou a mostrar tudo). Todo valor vai escapado; a fase
+ * NÃO é validada aqui — quem valida contra os estágios reais é `faseDaUrl` (lib/funil.ts), antes.
+ */
+export function hrefDaLista(recorte: { fase?: string | null; q?: string | null; arquivados?: boolean; id?: string | null } = {}): string {
+  const partes = ["aba=atendimentos"];
+  if (recorte.fase) partes.push(`fase=${encodeURIComponent(recorte.fase)}`);
+  const termo = (recorte.q ?? "").trim();
+  if (termo) partes.push(`q=${encodeURIComponent(termo)}`);
+  if (recorte.arquivados) partes.push("arq=1");
+  if (recorte.id) partes.push(`id=${encodeURIComponent(recorte.id)}`);
+  return `${ROTA_DA_CENTRAL}?${partes.join("&")}`;
+}
+
+/**
  * O que a tela escreve quando o `id` pedido na URL não passa pelo recorte.
  *
  * UMA FRASE PARA OS TRÊS CASOS, de propósito: não existe, é de outro escritório, ou não foi
