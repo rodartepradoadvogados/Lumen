@@ -14,7 +14,7 @@ const INACTIVITY_LIMIT_MS = 15 * 60 * 1000;
 
 const ACTIVITY_EVENTS = ["mousemove", "keydown", "click", "scroll", "touchstart"] as const;
 
-export default function InactivityNotice() {
+export default function InactivityNotice({ sairPara }: { sairPara?: string } = {}) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [idle, setIdle] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -70,7 +70,7 @@ export default function InactivityNotice() {
           <p className="text-sm text-tx-2">Deseja continuar de onde parou ou sair do sistema?</p>
         </div>
         <div className="flex gap-2">
-          <form action={logout} className="flex-1">
+          <form action={sairPara ? logout.bind(null, sairPara) : logout} className="flex-1">
             <button
               type="submit"
               disabled={isPending}

@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { LogOut } from "lucide-react";
 import { logout } from "@/lib/actions/auth";
+import { PWA_APPS } from "@/lib/pwaApps";
 
 // Deriva a inscrição de push do NAVEGADOR antes de submeter o logout — logout() já apaga a
 // PushSubscription no servidor (lib/actions/auth.ts), mas isso não derruba a inscrição presa à
@@ -23,7 +24,7 @@ export default function MobileLogoutButton() {
       } catch {
         // Best-effort — mesmo se o unsubscribe do navegador falhar, o logout não pode travar.
       }
-      await logout();
+      await logout(PWA_APPS.mobile.entrar);
     });
   }
 

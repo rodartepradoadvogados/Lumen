@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { comManifestoDoSite } from "@/lib/pwaManifestoDoSite";
 import TopBar from "@/components/TopBar";
 import AssistenteWidget from "@/components/AssistenteWidget";
 import InactivityNotice from "@/components/InactivityNotice";
@@ -25,18 +26,22 @@ import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
 
-// Manifesto do PWA de desktop (ver app/manifest-desktop.webmanifest/route.ts) — só para estas
-// rotas. As rotas /m continuam com o manifest.ts padrão (app/layout.tsx), inalterado.
-export const metadata: Metadata = {
-  manifest: "/manifest-desktop.webmanifest",
-};
+// Manifesto do PWA do SITE (desktop; ver app/manifest-desktop.webmanifest/route.ts), com escopo "/"
+// — que engloba /m e /atendimento-app. Por isso ele só é oferecido em computador: no Android, um
+// WebAPK com escopo "/" captura os links dos outros dois apps, e o Chrome passa a dizer que "já
+// existe outro" ao instalar o segundo. Em celular/tablet esta rota herda o manifesto padrão
+// (app/manifest.webmanifest, app mobile de escopo "/m"), de modo que o celular só é convidado a instalar
+// os dois apps de escopo próprio (Lúmen mobile e Atendimento), lado a lado.
+export function generateMetadata(): Metadata {
+  return comManifestoDoSite();
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // O middleware só valida a assinatura do token (roda no Edge, sem acesso ao banco).
   // Aqui confirmamos que o usuário da sessão ainda existe/está ativo antes de liberar o app.
   const user = await getCurrentUser();
   if (!user || !user.active) {
-    redirect("/");
+    redirect("/login");
   }
 
   // Escritório suspenso/cancelado (inadimplência — ver Painel Mestre): ninguém do escritório

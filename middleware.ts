@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ehTelaDeEntradaDePwa, pwaDoCaminho, PWA_APPS } from "@/lib/pwaApps";
 import { verifySession, SESSION_COOKIE_NAME, verifyPlatformMemberSession, PLATFORM_MEMBER_SESSION_COOKIE } from "@/lib/auth";
 
 export async function middleware(req: NextRequest) {
@@ -22,6 +23,10 @@ export async function middleware(req: NextRequest) {
   if (
     pathname === "/" ||
     pathname === "/login" ||
+    // Telas de entrada DENTRO do escopo de cada PWA (/m/entrar, /atendimento-app/entrar) — ver
+    // lib/pwaApps.ts. Precisam ser públicas: é nelas que o Chrome oferece a instalação do app
+    // certo antes do login.
+    ehTelaDeEntradaDePwa(pathname) ||
     pathname === "/cadastro" ||
     pathname === "/redefinir-senha" ||
     pathname === "/blog" ||
@@ -46,6 +51,12 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
     pathname === "/manifest.webmanifest" ||
+    // Service workers dos PWAs: as telas de entrada os registram ANTES do login, e o navegador
+    // recusa um script de SW que responde com redirecionamento ("The script resource is behind a
+    // redirect") — sem esta exceção o middleware redirecionava /sw-*.js para a tela de entrada.
+    pathname === "/sw.js" ||
+    pathname === "/sw-m.js" ||
+    pathname === "/sw-atendimento.js" ||
     pathname === "/manifest-desktop.webmanifest" ||
     pathname.startsWith("/atendimento-app/manifest") ||
     pathname.startsWith("/icons-atendimento/") ||
@@ -70,10 +81,12 @@ export async function middleware(req: NextRequest) {
   const pmSession = pmToken ? await verifyPlatformMemberSession(pmToken) : null;
 
   if (!session && !pmSession) {
-    // O formulário de login mora na homepage pública (app/page.tsx), não numa página própria
-    // — ver HomepageLoginCard. Preserva o destino original para retornar a ele após o login.
-    const loginUrl = new URL("/", req.url);
-    loginUrl.searchParams.set("next", pathname);
+    // Quem não tem sessão volta para a tela de entrada do PRÓPRIO app (dentro do escopo dele —
+    // nunca para a homepage, que não pertence a PWA nenhum e faria o Chrome oferecer o app
+    // errado). Fora dos PWAs móveis, é a página real de login do site. Preserva o destino.
+    const pwa = pwaDoCaminho(pathname);
+    const loginUrl = new URL(pwa ? PWA_APPS[pwa].entrar : "/login", req.url);
+    loginUrl.searchParams.set("next", pathname + req.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 

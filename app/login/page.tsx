@@ -4,13 +4,16 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getPlatformMember } from "@/lib/platformMember";
 import LoginForm from "@/components/LoginForm";
+import { comManifestoDoSite } from "@/lib/pwaManifestoDoSite";
 import TelaSessao from "@/components/site/TelaSessao";
 
 // Página real de login (documento 09 do redesenho: a barra do site público tem só um link
 // "Entrar", sem card embutido no hero — o formulário de fato mora aqui). Substitui o antigo
 // redirecionamento "/login → /" (que existia enquanto o login vivia suspenso sobre o carrossel
 // da homepage, ver git blame de HomepageLoginCard.tsx).
-export const metadata = { title: "Entrar — Lúmen" };
+export function generateMetadata() {
+  return { title: "Entrar — Lúmen", ...comManifestoDoSite() };
+}
 
 export default async function LoginPage() {
   const user = await getCurrentUser();

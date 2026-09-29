@@ -22,6 +22,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Lúmen | Sistema Interno",
   description: "Controle financeiro, processos, agenda e kanban para escritórios de advocacia",
+  // Manifesto padrão (app mobile). Cada escopo com app próprio o sobrescreve: /atendimento-app
+  // (app/atendimento-app/layout.tsx) e o site desktop ((app)/layout.tsx). Ver app/manifest.webmanifest/route.ts.
+  manifest: "/manifest.webmanifest",
   // Habilita o comportamento de app instalável (tela cheia) no iOS.
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Lúmen" },
 };

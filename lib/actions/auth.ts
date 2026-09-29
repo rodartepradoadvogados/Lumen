@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { ehTelaDeEntradaDePwa } from "@/lib/pwaApps";
 import { prisma } from "@/lib/prisma";
 import { signSession, SESSION_COOKIE_NAME, signPlatformMemberSession, PLATFORM_MEMBER_SESSION_COOKIE } from "@/lib/auth";
 import { sendPasswordResetEmail } from "@/lib/email";
@@ -76,7 +77,11 @@ export async function login(email: string, password: string, next?: string): Pro
   return { error: "E-mail ou senha inválidos." };
 }
 
-export async function logout() {
+// `destino`: para onde voltar depois de sair. Os PWAs passam a própria tela de entrada (dentro do
+// escopo do app) — sem isso, "Sair" jogava o usuário para a homepage pública, fora do app. Só
+// aceita as telas de entrada conhecidas; qualquer outro valor (inclusive o FormData que um
+// <form action={logout}> entrega como 1º argumento) cai em "/".
+export async function logout(destino?: unknown) {
   // A PushSubscription vive presa ao NAVEGADOR (endpoint), não à sessão — sem apagar aqui, um
   // aparelho compartilhado (tablet da recepção, celular de plantão) continua recebendo, depois
   // do logout, as notificações (com título e teor reais — menções, tarefas delegadas) do usuário
@@ -99,7 +104,7 @@ export async function logout() {
   // (delete de cookie inexistente não faz nada), e evita duas telas de "Sair" separadas para
   // quem logou como equipe da Lúmen sem User de escritório.
   cookies().delete({ name: PLATFORM_MEMBER_SESSION_COOKIE, path: "/" });
-  redirect("/");
+  redirect(typeof destino === "string" && ehTelaDeEntradaDePwa(destino) ? destino : "/");
 }
 
 // Passo 1 do "Esqueci minha senha": confirma se o login existe e devolve o e-mail

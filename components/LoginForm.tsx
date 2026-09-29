@@ -29,10 +29,13 @@ function SubmitButton() {
   );
 }
 
-export default function LoginForm() {
+// `destino` (opcional): destino pós-login já validado pelo servidor — usado pelas telas de entrada
+// dos PWAs (/m/entrar, /atendimento-app/entrar), que só aceitam voltar para dentro do próprio app.
+// Sem ele, vale o ?next= da URL (login do site).
+export default function LoginForm({ destino }: { destino?: string } = {}) {
   const [state, formAction] = useFormState(action, {});
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "";
+  const next = destino ?? (searchParams.get("next") || "");
   const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);

@@ -12,6 +12,7 @@ export function GET() {
       name: "Lúmen",
       short_name: "Lúmen",
       description: "Software de gestão jurídica",
+      id: "/",
       start_url: "/",
       scope: "/",
       display: "standalone",
