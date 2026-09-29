@@ -428,3 +428,28 @@ O que esta onda deixou de pé e **não pode voltar atrás**:
   motivo.
 - O teste `lib/testes/atendimentoAppOndaA.teste.ts` prova a regra (barra por nível, tela cheia, tema, filtros,
   ordem, paginação, mídia) e varre as telas novas atrás do recorte de dono.
+
+## 17. O aplicativo de Atendimento CONVERSA: envio de texto, idempotência, Ana que relê (Onda B-1, 29/09/2026)
+
+O chat do celular passou a enviar. O que **não pode voltar atrás**:
+
+- **Enviar = `POST /api/atendimento/[id]/mensagens`** (rota JSON, não Server Action: o id da action muda a cada deploy).
+  Guarda `atendimentoDaRota` ANTES de ler o corpo (401/403/404, nada gravado); só `application/json`.
+- **Idempotência por reserva** (`PedidoDeEnvioWhatsapp`, `@@unique([officeId, clientMessageId])`): a chave é reservada
+  ANTES de chamar o WhatsApp. Mesma chave = "já tinha saído", nunca outra cópia. Falha do provedor (`FALHOU`) pode
+  tentar de novo com a mesma chave. Falha SEM resposta (`SendResult.incerto`: tempo esgotado, rede) NÃO é recusa: a
+  reserva fica `RESERVADO` antiga e o app mostra "Sem confirmação"; reenviar só com confirmação humana. Tabela de
+  decisão pura em `lib/envioDeMensagem.ts`; banco em `lib/envioDeMensagemDb.ts`. `WhatsappMessage` continua nascendo só
+  por `registrarMensagem` (ganhou `clientMessageId`, só para o balão local virar o de verdade sem duplicar).
+- **Quem envia assume, só se o envio deu certo** (`silenciarAtendente` depois do sucesso). Falha não assume.
+- **A Ana relê o silêncio imediatamente antes de enviar** (`lib/anaReleOSilencio.ts`, chamada em `atendenteResponde`):
+  desiste se uma pessoa assumiu, se há saída depois da pergunta ou se há envio de pessoa em curso. Sobra uma janela de
+  milissegundos entre a releitura e a chamada (só um bloqueio de linha durante chamada de rede a fecharia).
+- **Interruptor e "Devolver à Ana"** usam `definirAtendenteResponde` / `devolverAtendenteResponde` (com recorte).
+  As rotas `ana-responde` (gravava `metadata`, que ninguém lia) e `stage` foram removidas.
+- **Janela de 24 h** (`lib/janelaDe24h.ts`): só provedor Meta; conta a última ENTRADA. Fechada = aviso no lugar do campo
+  e 409 na rota, sem reservar. Faixa completa (Ligar/Criar tarefa/Como reabrir) é o PR 6.
+- **Atualização a cada 15 s** é rota JSON (`?depois=<cursor>` + estado), não `router.refresh()`: não perde rolagem nem rascunho.
+- **Sigilo:** rascunhos e mensagens não confirmadas ficam só em `sessionStorage` (apagados ao Sair); o service worker do
+  Atendimento não guarda nada. Teclado: a moldura usa `visualViewport`.
+- Testes: `lib/testes/atendimentoAppEnvio.teste.ts`.

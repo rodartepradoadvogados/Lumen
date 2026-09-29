@@ -85,7 +85,7 @@ teste("toda página do app de Atendimento barra sem acesso; funil exige o nível
 });
 
 teste("as rotas da API passam pela guarda (401/403/404) antes de tocar no lead", () => {
-  for (const r of ["ana-responde", "stage"]) {
+  for (const r of ["mensagens"]) {
     const codigo = readFileSync(join(raiz, `app/api/atendimento/[id]/${r}/route.ts`), "utf8");
     verdade(codigo.includes("atendimentoDaRota(params.id)"), `${r} sem guarda`);
     verdade(!/officeId:\s*viewer\.officeId/.test(codigo), `${r} voltou a filtrar só por escritório`);
