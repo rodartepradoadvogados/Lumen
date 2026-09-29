@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AlertTriangle, ArrowDown } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui";
-import { ordenarCarga, type LinhaDeCarga } from "@/lib/gestao/cargaPorAdvogado";
+import { ordenarCarga, type LinhaDeCarga } from "@/lib/gestao/cargaCalculo";
 
 type Chave = "abertas" | "vencemEm7" | "atrasadas" | "semTriagem" | "feitasNoMes";
 

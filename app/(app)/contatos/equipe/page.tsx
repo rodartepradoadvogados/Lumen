@@ -69,7 +69,10 @@ export default async function EquipePage({ searchParams }: { searchParams: { q?:
               <option value="Contador">Contador</option>
             </select>
             <input name="oab" placeholder="OAB (opcional)" className={fieldCls} />
-            <input name="color" type="color" defaultValue="#2f5d73" className={`${fieldCls} h-9 p-1`} />
+            <label className="flex items-center gap-2 text-xs font-medium text-tx-2">
+              Cor na agenda
+              <input name="color" type="color" defaultValue="#2f5d73" className={`${fieldCls} h-9 w-14 p-1`} />
+            </label>
             <button type="submit" className="sm:col-span-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3 transition-colors">
               Adicionar membro
             </button>

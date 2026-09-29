@@ -1,7 +1,8 @@
 import Link from "next/link";
+import CabecalhoDeSecao from "@/components/configuracoes/SecaoDeConfiguracao";
 import { getCurrentUser } from "@/lib/currentUser";
 import { redirect } from "next/navigation";
-import { PageHeader, Card, CardHeader } from "@/components/ui";
+import { Card, CardHeader } from "@/components/ui";
 import { listPedidosTitular } from "@/lib/actions/privacidade";
 import PedidoTitularPanel from "@/components/privacidade/PedidoTitularPanel";
 import TrilhaAuditoria from "@/components/privacidade/TrilhaAuditoria";
@@ -21,11 +22,8 @@ export default async function PrivacidadePage() {
   const pedidos = await listPedidosTitular();
 
   return (
-    <div className="tela space-y-6">
-      <Link href="/configuracoes" className="text-xs font-semibold text-tx-3 hover:text-tx">
-        ← Configurações
-      </Link>
-      <PageHeader
+    <div className="space-y-6">
+      <CabecalhoDeSecao
         title="Privacidade e trilha"
         subtitle="Máscara por padrão, revelação com motivo e prazo, e pedido do titular — tudo auditável aqui, sem abrir o banco"
       />

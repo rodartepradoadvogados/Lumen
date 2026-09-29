@@ -1,7 +1,7 @@
-import Link from "next/link";
+import CabecalhoDeSecao from "@/components/configuracoes/SecaoDeConfiguracao";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, Card, CardHeader } from "@/components/ui";
+import { Card, CardHeader } from "@/components/ui";
 import { getMinhaPreferenciaComunicados } from "@/lib/actions/comunicados";
 import { listEmailTemplates } from "@/lib/actions/emailTemplates";
 import ComunicadosForm from "@/components/comunicados/ComunicadosForm";
@@ -23,11 +23,8 @@ export default async function ComunicadosPage() {
   const templates = viewer.isAdmin ? await listEmailTemplates() : null;
 
   return (
-    <div className="tela space-y-6">
-      <Link href="/configuracoes" className="text-xs font-semibold text-tx-3 hover:text-tx">
-        ← Configurações
-      </Link>
-      <PageHeader title="Comunicados" subtitle="Um resumo por dia, no horário que você escolher — com exceção curta para o que não pode esperar" />
+    <div className="space-y-6">
+      <CabecalhoDeSecao title="Comunicados" subtitle="Um resumo por dia, no horário que você escolher — com exceção curta para o que não pode esperar" />
 
       {/* Duas colunas só a partir de 1536px (2xl). Com `lg`, em 1280px a coluna do editor sobrava com
           ~120px e as guias Corpo/Assunto/Rodapé estouravam a largura do <main> em 38px. */}

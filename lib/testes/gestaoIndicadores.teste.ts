@@ -1,6 +1,6 @@
 import { teste, igual, verdade, resumo } from "./executar";
 import { hojeCalendario, diasEntre, situacaoDoPrazo } from "@/lib/gestao/dias";
-import { agregarCarga, ordenarCarga } from "@/lib/gestao/cargaPorAdvogado";
+import { agregarCarga, ordenarCarga } from "@/lib/gestao/cargaCalculo";
 import { agruparInadimplencia } from "@/lib/gestao/inadimplencia";
 import { montarFechamento } from "@/lib/gestao/fecharMes";
 import { descreverExecucao, traduzirHttp, resumirSaude, ordenarFalhasPrimeiro } from "@/lib/gestao/saudeIntegracoes";

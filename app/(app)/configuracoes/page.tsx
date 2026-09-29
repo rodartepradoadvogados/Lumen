@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, CardHeader, Badge } from "@/components/ui";
+import { Card, CardHeader, Badge } from "@/components/ui";
 import {
   createKanbanColumn,
   deleteKanbanColumn,
@@ -10,8 +11,6 @@ import {
   deleteCostCenter,
 } from "@/lib/actions/settings";
 import DeleteButton from "@/components/DeleteButton";
-import UserRow from "@/components/UserRow";
-import AddUserForm from "@/components/AddUserForm";
 import TimbradoForm from "@/components/TimbradoForm";
 import NomeacaoDriveForm from "@/components/NomeacaoDriveForm";
 import AtuacaoDoEscritorioForm from "@/components/AtuacaoDoEscritorioForm";
@@ -20,6 +19,8 @@ import ImportManualModal from "@/components/ImportManualModal";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import TaskTypePointsManager from "@/components/TaskTypePointsManager";
 import { contar } from "@/lib/plural";
+import CabecalhoDeSecao from "@/components/configuracoes/SecaoDeConfiguracao";
+import { ITENS, itemVisivelEmConfiguracao, itemAtivo } from "@/lib/gestao/configuracoes";
 import WorkflowsManager from "@/components/WorkflowsManager";
 import BlogReviewManager from "@/components/BlogReviewManager";
 import BlogPublishedManager from "@/components/BlogPublishedManager";
@@ -29,7 +30,7 @@ import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersMana
 import BankAccountsManager from "@/components/BankAccountsManager";
 import HolidaysManager from "@/components/HolidaysManager";
 import InstallAppButton from "@/components/InstallAppButton";
-import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell, Bot, MessageSquare } from "lucide-react";
+import { Upload, Download } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -57,11 +58,6 @@ type Cat = {
   kind: string;
   parentId: string | null;
 };
-
-// Botão secundário (DESIGN-SYSTEM.md §4): usado em ações de navegação/consulta que não são a
-// ação primária do cartão.
-const SECONDARY_BTN =
-  "inline-flex items-center gap-2 h-8 border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx text-sm font-semibold px-4 w-fit transition-colors";
 
 function sortByCode(a: { code: string }, b: { code: string }) {
   const pa = a.code.split(".").map(Number);
@@ -104,36 +100,6 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
 // própria); Modelos de Documento, Exportar Dados e Colunas do Kanban migraram para "Geral"
 // abaixo; conexões PESSOAIS (Google/Outlook por pessoa) foram para /perfil. Todas as seções que
 // sobram exigem isAdmin puro (ou "none" — Geral é visível a todo mundo).
-const SECOES = [
-  { key: "equipe", label: "Equipe", requires: "admin" },
-  { key: "financeiro", label: "Financeiro", requires: "admin" },
-  { key: "geral", label: "Geral", requires: "none" },
-  { key: "workflows", label: "Workflows", requires: "admin" },
-  { key: "blog", label: "Blog Jurídico", requires: "admin" },
-  // Atendente de IA: só aparece para quem tem o módulo WhatsApp, porque é o módulo que paga por
-  // ele — e uma aba que existe só para dizer "contrate" é propaganda dentro da configuração.
-  { key: "atendente", label: "Atendente", requires: "admin" },
-  // Atendimento: como o escritório RECUSA um lead. Gated pelo módulo de Atendimento, e não pelo
-  // de WhatsApp: recusar acontece também num atendimento aberto à mão, pelo telefone.
-  { key: "atendimento", label: "Atendimento", requires: "admin" },
-  // Fase 3 (Asaas) — autoatendimento: qualquer admin do próprio escritório vê a PRÓPRIA
-  // cobrança (ciclo, forma de pagamento, Pix/QR pendente, histórico de faturas). Nada aqui
-  // exige ser platform owner — quem configura isso é o Painel Mestre (aba "Cobrança &
-  // Assinatura" de /painel-mestre/[officeId]).
-  { key: "cobranca", label: "Cobrança", requires: "admin" },
-] as const;
-
-const SECAO_ICONS = {
-  equipe: Users,
-  financeiro: DollarSign,
-  geral: SlidersHorizontal,
-  workflows: Workflow,
-  blog: Newspaper,
-  atendente: Bot,
-  atendimento: MessageSquare,
-  cobranca: CreditCard,
-} as const;
-
 // Rótulo legível de cada provedor de armazenamento — usado no texto de "Pastas no
 // armazenamento", que precisa dizer "no Google Drive"/"no Dropbox" em vez do valor cru do banco.
 const STORAGE_LABELS: Record<string, string> = {
@@ -156,9 +122,11 @@ export default async function ConfiguracoesPage({
     return null;
   }
   const officeId = viewer.officeId;
+  // Equipe única: a lista de pessoas vive em Pessoas > Equipe (o mesmo UserRow, com as ações de
+  // administrador). O endereço antigo da aba leva para lá.
+  if (searchParams.secao === "equipe" && viewer.isAdmin) redirect("/contatos/equipe");
 
   const [
-    users,
     columns,
     categories,
     costCenters,
@@ -180,7 +148,6 @@ export default async function ConfiguracoesPage({
     ownBilling,
     blockedProcessNumbersRaw,
   ] = await Promise.all([
-      prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
       prisma.financialCategory.findMany({ where: { officeId } }),
       prisma.costCenter.findMany({ where: { officeId }, orderBy: { name: "asc" } }),
@@ -260,6 +227,13 @@ export default async function ConfiguracoesPage({
     createdAt: p.createdAt.toISOString(),
   }));
   const isAdmin = viewer?.isAdmin ?? false;
+
+  // O item aberto (consolidado R5): `?secao=` agora é a chave de um item do menu (lib/gestao/
+  // configuracoes.ts). Os nomes antigos (geral, financeiro, workflows...) continuam valendo.
+  const itensVisiveis = ITENS.filter((i) =>
+    itemVisivelEmConfiguracao(i, { isAdmin, blog: blogAccess, whatsapp: modules.whatsapp, atendimento: modules.atendimento })
+  );
+  const secao = itemAtivo("/configuracoes", searchParams.secao ?? null, itensVisiveis.filter((i) => !i.href))?.chave ?? "senha";
   // Quem edita a atuação do escritório: a MESMA régua das demais configurações de integração
   // (lib/supportCapabilities.ts) — admin do escritório ou suporte da Lúmen mascarado, que entra
   // justamente para configurar integração do cliente. O cartão em si é visível a todo mundo do
@@ -272,7 +246,6 @@ export default async function ConfiguracoesPage({
     return { type, points: found?.points ?? 10 };
   });
 
-  const requestedSecao = searchParams.secao || "geral";
 
   // ── Módulo pago de campanhas (Frente D, §1) — GATEADO por isAdmin && modules.whatsapp E pela
   // ABA PEDIDA (diferente de `atendente`/`campanhasRaw` acima, que a casa já busca em toda
@@ -281,7 +254,7 @@ export default async function ConfiguracoesPage({
   // Financeiro, Equipe ou Geral quebrarem por causa de uma tabela do módulo de campanhas, que ele
   // nem abriu. Tudo aqui é LEITURA: as regras são das Frentes A/B/C (lib/moduloCampanhas.ts,
   // lib/provisionamentoCampanhas.ts), nunca recalculadas.
-  const podeVerModuloDeCampanhas = isAdmin && modules.whatsapp && requestedSecao === "atendente";
+  const podeVerModuloDeCampanhas = isAdmin && modules.whatsapp && secao === "atendente";
   const [assinaturaCampanhas, precoParametrosRaw, slotsPorCampanha] = podeVerModuloDeCampanhas
     ? await Promise.all([
         prisma.assinaturaModuloCampanhas.findUnique({
@@ -367,15 +340,6 @@ export default async function ConfiguracoesPage({
       ? await lerParametros(viewer.officeId)
       : { valorMinimoDaCausa: null, diasParaODocumento: DIAS_PARA_O_DOCUMENTO_PADRAO, criterios: [] };
 
-  const availableSecoes = SECOES.filter((s) => {
-    const allowed = s.requires === "none" ? true : isAdmin;
-    if (s.key === "atendente") return allowed && modules.whatsapp;
-    if (s.key === "atendimento") return allowed && modules.atendimento;
-    return allowed && (s.key !== "blog" || blogAccess);
-  });
-  const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
-
-  const viewerInitials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
 
   const allCategoriesForParentSelect = [...categories].sort(sortByCode);
 
@@ -399,81 +363,17 @@ export default async function ConfiguracoesPage({
   }
 
   return (
-    <div className="tela space-y-6">
-      <PageHeader
-        title="Configurações"
-        subtitle={isAdmin ? "Equipe, identidade visual, colunas do Kanban, plano de contas e importação" : "Importação de dados e sua senha"}
-      />
+    <div className="space-y-6">
+      <CabecalhoDeSecao title={ITENS.find((i) => i.chave === secao)?.rotulo ?? "Configurações"} />
 
-      {isAdmin && (
-        <div className="flex lg:hidden gap-2 flex-wrap">
-          {availableSecoes.map((s) => (
-            <Link
-              key={s.key}
-              href={`/configuracoes?secao=${s.key}`}
-              className={`text-sm font-semibold px-4 py-2 transition-colors ${
-                secao === s.key ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
-              }`}
-            >
-              {s.label}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      <div className="flex gap-6 items-start">
-      {/* O aside deixou de ser grafite sólido nos dois temas (2026-09-16, redesign "Guias"):
-          era um bloco preto no meio de Configurações no tema claro, um dos defeitos que o
-          diagnóstico apontou. Agora usa os tokens de gaveta, que retematizam junto com o rail.
-          Comentário anterior, preservado como histórico: (mesmo padrão do NavRail/casca —
-          DESIGN-SYSTEM.md §3), então o texto aqui é propositalmente sempre claro, sem variante
-          dark: própria. */}
-      {isAdmin && (
-        <aside className="hidden lg:block w-56 shrink-0 bg-gaveta overflow-hidden sticky top-6">
-          <nav className="p-3 space-y-1">
-            {availableSecoes.map((s) => {
-              const Icon = SECAO_ICONS[s.key];
-              const active = secao === s.key;
-              return (
-                <Link
-                  key={s.key}
-                  href={`/configuracoes?secao=${s.key}`}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 text-sm border-l-2 transition-colors ${
-                    active
-                      ? "bg-marca-bg text-gaveta-tinta font-semibold border-marca-tx"
-                      : "text-gaveta-tinta-2 font-medium border-transparent hover:bg-gaveta-fundo hover:text-gaveta-tinta"
-                  }`}
-                >
-                  {/* P0-5: text-marca-tx sobre bg-gaveta (aside acima) mede ~2,16:1, reprova
-                      WCAG AA — text-rail-marca é a variante clara do bordô fixa nos dois temas. */}
-                  <Icon size={16} className={active ? "text-rail-marca" : "text-gaveta-tinta-2"} />
-                  {s.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="px-4 py-4 border-t border-gaveta-linha flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-gaveta-fundo text-rail-marca flex items-center justify-center text-xs font-bold shrink-0">
-              {viewerInitials}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-gaveta-tinta truncate">{viewer.name}</p>
-              <p className="text-etiqueta text-gaveta-tinta-2 truncate">{viewer.role}</p>
-            </div>
-          </div>
-        </aside>
-      )}
-
-      <div className="flex-1 min-w-0 space-y-6">
-
-      {isAdmin && secao === "geral" && (
+      {isAdmin && secao === "modulos" && (
       <Card>
         <CardHeader title="Módulos Contratados" subtitle="Contratação e cancelamento de módulo são feitos pela Lúmen, não aqui" />
         <ModulesManager modules={modules} />
       </Card>
       )}
 
-      {secao === "geral" && (
+      {secao === "importar" && (
       <Card>
         <CardHeader title="Importação de Dados" subtitle="Traga contatos, processos e agenda de uma planilha" />
         <div className="p-5 flex flex-wrap gap-3">
@@ -488,52 +388,11 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {secao === "geral" && (
+      {secao === "senha" && (
       <Card>
         <CardHeader title="Alterar Senha" subtitle="Sua senha de acesso ao sistema" />
         <div className="p-5">
           <ChangePasswordForm />
-        </div>
-      </Card>
-      )}
-
-      {/* Visível a QUALQUER pessoa do escritório, não só admin — é o ponto da transparência
-          (ver especificação do Passo 2). Por isso fica na seção "geral" (requires: "none"), e
-          não na navegação lateral (que só aparece pra admin — ver `isAdmin &&` no <aside> acima;
-          quem só tem "geral" não precisa de nav pra trocar de aba, já está na única que existe). */}
-      {secao === "geral" && (
-      <Card>
-        <CardHeader title="Acessos da Lúmen" subtitle="Veja quando e por quê o suporte da Lúmen acessou os dados do seu escritório" />
-        <div className="p-5">
-          <Link href="/configuracoes/acessos" className={SECONDARY_BTN}>
-            <ShieldCheck size={16} /> Ver histórico de acessos
-          </Link>
-        </div>
-      </Card>
-      )}
-
-      {/* Documento 07 (Fase 4 — Privacidade e LGPD): máscara padrão, revelação com motivo/prazo e
-          pedido do titular — mesma visibilidade de transparência da "Acessos da Lúmen" acima. */}
-      {secao === "geral" && (
-      <Card>
-        <CardHeader title="Privacidade e trilha" subtitle="Máscara de dado sensível, revelação com motivo e pedido do titular (LGPD)" />
-        <div className="p-5">
-          <Link href="/configuracoes/privacidade" className={SECONDARY_BTN}>
-            <ShieldCheck size={16} /> Abrir privacidade e trilha
-          </Link>
-        </div>
-      </Card>
-      )}
-
-      {/* Documento 06 (Fase 3 — Comunicados): pessoal (cada usuário define o próprio horário e
-          exceções) — visível pra qualquer um, mesmo padrão de "Privacidade e trilha" acima. */}
-      {secao === "geral" && (
-      <Card>
-        <CardHeader title="Comunicados" subtitle="Resumo diário no horário que você escolher, com exceção curta pro que não pode esperar" />
-        <div className="p-5">
-          <Link href="/configuracoes/comunicados" className={SECONDARY_BTN}>
-            <Bell size={16} /> Configurar comunicados
-          </Link>
         </div>
       </Card>
       )}
@@ -665,7 +524,7 @@ export default async function ConfiguracoesPage({
           execução) — o resto dela (Contas conectadas, Robôs de captura, Sincronizar publicações,
           Manutenção do Drive, Nomenclatura de processos) foi embutido em /conexoes (PR11) ou
           /perfil (conexões pessoais), então saiu daqui sem virar card novo em lugar nenhum. */}
-      {isAdmin && secao === "geral" && (
+      {isAdmin && secao === "timbrado" && (
         <Card>
           <CardHeader
             title="Modelos de Documento"
@@ -680,7 +539,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "geral" && (
+      {isAdmin && secao === "exportar" && (
         <Card>
           <CardHeader
             title="Exportar Dados do Escritório"
@@ -697,7 +556,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "geral" && (
+      {isAdmin && secao === "kanban" && (
       <Card>
         <CardHeader title="Colunas do Kanban" subtitle="Personalize as etapas do fluxo de trabalho" />
         <div className="divide-y divide-regua">
@@ -725,7 +584,7 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {isAdmin && secao === "geral" && (
+      {isAdmin && secao === "kanban" && (
       <Card>
         <CardHeader
           title="TaskScore — Pontuação por Tipo de Tarefa"
@@ -735,7 +594,7 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {secao === "geral" && (
+      {secao === "aplicativo" && (
       <Card>
         <CardHeader
           title="Processos Bloqueados"
@@ -745,7 +604,7 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {secao === "geral" && (
+      {secao === "aplicativo" && (
       <Card>
         <CardHeader
           title="Aplicativo para computador"
@@ -757,9 +616,9 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {isAdmin && secao === "geral" && (
+      {isAdmin && secao === "identidade" && (
       <Card>
-        <CardHeader title="Identidade Visual" subtitle="Paleta oficial do escritório — manual da marca v2" />
+        <CardHeader title="Paleta do sistema" subtitle="As cores do Lúmen (não são editáveis). O papel timbrado do escritório fica em Papel timbrado e modelos." />
         {/* Cores lidas das variáveis CSS (app/globals.css), não cravadas aqui — por isso o
             swatch já troca sozinho de Manhã pra Noite junto com o resto da tela.
             Corrigido em 2026-09-16: dois destes apontavam para `--grafite-500`, que nunca
@@ -784,7 +643,7 @@ export default async function ConfiguracoesPage({
           Office.descricaoAtuacao e a ferramenta consultar_perfil_do_escritorio). Visível a
           qualquer pessoa do escritório — quem não pode editar ainda deve poder LER o que o agente
           lê —, editável só por quem configura integração. */}
-      {secao === "geral" && (
+      {secao === "identidade" && (
       <Card>
         <CardHeader
           title="Atuação do escritório"
@@ -794,7 +653,7 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {isAdmin && secao === "geral" && (
+      {isAdmin && secao === "pastas" && (
       <Card>
         <CardHeader
           title="Pastas no armazenamento"
@@ -808,7 +667,7 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {isAdmin && secao === "geral" && (
+      {isAdmin && secao === "timbrado" && (
       <Card>
         <CardHeader
           title="Papel timbrado dos relatórios"
@@ -822,17 +681,6 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {isAdmin && secao === "equipe" && (
-      <Card>
-        <CardHeader title="Equipe (usuários)" subtitle={`${contar(users.length, "membro")} · edite telefone, defina credenciais, conceda acesso ao Financeiro e escolha quem entra no rodízio de leads do WhatsApp`} />
-        <div className="divide-y divide-regua">
-          {users.map((u) => (
-            <UserRow key={u.id} user={u} canManage={isAdmin} />
-          ))}
-        </div>
-        <AddUserForm />
-      </Card>
-      )}
 
 
       {isAdmin && secao === "financeiro" && (
@@ -922,7 +770,7 @@ export default async function ConfiguracoesPage({
       </>
       )}
 
-      {isAdmin && secao === "atendimento" && (
+      {isAdmin && secao === "recusa" && (
         <Card>
           <CardHeader
             title="Motivos de recusa"
@@ -934,7 +782,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "atendimento" && (
+      {isAdmin && secao === "recusa" && (
         <Card>
           <CardHeader
             title="Quando a atendente recusa sozinha"
@@ -1024,9 +872,6 @@ export default async function ConfiguracoesPage({
         </div>
       </Card>
       )}
-
-      </div>
-      </div>
 
     </div>
   );

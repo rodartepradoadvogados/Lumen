@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { hojeCalendario, situacaoDoPrazo } from "@/lib/gestao/dias";
+import { hojeCalendario } from "@/lib/gestao/dias";
+import { STATUS_ABERTOS, agregarCarga, type LinhaDeCarga } from "@/lib/gestao/cargaCalculo";
+
+// A conta pura mora em cargaCalculo.ts (sem prisma): o componente de cliente da tabela ordenável
+// também a importa, e um módulo com prisma não pode ir para o navegador.
+export { STATUS_ABERTOS, agregarCarga, ordenarCarga, type LinhaDeCarga, type TarefaParaCarga } from "@/lib/gestao/cargaCalculo";
 import { inicioDoMesEmBrasilia, inicioDoProximoMesEmBrasilia } from "@/lib/horaDeBrasilia";
 
 // CARGA POR PESSOA — "quem está com o quê, e o que está pegando fogo".
@@ -13,55 +18,6 @@ import { inicioDoMesEmBrasilia, inicioDoProximoMesEmBrasilia } from "@/lib/horaD
 //
 // Tarefa e prazo entram juntos (`type` não filtra): quem olha a carga quer ver tudo o que a pessoa
 // tem aberto, e o tipo PRAZO já é o mais grave dentro do conjunto.
-
-export const STATUS_ABERTOS = ["PENDENTE", "EM_ANDAMENTO"];
-
-export type TarefaParaCarga = { responsibleId: string | null; status: string; dueDate: Date };
-
-export type LinhaDeCarga = {
-  userId: string;
-  nome: string;
-  abertas: number;
-  vencemEm7: number;
-  atrasadas: number;
-  semTriagem: number;
-  feitasNoMes: number;
-};
-
-export function agregarCarga(params: {
-  pessoas: { id: string; name: string }[];
-  abertas: TarefaParaCarga[];
-  publicacoesSemTriagem: { assignedToId: string | null }[];
-  concluidasNoMes: { responsibleId: string | null }[];
-  hoje: Date;
-  janelaEmDias?: number;
-}): LinhaDeCarga[] {
-  const { pessoas, abertas, publicacoesSemTriagem, concluidasNoMes, hoje, janelaEmDias = 7 } = params;
-  const linhas = new Map<string, LinhaDeCarga>();
-  for (const p of pessoas) {
-    linhas.set(p.id, { userId: p.id, nome: p.name, abertas: 0, vencemEm7: 0, atrasadas: 0, semTriagem: 0, feitasNoMes: 0 });
-  }
-  for (const t of abertas) {
-    if (!t.responsibleId || !STATUS_ABERTOS.includes(t.status)) continue;
-    const l = linhas.get(t.responsibleId);
-    if (!l) continue;
-    l.abertas += 1;
-    const s = situacaoDoPrazo(t.dueDate, hoje, janelaEmDias);
-    if (s === "atrasado") l.atrasadas += 1;
-    else if (s === "vence-na-janela") l.vencemEm7 += 1;
-  }
-  for (const p of publicacoesSemTriagem) {
-    if (!p.assignedToId) continue;
-    const l = linhas.get(p.assignedToId);
-    if (l) l.semTriagem += 1;
-  }
-  for (const c of concluidasNoMes) {
-    if (!c.responsibleId) continue;
-    const l = linhas.get(c.responsibleId);
-    if (l) l.feitasNoMes += 1;
-  }
-  return Array.from(linhas.values());
-}
 
 export type CargaDoEscritorio = {
   linhas: LinhaDeCarga[];
@@ -116,7 +72,3 @@ export async function cargaPorAdvogado(officeId: string, opts: { agora?: Date; s
   };
 }
 
-/** Ordena as linhas por uma coluna (maior primeiro), desempatando pelas atrasadas. */
-export function ordenarCarga(linhas: LinhaDeCarga[], chave: keyof Omit<LinhaDeCarga, "userId" | "nome">): LinhaDeCarga[] {
-  return [...linhas].sort((a, b) => b[chave] - a[chave] || b.atrasadas - a.atrasadas || a.nome.localeCompare(b.nome, "pt-BR"));
-}
