@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, Badge, formatDate, formatCalendarDate, EmptyState, ConclusionChip, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import MobileAttendanceStatusSelect from "@/components/mobile/MobileAttendanceStatusSelect";
 import FunnelStageSelect from "@/components/FunnelStageSelect";
+import AnaRespondeCheckbox from "@/components/atendimento/AnaRespondeCheckbox";
 import MobileConvertAttendanceForm from "@/components/mobile/MobileConvertAttendanceForm";
 import MobileCaseAttachmentsTab from "@/components/mobile/MobileCaseAttachmentsTab";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
@@ -137,15 +138,7 @@ export default async function AtendimentoAppDetail({ params }: { params: { id: s
 
           {/* Ana responde flag + reply button */}
           <div className="mt-4 p-3 bg-sf-apoio border border-regua rounded-[2px]">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                defaultChecked={anaResponde}
-                onChange={(e) => fetch(`/api/atendimento/${a.id}/ana-responde`, { method: "PATCH", body: JSON.stringify({ anaResponde: e.target.checked }) })}
-                className="h-4 w-4 rounded border-regua-forte focus:ring-ouro-acento text-ouro-acento"
-              />
-              <span className="text-corpo font-medium text-tx">Ana responde nesta conversa</span>
-            </label>
+            <AnaRespondeCheckbox atendimentoId={a.id} inicial={anaResponde} />
             {anaResponde && (
               <button className="mt-2 w-full h-[44px] flex items-center justify-center gap-2 bg-ouro-acento hover:bg-ouro-hover text-ouro-tx font-semibold text-sm rounded-[2px] transition-colors">
                 <Send size={15} /> Responder última mensagem

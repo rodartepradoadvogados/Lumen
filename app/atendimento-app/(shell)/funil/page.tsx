@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Badge, formatCurrency } from "@/components/ui";
 import { ArrowLeft } from "lucide-react";
+import EstagioDoLeadSelect from "@/components/atendimento/EstagioDoLeadSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -130,13 +131,11 @@ export default async function FunilAppPage() {
                           {a.stage === "PERDIDO" && a.lostReason && <p className="text-etiqueta text-tx-3 mt-1.5 italic">Motivo: {a.lostReason}</p>}
                         </Link>
                         <div className="px-3 pb-2.5">
-                          <select
-                            defaultValue={a.stage}
-                            onChange={(e) => fetch(`/api/atendimento/${a.id}/stage`, { method: "PATCH", body: JSON.stringify({ stage: e.target.value }) })}
-                            className="w-full text-center text-corpo bg-sf border border-regua rounded-[2px] py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-ouro-acento"
-                          >
-                            {STAGES.map((s) => <option key={s} value={s}>{stageLabels[s]}</option>)}
-                          </select>
+                          <EstagioDoLeadSelect
+                            atendimentoId={a.id}
+                            estagioAtual={a.stage}
+                            opcoes={STAGES.map((s) => ({ valor: s, rotulo: stageLabels[s] }))}
+                          />
                         </div>
                       </div>
                     );
