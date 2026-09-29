@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
+import AnalyticsConsentido from "@/components/site/AnalyticsConsentido";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -50,7 +50,8 @@ export default function RootLayout({
             (lib/theme.ts), nenhum dado de usuário entra aqui. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {children}
-        <Analytics />
+        {/* Medição só com consentimento (lib/cookieConsent.ts): antes era incondicional. */}
+        <AnalyticsConsentido />
       </body>
     </html>
   );

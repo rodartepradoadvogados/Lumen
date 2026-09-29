@@ -257,7 +257,7 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
         style={{ right: rightOffsetPx }}
         // Grafite fixo nos dois temas + acento ouro, de propósito: mesmo par de cores da marca
         // (LumenMark), não um botão de ação comum — ver DESIGN-SYSTEM.md §15.
-        className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-grafite-800 text-rail-marca shadow-pop flex items-center justify-center hover:bg-grafite-700 transition-[right,background-color] duration-200"
+        className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-grafite-800 text-white shadow-pop flex items-center justify-center hover:bg-grafite-700 transition-[right,background-color] duration-200"
       >
         {open ? <X size={22} /> : <IconeAgente size={26} acento="var(--rail-marca)" />}
       </button>

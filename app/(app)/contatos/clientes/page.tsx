@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card } from "@/components/ui";
 import NewContactModal from "@/components/NewContactModal";
 import ClientesSearchList from "@/components/ClientesSearchList";
+import { contar } from "@/lib/plural";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function ClientesPage() {
       <Link href="/contatos" className="text-xs font-semibold text-tx-3 hover:text-tx">
         ← Contatos
       </Link>
-      <PageHeader title="Clientes" subtitle={`${clients.length} cliente(s) cadastrado(s)`} action={<NewContactModal kind="client" />} />
+      <PageHeader title="Clientes" subtitle={`${contar(clients.length, "cliente cadastrado", "clientes cadastrados")}`} action={<NewContactModal kind="client" />} />
       {clients.length < totalClients && (
         <p className="text-xs text-tx-3 -mt-3 mb-4">
           Mostrando os primeiros {clients.length} de {totalClients} clientes cadastrados.

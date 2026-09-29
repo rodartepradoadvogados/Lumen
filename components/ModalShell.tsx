@@ -56,34 +56,51 @@ export default function ModalShell({
   // aberto (`{open && <ModalShell ... />}`), então não há um "fechado" para o hook distinguir aqui.
   useEscapeToClose(true, onClose);
 
-  // Acessibilidade do diálogo: papel e nome para o leitor de tela, foco que entra, fica preso
-  // enquanto aberto e VOLTA ao elemento que abriu (antes o foco se perdia no <body>).
-  const titleId = useId();
+  // ACESSIBILIDADE (consolidado da Gestão, R14 — uma correção cobre todos os modais que usam a
+  // casca): antes não havia role="dialog", nome, foco preso nem devolução do foco. Quem usa
+  // teclado ou leitor de tela continuava "dentro" da página atrás, e ao fechar o foco voltava ao
+  // início do documento.
+  const tituloId = useId();
   const caixaRef = useRef<HTMLDivElement>(null);
+  const corpoRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const anterior = document.activeElement as HTMLElement | null;
     const caixa = caixaRef.current;
-    if (caixa && !caixa.contains(document.activeElement)) {
-      (caixa.querySelector<HTMLElement>("[autofocus], input, select, textarea, button") ?? caixa).focus();
+    if (!caixa) return;
+    const anterior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const SELETOR =
+      'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focaveis = (raiz: HTMLElement) =>
+      Array.from(raiz.querySelectorAll<HTMLElement>(SELETOR)).filter((el) => el.offsetParent !== null);
+
+    // Respeita um autoFocus que o conteúdo já tenha feito; senão, primeiro campo do corpo (não o X).
+    if (!caixa.contains(document.activeElement)) {
+      const alvo = (corpoRef.current ? focaveis(corpoRef.current)[0] : undefined) ?? focaveis(caixa)[0];
+      (alvo ?? caixa).focus();
     }
-    function preso(e: KeyboardEvent) {
+
+    function prenderTab(e: KeyboardEvent) {
       if (e.key !== "Tab" || !caixa) return;
-      const foc = Array.from(caixa.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])')).filter((el) => el.offsetParent !== null);
-      if (foc.length === 0) return;
-      const primeiro = foc[0];
-      const ultimo = foc[foc.length - 1];
-      if (e.shiftKey && document.activeElement === primeiro) {
+      const lista = focaveis(caixa);
+      if (lista.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const primeiro = lista[0];
+      const ultimo = lista[lista.length - 1];
+      const ativo = document.activeElement;
+      if (e.shiftKey && (ativo === primeiro || !caixa.contains(ativo))) {
         e.preventDefault();
         ultimo.focus();
-      } else if (!e.shiftKey && document.activeElement === ultimo) {
+      } else if (!e.shiftKey && (ativo === ultimo || !caixa.contains(ativo))) {
         e.preventDefault();
         primeiro.focus();
       }
     }
-    document.addEventListener("keydown", preso);
+    document.addEventListener("keydown", prenderTab);
     return () => {
-      document.removeEventListener("keydown", preso);
-      if (anterior && document.contains(anterior)) anterior.focus();
+      document.removeEventListener("keydown", prenderTab);
+      if (anterior && anterior.isConnected) anterior.focus();
     };
   }, []);
 
@@ -93,13 +110,13 @@ export default function ModalShell({
         ref={caixaRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-labelledby={tituloId}
         tabIndex={-1}
-        className={`bg-sf shadow-pop flex flex-col overflow-hidden rounded-lg animate-fade-in ${SIZE_CLASSES[size]} ${className}`}
+        className={`bg-sf shadow-pop flex flex-col overflow-hidden rounded-lg animate-fade-in outline-none ${SIZE_CLASSES[size]} ${className}`}
       >
         <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b-2 border-regua-forte">
           <div className="min-w-0">
-            <h3 id={titleId} className=" font-bold text-tx truncate">{title}</h3>
+            <h3 id={tituloId} className=" font-bold text-tx truncate">{title}</h3>
             {subtitle && <p className="text-xs text-tx-2 mt-0.5">{subtitle}</p>}
           </div>
           <button
@@ -108,10 +125,10 @@ export default function ModalShell({
             aria-label="Fechar"
             className="shrink-0 text-tx-3 hover:text-tx min-h-11 min-w-11 grid place-items-center"
           >
-            <X size={18} />
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
-        <div className="flex-1 min-h-0 flex flex-col">{children}</div>
+        <div ref={corpoRef} className="flex-1 min-h-0 flex flex-col">{children}</div>
       </div>
     </div>
   );

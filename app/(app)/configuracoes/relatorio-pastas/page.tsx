@@ -7,6 +7,7 @@ import { PageHeader, Card, CardHeader } from "@/components/ui";
 import { naturezaOf, NATUREZA_LABELS } from "@/lib/caseNatureza";
 import { RAIZ_ROTULO, type RaizKey } from "@/lib/driveNaming";
 import { nomeacaoDoEscritorio } from "@/lib/driveNamingOffice";
+import { contar } from "@/lib/plural";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ export default async function RelatorioPastasPage() {
 
       <PageHeader
         title="Onde os anexos estão sendo salvos"
-        subtitle={`${processos.length} processo(s), ${casos.length} caso(s) e ${assessoriasRaw.length} assessoria(s) ativos · armazenamento: ${providerLabel}`}
+        subtitle={`${contar(processos.length, "processo")}, ${contar(casos.length, "caso")} e ${contar(assessoriasRaw.length, "assessoria")} ativos · armazenamento: ${providerLabel}`}
       />
 
       <div className="bg-acao-bg border-t-2 border-regua-forte px-4 py-3 text-xs text-tx-2 space-y-1">
@@ -101,7 +102,7 @@ export default async function RelatorioPastasPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Processos" subtitle={`${processos.length} ativo(s) — Judicial e Administrativo`} />
+        <CardHeader title="Processos" subtitle={`${contar(processos.length, "ativo")} — Judicial e Administrativo`} />
         <FolderTable
           rows={processos.map((c) => ({
             id: c.id,
@@ -117,7 +118,7 @@ export default async function RelatorioPastasPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Casos" subtitle={`${casos.length} ativo(s) — extrajudicial, consultivo e legados`} />
+        <CardHeader title="Casos" subtitle={`${contar(casos.length, "ativo")} — extrajudicial, consultivo e legados`} />
         <FolderTable
           rows={casos.map((c) => ({
             id: c.id,
@@ -136,7 +137,7 @@ export default async function RelatorioPastasPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Assessorias jurídicas" subtitle={`${assessoriasRaw.length} ativa(s)`} />
+        <CardHeader title="Assessorias jurídicas" subtitle={contar(assessoriasRaw.length, "ativa")} />
         <FolderTable
           rows={assessoriasRaw.map((a) => ({
             id: a.id,
@@ -152,7 +153,7 @@ export default async function RelatorioPastasPage() {
 
       {atendimentosCount > 0 && (
         <Card>
-          <CardHeader title="Atendimentos" subtitle={`${atendimentosCount} cadastrado(s)`} />
+          <CardHeader title="Atendimentos" subtitle={contar(atendimentosCount, "cadastrado")} />
           <p className="text-sm text-tx-2 p-5">
             Cada atendimento com anexo ganha uma pasta em{" "}
             <code className="bg-sf-apoio px-1 rounded font-mono text-xs">{caminho("atendimentos", "{assunto}")}</code>.

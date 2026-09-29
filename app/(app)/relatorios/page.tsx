@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState, formatCurrency } from "@/components/ui";
-import { Users, Target, Newspaper, Wallet, Scale, Info, SlidersHorizontal } from "lucide-react";
+import { contar } from "@/lib/plural";
+import { Target, Newspaper, Wallet, Scale, Info, SlidersHorizontal } from "lucide-react";
+import { HBar, VBars } from "@/components/gestao/Barras";
 import RelatorioPersonalizadoView from "@/components/relatorios/RelatorioPersonalizadoView";
 import { valorLiquido, saldoEmAberto, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
 import { groupCasesByMateria } from "@/lib/caseMaterias";
@@ -48,43 +50,6 @@ function compactBRL(v: number) {
   return `R$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
 }
 
-// ---------- micro-gráficos (só divs/CSS) ----------
-
-function HBar({ label, display, value, max, color }: { label: string; display: string; value: number; max: number; color: string }) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
-  return (
-    <div>
-      <div className="flex justify-between items-baseline text-sm mb-1 gap-2">
-        <span className="text-tx-2 truncate">{label}</span>
-        <span className="font-semibold text-tx shrink-0">{display}</span>
-      </div>
-      <div className="h-2.5 rounded-full bg-sf-apoio overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, minWidth: value > 0 ? 4 : 0, backgroundColor: color }} />
-      </div>
-    </div>
-  );
-}
-
-function VBars({ items, color }: { items: { label: string; display: string; value: number }[]; color: string }) {
-  const max = Math.max(1, ...items.map((i) => i.value));
-  return (
-    <div className="flex items-end gap-2 overflow-x-auto pb-1">
-      {items.map((it, i) => (
-        <div key={i} className="flex-1 min-w-[38px] flex flex-col items-center">
-          <span className="text-etiqueta font-semibold text-tx-2 mb-1">{it.display}</span>
-          <div className="w-full h-32 flex items-end">
-            <div
-              className="w-full "
-              style={{ height: `${(it.value / max) * 100}%`, minHeight: it.value > 0 ? 4 : 0, backgroundColor: color }}
-            />
-          </div>
-          <span className="text-etiqueta text-tx-2 mt-1.5 whitespace-nowrap">{it.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ---------- rótulos ----------
 // STAGES/stageLabels/stageColor, CASE_STATUS_ORDER/caseStatusLabels/caseStatusColor e
 // triageLabels/triageColor vêm de lib/relatoriosLabels.ts, compartilhado com o resumo mobile
@@ -104,7 +69,9 @@ const leadSourceLabels: Record<string, string> = {
 
 const LAWYER_ORDER = ["Jairo", "Rodrigo", "Jairo e Rodrigo", "Sem identificação"];
 
-const NAVY = "var(--acao)";
+// Barras de gráfico em ardósia NEUTRA (--faixa-ardosia). Bordô é ação e risco (DESIGN.md §2.1); pintar
+// toda barra de bordô fazia o gráfico gritar como se fosse alerta e escondia o que é vencido de verdade.
+const NAVY = "var(--faixa-ardosia)";
 
 // ---------- seções (cada uma busca só os dados de que precisa) ----------
 
@@ -112,73 +79,13 @@ const SECOES = [
   // Personalizado vem primeiro: é a única seção em que o usuário monta a pergunta: as demais são
   // painéis fechados de leitura rápida.
   { key: "personalizado", label: "Personalizado", icon: SlidersHorizontal, financeOnly: false },
-  { key: "produtividade", label: "Produtividade", icon: Users, financeOnly: false },
   { key: "processos", label: "Processos", icon: Scale, financeOnly: false },
-  { key: "funil", label: "Funil Comercial", icon: Target, financeOnly: false },
+  { key: "funil", label: "Funil comercial", icon: Target, financeOnly: false },
   { key: "publicacoes", label: "Publicações", icon: Newspaper, financeOnly: false },
   { key: "financeiro", label: "Financeiro", icon: Wallet, financeOnly: true },
 ] as const;
 
 type SecaoKey = (typeof SECOES)[number]["key"];
-
-async function ProdutividadeSection({ start, end, months, officeId }: { start: Date; end: Date; months: MonthBucket[]; officeId: string }) {
-  const doneTasks = await prisma.task.findMany({
-    where: { officeId, status: "CONCLUIDO", completedAt: { gte: start, lt: end }, responsibleId: { not: null } },
-    include: { responsible: { select: { id: true, name: true, color: true } } },
-  });
-
-  const prodByUser = new Map<string, { user: { id: string; name: string; color: string }; points: number; count: number }>();
-  for (const t of doneTasks) {
-    if (!t.responsible) continue;
-    let row = prodByUser.get(t.responsible.id);
-    if (!row) {
-      row = { user: t.responsible, points: 0, count: 0 };
-      prodByUser.set(t.responsible.id, row);
-    }
-    row.points += t.points;
-    row.count += 1;
-  }
-  const prodRanking = Array.from(prodByUser.values()).sort((a, b) => b.points - a.points || b.count - a.count);
-  const maxUserPoints = Math.max(0, ...prodRanking.map((r) => r.points));
-  const monthlyPoints = months.map((m) => ({
-    label: m.label,
-    value: doneTasks.filter((t) => t.completedAt && monthKey(t.completedAt) === m.key).reduce((s, t) => s + t.points, 0),
-  }));
-
-  return (
-    <Card>
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-regua">
-        <Users size={18} className="text-marca-tx" />
-        <h3 className="font-bold text-tx text-base">Produtividade</h3>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
-        <div>
-          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Pontos e tarefas por pessoa</p>
-          {prodRanking.length === 0 ? (
-            <EmptyState title="Nenhuma tarefa concluída no período" />
-          ) : (
-            <div className="space-y-3">
-              {prodRanking.map((r) => (
-                <HBar
-                  key={r.user.id}
-                  label={r.user.name}
-                  display={`${r.points} pts · ${r.count} tarefa(s)`}
-                  value={r.points}
-                  max={maxUserPoints}
-                  color={r.user.color}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Total de pontos da equipe por mês</p>
-          <VBars items={monthlyPoints.map((m) => ({ label: m.label, display: String(m.value), value: m.value }))} color={NAVY} />
-        </div>
-      </div>
-    </Card>
-  );
-}
 
 async function ProcessosSection({ start, end, officeId }: { start: Date; end: Date; officeId: string }) {
   const [activeCases, casesByStatus, closedCasesInPeriod] = await Promise.all([
@@ -290,7 +197,7 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
               <>
                 <p className="font-bold text-3xl text-tx">{avgTramitacaoDays} dias</p>
                 <p className="text-xs text-tx-2 mt-1">
-                  {closedDurations.length} processo(s) encerrado(s) no período com datas completas
+                  {contar(closedDurations.length, "processo encerrado", "processos encerrados")} no período com datas completas
                 </p>
               </>
             ) : (
@@ -353,7 +260,7 @@ async function FunilSection({ start, end, officeId, isAdmin }: { start: Date; en
     <Card>
       <div className="flex items-center gap-2 px-5 py-4 border-b border-regua">
         <Target size={18} className="text-marca-tx" />
-        <h3 className="font-bold text-tx text-base flex-1">Funil Comercial</h3>
+        <h3 className="font-bold text-tx text-base flex-1">Funil comercial</h3>
         <span className="text-xs text-tx-2">
           Conversão:{" "}
           {conversionRate !== null ? (
@@ -604,7 +511,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
             <div className="border-t-2 border-urgente bg-urgente-bg p-5">
               <p className="font-bold text-2xl tabular-nums text-urgente">{formatCurrency(inadimplenciaTotal)}</p>
               <p className="text-xs text-tx-2 mt-1">
-                {inadimplenciaCount} conta(s) a receber vencida(s)
+                {contar(inadimplenciaCount, "conta a receber vencida", "contas a receber vencidas")}
               </p>
             </div>
           </div>
@@ -657,9 +564,14 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
   if (!viewer) redirect("/");
   const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
 
+  // Produtividade tinha DUAS casas: /produtividade e este painel, com período e definição de
+  // "pontos" diferentes (consolidado da Gestão, R4). Ficou uma só, em /produtividade — quem tem o
+  // link antigo (guia salva, favorito) cai lá.
+  if (searchParams.secao === "produtividade") redirect("/produtividade");
+
   const availableSecoes = SECOES.filter((s) => !s.financeOnly || hasFinanceAccess);
   const requestedSecao = searchParams.secao as SecaoKey | undefined;
-  const secao: SecaoKey = availableSecoes.some((s) => s.key === requestedSecao) ? (requestedSecao as SecaoKey) : "produtividade";
+  const secao: SecaoKey = availableSecoes.some((s) => s.key === requestedSecao) ? (requestedSecao as SecaoKey) : "processos";
 
   const periodOptions: { value: 3 | 6 | 12; label: string }[] = [
     { value: 3, label: "3 meses" },
@@ -710,7 +622,6 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
       </div>
 
       {secao === "personalizado" && <RelatorioPersonalizadoView />}
-      {secao === "produtividade" && <ProdutividadeSection start={start} end={end} months={months} officeId={viewer.officeId} />}
       {secao === "processos" && <ProcessosSection start={start} end={end} officeId={viewer.officeId} />}
       {secao === "funil" && <FunilSection start={start} end={end} officeId={viewer.officeId} isAdmin={Boolean(viewer.isAdmin)} />}
       {secao === "publicacoes" && <PublicacoesSection start={start} end={end} months={months} officeId={viewer.officeId} />}

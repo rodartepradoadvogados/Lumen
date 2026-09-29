@@ -8,6 +8,7 @@ import { calcularPrecoDoPlano, MODULOS } from "@/lib/officePricing";
 import { formatCurrency } from "@/components/ui";
 import LumenMark from "@/components/LumenMark";
 import CookieConsent from "@/components/site/CookieConsent";
+import PreferenciasCookies from "@/components/site/PreferenciasCookies";
 import SiteHeader from "@/components/site/SiteHeader";
 import FeatureFigure from "@/components/site/FeatureFigure";
 import { comManifestoDoSite } from "@/lib/pwaManifestoDoSite";
@@ -111,7 +112,7 @@ const FEATURES = [
   {
     kicker: "Painel",
     title: "O dia na frente",
-    p1: "Um painel mostra o que vence hoje, o que já passou do prazo e a agenda da semana — com o calendário de feriados de cada tribunal já embutido no cálculo do prazo fatal.",
+    p1: "Um painel mostra o que vence hoje, o que já passou do prazo e a agenda da semana. O prazo é sugerido, considerando fins de semana, feriados nacionais, o recesso forense e os feriados locais que o escritório cadastra — a confirmação é do advogado.",
     p2: "Cada advogado vê a própria fila; quem administra o escritório vê o todo, sem precisar abrir uma planilha à parte.",
     figure: "Painel: cartões “Hoje”, “Atrasados”, agenda da semana, prazo de segurança marcado em cor distinta",
     diagram: "painel" as const,
@@ -120,7 +121,7 @@ const FEATURES = [
   {
     kicker: "Peticionamento",
     title: "Peticionamento com o timbrado do escritório",
-    p1: "Modelos de peça já saem formatados com o timbrado, os dados do processo e da parte preenchidos automaticamente — o texto jurídico continua sendo escrito pelo advogado.",
+    p1: "Modelos de peça já saem formatados com o timbrado, os dados do processo e da parte preenchidos automaticamente. A minuta é um rascunho redigido com inteligência artificial: o advogado revisa, baixa e protocola — o Lúmen nunca protocola por você.",
     // A frase aqui era "...sem depender de pasta de rede", que sugeria o OPOSTO do
     // posicionamento: dava a entender que o Lúmen guarda os autos, quando o argumento do produto
     // é que o ESCRITÓRIO guarda. Achado P2 do `audit` de 2026-09-16.
@@ -132,8 +133,8 @@ const FEATURES = [
   {
     kicker: "Financeiro",
     title: "Financeiro que fecha",
-    p1: "DRE, livro caixa e conciliação bancária num só módulo — honorários contratuais, de êxito e de sucumbência entram separados, com baixa parcial de verdade.",
-    p2: "Contas a pagar e a receber conversam com a agenda: vencimento vira lembrete, não vira surpresa no fim do mês.",
+    p1: "DRE, livro caixa e contas a pagar e a receber num só módulo — honorários contratuais, de êxito e de sucumbência entram separados, com baixa parcial.",
+    p2: "O vencimento das contas a receber vira lembrete na agenda, não surpresa no fim do mês.",
     figure: "DRE por categoria, gráfico de fluxo de caixa, tabela de Contas a Receber com status Pendente/Parcial/Pago",
     diagram: "financeiro" as const,
     pilar: false,
@@ -201,15 +202,17 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
       return (
         <>
           {[
-            { x: 2, n: "4", label: "ATRASADOS", fillCls: "fill-urgente", bgCls: "fill-urgente-bg", strokeCls: "stroke-urgente" },
-            { x: 35, n: "9", label: "HOJE", fillCls: "fill-aviso", bgCls: "fill-aviso-bg", strokeCls: "stroke-aviso" },
-            { x: 68, n: "21", label: "SEMANA", fillCls: "fill-tx-2", bgCls: "fill-sf-apoio", strokeCls: "stroke-tx-2" },
+            { x: 2, n: "4", fillCls: "fill-urgente", bgCls: "fill-urgente-bg", strokeCls: "stroke-urgente" },
+            { x: 35, n: "9", fillCls: "fill-aviso", bgCls: "fill-aviso-bg", strokeCls: "stroke-aviso" },
+            { x: 68, n: "21", fillCls: "fill-tx-2", bgCls: "fill-sf-apoio", strokeCls: "stroke-tx-2" },
           ].map((c) => (
             <g key={c.x}>
               <rect x={c.x} y="4" width="30" height="30" className={`${c.bgCls} ${c.strokeCls}`} strokeWidth="1.5" />
               <text x={c.x + 5} y="18" fontFamily="sans-serif" fontWeight="700" fontSize="11" className={c.fillCls}>{c.n}</text>
               <rect x={c.x + 5} y="24" width="20" height="2" className={c.fillCls} fillOpacity="0.6" />
-              <text x={c.x + 5} y="10" fontFamily="sans-serif" fontSize="3.6" letterSpacing="0.2" className="fill-tx-3">{c.label}</text>
+              {/* O rótulo era um <text> de 3,6 unidades (≈9px no celular) escrito por cima do algarismo.
+                  Vira uma régua: a legenda acessível do diagrama inteiro já nomeia os três cartões. */}
+              <rect x={c.x + 5} y="6" width="14" height="1.6" className="fill-tx-3" />
             </g>
           ))}
           <rect x="2" y="38" width="96" height="28" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
@@ -229,9 +232,8 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
           <rect x="18" y="2" width="64" height="66" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
           {/* Movimento 10 · anima SÓ o que o produto preenche sozinho: o timbrado do escritório e
               os campos do processo e da parte. As linhas do corpo, logo abaixo, ficam paradas de
-              propósito — a copy desta linha diz que "o texto jurídico continua sendo escrito pelo
-              advogado", e um corpo se escrevendo sozinho ilustraria o contrário do que a página
-              afirma. */}
+              propósito — a copy desta linha diz que a minuta é um rascunho que o advogado revisa, e
+              um corpo se escrevendo sozinho ilustraria o contrário do que a página afirma. */}
           <rect x="24" y="7" width="10" height="10" className="fill-marca-tx preenche" />
           <rect x="37" y="9" width="30" height="2.4" className="fill-tx preenche" style={{ animationDelay: "140ms" }} />
           <rect x="37" y="14" width="20" height="2" className="fill-tx-3 preenche" style={{ animationDelay: "240ms" }} />
@@ -244,7 +246,7 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
           <rect x="24" y="56" width="26" height="2.2" className="fill-regua" />
           <g className="preenche" style={{ animationDelay: "420ms" }}>
             <rect x="52" y="60" width="24" height="6" className="fill-marca-tx" />
-            <text x="55" y="64.3" fontFamily="sans-serif" fontSize="4" className="fill-acao-tx">.docx</text>
+            <rect x="56" y="62.4" width="16" height="1.2" className="fill-acao-tx" />
           </g>
         </>
       );
@@ -283,16 +285,16 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
         <>
           <rect x="4" y="4" width="92" height="20" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
           <rect x="10" y="9" width="6" height="6" className="fill-none stroke-tx-2" strokeWidth="1.2" />
-          <text x="20" y="17" fontFamily="monospace" fontSize="8" className="fill-tx-2">•••.•••.•••-••</text>
+          <rect x="20" y="12" width="42" height="2.4" className="fill-tx-2" />
           {/* Movimento 10 · o campo continua mascarado (é o estado padrão do produto, e mexer nisso
               seria contar outra história). O que se move é a consequência: o botão "Revelar" acende
               uma vez, e a trilha de auditoria se ESCREVE da esquerda para a direita — que é o que a
               copy promete, revelar exige motivo e fica registrado. */}
           <g className="acende">
             <rect x="70" y="8" width="20" height="10" className="fill-marca-tx" />
-            <text x="73" y="15" fontFamily="sans-serif" fontSize="5.5" className="fill-acao-tx">Revelar</text>
+            <rect x="74" y="12.2" width="12" height="1.6" className="fill-acao-tx" />
           </g>
-          <text x="4" y="32" fontFamily="sans-serif" fontSize="4.2" letterSpacing="0.4" className="fill-tx-3">TRILHA DE AUDITORIA</text>
+          <rect x="4" y="30" width="26" height="1.6" className="fill-tx-3" />
           {[
             { y: 40, fillCls: "fill-concluido", w: 48 },
             { y: 48, fillCls: "fill-aviso", w: 40 },
@@ -319,6 +321,7 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
 const navLink = "inline-block py-2 text-sm font-semibold text-tx underline decoration-transparent hover:decoration-current focus-visible:decoration-current underline-offset-4 transition-[text-decoration-color] duration-100 ease-out";
 const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm rounded-[2px] transition-[background-color,transform] duration-100 ease-out active:translate-y-px";
 const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg rounded-[2px] transition-[background-color,transform] duration-100 ease-out active:translate-y-px";
+const WHATSAPP_URL = "https://wa.me/5562981283481";
 const footerLink = "inline-block py-2 text-tx-2 hover:text-tx hover:underline underline-offset-2 transition-colors duration-100 ease-out";
 
 export default async function HomePage() {
@@ -354,8 +357,8 @@ export default async function HomePage() {
               contrato de direção — "se um elemento não carrega dado ou estado, ele não existe"),
               então a div renderizava nada. */}
           <GrainOverlay />
-          <div className="relative faixa-site pt-24 pb-20 grid md:grid-cols-[1fr_0.92fr] gap-12 items-center">
-            <div>
+          <div className="relative faixa-site pt-12 md:pt-24 pb-20 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,.92fr)] gap-12 items-center">
+            <div className="min-w-0">
               <p className="text-etiqueta font-extrabold uppercase tracking-[.14em] text-marca-tx mb-4">
                 Software de gestão para escritórios de advocacia
               </p>
@@ -374,8 +377,8 @@ export default async function HomePage() {
                 seu.
               </p>
               <p className="mt-3 text-corpo text-tx-2 max-w-[44ch]">
-                E o resto do escritório vem junto: publicações triadas, prazo fatal com o calendário
-                de feriados do tribunal, e financeiro que fecha.
+                E o resto do escritório vem junto: as publicações do DJEN e do Datajud, a agenda de
+                prazos e o financeiro do escritório.
               </p>
               <div className="flex flex-wrap gap-3 mt-8">
                 <Link href="/cadastro" className={btnPrimary}>Começar agora</Link>
@@ -391,7 +394,7 @@ export default async function HomePage() {
                 Esta é a estrutura de pastas que o produto CRIA de fato — pasta por processo, com
                 subpasta por tipo de documento (lib/googleDrive.ts, getOrCreateCategoryFolder) — e o
                 rótulo diz onde ela está, que é a única coisa que precisa ser dita aqui. */}
-            <div className="border-2 border-regua-forte bg-sf rounded-[2px]">
+            <div className="min-w-0 border-2 border-regua-forte bg-sf rounded-[2px]">
               <div className="px-4 py-3 border-b border-regua flex items-center gap-2 flex-wrap">
                 <span className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-2">
                   Google Drive do escritório
@@ -408,15 +411,15 @@ export default async function HomePage() {
                   seguintes), e não a ordem de um laço. Último atraso: 385ms; sequência inteira em
                   765ms. CSS puro, uma vez por carregamento, acima da dobra: sem observador de
                   rolagem, sem JS, e nada fica escondido se o script falhar. */}
-              <div className="px-4 py-4 font-mono text-corpo">
+              <div className="px-4 py-4 font-mono text-corpo [overflow-wrap:anywhere]">
                 <p className="arquiva-linha font-semibold text-tx">Lúmen — Processos</p>
                 <div className="mt-2 pl-3 border-l border-regua space-y-2">
                   <p className="arquiva-linha font-semibold text-tx" style={{ animationDelay: "55ms" }}>Arantes, Wagner Barros — 0812445-19.2025</p>
                   <div className="pl-3 border-l border-regua space-y-1.5 text-tx-2">
-                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "110ms" }}><span className="flex-1">Petições</span><span className="text-tx-3">4</span></p>
-                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "165ms" }}><span className="flex-1">Contratos</span><span className="text-tx-3">2</span></p>
-                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "220ms" }}><span className="flex-1">Documentos do cliente</span><span className="text-tx-3">7</span></p>
-                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "275ms" }}><span className="flex-1">Procuração</span><span className="text-tx-3">1</span></p>
+                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "110ms" }}><span className="flex-1">Petição</span><span className="text-tx-3">4</span></p>
+                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "165ms" }}><span className="flex-1">Contestação</span><span className="text-tx-3">2</span></p>
+                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "220ms" }}><span className="flex-1">Procuração</span><span className="text-tx-3">1</span></p>
+                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "275ms" }}><span className="flex-1">Sentença</span><span className="text-tx-3">1</span></p>
                   </div>
                   <p className="arquiva-linha font-semibold text-tx pt-1" style={{ animationDelay: "330ms" }}>Meireles &amp; Cia — 0755102-44.2025</p>
                   <p className="arquiva-linha font-semibold text-tx" style={{ animationDelay: "385ms" }}>Alves Transportes — 0660154-06.2026</p>
@@ -424,8 +427,8 @@ export default async function HomePage() {
               </div>
               <div className="px-4 py-3 border-t border-regua">
                 <p className="text-etiqueta text-tx-2 leading-relaxed">
-                  O Lúmen nomeia, move e reconcilia — inclusive quando você troca um arquivo direto no
-                  Drive, pelo celular, sem abrir o sistema.
+                  Uma vez por dia o Lúmen confere se o Drive continua como o sistema espera. O que
+                  sair do lugar aparece como alerta.
                 </p>
               </div>
             </div>
@@ -435,7 +438,8 @@ export default async function HomePage() {
         {/* 3. Painel de número — consolida o antigo grid de 4 estatísticas (3 em branco, sem
             número que o escritório não possa comprovar) e a faixa separada abaixo num único
             painel, mesma correção proposta em "pulso": duas seções fracas virando uma de verdade.
-            "93" é o único dado real hoje (contagem de lib/tribunaisCatalog.ts). */}
+            O número "93 tribunais" saiu (auditoria de promessas, 29/09/2026): não havia derivação no
+            código — a faixa nomeia as fontes que o produto de fato consulta (DJEN e Datajud). */}
         <section className="relative border-t-2 border-regua-forte bg-grafite-800 overflow-hidden">
           <div
             className="absolute inset-0 pointer-events-none opacity-50"
@@ -448,11 +452,11 @@ export default async function HomePage() {
           <GrainOverlay />
           <div className="relative faixa-site py-16 flex flex-col md:flex-row items-baseline gap-4 md:gap-10">
             {/* eslint-disable-next-line no-restricted-syntax -- Faixa escura fixa da página pública (grafite + textura), não retematiza. */}
-            <div className="text-[clamp(56px,9vw,108px)] font-extrabold leading-none tracking-[-.02em] text-white tabular-nums">
-              93
+            <div className="text-[clamp(36px,7vw,72px)] font-extrabold leading-none tracking-[-.02em] text-white">
+              DJEN e Datajud
             </div>
             <p className="text-lg text-neutro-300 max-w-[36ch]">
-              tribunais integrados — publicações de todo o país entrando direto na fila do escritório, sem abrir site um por um.
+              as publicações entram direto na fila do escritório, separadas por processo e por fonte, sem abrir site de tribunal um por um.
             </p>
           </div>
         </section>
@@ -551,9 +555,15 @@ export default async function HomePage() {
                         </li>
                       ))}
                     </ul>
-                    <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>
-                      {semPreco ? "Falar com a gente" : "Começar"}
-                    </Link>
+                    {semPreco ? (
+                      <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>
+                        Falar no WhatsApp<span className="sr-only"> (abre em nova aba)</span>
+                      </a>
+                    ) : (
+                      <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>
+                        Começar
+                      </Link>
+                    )}
                   </div>
                 );
               })}
@@ -563,7 +573,9 @@ export default async function HomePage() {
                   <div className="text-corpo text-tx-3 mt-1">Módulos, processos e OABs sob medida</div>
                   <div className="text-2xl font-extrabold mt-3">Sob consulta</div>
                   <p className="text-sm text-tx-2 mt-5">Escolha os módulos e o volume certo para o seu escritório — a gente monta o plano com você.</p>
-                  <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>Falar com a gente</Link>
+                  <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>
+                    Falar no WhatsApp<span className="sr-only"> (abre em nova aba)</span>
+                  </a>
                 </div>
               )}
             </div>
@@ -633,7 +645,7 @@ export default async function HomePage() {
               <h3 className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Contato</h3>
               <ul className="space-y-2.5 text-sm">
                 <li className="text-tx-2">Goiânia — GO</li>
-                <li><a href="https://wa.me/5562981283481" target="_blank" rel="noopener noreferrer" className={footerLink}>(62) 98128-3481</a></li>
+                <li><a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={footerLink}>(62) 98128-3481</a></li>
                 <li><a href="mailto:contato@rodarteprado.com.br" className={footerLink}>contato@rodarteprado.com.br</a></li>
               </ul>
             </div>
@@ -644,6 +656,7 @@ export default async function HomePage() {
                 {/* DPO reaproveita o contato real já existente no rodapé em vez de um dado fictício —
                     sem CNPJ aqui pela mesma razão: melhor omitir do que publicar um valor inventado. */}
                 <li><a href="mailto:contato@rodarteprado.com.br" className={footerLink}>Encarregado de dados (DPO)</a></li>
+                <li><PreferenciasCookies className={footerLink} /></li>
               </ul>
             </div>
           </div>

@@ -33,6 +33,7 @@ import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButto
 import ReconciliarAnexosDriveGlobalButton from "@/components/ReconciliarAnexosDriveGlobalButton";
 import RenameCasesToConventionButton from "@/components/RenameCasesToConventionButton";
 import Aviso, { tomTexto } from "@/components/Aviso";
+import { contar } from "@/lib/plural";
 
 export const dynamic = "force-dynamic";
 // Teto maior que o padrão — o botão "Reconciliar anexos do Drive (todas as pastas)"
@@ -99,7 +100,7 @@ function formatRelative(date: Date): string {
   const horas = Math.round(minutos / 60);
   if (horas < 24) return `há ${horas}h`;
   const dias = Math.round(horas / 24);
-  return `há ${dias} dia(s)`;
+  return `há ${contar(dias, "dia")}`;
 }
 
 export default async function ConexoesPage({
@@ -210,7 +211,7 @@ export default async function ConexoesPage({
   const djenEstado: ConexaoItem["estado"] = ultimoRunDjen ? STATUS_ESTADO[ultimoRunDjen.status] : !ultimoDjen ? "off" : ultimoDjen.sucesso ? "ok" : "erro";
   const djenEstadoTexto = ultimoRunDjen ? STATUS_TEXTO[ultimoRunDjen.status] : !ultimoDjen ? "não configurado" : ultimoDjen.sucesso ? "ativo" : "falhando";
   const djenContexto = ultimoRunDjen
-    ? `Último ciclo ${formatRelative(new Date(ultimoRunDjen.startedAt))} — ${ultimoRunDjen.itemCount ?? 0} publicação(ões) nova(s)`
+    ? `Último ciclo ${formatRelative(new Date(ultimoRunDjen.startedAt))} — ${contar(ultimoRunDjen.itemCount ?? 0, "publicação nova", "publicações novas")}`
     : ultimoDjen
       ? `Última execução ${formatRelative(ultimoDjen.executadoEm)}`
       : "Nunca executado";
@@ -231,7 +232,7 @@ export default async function ConexoesPage({
         ? "ativo"
         : "falhando";
   const datajudContexto = ultimoRunDatajud
-    ? `Último ciclo ${formatRelative(new Date(ultimoRunDatajud.startedAt))} — ${ultimoRunDatajud.itemCount ?? 0} andamento(s) novo(s)`
+    ? `Último ciclo ${formatRelative(new Date(ultimoRunDatajud.startedAt))} — ${contar(ultimoRunDatajud.itemCount ?? 0, "andamento novo", "andamentos novos")}`
     : ultimoDatajud
       ? `Última execução ${formatRelative(ultimoDatajud.executadoEm)}`
       : "Nunca executado";
@@ -547,10 +548,10 @@ export default async function ConexoesPage({
           nome: "API keys do escritório",
           descricao: "Chaves para integrações externas chamarem a API do Lúmen em nome do escritório.",
           estado: apiKeysAtivas.length > 0 ? "ok" : "off",
-          estadoTexto: apiKeysAtivas.length > 0 ? `${apiKeysAtivas.length} ativa(s)` : "não configurado",
+          estadoTexto: apiKeysAtivas.length > 0 ? contar(apiKeysAtivas.length, "ativa") : "não configurado",
           contexto:
             apiKeysAtivas.length > 0
-              ? `${apiKeysAtivas.length} chave(s) ativa(s) — nenhuma valida chamada real ainda (ver aviso no detalhe)`
+              ? `${contar(apiKeysAtivas.length, "chave ativa", "chaves ativas")} — nenhuma valida chamada real ainda (ver aviso no detalhe)`
               : "Nenhuma chave criada ainda. Nenhum endpoint do Lúmen valida chaves ainda — só a gestão da credencial existe.",
           extra: <ApiKeysManager initialKeys={apiKeysList} />,
         },
@@ -575,7 +576,7 @@ export default async function ConexoesPage({
           estadoTexto: integrationRuns.length > 0 ? "ativo" : "sem execuções",
           contexto:
             integrationRuns.length > 0
-              ? `${integrationRuns.length} execução(ões) nos últimos 30 dias`
+              ? `${contar(integrationRuns.length, "execução", "execuções")} nos últimos 30 dias`
               : "Nenhuma execução registrada ainda — o log passa a preencher conforme cada integração acima liga a escrita (próximas PRs desta fase).",
           ehLog: true,
         },
