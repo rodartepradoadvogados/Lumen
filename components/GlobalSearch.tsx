@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
@@ -59,7 +59,44 @@ export default function GlobalSearch({
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  // Geometria do painel (ver posicionarPainel). null = ainda não medido / fechado.
+  const [geo, setGeo] = useState<{ top: number; right: number; width: number } | null>(null);
   const reqId = useRef(0);
+
+  // POSIÇÃO DO PAINEL EM TELA ESTREITA — retorno do dono em monitor na vertical: o painel era
+  // `absolute right-0` com até 720px, preso à borda direita do gatilho e crescendo para a
+  // esquerda. Em janela estreita ele passava da borda esquerda do conteúdo e entrava por baixo do
+  // rail de ícones (z-50, irmão da faixa de topo, que é z-30), ficando cortado ("sso, cliente,
+  // ação…"). Agora o painel é `fixed` e a geometria é medida: a borda direita continua a do
+  // gatilho, mas a largura é limitada ao espaço entre o gatilho e a borda direita do rail (a
+  // borda esquerda da própria faixa de topo). Se sobrar pouco espaço (< 360px) o painel se
+  // prende à borda direita da viewport e ocupa o que houver à direita do rail.
+  const posicionarPainel = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const t = trigger.getBoundingClientRect();
+    const esquerdaConteudo = Math.max(0, trigger.closest("header")?.getBoundingClientRect().left ?? 0);
+    const margem = 8;
+    const vw = document.documentElement.clientWidth;
+    let right = Math.max(margem, vw - t.right);
+    let disponivel = vw - right - esquerdaConteudo - margem;
+    if (disponivel < 360) {
+      right = margem;
+      disponivel = vw - esquerdaConteudo - 2 * margem;
+    }
+    setGeo({ top: t.bottom + 6, right, width: Math.max(200, Math.min(720, disponivel)) });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setGeo(null);
+      return;
+    }
+    posicionarPainel();
+    window.addEventListener("resize", posicionarPainel);
+    return () => window.removeEventListener("resize", posicionarPainel);
+  }, [open, posicionarPainel]);
 
   // Atalho global ⌘K/Ctrl+K (documento 02) — ignora quando o foco já está num campo de
   // texto/textarea/contenteditable, pra não roubar o "k" de quem está digitando em outro
@@ -235,6 +272,7 @@ export default function GlobalSearch({
           texto solto direto na faixa, sem nenhuma pista de que é clicável.
           Largura: de ~120px fixos para até 340px fluidos, com o texto dizendo o que se busca. */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="Abrir busca (⌘K)"
@@ -247,7 +285,7 @@ export default function GlobalSearch({
         <kbd className="hidden lg:inline ml-auto shrink-0 text-etiqueta font-semibold text-tx-3 border border-regua-forte px-1.5 py-0.5 rounded-sm">⌘K</kbd>
       </button>
 
-      {open && (
+      {open && geo && (
         <>
           {/* A LARGURA DO PAINEL — segundo retorno do dono, no mesmo dia: "quando clicar, não pode
               abrir somente com a largura da caixa de busca, que fica ruim para ler. Tem que abrir
@@ -257,7 +295,10 @@ export default function GlobalSearch({
               do gatilho (340px) e ~4x a mínima; o `min()` com a viewport impede que ele passe da
               tela em janela estreita. O resultado que importa é a linha de resultado caber sem
               truncar — título de processo com número CNJ e subtítulo não cabiam em 340px. */}
-          <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[min(720px,calc(100vw-32px))] animate-menu-desce origin-top">
+          <div
+            style={{ position: "fixed", top: geo.top, right: geo.right, width: geo.width }}
+            className="z-50 max-w-[calc(100vw-16px)] animate-menu-desce origin-top"
+          >
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-tx-3 pointer-events-none" />
               <input

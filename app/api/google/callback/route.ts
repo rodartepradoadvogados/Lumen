@@ -59,10 +59,23 @@ export async function GET(request: NextRequest) {
     // Conexão principal (Drive/Docs) — mesmo gate de /api/google/connect: admin ou suporte
     // mascarado configurando integração.
     if (!canConfigureIntegrations(user)) return NextResponse.redirect(new URL("/conexoes", request.url));
-    await saveTokensFromCode(code, user.officeId);
+    const { principalMantido } = await saveTokensFromCode(code, user.officeId);
+    if (principalMantido) {
+      const aviso =
+        "Essa conta já era uma caixa de e-mail deste escritório: a autorização dela foi renovada e a captura de publicações volta no próximo ciclo. O Drive principal NÃO foi trocado.";
+      return NextResponse.redirect(new URL(`/conexoes?google=conectado&msg=${encodeURIComponent(aviso)}`, request.url));
+    }
     return NextResponse.redirect(new URL("/conexoes?google=conectado", request.url));
   } catch (e) {
-    const message = e instanceof Error ? e.message : "erro desconhecido";
+    // Erro do banco (ex.: violação de unicidade) nunca deve chegar cru à tela — antes o usuário via
+    // "Invalid `prisma.googleCredential.update()` invocation…" e não sabia se tinha reconectado.
+    const isPrisma = typeof (e as { code?: unknown })?.code === "string" && /^P\d{4}$/.test((e as { code: string }).code);
+    if (isPrisma) console.error("[google/callback] falha ao gravar credencial:", (e as { code: string }).code);
+    const message = isPrisma
+      ? "Não foi possível salvar a autorização do Google (erro interno). Tente Reconectar em Meu Perfil; se repetir, avise o suporte."
+      : e instanceof Error
+        ? e.message
+        : "erro desconhecido";
     const destino = verified.mode === "jusbrasil" ? "/perfil" : "/conexoes";
     return NextResponse.redirect(new URL(`${destino}?google=erro&msg=${encodeURIComponent(message)}`, request.url));
   }

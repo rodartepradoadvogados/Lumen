@@ -474,11 +474,9 @@ export default async function CaseDetailPage({
           abas (divide-x, mesmo motivo visual das abas do VS Code que inspiraram esta rodada) e
           rótulo em font-display (Barlow Condensed). O sublinhado bordô na aba ativa e o filete
           horizontal de baixo (border-b) já existiam antes desta rodada, sem mudança. */}
-      {/* GUIAS ESCALONADAS (contrato de direção "Guias"): cada uma numerada, para acesso direto,
-          e a ativa recebe a cor da seção com o chanfro de 6px no canto superior externo — a
-          assinatura formal do sistema. O número não é decoração: o diagnóstico registrou que a
-          barra muda de tamanho conforme o registro (quatro das nove abas são condicionais), de
-          modo que não existe memória muscular de POSIÇÃO. Existe, agora, de NÚMERO. */}
+      {/* GUIAS ESCALONADAS (contrato de direção "Guias"): cada uma com o rótulo, e a ativa recebe a cor da seção com o chanfro de 6px no canto superior externo — a
+          assinatura formal do sistema. A numeração (1..N) foi retirada a pedido do dono em
+          29/09/2026: só o rótulo aparece. Não havia atalho de teclado ligado aos números. */}
       <div className={`flex flex-wrap items-end gap-[3px] border-b-2 border-guia-ativa mb-6`}>
         {TABS.filter(
           (t) =>
@@ -486,7 +484,7 @@ export default async function CaseDetailPage({
             (t.key !== "vigilancia" || nat === "ADMINISTRATIVO") &&
             (t.key !== "protocolos" || nat !== "CASO") &&
             (t.key !== "publicacoes" || nat !== "CASO")
-        ).map((t, i) => {
+        ).map((t) => {
           const ativa = tab === t.key;
           return (
             <Link
@@ -500,7 +498,6 @@ export default async function CaseDetailPage({
                   : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
               }`}
             >
-              <span className="opacity-70 mr-1.5 tabular-nums">{i + 1}</span>
               {t.label}
             </Link>
           );

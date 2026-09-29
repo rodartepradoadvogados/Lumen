@@ -307,7 +307,7 @@ export default async function ConexoesPage({
   const driveExtra = (
     <div className="flex flex-col gap-5">
       <div>
-        {searchParams.google === "conectado" && <StatusLine state="ok">Google conectado com sucesso!</StatusLine>}
+        {searchParams.google === "conectado" && <StatusLine state="ok">{searchParams.msg || "Google conectado com sucesso!"}</StatusLine>}
         {searchParams.google === "erro" && <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>}
         <a href="/api/google/connect" className={CONNECT_BTN}>
           <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google (Drive)

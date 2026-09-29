@@ -165,6 +165,19 @@ nunca escreva segredo real no repositório.
 
 ---
 
+## 9b. Reconectar Google não pode trocar o e-mail da linha principal (29/09/2026)
+
+`saveTokensFromCode` (botão "Reconectar Google (Drive)" em Conexões) atualizava a linha
+`isPrimaryDrive` com o e-mail da conta que acabara de autorizar. Se essa conta já existia como
+outra linha do escritório (caixa de e-mail de um sócio), o `update` estourava
+`Unique constraint failed on the fields: (accountEmail)`: o token novo nunca era salvo e o
+antigo seguia dando `invalid_grant` a cada ciclo do cron. Agora, nesse caso, só o token da linha
+existente é renovado e o Drive principal é mantido. Não reintroduza a troca de `accountEmail`
+sem checar `existingByEmail`. Ao reconectar uma caixa, `lastSyncAt` continua intocado de
+propósito: a próxima varredura recupera o período da queda.
+
+---
+
 ## 10. O repositório antigo ainda existe
 
 `rodartepradoadvogados/rp-financeiro` foi o repositório original e **está parado desde
