@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/currentUser";
+import { whereDoAtendimento } from "@/lib/acessoAtendimento";
+import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Card, Badge, formatDate } from "@/components/ui";
 import { ArrowLeft, Search, MessageSquare } from "lucide-react";
 import Link from "next/link";
@@ -18,14 +18,13 @@ const statusColors: Record<string, "amber" | "blue" | "green" | "slate"> = {
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
 export default async function ConversasAppPage({ searchParams }: { searchParams: { q?: string; status?: string } }) {
-  const viewer = await getCurrentUser();
-  if (!viewer) notFound();
+  const viewer = await exigirAcessoAoAtendimentoNaTela();
 
   const q = (searchParams.q || "").trim();
   const statusFilter = searchParams.status;
 
   const baseFilters = {
-    officeId: viewer.officeId,
+    ...whereDoAtendimento(viewer),
     status: statusFilter || { not: "RASCUNHO" },
     OR: [
       { waPhone: { not: null } },

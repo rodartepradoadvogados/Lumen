@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isUserInOffice } from "@/lib/officeScope";
 import { DOC_TYPE_TO_PENDENCIA_ENVIAR } from "@/lib/pendencias";
+import { podeVerAtendimentos, whereDoAtendimento, SEM_ACESSO_AO_ATENDIMENTO } from "@/lib/acessoAtendimento";
 
 export type PendenciaInput = {
   direction: string; // SOLICITAR | ENVIAR
@@ -22,7 +23,8 @@ export async function createAttendancePendencias(attendanceId: string, items: Pe
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
   if (items.length === 0) return {};
 
-  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: viewer.officeId }, select: { id: true } });
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, ...whereDoAtendimento(viewer) }, select: { id: true } });
   if (!attendance) return { error: "Atendimento não encontrado." };
 
   for (const item of items) {
@@ -51,7 +53,8 @@ export async function createAttendancePendencias(attendanceId: string, items: Pe
 export async function completeAttendancePendencia(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
-  const pendencia = await prisma.atendimentoPendencia.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+  const pendencia = await prisma.atendimentoPendencia.findFirst({ where: { id, officeId: viewer.officeId, attendance: whereDoAtendimento(viewer) } });
   if (!pendencia) return { error: "Pendência não encontrada." };
 
   await prisma.atendimentoPendencia.update({ where: { id }, data: { status: "CONCLUIDA", completedAt: new Date() } });
@@ -63,7 +66,8 @@ export async function completeAttendancePendencia(id: string): Promise<{ error?:
 export async function reopenAttendancePendencia(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
-  const pendencia = await prisma.atendimentoPendencia.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+  const pendencia = await prisma.atendimentoPendencia.findFirst({ where: { id, officeId: viewer.officeId, attendance: whereDoAtendimento(viewer) } });
   if (!pendencia) return { error: "Pendência não encontrada." };
 
   await prisma.atendimentoPendencia.update({ where: { id }, data: { status: "PENDENTE", completedAt: null } });
@@ -75,7 +79,8 @@ export async function reopenAttendancePendencia(id: string): Promise<{ error?: s
 export async function deleteAttendancePendencia(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
-  const pendencia = await prisma.atendimentoPendencia.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+  const pendencia = await prisma.atendimentoPendencia.findFirst({ where: { id, officeId: viewer.officeId, attendance: whereDoAtendimento(viewer) } });
   if (!pendencia) return { error: "Pendência não encontrada." };
 
   await prisma.atendimentoPendencia.delete({ where: { id } });
@@ -90,7 +95,8 @@ export async function updateAttendancePendenciaFollowUp(
 ): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
-  const pendencia = await prisma.atendimentoPendencia.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!podeVerAtendimentos(viewer)) return { error: SEM_ACESSO_AO_ATENDIMENTO };
+  const pendencia = await prisma.atendimentoPendencia.findFirst({ where: { id, officeId: viewer.officeId, attendance: whereDoAtendimento(viewer) } });
   if (!pendencia) return { error: "Pendência não encontrada." };
   if (data.responsibleId && !(await isUserInOffice(data.responsibleId, viewer.officeId))) {
     return { error: "Responsável não encontrado." };

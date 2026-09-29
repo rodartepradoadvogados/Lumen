@@ -110,3 +110,28 @@ export const SEM_ACESSO_AO_ATENDIMENTO =
 /** A frase de quando a pessoa tem acesso, mas não àquele atendimento. */
 export const ATENDIMENTO_DE_OUTRA_PESSOA =
   "Este atendimento não foi repassado a você. Você vê apenas os que estão sob sua responsabilidade.";
+
+// ============================================================================
+// O RECORTE COMPLETO — escritório + dono — num lugar só, para o app, a API e as telas.
+//
+// O defeito que este bloco fecha: o aplicativo de Atendimento (app/atendimento-app), as rotas
+// app/api/atendimento/[id]/* e a lista/funil do site filtravam SÓ por `officeId`. Quem não tinha
+// acesso nenhum (ou só devia ver os próprios leads) listava, abria e alterava a conversa de
+// WhatsApp de qualquer lead do escritório pela URL do app ou pela API. A regra existia — só não
+// era chamada ali.
+//
+// Toda consulta de Attendance feita a partir de uma tela ou rota de Atendimento parte de
+// `whereDoAtendimento(viewer)`. Falha FECHADA: sem acesso, o `where` é impossível.
+// ============================================================================
+
+export type ViewerDoAtendimento = QuemOlha & { id: string; officeId: string };
+
+/** `where` base de qualquer consulta de atendimento: o escritório de quem pede + o recorte por dono. */
+export function whereDoAtendimento(viewer: ViewerDoAtendimento): { officeId: string; responsibleId?: string } {
+  return { officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) };
+}
+
+/** Mesmo `where`, com um atendimento específico — o `id` da URL é palpite, nunca prova. */
+export function whereDeUmAtendimento(viewer: ViewerDoAtendimento, id: string): { id: string; officeId: string; responsibleId?: string } {
+  return { id, ...whereDoAtendimento(viewer) };
+}

@@ -1,5 +1,4 @@
-import { notFound } from "next/navigation";
-import { getCurrentUser } from "@/lib/currentUser";
+import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Card, formatDate } from "@/components/ui";
 import { ArrowLeft, Bell, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
@@ -7,8 +6,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function AlertasAppPage() {
-  const viewer = await getCurrentUser();
-  if (!viewer) notFound();
+  await exigirAcessoAoAtendimentoNaTela();
 
   // Buscar alertas do escritório (simplificado - usar a mesma lógica da lib/alerts)
   const alertas = [

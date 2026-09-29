@@ -3,7 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
-import { isCaseInOffice, isAttendanceInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
+import { isCaseInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
+import { podeVerAtendimentos, whereDoAtendimento } from "@/lib/acessoAtendimento";
 import { naturezaOf } from "@/lib/caseNatureza";
 import {
   type AnotacaoLinkType,
@@ -55,7 +56,7 @@ export async function createAnotacao(data: CreateAnotacaoInput): Promise<CreateA
       if (!(await isAssessoriaInOffice(data.entityId, viewer.officeId))) return { error: "Assessoria não encontrada." };
       assessoriaId = data.entityId;
     } else if (data.linkType === "ATENDIMENTO") {
-      if (!(await isAttendanceInOffice(data.entityId, viewer.officeId))) return { error: "Atendimento não encontrado." };
+      if (!podeVerAtendimentos(viewer) || !(await prisma.attendance.findFirst({ where: { id: data.entityId, ...whereDoAtendimento(viewer) }, select: { id: true } }))) return { error: "Atendimento não encontrado." };
       attendanceId = data.entityId;
     } else {
       // PROCESSO_JUDICIAL | PROCESSO_ADMINISTRATIVO | CASO — todos apontam para o mesmo model

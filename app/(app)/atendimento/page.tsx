@@ -4,10 +4,11 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, Badge, formatDate, EmptyState } from "@/components/ui";
 import NewAttendanceModal from "@/components/NewAttendanceModal";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { Filter } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
+import { podeVerAtendimentos, veTodoOAtendimento, whereDoAtendimento } from "@/lib/acessoAtendimento";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,9 @@ export default async function AtendimentoPage({
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
+  // A REGRA DO DONO (lib/acessoAtendimento.ts): sem acesso, 404; só os próprios, só os repassados.
+  if (!podeVerAtendimentos(viewer)) notFound();
+  const veTodo = veTodoOAtendimento(viewer);
 
   const q = (searchParams.q || "").trim();
   // officeId/status entram aqui em baseFilters (não só no `where` abaixo) de propósito:
@@ -35,7 +39,7 @@ export default async function AtendimentoPage({
   // looseNameSearch.ts), então o conjunto candidato da busca por nome (tolerante a
   // acento/pontuação — mesma regra já usada na busca global e em Processos) já sai escopado.
   const baseFilters: Prisma.AttendanceWhereInput = {
-    officeId: viewer.officeId,
+    ...whereDoAtendimento(viewer),
     // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
     // na aba própria "Rascunhos" — não fazem parte da triagem normal.
     status: searchParams.status || { not: "RASCUNHO" },
@@ -83,12 +87,12 @@ export default async function AtendimentoPage({
         subtitle="Triagem de novos contatos antes de virarem processos/casos"
         action={
           <div className="flex items-center gap-2">
-            <Link
+            {veTodo && <Link
               href="/atendimento/funil"
               className="inline-flex items-center gap-1.5 bg-sf text-tx-2 border border-regua hover:bg-sf-apoio text-sm font-semibold px-3.5 py-2 transition-colors"
             >
               <Filter size={16} /> Funil Comercial
-            </Link>
+            </Link>}
             <NewAttendanceModal
               users={users}
               assessorias={assessorias}

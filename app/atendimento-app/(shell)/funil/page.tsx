@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/currentUser";
+import { whereDoAtendimento, veTodoOAtendimento } from "@/lib/acessoAtendimento";
+import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Badge, formatCurrency } from "@/components/ui";
 import { ArrowLeft } from "lucide-react";
 import EstagioDoLeadSelect from "@/components/atendimento/EstagioDoLeadSelect";
@@ -42,11 +43,13 @@ function daysBetween(from: Date, to: Date) {
 }
 
 export default async function FunilAppPage() {
-  const viewer = await getCurrentUser();
-  if (!viewer) redirect("/");
+  const viewer = await exigirAcessoAoAtendimentoNaTela();
+  // O funil é do escritório inteiro: quem só vê os próprios leads não tem funil (mesma regra da
+  // Central, aba Triagem, e do site).
+  if (!veTodoOAtendimento(viewer)) notFound();
 
   const attendances = await prisma.attendance.findMany({
-    where: { status: { notIn: ["ARQUIVADO", "RASCUNHO"] }, officeId: viewer.officeId },
+    where: { status: { notIn: ["ARQUIVADO", "RASCUNHO"] }, ...whereDoAtendimento(viewer) },
     include: { responsible: { select: { name: true } } },
     orderBy: [{ stageChangedAt: "desc" }, { createdAt: "desc" }],
   });
