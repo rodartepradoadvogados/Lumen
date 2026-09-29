@@ -26,6 +26,7 @@ import { LIMITE_DE_RESULTADOS, ehTipoDeBuscaConhecido, normalizarTermo, termoEhB
 import { naturezaWhere } from "@/lib/caseNatureza";
 import { avaliarJanela, bytesDaMensagemNoCorpo, comMilhar, LIMITE_DE_BYTES_DA_MENSAGEM, LIMITE_PADRAO_CARACTERES, type ItemDeContexto as ItemDeJanela, type ItemAvaliado } from "@/lib/peticionamentoJanelaDeContexto";
 import { extrairTextoDeDocumento } from "@/lib/peticionamentoExtracaoDocumento";
+import { normalizarIdsSelecionados, idsForaDoEscritorio, unirDocumentosDaSessao, LIMITE_DE_DOCUMENTOS_SELECIONADOS } from "@/lib/peticionamentoDocumentosDaSessao";
 import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
 import { deduzirNatureza, ehNaturezaConhecida, type SinalDeVinculoParaNatureza, type DeducaoDeNatureza } from "@/lib/peticionamentoNatureza";
 import { passoParaRetomar, ehPassoValido, hrefDoPasso, ROTULO_DO_PASSO, sessaoTemTrabalhoEmAndamento } from "@/lib/peticionamentoPasso";
@@ -945,10 +946,27 @@ export async function listarAnexosDaSessao(sessaoId: string) {
   return prisma.peticionamentoAnexo.findMany({ where: { sessaoId }, orderBy: { createdAt: "asc" } });
 }
 
+/**
+ * Grava a seleção INTEIRA de documentos da sessão numa única escrita (o cliente manda o conjunto
+ * final, nunca um "alternar" por id: várias chamadas concorrentes se atropelavam e a última
+ * gravação vencia, perdendo marcas). Cada id precisa existir como Attachment OU AssessoriaDocumento
+ * DO ESCRITÓRIO da sessão — antes gravava qualquer string, inclusive id de outro escritório, que
+ * dali em diante ficava referenciado na sessão. Id alheio/inexistente recusa a gravação inteira.
+ */
 export async function definirDocumentosSelecionados(sessaoId: string, ids: string[]): Promise<{ ok: true }> {
   const user = await exigirAcessoAba();
   await carregarSessaoOuFalhar(sessaoId, user.officeId);
-  await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { documentosExistentesIds: ids } });
+  const pedidos = normalizarIdsSelecionados(ids);
+  if (pedidos.length > LIMITE_DE_DOCUMENTOS_SELECIONADOS) throw new Error("Documentos demais numa só seleção.");
+  if (pedidos.length) {
+    const [attachments, deAssessoria] = await Promise.all([
+      prisma.attachment.findMany({ where: { id: { in: pedidos }, officeId: user.officeId }, select: { id: true } }),
+      prisma.assessoriaDocumento.findMany({ where: { id: { in: pedidos }, officeId: user.officeId }, select: { id: true } }),
+    ]);
+    const fora = idsForaDoEscritorio(pedidos, [...attachments.map((a) => a.id), ...deAssessoria.map((d) => d.id)]);
+    if (fora.length) throw new Error("Há documento na seleção que não pertence a este escritório.");
+  }
+  await prisma.peticionamentoSessao.update({ where: { id: sessaoId }, data: { documentosExistentesIds: pedidos } });
   return { ok: true };
 }
 
@@ -1015,17 +1033,20 @@ async function carregarDocumentosDaSessaoComTexto(sessaoId: string, officeId: st
   const sessao = await carregarSessaoOuFalhar(sessaoId, officeId);
   const documentosExistentesIds = ((sessao.documentosExistentesIds as string[] | null) ?? []) as string[];
 
-  const [documentosExistentes, anexosNovos] = await Promise.all([
+  // Os ids marcados na tela vêm de DUAS tabelas (Attachment e AssessoriaDocumento — ver
+  // documentosDasAssessorias). Ler só Attachment fazia o documento próprio da assessoria marcado
+  // sumir da minuta sem erro nenhum. As duas leituras levam officeId no próprio where.
+  const [documentosExistentes, documentosDaAssessoria, anexosNovos] = await Promise.all([
     documentosExistentesIds.length
       ? prisma.attachment.findMany({ where: { id: { in: documentosExistentesIds }, officeId }, select: { id: true, name: true, driveUrl: true } })
+      : Promise.resolve([]),
+    documentosExistentesIds.length
+      ? prisma.assessoriaDocumento.findMany({ where: { id: { in: documentosExistentesIds }, officeId }, select: { id: true, name: true, driveUrl: true } })
       : Promise.resolve([]),
     prisma.peticionamentoAnexo.findMany({ where: { sessaoId }, select: { id: true, nome: true, driveUrl: true } }),
   ]);
 
-  const todos = [
-    ...documentosExistentes.map((d) => ({ id: d.id, nome: d.name, driveUrl: d.driveUrl })),
-    ...anexosNovos.map((a) => ({ id: a.id, nome: a.nome, driveUrl: a.driveUrl })),
-  ];
+  const todos = unirDocumentosDaSessao(documentosExistentes, documentosDaAssessoria, anexosNovos);
 
   return Promise.all(
     todos.map(async (doc): Promise<DocumentoDaSessaoComTexto> => {
@@ -1414,8 +1435,9 @@ export async function obterResumoTriagem(sessaoId: string) {
   const user = await exigirAcessoAba();
   const sessao = await carregarSessaoOuFalhar(sessaoId, user.officeId);
   const documentosExistentesIds = ((sessao.documentosExistentesIds as string[] | null) ?? []) as string[];
-  const [documentosExistentes, anexos] = await Promise.all([
+  const [documentosExistentes, documentosDaAssessoria, anexos] = await Promise.all([
     documentosExistentesIds.length ? prisma.attachment.findMany({ where: { id: { in: documentosExistentesIds }, officeId: user.officeId }, select: { name: true } }) : Promise.resolve([]),
+    documentosExistentesIds.length ? prisma.assessoriaDocumento.findMany({ where: { id: { in: documentosExistentesIds }, officeId: user.officeId }, select: { name: true } }) : Promise.resolve([]),
     prisma.peticionamentoAnexo.findMany({ where: { sessaoId }, select: { nome: true } }),
   ]);
   return {
@@ -1436,7 +1458,7 @@ export async function obterResumoTriagem(sessaoId: string) {
     // escrever — e o prazo preclusivo muda o documento gerado, então ele precisa estar visível ali.
     prazoFatal: prazoParaLeitura(sessao.prazoFatal),
     prazoPreclusivo: sessao.prazoPreclusivo,
-    documentos: [...documentosExistentes.map((d) => d.name), ...anexos.map((a) => a.nome)],
+    documentos: [...documentosExistentes.map((d) => d.name), ...documentosDaAssessoria.map((d) => d.name), ...anexos.map((a) => a.nome)],
     teses: ((sessao.teses as string[] | null) ?? []) as string[],
   };
 }
