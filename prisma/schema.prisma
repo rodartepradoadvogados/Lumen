@@ -1366,6 +1366,7 @@ model Attendance {
   tasks            Task[]
   attachments      Attachment[]
   whatsappMessages WhatsappMessage[]
+  pedidosDeEnvio   PedidoDeEnvioWhatsapp[]
   emailMessages    EmailMessage[]
   driveSyncIssues  DriveSyncIssue[]
   pendencias       AtendimentoPendencia[]
@@ -1441,6 +1442,11 @@ model WhatsappMessage {
   status                       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
   fromNumber                   String? // telefone do cliente (E.164)
   createdAt                    DateTime   @default(now())
+  // A CHAVE QUE O APARELHO DEU À MENSAGEM QUE ENVIOU (aplicativo de Atendimento, lib/envioDeMensagem.ts).
+  // Só existe para o balão "enviando" da tela virar o balão de verdade sem aparecer duas vezes: a
+  // garantia contra duplicar no WhatsApp mora em PedidoDeEnvioWhatsapp (reserva única), não aqui.
+  // Nula em toda mensagem que não saiu por essa rota (entrada, Ana, Central).
+  clientMessageId              String?
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -1450,6 +1456,39 @@ model WhatsappMessage {
   transcricao TranscricaoDeAudio?
 
   @@index([officeId, attendanceId, createdAt])
+  @@index([attendanceId, clientMessageId])
+}
+
+// ============ PEDIDO DE ENVIO DE MENSAGEM (idempotência do envio pelo aplicativo) ============
+//
+// O RISCO MAIS CARO DO CHAT NO CELULAR É A MENSAGEM DUPLICADA NO WHATSAPP DO CLIENTE: duplo toque, "tentar
+// de novo" depois de uma rede que caiu, dois aparelhos. Mensagem enviada não volta. Por isso o aparelho dá
+// um `clientMessageId` a cada mensagem e o servidor RESERVA esse id (linha única, `@@unique`) ANTES de
+// chamar o WhatsApp: quem chega segundo em cima da mesma chave não envia — recebe o estado do primeiro.
+// Cobre o que "conferir se a mensagem já existe" não cobre: a queda entre o envio e a gravação da
+// mensagem (a linha fica RESERVADO, sem `waMessageId`, e o app diz "sem confirmação" em vez de reenviar
+// às cegas). `WhatsappMessage` continua nascendo só por `registrarMensagem`, no sucesso.
+//
+// ESTADOS: RESERVADO (pedido em curso, ou queda no meio: ninguém sabe se saiu), ENVIADO (o WhatsApp
+// aceitou; `waMessageId` guardado), FALHOU (o WhatsApp recusou: pode tentar de novo com a MESMA chave).
+model PedidoDeEnvioWhatsapp {
+  id              String     @id @default(cuid())
+  officeId        String
+  attendanceId    String
+  attendance      Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  userId          String
+  clientMessageId String
+  /// sha256 do texto: a mesma chave com outro texto é erro do aparelho, nunca um "reenvio".
+  textoHash       String
+  estado          String     @default("RESERVADO") // RESERVADO | ENVIADO | FALHOU
+  waMessageId     String?
+  mensagemId      String?
+  erro            String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([officeId, clientMessageId])
+  @@index([attendanceId, estado, updatedAt])
 }
 
 // ============ TRANSCRIÇÃO DE ÁUDIO DO WHATSAPP (ouvir, sem virar mensagem) ============

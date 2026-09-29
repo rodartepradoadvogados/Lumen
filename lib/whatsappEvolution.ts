@@ -28,7 +28,12 @@ export type ConfigEvolution = {
 const ESPERA_MS = 20_000;
 
 export class FalhaDaEvolution extends Error {
-  constructor(public motivo: string) {
+  /**
+   * `incerta`: a falha aconteceu SEM resposta do servidor (tempo esgotado, conexão que caiu) — a
+   * mensagem PODE ter saído. Recusa com resposta (HTTP de erro) NÃO é incerta. Quem envia texto ao cliente
+   * usa isto para nunca chamar de "não enviada" o que talvez tenha chegado (aplicativo de Atendimento).
+   */
+  constructor(public motivo: string, public incerta = false) {
     super(motivo);
     this.name = "FalhaDaEvolution";
   }
@@ -86,9 +91,9 @@ async function pedir(
   } catch (erro) {
     if (erro instanceof FalhaDaEvolution) throw erro;
     if (erro instanceof Error && erro.name === "AbortError") {
-      throw new FalhaDaEvolution("a Evolution não respondeu a tempo.");
+      throw new FalhaDaEvolution("a Evolution não respondeu a tempo.", true);
     }
-    throw new FalhaDaEvolution(erro instanceof Error ? erro.message : "falha ao falar com a Evolution");
+    throw new FalhaDaEvolution(erro instanceof Error ? erro.message : "falha ao falar com a Evolution", true);
   } finally {
     clearTimeout(relogio);
   }

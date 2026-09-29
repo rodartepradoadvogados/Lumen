@@ -18,6 +18,7 @@ import { textoParaAgente, mensagensReaisEUltima } from "@/lib/transcricaoDeAudio
 import { esperaParaHermes } from "@/lib/orcamentoDoPedido";
 import { nomeEhTemporario, assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoLead";
 import { renomearPastaSeExistir } from "@/lib/renomeacaoDoAtendimento";
+import { relerAntesDeEnviar } from "@/lib/anaReleOSilencio";
 
 // ============================================================================
 // O ATENDENTE RESPONDE (ou explica por que não).
@@ -183,6 +184,9 @@ export async function atendenteResponde(
       // A transcrição (quando a mensagem é um áudio) entra junto: textoParaAgente decide o que
       // vai no lugar do rótulo cru "[áudio]" — ver lib/transcricaoDeAudio.ts.
       select: {
+        // `id` e `createdAt` da última mensagem real são a âncora da releitura antes do envio.
+        id: true,
+        createdAt: true,
         direction: true,
         body: true,
         confirmacaoAutomaticaDeAudio: true,
@@ -275,6 +279,16 @@ export async function atendenteResponde(
       if (proposta) await registrarProposta(attendanceId, proposta);
       if (gatilho) await transferirLead(attendanceId, gatilho);
       return { respondeu: false, motivo: "o agente devolveu resposta vazia" };
+    }
+
+    // A ANA RELÊ O SILÊNCIO ANTES DE ENVIAR (lib/anaReleOSilencio.ts). O agente levou de segundos a mais
+    // de um minuto; nesse intervalo uma pessoa pode ter respondido (pelo aplicativo ou pela Central).
+    // Se sim, a Ana desiste e não envia nada — nem as marcas de recusa/transferência que viriam depois,
+    // porque quem assumiu está cuidando da conversa. Esta releitura tem de ficar imediatamente antes do
+    // envio (o teste atendimentoAppEnvio.teste.ts trava a ordem).
+    const releitura = await relerAntesDeEnviar(attendanceId, atendimento.officeId, { id: ultima.id, createdAt: ultima.createdAt }, { forcar: Boolean(opcoes.forcar) });
+    if (!releitura.envia) {
+      return { respondeu: false, motivo: `o atendente desistiu de enviar: ${releitura.motivo}` };
     }
 
     const envio = await sendWhatsappText(atendimento.officeId, atendimento.waPhone, resposta);
