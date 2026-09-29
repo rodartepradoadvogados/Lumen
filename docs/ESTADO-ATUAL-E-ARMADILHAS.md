@@ -501,3 +501,37 @@ Nunca aparece para Evolution nem sem WhatsApp. O que **não pode voltar atrás**
 - Site (`WhatsappReplyBox`, `replyWhatsapp`) NÃO avisa antes: deixa tentar e mostra o erro da Meta ("o cliente precisa enviar uma nova
   mensagem primeiro"), sem saída. Não foi mexido.
 - Teste: `lib/testes/atendimentoAppJanela.teste.ts`.
+
+## 20. "Ana responde": o motivo real do erro do Hermes, o botão no app e o interruptor que parece botão (29/09/2026)
+
+**O defeito relatado:** o dono marcou "Ana responde", clicou em "responder última mensagem" e viu "o assistente não está
+disponível". Duas causas de código e uma provável de ambiente:
+
+- **A mensagem escondia o motivo.** Todo defeito do Hermes virava "agente indisponível: ..." ou "a ponte com o agente não
+  está configurada" — sem dizer QUAL variável, nem se foi recusa (token), perfil ausente, demora ou rede. Agora
+  `FalhaDoHermes.causa` (decidida pelo CÓDIGO HTTP, nunca pelo texto) alimenta `lib/motivoDoAtendente.ts`: não configurado
+  (diz `HERMES_URL` e/ou `HERMES_TOKEN`), 401/403 recusou (o token da Vercel não confere com o da ponte), 404 perfil
+  (`HERMES_PERFIL`), demora, ponte fora do ar, resposta em branco, erro N da ponte. `semSegredoDaPonte` apaga o valor do
+  token, o endereço da ponte e qualquer `Bearer ...` de tudo o que sai (tela e log). Só NOMES de variável aparecem.
+- **A Server Action era cortada antes do Hermes.** `responderUltimaPergunta` ESPERA o Hermes (até 105 s) e uma Server Action
+  herda o `maxDuration` do segmento de onde é chamada; as quatro telas que a hospedam (`/atendimento/[id]`,
+  `/atendimento-central`, `/m/atendimento/[id]`, `/atendimento-app/[id]`) não tinham `maxDuration` e corriam no tempo padrão
+  da plataforma. Agora têm `120` (o teto dos webhooks). O teste `atendimentoAppAnaBotao.teste.ts` trava `maxDuration >` espera.
+- **Provável causa em produção (NÃO provável por código): ambiente.** Se a Vercel não tem `HERMES_URL` e `HERMES_TOKEN`, o
+  Hermes nunca é chamado. Se o token difere do de `/etc/lumen-hermes.env` na VPS, dá 401. Sem `HERMES_PERFIL` o perfil vira
+  `lumen-tenant-<slug>` (nunca existiu na máquina) e dá 404. A tela agora diz qual.
+
+**O que não pode voltar atrás:**
+
+- **"Responder última mensagem" existe no app** (`BarraDoChat`), logo abaixo do interruptor, com a MESMA ação do site
+  (`responderUltimaPergunta`, com o recorte de `filtroDoAtendimento`). Só aparece com a última mensagem do cliente e o
+  interruptor presente (atendente ligado no escritório e nenhuma pessoa assumiu). 44 px, "está respondendo…", erro com
+  `role="alert"`, e ao terminar a conversa busca as mensagens na hora (`aoResponder`).
+- **O interruptor é UM componente** (`components/InterruptorDaAna.tsx`), usado no site e no app: botão de 44 px,
+  `role="switch"` + `aria-checked`, "Ana responde: Ligada/Desligada" ESCRITO, borda de 2 px, radius 2 px, sem faixa lateral,
+  sem sombra, foco pelo `:focus-visible` global (não apagar com `outline-none`). Bordas: `atd-campo`/`atd-ouro-texto` no app,
+  `tx-3`/`tx` no site. O teste calcula os contrastes do `globals.css` em Dia e Noite (>= 3:1 na borda, AA no texto).
+- O site aplica o estado na hora e desfaz se a gravação falhar (antes a caixinha só mudava depois do `router.refresh()`).
+- **NÃO provado por teste:** `atendenteResponde` inteira (precisa de banco) e a Vercel/VPS reais. O que foi provado: a
+  chamada HTTP e as frases contra um provedor falso local (200, 401, 403, 404, 500 ecoando o token, vazio, lento, porta fechada,
+  variável faltando).

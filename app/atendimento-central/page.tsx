@@ -41,6 +41,14 @@ import { isWhatsappConfigured } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
+// "Responder à última pergunta" é uma Server Action que ESPERA o Hermes (até 105s, ESPERA_MS em
+// lib/hermesPonte.ts), e uma Server Action herda o `maxDuration` do segmento de onde é chamada — como em
+// app/peticionamento/[id]/confirmar/page.tsx. Sem esta linha ela corria no tempo padrão da plataforma e
+// era cortada ANTES de o Hermes responder, sem frase nenhuma para a pessoa. 120s = o teto dos webhooks
+// (app/api/whatsapp/route.ts).
+export const maxDuration = 120;
+
+
 // ============================================================================
 // CENTRAL DE ATENDIMENTO — a tela fundida (ETAPA 1: casca e navegação).
 //

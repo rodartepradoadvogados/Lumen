@@ -126,6 +126,14 @@ export function hermesConfigurado(): boolean {
   return Boolean(process.env.HERMES_URL && process.env.HERMES_TOKEN);
 }
 
+/** Os NOMES (nunca os valores) das variáveis que faltam para a ponte existir. Vazio = configurada. */
+export function variaveisFaltandoDoHermes(): string[] {
+  const falta: string[] = [];
+  if (!process.env.HERMES_URL) falta.push("HERMES_URL");
+  if (!process.env.HERMES_TOKEN) falta.push("HERMES_TOKEN");
+  return falta;
+}
+
 export type RespostaHermes = {
   resposta: string;
   /** O id da conversa DO LADO DO HERMES, para a próxima pergunta continuar de onde parou. */
@@ -133,8 +141,17 @@ export type RespostaHermes = {
 };
 
 /** Erro que carrega o motivo em linguagem de gente, para virar registro de auditoria. */
+/**
+ * O TIPO da falha, para quem chama decidir a frase (ver lib/motivoDoAtendente.ts) sem ler texto:
+ * "nao-configurada" (faltam HERMES_URL/HERMES_TOKEN), "recusou" (401/403: o token não confere),
+ * "perfil" (404: perfil do escritório não existe na máquina), "demora" (sem resposta no tempo),
+ * "inalcancavel" (rede/DNS/conexão), "erro-da-ponte" (qualquer outro código HTTP), "vazia" (200 sem texto).
+ */
+export type CausaDaFalhaDoHermes = "nao-configurada" | "recusou" | "perfil" | "demora" | "inalcancavel" | "erro-da-ponte" | "vazia";
+
 export class FalhaDoHermes extends Error {
   readonly motivo: string;
+  readonly causa: CausaDaFalhaDoHermes | null;
   /**
    * O CÓDIGO HTTP que a ponte devolveu, quando houve um. Existe para quem chama poder DECIDIR
    * pelo código, e não lendo a frase do erro — que é a amarra invisível que esta casa já pagou
@@ -147,11 +164,12 @@ export class FalhaDoHermes extends Error {
    * subida do arquivo novo na VPS.
    */
   readonly status: number | null;
-  constructor(motivo: string, status: number | null = null) {
+  constructor(motivo: string, status: number | null = null, causa: CausaDaFalhaDoHermes | null = null) {
     super(motivo);
     this.name = "FalhaDoHermes";
     this.motivo = motivo;
     this.status = status;
+    this.causa = causa;
   }
 }
 
@@ -201,7 +219,7 @@ async function chamar(
 ): Promise<unknown> {
   const base = process.env.HERMES_URL;
   const token = process.env.HERMES_TOKEN;
-  if (!base || !token) throw new FalhaDoHermes("ponte não configurada");
+  if (!base || !token) throw new FalhaDoHermes("ponte não configurada", null, "nao-configurada");
 
   // ── A TRAVA DE CORPO, E ELA É EM BYTES ────────────────────────────────────────────────────
   //
@@ -249,6 +267,7 @@ async function chamar(
         // O CÓDIGO VIAJA JUNTO COM A FRASE. Sem ele, quem chama só teria o texto para decidir — e
         // decidir por texto foi exatamente o defeito que a tela de limite já teve de consertar.
         resposta.status,
+        resposta.status === 404 ? "perfil" : resposta.status === 401 || resposta.status === 403 ? "recusou" : "erro-da-ponte",
       );
     }
     return await resposta.json();
@@ -259,9 +278,11 @@ async function chamar(
       // a máquina caía, porque a tela dizia "indisponível" quando o agente só estava lento.
       throw new FalhaDoHermes(
         `DEMORA: o Hermes não respondeu em ${Math.round((opcoes.esperaMs ?? ESPERA_MS) / 1000)}s`,
+        null,
+        "demora",
       );
     }
-    throw new FalhaDoHermes(`não foi possível alcançar o Hermes: ${mensagemDeErro(erro)}`);
+    throw new FalhaDoHermes(`não foi possível alcançar o Hermes: ${mensagemDeErro(erro)}`, null, "inalcancavel");
   } finally {
     clearTimeout(relogio);
   }
@@ -401,7 +422,7 @@ export async function perguntarAoHermesComPerfil(dados: {
   })) as { resposta?: unknown; sessao?: unknown };
 
   const texto = typeof corpo.resposta === "string" ? corpo.resposta.trim() : "";
-  if (!texto) throw new FalhaDoHermes("o Hermes respondeu vazio");
+  if (!texto) throw new FalhaDoHermes("o Hermes respondeu vazio", null, "vazia");
 
   return { resposta: texto, sessao: typeof corpo.sessao === "string" ? corpo.sessao : "" };
 }
@@ -441,7 +462,7 @@ export async function perguntarAoHermes(dados: {
   const texto = typeof corpo.resposta === "string" ? corpo.resposta.trim() : "";
   // Resposta vazia é falha, não resposta: sem isto a tela mostraria um balão em branco e o
   // usuário ficaria sem saber se perguntou errado ou se o assistente quebrou.
-  if (!texto) throw new FalhaDoHermes("o Hermes respondeu vazio");
+  if (!texto) throw new FalhaDoHermes("o Hermes respondeu vazio", null, "vazia");
 
   return {
     resposta: texto,
