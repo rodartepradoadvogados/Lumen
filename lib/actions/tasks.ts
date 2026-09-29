@@ -10,7 +10,7 @@ import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInO
 import { resolvePublicationGroupForOffice } from "@/lib/publicationResolution";
 import { sanitizeRichTextHtml } from "@/lib/richText";
 import { effectiveCaseClients, effectiveCaseParties, joinCaseNames } from "@/lib/caseParties";
-import { podeVerAtendimentos } from "@/lib/acessoAtendimento";
+import { podeVerAtendimentos, whereDoAtendimento } from "@/lib/acessoAtendimento";
 
 async function assertTaskRelationsInOffice(
   data: { caseId?: string; attendanceId?: string; responsibleId?: string; columnId?: string },
@@ -85,6 +85,12 @@ export async function createTask(data: {
   const viewer = await getCurrentUser();
   if (!viewer) return;
   await assertTaskRelationsInOffice(data, viewer.officeId);
+  // Tarefa VINCULADA a atendimento só nasce para quem pode ver aquele atendimento (recorte por dono):
+  // `isAttendanceInOffice` confere só o escritório, e o id do atendimento é palpite, nunca prova.
+  if (data.attendanceId) {
+    const visivel = podeVerAtendimentos(viewer) && (await prisma.attendance.findFirst({ where: { id: data.attendanceId, ...whereDoAtendimento(viewer) }, select: { id: true } }));
+    if (!visivel) throw new Error("Atendimento não encontrado.");
+  }
 
   const firstColumn = data.columnId ? null : await prisma.kanbanColumn.findFirst({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } });
 
@@ -96,7 +102,7 @@ export async function createTask(data: {
   }
 
   const dueDate = new Date(data.dueDate);
-  await prisma.task.create({
+  const criada = await prisma.task.create({
     data: {
       title: data.title,
       type: data.type,
@@ -125,6 +131,8 @@ export async function createTask(data: {
   revalidatePath("/m/agenda");
   if (data.attendanceId) revalidatePath(`/atendimento/${data.attendanceId}`);
   if (data.caseId) revalidatePath(`/m/processos/${data.caseId}`);
+  // O id volta para quem precisa (o aplicativo de Atendimento oferece "Desfazer" logo depois de criar).
+  return { id: criada.id };
 }
 
 // Delega um compromisso a um ou mais membros da equipe: reaproveita a mesma lógica de
