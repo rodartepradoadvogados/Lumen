@@ -191,8 +191,14 @@ teste("a Triagem ANTIGA continua no destino clássico — ela não foi tocada ne
 
 teste("a lista da aba Atendimentos usa o MESMO cálculo de endereço do clique da Triagem", () => {
   // Dois cálculos de endereço para a mesma coisa divergem no dia em que um deles ganha parâmetro.
-  verdade(/hrefDaConversa\("central",\s*a\.id\)/.test(CORPO_PAGE),
+  // A4 (29/09/2026): a linha da lista mora em components/atendimento/ListaDeConversas.tsx, e o
+  // endereço dela leva o recorte (fase, busca, arquivados) como terceiro argumento.
+  const lista = codigoDe(readFileSync(join(RAIZ, "components", "atendimento", "ListaDeConversas.tsx"), "utf8"));
+  verdade(/hrefDaConversa\("central",\s*a\.id(,\s*recorte)?\)/.test(lista),
     "a coluna de lista da aba Atendimentos voltou a montar o endereço por conta própria");
+  verdade(!/href=\{`\/atendimento-central/.test(lista) && !/href="\/atendimento-central/.test(lista),
+    "a lista escreve um endereço da Central à mão em vez de passar por lib/conversaDaCentral.ts");
+  verdade(/<ListaDeConversas\b/.test(CORPO_PAGE), "a página deixou de renderizar a lista de conversas");
 });
 
 // ── 4. A RECONFERÊNCIA — a trava do caminho novo, provada em mesa ───────────────────────────────

@@ -82,3 +82,37 @@ export const ESTAGIOS_DECIDIDOS = ["FECHADO", "PERDIDO"];
 export function podeCairEmAguardando(stage: string): boolean {
   return !ESTAGIOS_DECIDIDOS.includes(stage) && stage !== ESTAGIO_DE_ESPERA;
 }
+
+// ============================================================================
+// A FASE NA URL (`?fase=`) DA LISTA DE ATENDIMENTOS DA CENTRAL — A4 do plano de 29/09/2026.
+//
+// O valor cru da URL NUNCA vira consulta: `faseDaUrl` só devolve um estágio que existe em
+// `stageOptions` (ou null, que é "Todas"). `?fase=xyz` equivale a "Todas", e não a uma lista vazia
+// nem a um erro — quem colou um endereço velho vê a lista inteira, não uma tela que parece quebrada.
+//
+// E `stage` DESCONHECIDO É "NOVO", em todo lugar (o quadro do funil já faz assim): o filtro de
+// "Novo" inclui os valores inesperados, senão um lead com estágio fora da lista sumiria do filtro
+// sem erro nenhum — a mesma classe de defeito que a nota do topo deste arquivo descreve.
+// ============================================================================
+
+/** O estágio pedido na URL, ou null (= "Todas") quando ausente ou inválido. */
+export function faseDaUrl(valor: string | string[] | undefined | null): string | null {
+  const v = Array.isArray(valor) ? valor[0] : valor;
+  return typeof v === "string" && stageOptions.includes(v) ? v : null;
+}
+
+/** O estágio que o lead TEM, para efeito de tela: o desconhecido é "NOVO". */
+export function faseDoLead(stage: string): string {
+  return stageOptions.includes(stage) ? stage : "NOVO";
+}
+
+/**
+ * O pedaço de `where` do Prisma para "só esta fase". Devolve dados simples (sem importar o Prisma:
+ * este módulo é neutro e é lido por componentes de cliente). Para "NOVO" é `notIn` das outras cinco,
+ * e não `equals`, pelo motivo acima.
+ */
+export function filtroDeFase(fase: string | null): { stage: string } | { stage: { notIn: string[] } } | Record<string, never> {
+  if (!fase) return {};
+  if (fase === "NOVO") return { stage: { notIn: stageOptions.filter((s) => s !== "NOVO") } };
+  return { stage: fase };
+}

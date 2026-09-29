@@ -173,10 +173,23 @@ teste("o filtro de altura travada não casa piso nem teto (teste do próprio fil
 });
 
 teste("a tela tem ALTURA travada na janela — com só um piso, quem rola é a página e a caixa desce junto", () => {
+  // A altura travada MUDOU DE LUGAR em 29/09/2026 (A1 do plano do Atendimento): da raiz da página
+  // (`h-screen`, 100vh, sem travar o documento) para o invólucro `.atd-central-fixa` do layout, em
+  // 100dvh com overflow clip — a raiz da página só o preenche (`h-full min-h-0`). O que esta
+  // asserção guarda continua sendo o mesmo defeito: com piso, quem rola é a página.
   const raiz = divs(CORPO_PAGE).sort((a, b) => a.inicio - b.inicio)[0];
   verdade(!!raiz, "não achei a div raiz da página");
-  verdade(ALTURA_TRAVADA.test(raiz.abertura),
-    `a raiz da Central não tem altura travada (${raiz.abertura.slice(0, 90)}) — a coluna cresce do tamanho da conversa e a caixa de resposta sai da tela`);
+  verdade(/(?<![\w-])h-full\b/.test(raiz.abertura) && /\bmin-h-0\b/.test(raiz.abertura),
+    `a raiz da Central não preenche o invólucro de altura travada (${raiz.abertura.slice(0, 90)}) — sem h-full + min-h-0 a coluna cresce do tamanho da conversa`);
+  const layout = codigoDe(readFileSync(join(RAIZ, "app", "atendimento-central", "layout.tsx"), "utf8"));
+  verdade(/className="atd-central atd-central-fixa"/.test(layout),
+    "o invólucro da Central não é `atd-central-fixa` — sem ele o documento volta a rolar e o cabeçalho sai da janela");
+  verdade(!/atd-central min-h-screen">\{children\}/.test(layout), "o invólucro da Central voltou a ter só piso (min-h-screen)");
+  const css = readFileSync(join(RAIZ, "app", "atendimento-central", "atendimento-central.css"), "utf8");
+  const bloco = /\.atd-central-fixa\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+  verdade(/height:\s*100dvh/.test(bloco), "`.atd-central-fixa` perdeu height: 100dvh");
+  verdade(/overflow:\s*(clip|hidden)/.test(bloco), "`.atd-central-fixa` perdeu o overflow que impede o documento de rolar");
+  verdade(/html:has\(\.atd-central-fixa\)[^{]*\{[^}]*overflow:\s*hidden/.test(css), "html/body deixaram de ter overflow oculto na Central");
 });
 
 // ── 4. NA RÉGUA DA CONVERSA ─────────────────────────────────────────────────────────────────────
