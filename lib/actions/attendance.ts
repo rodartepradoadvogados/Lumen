@@ -8,8 +8,9 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { silenciarAtendente, atendenteResponde } from "@/lib/atendenteResponde";
 import { sendEmailReply } from "@/lib/gmailSend";
-import { renameDriveFolder, moveDriveFile, getProcessosRootFolderId, getCasosRootFolderId } from "@/lib/storageProvider";
-import { naturezaOf } from "@/lib/caseNatureza";
+import { renameDriveFolder } from "@/lib/storageProvider";
+import { converterAtendimentoEmCaso } from "@/lib/converterAtendimento";
+import { OPCOES_DO_SITE } from "@/lib/conversaoEmProcesso";
 import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";
 import { normalizeForCompare } from "@/lib/textNormalize";
@@ -897,91 +898,19 @@ export async function convertAttendanceToCase(
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
   if (!podeVerAtendimentos(viewer)) throw new Error(SEM_ACESSO_AO_ATENDIMENTO);
 
-  // Escopo por escritório logo na busca do atendimento: impede que alguém converta um
-  // atendimento de OUTRO escritório só por conhecer/adivinhar o id.
-  const attendance = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId: viewer.officeId, ...filtroDoAtendimento(viewer, viewer.id) } });
-  if (!attendance) throw new Error("Atendimento não encontrado.");
-
-  // Client/Case criados a partir daqui usam o officeId do PRÓPRIO atendimento (não o do viewer)
-  // — na prática são sempre o mesmo escritório (já filtrado acima), mas a intenção correta é
-  // "a conversão fica dentro do escritório dono do atendimento", não "dono de quem clicou".
-  const officeId = attendance.officeId;
-
-  // Prioriza o vínculo direto (cliente selecionado na busca ou recém-cadastrado ao criar
-  // o atendimento); só recorre à busca/criação por nome para atendimentos antigos sem clientId.
-  let client = attendance.clientId
-    ? await prisma.client.findFirst({ where: { id: attendance.clientId, officeId } })
-    : null;
-  if (!client) {
-    client = await prisma.client.findFirst({
-      where: { name: { equals: attendance.clientName, mode: "insensitive" }, officeId },
-    });
-  }
-  if (!client) {
-    client = await prisma.client.create({ data: { name: attendance.clientName, type: "PF", officeId } });
-  }
-
-  const created = await prisma.case.create({
-    data: {
-      title: attendance.subject,
-      type: data.type,
-      area: attendance.area || null,
-      description: attendance.description || null,
-      processNumber: data.processNumber || null,
-      court: data.court || null,
-      clientId: client.id,
-      responsibleId: attendance.responsibleId,
-      assessoriaId: attendance.assessoriaId,
-      officeId,
-    },
-  });
-
-  // Ownership do atendimento já foi verificada acima (findFirst com officeId), então o
-  // update por id aqui é seguro.
-  await prisma.attendance.update({
-    where: { id: attendanceId },
-    data: { status: "CONVERTIDO", convertedCaseId: created.id },
-  });
-
-  // Os anexos já enviados no atendimento passam a pertencer ao processo criado — e a MESMA
-  // pasta do Drive (se já existir) é reaproveitada (renomeada e MOVIDA para a raiz certa —
-  // Processos ou Casos, conforme o tipo escolhido — em vez de deixar uma pasta órfã fisicamente
-  // dentro de "Atendimentos" pra sempre, achado P2 de docs/auditoria-pastas-drive-2026-09.md),
-  // em vez de deixar uma pasta órfã pra trás e criar outra do zero no próximo anexo.
-  await prisma.attachment.updateMany({
-    where: { attendanceId, officeId },
-    data: { caseId: created.id, attendanceId: null },
-  });
-  if (attendance.driveFolderId) {
-    try {
-      const targetRootId =
-        naturezaOf(created.type) === "CASO" ? await getCasosRootFolderId(officeId) : await getProcessosRootFolderId(officeId);
-      await moveDriveFile(attendance.driveFolderId, targetRootId, officeId);
-      await renameDriveFolder(attendance.driveFolderId, created.title, officeId);
-      await prisma.case.update({ where: { id: created.id }, data: { driveFolderId: attendance.driveFolderId } });
-    } catch {
-      // Best-effort — se o Drive não estiver conectado ou a chamada falhar, o processo segue
-      // criado normalmente; uma pasta nova será criada no próximo anexo, se precisar.
-    }
-  }
+  // A regra mora em lib/converterAtendimento.ts (o aplicativo de Atendimento usa o mesmo núcleo, sem
+  // redirect). O site segue como sempre — OPCOES_DO_SITE — e ganha só a trava de "já convertido":
+  // o duplo clique deixava nascer dois processos do mesmo atendimento. Aqui o Drive é movido e
+  // renomeado em melhor esforço (try/catch no núcleo), como sempre foi.
+  const r = await converterAtendimentoEmCaso(viewer, attendanceId, data, OPCOES_DO_SITE);
+  if ("error" in r) throw new Error(r.error);
 
   revalidatePath("/atendimento");
   revalidatePath("/processos");
   revalidatePath("/m/atendimento");
   revalidatePath("/m/processos");
 
-  // Honorário pretendido (Fase 5) — passado por querystring para o Processo novo só PRÉ-PREENCHER
-  // o Lançar Honorários (ver LancarHonorariosModal.tsx, prop `prefill`/`autoOpen`); nunca cria a
-  // cobrança sozinho. A tela mobile do Processo ignora esses parâmetros (não tem esse modal), então
-  // é seguro incluir sempre, mesmo quando redirectBasePath é "/m/processos".
-  const feeParams = new URLSearchParams();
-  if (attendance.feeMode) {
-    feeParams.set("honorarioPretendido", "1");
-    feeParams.set("feeMode", attendance.feeMode);
-    if (attendance.estimatedValue != null) feeParams.set("feeAmount", String(attendance.estimatedValue));
-    if (attendance.feePercentual != null) feeParams.set("feePercentual", String(attendance.feePercentual));
-    if (attendance.feePercentualBase) feeParams.set("feePercentualBase", attendance.feePercentualBase);
-  }
-  const qs = feeParams.toString();
-  redirect(`${redirectBasePath}/${created.id}${qs ? `?tab=financeiro&${qs}` : ""}`);
+  // A tela mobile do Processo ignora os parâmetros do honorário (não tem esse modal), então é seguro
+  // incluir sempre, mesmo quando redirectBasePath é "/m/processos".
+  redirect(`${redirectBasePath}/${r.caseId}${r.honorarioQuery ? `?tab=financeiro&${r.honorarioQuery}` : ""}`);
 }

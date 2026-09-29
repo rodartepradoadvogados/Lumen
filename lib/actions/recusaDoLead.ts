@@ -30,6 +30,8 @@ function recarregar(attendanceId: string) {
   revalidatePath("/atendimento/funil");
   revalidatePath("/m/atendimento");
   revalidatePath(`/m/atendimento/${attendanceId}`);
+  revalidatePath(`/atendimento-app/${attendanceId}`);
+  revalidatePath(`/atendimento-app/${attendanceId}/detalhes`);
 }
 
 async function quemPodeMexer(attendanceId: string) {
@@ -59,7 +61,7 @@ export async function motivosParaRecusar(): Promise<{ id: string; rotulo: string
 export async function recusarLead(
   attendanceId: string,
   dados: { motivoId?: string; motivoLivre?: string; observacao?: string; revisitaEm?: string }
-): Promise<{ erro?: string; token?: string }> {
+): Promise<{ erro?: string; token?: string; recusaId?: string }> {
   const r = await quemPodeMexer(attendanceId);
   if ("erro" in r) return { erro: r.erro };
   if (r.atendimento.status === "CONVERTIDO") return { erro: "Este atendimento já virou processo — não há o que recusar." };
@@ -90,7 +92,7 @@ export async function recusarLead(
 
   const token = randomBytes(TAMANHO_DO_TOKEN / 2).toString("hex");
 
-  await prisma.$transaction([
+  const [criada] = await prisma.$transaction([
     prisma.recusaDeAtendimento.create({
       data: {
         attendanceId: r.atendimento.id,
@@ -110,7 +112,7 @@ export async function recusarLead(
   ]);
 
   recarregar(r.atendimento.id);
-  return { token };
+  return { token, recusaId: criada.id };
 }
 
 /** Carimba que uma pessoa mandou o link. Não manda por ela — quem manda escolhe o canal e a hora. */
