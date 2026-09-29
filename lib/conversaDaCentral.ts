@@ -58,11 +58,26 @@ export type DestinoDaConversa = "classico" | "central";
  * O id vai escapado. Ele é um cuid hoje, mas quem monta URL com dado de banco sem escapar acerta
  * por enquanto e erra no dia em que o formato do id mudar.
  */
-export function hrefDaConversa(destino: DestinoDaConversa, attendanceId: string): string {
+export function hrefDaConversa(destino: DestinoDaConversa, attendanceId: string, recorte: RecorteDaLista = {}): string {
   if (destino === "central") {
-    return `${ROTA_DA_CENTRAL}?aba=atendimentos&id=${encodeURIComponent(attendanceId)}`;
+    // O RECORTE VIAJA NO CLIQUE. Sem ele, escolher uma fase e abrir uma conversa devolvia a lista a
+    // "Todas" — a pessoa filtra por Qualificação, clica num lead e o filtro some. Quem não passa
+    // recorte (Triagem, recusados) continua com o endereço de sempre.
+    return `${ROTA_DA_CENTRAL}?aba=atendimentos&id=${encodeURIComponent(attendanceId)}${partesDoRecorte(recorte).map((p) => `&${p}`).join("")}`;
   }
   return `/atendimento/${attendanceId}`;
+}
+
+/** O que a pessoa escolheu para ver na lista: fase, busca e "mostrar arquivados e recusados". */
+export type RecorteDaLista = { fase?: string | null; q?: string | null; arquivados?: boolean };
+
+function partesDoRecorte(recorte: RecorteDaLista): string[] {
+  const partes: string[] = [];
+  if (recorte.fase) partes.push(`fase=${encodeURIComponent(recorte.fase)}`);
+  const termo = (recorte.q ?? "").trim();
+  if (termo) partes.push(`q=${encodeURIComponent(termo)}`);
+  if (recorte.arquivados) partes.push("arq=1");
+  return partes;
 }
 
 /**
@@ -75,12 +90,8 @@ export function hrefDaConversa(destino: DestinoDaConversa, attendanceId: string)
  * Qualificação, volta da conversa e a lista voltou a mostrar tudo). Todo valor vai escapado; a fase
  * NÃO é validada aqui — quem valida contra os estágios reais é `faseDaUrl` (lib/funil.ts), antes.
  */
-export function hrefDaLista(recorte: { fase?: string | null; q?: string | null; arquivados?: boolean; id?: string | null } = {}): string {
-  const partes = ["aba=atendimentos"];
-  if (recorte.fase) partes.push(`fase=${encodeURIComponent(recorte.fase)}`);
-  const termo = (recorte.q ?? "").trim();
-  if (termo) partes.push(`q=${encodeURIComponent(termo)}`);
-  if (recorte.arquivados) partes.push("arq=1");
+export function hrefDaLista(recorte: RecorteDaLista & { id?: string | null } = {}): string {
+  const partes = ["aba=atendimentos", ...partesDoRecorte(recorte)];
   if (recorte.id) partes.push(`id=${encodeURIComponent(recorte.id)}`);
   return `${ROTA_DA_CENTRAL}?${partes.join("&")}`;
 }

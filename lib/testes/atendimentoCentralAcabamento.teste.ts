@@ -335,13 +335,16 @@ teste("o lead aberto FORA da lista NÃO é fixado no topo — vira um item à pa
   verdade(!/\[\s*\w+\s*,\s*\.\.\.\s*listaAtendimentos\s*\]/.test(CORPO_PAGE) && !/unshift\(/.test(CORPO_PAGE) && !/concat\(\s*listaAtendimentos/.test(CORPO_PAGE),
     "a linha achada fora da página voltou a ser enfiada no topo da lista — ela se passaria pela conversa mais recente");
   verdade(/conversaAbertaForaDaLista/.test(CORPO_PAGE), "sumiu o estado do lead aberto fora da lista");
-  verdade(/Conversa aberta/.test(CORPO_PAGE), "o rótulo 'Conversa aberta' sumiu — a linha à parte não diz o que é");
+  const lista = readFileSync(join(RAIZ, "components", "atendimento", "ListaDeConversas.tsx"), "utf8");
+  verdade(/Conversa aberta/.test(lista), "o rótulo 'Conversa aberta' sumiu — a linha à parte não diz o que é");
 });
 
 teste("o realce continua sendo comparação com o id SELECIONADO, e não com o pedido na URL", () => {
   // `idSelecionado` é o pedido OU o primeiro da lista; o realce tem de seguir ele, senão abrir a tela
   // sem clicar em nada deixa a conversa da direita sem par na esquerda.
-  verdade(/a\.id === idSelecionado/.test(CORPO_PAGE) || /idSelecionado === a\.id/.test(CORPO_PAGE),
+  // (A4: a linha mora em ListaDeConversas; a comparação é `a.id === idSelecionado`, nas duas usadas.)
+  const lista = readFileSync(join(RAIZ, "components", "atendimento", "ListaDeConversas.tsx"), "utf8");
+  verdade(/a\.id === idSelecionado/.test(lista) || /idSelecionado === a\.id/.test(lista),
     "a lista deixou de comparar a linha com o atendimento selecionado — o realce passa a dizer outra coisa que a conversa aberta");
 });
 

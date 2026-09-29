@@ -4,9 +4,9 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { podeVerAtendimentos, veTodoOAtendimento, filtroDoAtendimento } from "@/lib/acessoAtendimento";
-import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
-import { stageOptions } from "@/lib/funil";
+import { stageOptions, faseDaUrl, filtroDeFase } from "@/lib/funil";
+import { contagensPorFase, type ContagensPorFase } from "@/lib/listaDeAtendimentos";
 import { ORDEM_POR_ATIVIDADE } from "@/lib/atividadeDoAtendimento";
 import { quemEstaEsperando } from "@/lib/esperaDoAtendimento";
 import { situacaoDaRecusa, type EstadoDaRecusa } from "@/lib/recusaDoLead";
@@ -14,7 +14,6 @@ import { motivosParaRecusar } from "@/lib/actions/recusaDoLead";
 import { identificarNumero } from "@/lib/identificarNumero";
 import { getAppUrl } from "@/lib/appUrl";
 import {
-  hrefDaConversa,
   hrefDaLista,
   recorteDaConversa,
   CONVERSA_FORA_DO_SEU_ALCANCE,
@@ -22,7 +21,6 @@ import {
   ANCORA_DA_RECUSA,
 } from "@/lib/conversaDaCentral";
 import { dataDeBrasilia, dataEHoraDeBrasilia } from "@/lib/horaDeBrasilia";
-import { Badge } from "@/components/ui";
 import ThemeToggle from "@/components/ThemeToggle";
 import QuadroDoFunil, { type CardDoFunil } from "@/components/atendimento/QuadroDoFunil";
 import NovaConversaModal from "@/components/atendimento/NovaConversaModal";
@@ -33,6 +31,8 @@ import TrilhoDoAtendimento from "@/components/atendimento/TrilhoDoAtendimento";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
 import RecusarLeadPainel from "@/components/atendimento/RecusarLeadPainel";
 import BotaoDaGaveta from "@/components/atendimento/BotaoDaGaveta";
+import SeletorDeFase from "@/components/atendimento/SeletorDeFase";
+import ListaDeConversas, { type LinhaDaLista } from "@/components/atendimento/ListaDeConversas";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import AtendenteIaControle from "@/components/AtendenteIaControle";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
@@ -90,8 +90,10 @@ export const dynamic = "force-dynamic";
 //   resto de components/atendimento/ fica para quando for tocado, para o diff desta etapa não virar
 //   um renomear de 40 arquivos.
 //
-//   O REALCE DO ITEM CLICADO quando o clicado não está nos 200 mais recentes da lista — ver o
-//   comentário na seleção, abaixo, e o `take` em carregarLista.
+//   O REALCE DO ITEM CLICADO quando o clicado não está na lista (fora dos 200 mais ativos,
+//   arquivado/recusado, fora da busca) — ver o comentário na seleção, abaixo, e o `take` em
+//   carregarLista. Desde 29/09/2026 ele vira o item à parte "Conversa aberta", e não mais uma linha
+//   fixada no topo.
 //
 // Os outros dois: o ícone "Ver a recusa" (lib/conversaDaCentral.ts, hrefDaRecusa, e a âncora do
 // painel no trilho, aqui embaixo) e os chips que quebravam linha (a faixa de sub-abas aqui; as
@@ -100,14 +102,6 @@ const ABAS = ["triagem", "atendimentos"] as const;
 type AbaCentral = (typeof ABAS)[number];
 const SUBS = ["funil", "espera", "recusados"] as const;
 type SubTriagem = (typeof SUBS)[number];
-
-const statusColors: Record<string, "amber" | "blue" | "green" | "slate"> = {
-  NOVO: "amber",
-  EM_TRIAGEM: "blue",
-  CONVERTIDO: "green",
-  ARQUIVADO: "slate",
-  RASCUNHO: "slate",
-};
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
@@ -118,7 +112,7 @@ function daysBetween(from: Date, to: Date) {
 export default async function AtendimentoCentralPage({
   searchParams,
 }: {
-  searchParams: { aba?: string; sub?: string; id?: string; status?: string; q?: string; foco?: string };
+  searchParams: { aba?: string; sub?: string; id?: string; status?: string; q?: string; foco?: string; fase?: string; arq?: string };
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
@@ -224,16 +218,31 @@ export default async function AtendimentoCentralPage({
   // ── ATENDIMENTOS — lista + a conversa selecionada. Mesmo filtro por dono de
   // app/(app)/atendimento/page.tsx (filtroDoAtendimento) — quem só vê os próprios continua só
   // vendo os próprios aqui dentro. ──────────────────────────────────────────────────────────────
-  let listaAtendimentos: Awaited<ReturnType<typeof carregarLista>> = [];
+  let listaAtendimentos: LinhaDaLista[] = [];
+  let contagens: ContagensPorFase = contagensPorFase([]);
+  let ocultos = 0;
   let idSelecionado: string | null = null;
-  let conversaAbertaForaDaLista: Awaited<ReturnType<typeof carregarLista>>[number] | null = null;
+  let conversaAbertaForaDaLista: LinhaDaLista | null = null;
+  // O RECORTE DA LISTA vem da URL e é conferido: a fase só vale se existir em stageOptions
+  // (`?fase=xyz` = "Todas"), e "arquivados" só com `arq=1`.
+  const faseEscolhida = faseDaUrl(searchParams.fase);
+  const mostrarArquivados = searchParams.arq === "1";
+  const recorte = { fase: faseEscolhida, q: (searchParams.q || "").trim(), arquivados: mostrarArquivados };
   // O ID PEDIDO NA URL fica separado do que a tela escolheu sozinha (o primeiro da lista). É a
   // diferença entre "ninguém pediu nada ainda" e "pediram isto e a reconferência recusou" — e sem
   // guardar as duas coisas a segunda viraria a mensagem da primeira ("selecione à esquerda"), que
   // manda a pessoa fazer de novo o que ela acabou de fazer.
   const idPedido = (searchParams.id || "").trim() || null;
   if (aba === "atendimentos") {
-    listaAtendimentos = await carregarLista(viewer, searchParams.status, searchParams.q);
+    const carregada = await carregarLista(viewer, {
+      status: searchParams.status,
+      q: searchParams.q,
+      fase: faseEscolhida,
+      arquivados: mostrarArquivados,
+    });
+    listaAtendimentos = carregada.linhas;
+    contagens = carregada.contagens;
+    ocultos = carregada.ocultos;
     idSelecionado = idPedido || listaAtendimentos[0]?.id || null;
     // ── O LEAD ABERTO QUE ESTÁ FORA DA LISTA (etapa 3, revista no A3 do plano de 29/09/2026).
     //
@@ -421,55 +430,41 @@ export default async function AtendimentoCentralPage({
               <form className="flex gap-1.5">
                 {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
                 <input type="hidden" name="aba" value="atendimentos" />
+                {/* A busca preserva o recorte: fase e "arquivados" viajam junto (a busca não os zera). */}
+                {faseEscolhida && <input type="hidden" name="fase" value={faseEscolhida} />}
+                {mostrarArquivados && <input type="hidden" name="arq" value="1" />}
+                <label htmlFor="busca-atendimentos" className="sr-only">
+                  Buscar por nome ou assunto
+                </label>
                 <input
+                  id="busca-atendimentos"
                   type="text"
                   name="q"
                   defaultValue={searchParams.q}
                   placeholder="Buscar por nome ou assunto"
-                  className="min-h-9 min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-etiqueta text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none"
+                  className="min-h-9 min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-etiqueta text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
                 />
               </form>
               {/* F5.5 — "eu só consigo responder reativamente": este botão abre uma conversa nova
                   sem esperar o cliente escrever primeiro. Fica na coluna de lista, e não na moldura
-                  de cima, porque é ação DESTA aba (Atendimentos), não da tela inteira. */}
-              <div className="mt-2">
+                  de cima, porque é ação DESTA aba (Atendimentos), não da tela inteira.
+                  A4 — o seletor de FASE mora AO LADO dele (pedido do dono): mesma linha, mesma altura. */}
+              <div className="mt-2 flex items-stretch gap-2">
                 <NovaConversaModal destino="central" />
+                <SeletorDeFase fase={faseEscolhida} contagens={contagens} q={recorte.q} arquivados={mostrarArquivados} id={idPedido} />
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              {conversaAbertaForaDaLista && (
-                <div className="border-b border-[var(--atd-border-strong)]">
-                  <p className="px-4 pb-1 pt-3 text-etiqueta font-bold uppercase tracking-wider text-tx-3">Conversa aberta</p>
-                  <Link
-                    href={hrefDaConversa("central", conversaAbertaForaDaLista.id)}
-                    className="block bg-[var(--list-bg-hover)] px-4 pb-3 pt-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 truncate text-corpo font-medium text-tx">{conversaAbertaForaDaLista.clientName}</p>
-                      <Badge color={statusColors[conversaAbertaForaDaLista.status]}>{attendanceStatusLabels[conversaAbertaForaDaLista.status] ?? conversaAbertaForaDaLista.status}</Badge>
-                    </div>
-                    <p className="mt-0.5 truncate text-etiqueta text-tx-3">{conversaAbertaForaDaLista.subject}</p>
-                  </Link>
-                </div>
-              )}
-              {listaAtendimentos.length === 0 ? (
-                <p className="p-4 text-etiqueta text-tx-3">Nenhum atendimento encontrado.</p>
-              ) : (
-                listaAtendimentos.map((a) => (
-                  <Link
-                    key={a.id}
-                    href={hrefDaConversa("central", a.id)}
-                    className={`block border-b border-[var(--atd-border)] px-4 py-3 transition-colors hover:bg-[var(--list-bg-hover)] ${a.id === idSelecionado ? "bg-[var(--list-bg-hover)]" : ""}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 truncate text-corpo font-medium text-tx">{a.clientName}</p>
-                      <Badge color={statusColors[a.status]}>{attendanceStatusLabels[a.status] ?? a.status}</Badge>
-                    </div>
-                    <p className="mt-0.5 truncate text-etiqueta text-tx-3">{a.subject}</p>
-                  </Link>
-                ))
-              )}
-            </div>
+            <ListaDeConversas
+              linhas={listaAtendimentos}
+              conversaAberta={conversaAbertaForaDaLista}
+              idSelecionado={idSelecionado}
+              agora={agora}
+              nomeDoAtendente={cfg?.agenteNome?.trim() || "Atendente"}
+              recorte={recorte}
+              contagens={contagens}
+              ocultos={ocultos}
+              recorteFixoPorStatus={Boolean(searchParams.status)}
+            />
           </div>
 
           {/* ── SUPERFÍCIE DE TRABALHO: conversa ────────────────────────────────────────────── */}
@@ -488,7 +483,7 @@ export default async function AtendimentoCentralPage({
                         `id`). É <Link>, e não botão com estado: funciona sem JavaScript e o botão
                         Voltar do navegador leva ao mesmo lugar. */}
                     <Link
-                      href={hrefDaLista({ q: searchParams.q })}
+                      href={hrefDaLista(recorte)}
                       aria-label="Voltar à lista de conversas"
                       className="atd-so-celular min-h-11 min-w-11 shrink-0 items-center justify-center border border-[var(--atd-border-strong)] text-etiqueta font-semibold text-tx-2 hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
                     >
@@ -659,13 +654,17 @@ function SubAba({ href, ativa, numero, rotulo, contagem }: { href: string; ativa
 }
 
 // As colunas da linha da lista (e da linha "Conversa aberta", que é a mesma coisa achada por id).
+// A última mensagem vem junto (uma por lead) para a prévia, o prefixo "Ana:/Você:" e a bolinha de
+// "esperando resposta" — o mesmo critério do funil: a última mensagem é do cliente.
 const SELECT_DA_LINHA = {
   id: true,
   clientName: true,
   subject: true,
-  status: true,
+  stage: true,
+  convertedCaseId: true,
   createdAt: true,
   ultimaAtividadeEm: true,
+  whatsappMessages: { orderBy: { createdAt: "desc" }, take: 1, select: { direction: true, body: true, porAgente: true, createdAt: true } },
 } satisfies Prisma.AttendanceSelect;
 
 // Mesma consulta de app/(app)/atendimento/page.tsx — extraída aqui para não crescer ainda mais o
@@ -677,25 +676,51 @@ const SELECT_DA_LINHA = {
 // tirá-lo faria cada abertura desta tela varrer a tabela de atendimentos do escritório inteiro. O
 // lead clicado que cai fora da página é resolvido com UMA busca por chave primária na seleção (ver
 // lá), e não alargando esta consulta.
+//
+// A4 — FASE, CONTAGENS E ARQUIVADOS. Três consultas em paralelo, TODAS com o mesmo recorte de dono
+// (`officeId` + `filtroDoAtendimento`, e a busca por nome):
+//   1. as linhas: recorte + FASE, no `where` ANTES do `take` (filtrar depois cortaria conversa
+//      antiga que tem a fase pedida);
+//   2. as contagens do menu: `groupBy stage` do MESMO recorte, sem a fase (o menu mostra quantos
+//      há em CADA fase); o número do menu e o tamanho da lista vêm do mesmo `where`;
+//   3. quantos arquivados/recusados estão escondidos (o alternador "Mostrar arquivados e recusados").
+// ARQUIVADOS e RECUSADOS ficam escondidos por padrão, como a Triagem já faz (decisão do dono);
+// RASCUNHO nunca aparece. Um `?status=` explícito na URL continua valendo como sempre valeu.
 async function carregarLista(
   viewer: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
-  status: string | undefined,
-  q: string | undefined,
-) {
-  const baseFilters: Prisma.AttendanceWhereInput = {
+  pedido: { status: string | undefined; q: string | undefined; fase: string | null; arquivados: boolean },
+): Promise<{ linhas: LinhaDaLista[]; contagens: ContagensPorFase; ocultos: number }> {
+  const ESCONDIDOS_POR_PADRAO = ["ARQUIVADO", "RECUSADO"];
+  const recorteDeDono: Prisma.AttendanceWhereInput = {
     officeId: viewer.officeId,
     ...filtroDoAtendimento(viewer, viewer.id),
-    status: status || { not: "RASCUNHO" },
   };
-  const termo = (q || "").trim();
-  const matchingIds = termo ? await findAttendanceIdsByLooseName(termo, baseFilters) : [];
-  return prisma.attendance.findMany({
-    where: { ...baseFilters, ...(termo ? { id: { in: matchingIds } } : {}) },
-    select: SELECT_DA_LINHA,
-    // A ORDEM É A ATIVIDADE MAIS RECENTE (lib/atividadeDoAtendimento.ts), e o `take` vem DEPOIS
-    // dela: os 200 que entram são os 200 mais ativos, não os 200 mais novos. Ordenar por
-    // criação cortaria justamente a conversa antiga que acabou de receber mensagem.
-    orderBy: ORDEM_POR_ATIVIDADE,
-    take: 200,
-  });
+  const statusDaLista: Prisma.AttendanceWhereInput["status"] = pedido.status
+    ? pedido.status
+    : pedido.arquivados
+      ? { not: "RASCUNHO" }
+      : { notIn: ["RASCUNHO", ...ESCONDIDOS_POR_PADRAO] };
+  const baseFilters: Prisma.AttendanceWhereInput = { ...recorteDeDono, status: statusDaLista };
+  const termo = (pedido.q || "").trim();
+  // A busca acha por nome em TODOS os status visíveis (só o rascunho fica de fora), e o status da
+  // lista estreita depois: senão, com uma busca, o alternador dos escondidos nunca teria o que contar.
+  const daBuscaBase: Prisma.AttendanceWhereInput = { ...recorteDeDono, status: pedido.status ? pedido.status : { not: "RASCUNHO" } };
+  const matchingIds = termo ? await findAttendanceIdsByLooseName(termo, daBuscaBase) : [];
+  const daBusca: Prisma.AttendanceWhereInput = termo ? { id: { in: matchingIds } } : {};
+  const [linhas, porFase, ocultos] = await Promise.all([
+    prisma.attendance.findMany({
+      where: { ...baseFilters, ...daBusca, ...filtroDeFase(pedido.fase) },
+      select: SELECT_DA_LINHA,
+      // A ORDEM É A ATIVIDADE MAIS RECENTE (lib/atividadeDoAtendimento.ts), e o `take` vem DEPOIS
+      // dela: os 200 que entram são os 200 mais ativos, não os 200 mais novos. Ordenar por
+      // criação cortaria justamente a conversa antiga que acabou de receber mensagem.
+      orderBy: ORDEM_POR_ATIVIDADE,
+      take: 200,
+    }),
+    prisma.attendance.groupBy({ by: ["stage"], where: { ...baseFilters, ...daBusca }, _count: { _all: true } }),
+    pedido.status || pedido.arquivados
+      ? Promise.resolve(0)
+      : prisma.attendance.count({ where: { ...recorteDeDono, ...daBusca, status: { in: ESCONDIDOS_POR_PADRAO } } }),
+  ]);
+  return { linhas, contagens: contagensPorFase(porFase), ocultos };
 }
