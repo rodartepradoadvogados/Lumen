@@ -327,18 +327,24 @@ teste("a linha só é fixada quando o id pedido NÃO está na página — senão
     "a fixação da linha deixou de checar se o lead já está na lista — o mesmo atendimento apareceria duas vezes, uma no topo e outra no lugar dele");
 });
 
-teste("a linha fixada vai para o TOPO da lista, onde o realce é visto", () => {
-  // O lugar cronológico de um lead antigo é o fim de uma lista de 200 linhas: o realce existiria e
-  // ninguém o veria. Tolera a grafia (spread, concat, unshift) — o que importa é que a linha achada
-  // entre ANTES das outras.
-  verdade(/\[\s*\w+\s*,\s*\.\.\.\s*listaAtendimentos\s*\]/.test(CORPO_PAGE) || /unshift\(/.test(CORPO_PAGE) || /concat\(\s*listaAtendimentos/.test(CORPO_PAGE),
-    "a linha achada fora da página não entra mais no começo da lista — o realce vai para o fim de 200 linhas, onde não se vê");
+teste("o lead aberto FORA da lista NÃO é fixado no topo — vira um item à parte, rotulado 'Conversa aberta'", () => {
+  // ATUALIZADO em 29/09/2026 (A3 do plano do Atendimento). Antes a linha achada fora da página era
+  // enfiada no topo da lista; com a lista ordenada por ATIVIDADE isso mentiria (uma linha antiga no
+  // topo se passaria pela mais recente). Agora ela mora num estado próprio, acima da lista, com o
+  // rótulo que diz o que ela é.
+  verdade(!/\[\s*\w+\s*,\s*\.\.\.\s*listaAtendimentos\s*\]/.test(CORPO_PAGE) && !/unshift\(/.test(CORPO_PAGE) && !/concat\(\s*listaAtendimentos/.test(CORPO_PAGE),
+    "a linha achada fora da página voltou a ser enfiada no topo da lista — ela se passaria pela conversa mais recente");
+  verdade(/conversaAbertaForaDaLista/.test(CORPO_PAGE), "sumiu o estado do lead aberto fora da lista");
+  const lista = readFileSync(join(RAIZ, "components", "atendimento", "ListaDeConversas.tsx"), "utf8");
+  verdade(/Conversa aberta/.test(lista), "o rótulo 'Conversa aberta' sumiu — a linha à parte não diz o que é");
 });
 
 teste("o realce continua sendo comparação com o id SELECIONADO, e não com o pedido na URL", () => {
   // `idSelecionado` é o pedido OU o primeiro da lista; o realce tem de seguir ele, senão abrir a tela
   // sem clicar em nada deixa a conversa da direita sem par na esquerda.
-  verdade(/a\.id === idSelecionado/.test(CORPO_PAGE) || /idSelecionado === a\.id/.test(CORPO_PAGE),
+  // (A4: a linha mora em ListaDeConversas; a comparação é `a.id === idSelecionado`, nas duas usadas.)
+  const lista = readFileSync(join(RAIZ, "components", "atendimento", "ListaDeConversas.tsx"), "utf8");
+  verdade(/a\.id === idSelecionado/.test(lista) || /idSelecionado === a\.id/.test(lista),
     "a lista deixou de comparar a linha com o atendimento selecionado — o realce passa a dizer outra coisa que a conversa aberta");
 });
 
@@ -380,7 +386,7 @@ teste("o destino do ícone 'Ver a recusa' existe TAMBÉM para lead já convertid
   // leitura do parâmetro da URL (`searchParams.foco === ...`), e contar a comparação faria este teste
   // afirmar sobre linha que não é a que ele pensa estar lendo — a mesma armadilha da janela de
   // caracteres, em outra roupa.
-  const aneis = [...CORPO_PAGE.matchAll(/ring-\[var\(--frame-accent\)\]/g)].length;
+  const aneis = [...CORPO_PAGE.matchAll(/ring-2 ring-inset ring-\[var\(--frame-accent\)\]/g)].length;
   igual(aneis, 2, "o anel de foco tem de ser desenhado nos dois casos — senão quem clicou no ícone não acha o que procurava");
 
   // O bloco do convertido precisa EXPLICAR, não só existir vazio. Asserção sobre o mecanismo

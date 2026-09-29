@@ -210,7 +210,7 @@ em computador. Defeitos que isto corrigiu e que voltam se for desfeito:
 
 ---
 
-## 12. A Capa: só promete o que o código faz, e só mede com consentimento (29/09/2026)
+## 11b. A Capa: só promete o que o código faz, e só mede com consentimento (29/09/2026)
 
 - **Toda frase da Capa (`app/page.tsx`) tem de ter respaldo em código.** A auditoria achou
   "conciliação bancária" (não existe importação de extrato), "prazo fatal com feriados de cada
@@ -228,3 +228,32 @@ em computador. Defeitos que isto corrigiu e que voltam se for desfeito:
   filhos somavam 467px em 390px e a página rolava para o lado. Tema e "Criar conta" moram na folha do
   menu. "Entrar" precisa continuar visível na barra (PWA, item 11).
 
+## 12. A lista de Atendimentos ordena por `Attendance.ultimaAtividadeEm` (29/09/2026)
+
+A lista da Central (`/atendimento-central`, aba Atendimentos) é ordenada pela **atividade mais
+recente**: a última mensagem, de entrada ou de saída; sem mensagem, a criação do lead. Antes ordenava
+por `createdAt` e a conversa que acabara de falar ficava embaixo.
+
+**Na prática:**
+
+- **Toda `WhatsappMessage` nasce por `registrarMensagem` (`lib/registrarMensagem.ts`)**, que grava a
+  mensagem e move `Attendance.ultimaAtividadeEm` **na mesma transação**. Um teste
+  (`lib/testes/atividadeDoAtendimento.teste.ts`) varre `app/`, `components/`, `lib/` e `scripts/` e
+  falha se aparecer `whatsappMessage.create/createMany/upsert` (ou criação aninhada / `INSERT`) fora
+  dele. Esquecer um ponto de escrita é um defeito **silencioso**: a conversa fica "parada" num lugar
+  errado da lista, sem erro — o mesmo desenho do item 3 (`lastSyncAt`).
+- A coluna é **não nula, com `@default(now())`**, de propósito: lead criado sem mensagem já nasce com
+  a data dele, e antes do backfill o desempate por `createdAt` (2º critério do `orderBy`,
+  `lib/atividadeDoAtendimento.ts`) mantém a ordem de antes.
+- **Backfill:** `scripts/backfill-ultima-atividade.ts`, idempotente (só escreve a linha cujo valor
+  difere), roda **sozinho** no build de produção logo depois do `prisma db push` (`package.json` →
+  `build`) e nunca derruba o build. Não há passo manual.
+- O `take: 200` da lista corta **depois** da ordem por atividade e o filtro de fase (`?fase=`) entra
+  no `where` **antes** dele. Arquivados e recusados ficam escondidos por padrão (`?arq=1` mostra).
+  O lead aberto por link e fora da lista aparece como "Conversa aberta", e não fixado no topo.
+- A tela **não cria contador de não lidas** (não há estado de leitura por usuário) — só a bolinha
+  "esperando resposta", que é um fato calculado. A atualização ao vivo é `router.refresh()` a cada
+  15 s, pausada com a aba oculta ou texto digitado na resposta (`AtualizarAoVivo`).
+- O documento da Central **nunca rola** (`.atd-central-fixa`, 100dvh + overflow clip): só lista,
+  conversa e a coluna do trilho rolam. Voltar a `h-screen`/`min-h-screen`, ou pôr o painel de recusa
+  fora do trilho, faz o cabeçalho sair da janela do PWA (877x612).
