@@ -25,6 +25,7 @@ import { MATERIAS_DO_LUMEN, validarNovaMateria, lerMateriasDaSessao, normalizarS
 import { LIMITE_DE_RESULTADOS, ehTipoDeBuscaConhecido, normalizarTermo, termoEhBuscavel, subtipoEfetivo, type TipoDeBusca } from "@/lib/peticionamentoBusca";
 import { naturezaWhere } from "@/lib/caseNatureza";
 import { avaliarJanela, bytesDaMensagemNoCorpo, comMilhar, LIMITE_DE_BYTES_DA_MENSAGEM, LIMITE_PADRAO_CARACTERES, type ItemDeContexto as ItemDeJanela, type ItemAvaliado } from "@/lib/peticionamentoJanelaDeContexto";
+import { tipoDoCase, type TipoDeDemanda } from "@/lib/peticionamentoSeletorDocumentos";
 import { extrairTextoDeDocumento } from "@/lib/peticionamentoExtracaoDocumento";
 import { normalizarIdsSelecionados, idsForaDoEscritorio, unirDocumentosDaSessao, LIMITE_DE_DOCUMENTOS_SELECIONADOS } from "@/lib/peticionamentoDocumentosDaSessao";
 import { ehCategoriaConhecida } from "@/lib/peticionamentoCategoriaPeca";
@@ -834,11 +835,34 @@ export type DocumentoVinculado = {
   driveUrl: string;
   // Rótulo da demanda a que este documento pertence DENTRO da assessoria vinculada (ex.:
   // "Processo: Fulano x Beltrano", "Licitação: Pregão 12/2026", "Demanda: Parecer societário") —
-  // null para documento de processo/atendimento vinculado direto à sessão (sem outro nível: é
-  // exatamente o que já existia antes desta entrega, "como já consigo fazer em processos", nas
-  // palavras do dono) e também null para o documento "geral" da assessoria, sem demanda nenhuma.
+  // null para documento de processo/atendimento vinculado direto à sessão e também null para o
+  // documento "geral" da assessoria, sem demanda nenhuma. Mantido como sempre foi (lib/
+  // peticionamentoDocumentosDemanda.ts o consome); o seletor novo usa os campos estruturados abaixo.
   demanda: string | null;
+  // Campos ESTRUTURADOS do item a que o documento pertence (PR P1): o seletor agrupa por demandaId
+  // e filtra por tipo/busca — nunca mais deduz nada de um rótulo de texto. Todo documento tem item:
+  // o que não tem demanda cai no item "Documentos gerais da assessoria" (tipo GERAL).
+  demandaId: string;
+  demandaTipo: TipoDeDemanda;
+  demandaTitulo: string;
+  demandaNumero: string | null;
+  demandaPartes: string | null;
 };
+
+type ItemDeDemanda = { id: string; tipo: TipoDeDemanda; titulo: string; numero: string | null; partes: string | null };
+
+const juntarPartes = (...nomes: (string | null | undefined)[]): string | null => {
+  const limpos = nomes.map((n) => n?.trim()).filter((n): n is string => !!n);
+  return limpos.length ? limpos.join("; ") : null;
+};
+
+const comItem = (item: ItemDeDemanda) => ({
+  demandaId: item.id,
+  demandaTipo: item.tipo,
+  demandaTitulo: item.titulo,
+  demandaNumero: item.numero,
+  demandaPartes: item.partes,
+});
 
 /**
  * Documentos de TODAS as demandas de uma assessoria vinculada — pedido do dono, 23/09/2026:
@@ -860,22 +884,39 @@ export type DocumentoVinculado = {
  * qualquer consulta nova a tabela do escritório.
  */
 async function documentosDasAssessorias(officeId: string, assessoriaIds: string[]): Promise<DocumentoVinculado[]> {
-  const [cases, attendances, licitacoes, pareceres, documentosProprios] = await Promise.all([
-    prisma.case.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, title: true } }),
-    prisma.attendance.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, subject: true } }),
-    prisma.licitacao.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, nome: true, objeto: true } }),
-    prisma.parecer.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, name: true } }),
+  const [cases, attendances, licitacoes, pareceres, documentosProprios, assessorias] = await Promise.all([
+    prisma.case.findMany({
+      where: { assessoriaId: { in: assessoriaIds }, officeId },
+      select: { id: true, title: true, type: true, processNumber: true, opposingPartyName: true, client: { select: { name: true } } },
+    }),
+    prisma.attendance.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, subject: true, clientName: true } }),
+    prisma.licitacao.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, nome: true, objeto: true, orgao: true, modalidade: true } }),
+    prisma.parecer.findMany({ where: { assessoriaId: { in: assessoriaIds }, officeId }, select: { id: true, name: true, assessoria: { select: { client: { select: { name: true } } } } } }),
     prisma.assessoriaDocumento.findMany({
       where: { assessoriaId: { in: assessoriaIds }, officeId },
-      select: { id: true, name: true, docType: true, driveUrl: true, caseId: true, parecerId: true },
+      select: { id: true, name: true, docType: true, driveUrl: true, assessoriaId: true, caseId: true, parecerId: true },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.assessoria.findMany({ where: { id: { in: assessoriaIds }, officeId }, select: { id: true, client: { select: { name: true } } } }),
   ]);
 
   const rotuloCase = new Map(cases.map((c) => [c.id, `Processo: ${c.title}`]));
   const rotuloAttendance = new Map(attendances.map((a) => [a.id, `Atendimento: ${a.subject}`]));
   const rotuloLicitacao = new Map(licitacoes.map((l) => [l.id, `Licitação: ${l.nome ?? l.objeto}`]));
   const rotuloParecer = new Map(pareceres.map((p) => [p.id, `Demanda: ${p.name}`]));
+
+  const itemCase = new Map<string, ItemDeDemanda>(
+    cases.map((c) => [c.id, { id: `case:${c.id}`, tipo: tipoDoCase(c.type), titulo: c.title, numero: c.processNumber, partes: juntarPartes(c.client?.name, c.opposingPartyName) }]),
+  );
+  const itemAttendance = new Map<string, ItemDeDemanda>(attendances.map((a) => [a.id, { id: `atd:${a.id}`, tipo: "ATENDIMENTO", titulo: a.subject, numero: null, partes: juntarPartes(a.clientName) }]));
+  const itemLicitacao = new Map<string, ItemDeDemanda>(
+    licitacoes.map((l) => [l.id, { id: `lic:${l.id}`, tipo: "LICITACAO", titulo: l.nome ?? l.objeto, numero: l.modalidade, partes: juntarPartes(l.orgao) }]),
+  );
+  const itemParecer = new Map<string, ItemDeDemanda>(
+    pareceres.map((p) => [p.id, { id: `par:${p.id}`, tipo: "DEMANDA", titulo: p.name, numero: null, partes: juntarPartes(p.assessoria?.client?.name) }]),
+  );
+  const nomeDaAssessoria = new Map(assessorias.map((a) => [a.id, a.client?.name ?? null]));
+  const itemGeral = (assessoriaId: string): ItemDeDemanda => ({ id: `geral:${assessoriaId}`, tipo: "GERAL", titulo: "Documentos gerais da assessoria", numero: null, partes: juntarPartes(nomeDaAssessoria.get(assessoriaId)) });
 
   const orAttachments: object[] = [];
   if (cases.length) orAttachments.push({ caseId: { in: cases.map((c) => c.id) } });
@@ -890,25 +931,35 @@ async function documentosDasAssessorias(officeId: string, assessoriaIds: string[
       })
     : [];
 
-  const deDemandasVinculadas: DocumentoVinculado[] = attachments.map((a) => ({
-    id: a.id,
-    name: a.name,
-    docType: a.docType,
-    driveUrl: a.driveUrl,
-    demanda:
-      (a.caseId && rotuloCase.get(a.caseId)) ||
-      (a.attendanceId && rotuloAttendance.get(a.attendanceId)) ||
-      (a.licitacaoId && rotuloLicitacao.get(a.licitacaoId)) ||
-      null,
-  }));
+  const deDemandasVinculadas: DocumentoVinculado[] = attachments.flatMap((a) => {
+    const item = (a.caseId && itemCase.get(a.caseId)) || (a.attendanceId && itemAttendance.get(a.attendanceId)) || (a.licitacaoId && itemLicitacao.get(a.licitacaoId)) || null;
+    // Sem item = a demanda saiu do recorte entre as duas consultas; nada a mostrar para ela.
+    if (!item) return [];
+    return [{
+      id: a.id,
+      name: a.name,
+      docType: a.docType,
+      driveUrl: a.driveUrl,
+      demanda:
+        (a.caseId && rotuloCase.get(a.caseId)) ||
+        (a.attendanceId && rotuloAttendance.get(a.attendanceId)) ||
+        (a.licitacaoId && rotuloLicitacao.get(a.licitacaoId)) ||
+        null,
+      ...comItem(item),
+    }];
+  });
 
-  const deDocumentosProprios: DocumentoVinculado[] = documentosProprios.map((d) => ({
-    id: d.id,
-    name: d.name,
-    docType: d.docType,
-    driveUrl: d.driveUrl,
-    demanda: (d.parecerId && rotuloParecer.get(d.parecerId)) || (d.caseId && rotuloCase.get(d.caseId)) || null,
-  }));
+  const deDocumentosProprios: DocumentoVinculado[] = documentosProprios.map((d) => {
+    const item = (d.parecerId && itemParecer.get(d.parecerId)) || (d.caseId && itemCase.get(d.caseId)) || itemGeral(d.assessoriaId);
+    return {
+      id: d.id,
+      name: d.name,
+      docType: d.docType,
+      driveUrl: d.driveUrl,
+      demanda: (d.parecerId && rotuloParecer.get(d.parecerId)) || (d.caseId && rotuloCase.get(d.caseId)) || null,
+      ...comItem(item),
+    };
+  });
 
   return [...deDemandasVinculadas, ...deDocumentosProprios];
 }
@@ -923,21 +974,41 @@ export async function listarDocumentosDoVinculo(sessaoId: string): Promise<Docum
   if (vinculo.caseIds.length) orDireto.push({ caseId: { in: vinculo.caseIds } });
   if (vinculo.attendanceIds.length) orDireto.push({ attendanceId: { in: vinculo.attendanceIds } });
 
-  const [diretos, daAssessoria] = await Promise.all([
+  const [diretos, casesDiretos, atendimentosDiretos, daAssessoria] = await Promise.all([
     // `OR: []` no Prisma não devolve "sem filtro" — devolve NADA. Era exatamente aqui que o
     // defeito original morava: com só assessoriaIds preenchido, orDireto ficava vazio e o
     // resultado era sempre lista vazia, mesmo a assessoria tendo demanda com documento.
     orDireto.length
       ? prisma.attachment.findMany({
           where: { officeId: user.officeId, OR: orDireto },
-          select: { id: true, name: true, docType: true, driveUrl: true },
+          select: { id: true, name: true, docType: true, driveUrl: true, caseId: true, attendanceId: true },
           orderBy: { createdAt: "desc" },
         })
+      : Promise.resolve([]),
+    vinculo.caseIds.length
+      ? prisma.case.findMany({
+          where: { id: { in: vinculo.caseIds }, officeId: user.officeId },
+          select: { id: true, title: true, type: true, processNumber: true, opposingPartyName: true, client: { select: { name: true } } },
+        })
+      : Promise.resolve([]),
+    vinculo.attendanceIds.length
+      ? prisma.attendance.findMany({ where: { id: { in: vinculo.attendanceIds }, officeId: user.officeId }, select: { id: true, subject: true, clientName: true } })
       : Promise.resolve([]),
     vinculo.assessoriaIds.length ? documentosDasAssessorias(user.officeId, vinculo.assessoriaIds) : Promise.resolve([] as DocumentoVinculado[]),
   ]);
 
-  return [...diretos.map((d) => ({ ...d, demanda: null as string | null })), ...daAssessoria];
+  const itemCase = new Map<string, ItemDeDemanda>(
+    casesDiretos.map((c) => [c.id, { id: `case:${c.id}`, tipo: tipoDoCase(c.type), titulo: c.title, numero: c.processNumber, partes: juntarPartes(c.client?.name, c.opposingPartyName) }]),
+  );
+  const itemAttendance = new Map<string, ItemDeDemanda>(atendimentosDiretos.map((a) => [a.id, { id: `atd:${a.id}`, tipo: "ATENDIMENTO", titulo: a.subject, numero: null, partes: juntarPartes(a.clientName) }]));
+
+  const deVinculoDireto: DocumentoVinculado[] = diretos.flatMap((d) => {
+    const item = (d.caseId && itemCase.get(d.caseId)) || (d.attendanceId && itemAttendance.get(d.attendanceId)) || null;
+    if (!item) return [];
+    return [{ id: d.id, name: d.name, docType: d.docType, driveUrl: d.driveUrl, demanda: null as string | null, ...comItem(item) }];
+  });
+
+  return [...deVinculoDireto, ...daAssessoria];
 }
 
 export async function listarAnexosDaSessao(sessaoId: string) {

@@ -33,6 +33,7 @@ export default async function DocumentosPage({ params }: { params: { id: string 
       papelUsuario={`OAB ${user.oab ?? "—"} · ${user.role}`}
       temTrabalho={temTrabalho}
       rascunhosCount={rascunhosCount}
+      rolagemSoNoMiolo
     >
       <DocumentosClient
         sessaoId={params.id}
