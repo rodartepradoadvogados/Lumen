@@ -2,6 +2,10 @@
 // assets nem funciona offline (fora do escopo pedido); registrado por
 // components/mobile/NotificationPreferences.tsx quando o usuário ativa notificações.
 
+// Handler de fetch vazio (não intercepta nada, a rede responde normalmente): o Chrome mais antigo só
+// considera o app instalável se o service worker tiver um listener de "fetch".
+self.addEventListener("fetch", () => {});
+
 self.addEventListener("push", (event) => {
   let data = { title: "Lúmen", body: "Você tem uma novidade." };
   try {

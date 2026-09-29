@@ -185,3 +185,25 @@ agosto de 2026**, no PR #72. A produção sai deste repositório, `rodartepradoa
 
 Se alguém te apontar para o `rp-financeiro`, é engano — código escrito lá não chega à
 produção e não tem como ser aproveitado.
+
+---
+
+## 11. Os três PWAs (site, mobile, Atendimento) — o que não pode voltar atrás
+
+Cada app tem manifesto, identidade (`id`) e escopo próprios; o desktop (`/`) só é oferecido
+em computador. Defeitos que isto corrigiu e que voltam se for desfeito:
+
+- **Manifesto por convenção (`app/manifest.ts`) vence `metadata.manifest` aninhado** (medido
+  no Next 14.2.35). Por isso o manifesto mobile é um Route Handler
+  (`app/manifest.webmanifest/route.ts`) e o padrão é `metadata.manifest` do layout raiz. Voltar
+  a `manifest.ts` faz o site e o Atendimento perderem o próprio manifesto em silêncio.
+- **`scope` "/m/" com `start_url` "/m"** é inválido: o Chrome descarta o `scope` e adota "/",
+  e o app mobile passa a "possuir" o site inteiro. Escopo sem barra final: "/m",
+  "/atendimento-app".
+- **Sem sessão, `/m` e `/atendimento-app` vão para `/m/entrar` e `/atendimento-app/entrar`**
+  (dentro do escopo, públicas no `middleware.ts`), nunca para a homepage — que liga o manifesto
+  raiz e fazia o Chrome oferecer o app errado. O login volta ao destino, só dentro do app.
+- `/sw.js`, `/sw-m.js`, `/sw-atendimento.js` são públicos no middleware (SW atrás de
+  redirecionamento é recusado pelo navegador).
+- O PWA do site (escopo "/") engloba os outros dois; em celular/tablet o layout do site herda
+  o manifesto mobile (`lib/pwaManifestoDoSite.ts`).

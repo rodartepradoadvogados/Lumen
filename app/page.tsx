@@ -10,6 +10,7 @@ import LumenMark from "@/components/LumenMark";
 import CookieConsent from "@/components/site/CookieConsent";
 import SiteHeader from "@/components/site/SiteHeader";
 import FeatureFigure from "@/components/site/FeatureFigure";
+import { comManifestoDoSite } from "@/lib/pwaManifestoDoSite";
 import GrainOverlay from "@/components/GrainOverlay";
 
 // Homepage PÚBLICA do produto de software "Lúmen" (documento 09 do redesenho: "o site passa a
@@ -82,11 +83,14 @@ const getHomepagePricingData = unstable_cache(
   { revalidate: 300 },
 );
 
-export const metadata = {
-  title: "Lúmen — Software de gestão para escritórios de advocacia",
-  description:
-    "Publicações triadas, o dia na frente, peticionamento com o timbrado do escritório e financeiro que fecha — tudo em um só sistema de gestão para escritórios de advocacia.",
-};
+export function generateMetadata() {
+  return {
+    title: "Lúmen — Software de gestão para escritórios de advocacia",
+    description:
+      "Publicações triadas, o dia na frente, peticionamento com o timbrado do escritório e financeiro que fecha — tudo em um só sistema de gestão para escritórios de advocacia.",
+    ...comManifestoDoSite(),
+  };
+}
 
 // Cada `figure` também é a legenda acessível (aria-label) do diagrama de marca ao lado —
 // ver FeatureDiagram. Diagrama provisório (réguas + bordô), não uma fotografia real do produto

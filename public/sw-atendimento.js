@@ -1,6 +1,10 @@
-// Service worker do app mobile (Lúmen) — só cuida de notificações push. Não faz cache de
+// Service worker do app de Atendimento (Lúmen Atendimento) — só cuida de notificações push. Não faz cache de
 // assets nem funciona offline (fora do escopo pedido); registrado por
-// components/mobile/NotificationPreferences.tsx quando o usuário ativa notificações.
+// AtendimentoAppShell e pela tela de entrada (app/atendimento-app/entrar).
+
+// Handler de fetch vazio (não intercepta nada, a rede responde normalmente): o Chrome mais antigo só
+// considera o app instalável se o service worker tiver um listener de "fetch".
+self.addEventListener("fetch", () => {});
 
 self.addEventListener("push", (event) => {
   let data = { title: "Lúmen", body: "Você tem uma novidade." };
@@ -14,9 +18,9 @@ self.addEventListener("push", (event) => {
     (async () => {
       await self.registration.showNotification(data.title, {
         body: data.body,
-        icon: "/icons/icon-192.png",
-        badge: "/icons/icon-192.png",
-        data: { url: data.url || "/m" },
+        icon: "/icons-atendimento/icon-192.png",
+        badge: "/icons-atendimento/icon-192.png",
+        data: { url: data.url || "/atendimento-app" },
       });
 
       // Se o payload já veio com a contagem total de alertas (ver lib/push.ts), atualiza o
@@ -37,7 +41,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/m";
+  const url = event.notification.data?.url || "/atendimento-app";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientsList) => {
       for (const client of clientsList) {

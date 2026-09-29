@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, Plus, MessageSquare, LayoutDashboard, Users, Settings } from "lucide-react";
 import { ReactNode } from "react";
+import InstallPrompt from "@/components/mobile/InstallPrompt";
 
 const THEME_INIT_SCRIPT = `
 (function () {
@@ -23,13 +24,14 @@ export default function AtendimentoAppShell({ officeName, children }: { officeNa
     <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
     <script dangerouslySetInnerHTML={{ __html: `
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw-atendimento.js', {scope: '/atendimento-app/'}).catch(()=>{});
+        navigator.serviceWorker.register('/sw-atendimento.js', {scope: '/atendimento-app'}).catch(()=>{});
       }
     `}} />
     <div id="atendimento-shell" className="atendimento-shell min-h-screen bg-sf-fundo transition-colors">
       <AtendimentoAppHeader officeName={officeName} />
       <main className="pb-20 min-h-screen max-w-md mx-auto px-4">{children}</main>
       <AtendimentoAppBottomNav />
+      <InstallPrompt app="atendimento" nome="Lúmen Atendimento" />
     </div>
     </>
   );

@@ -17,6 +17,7 @@ export function GET() {
       name: "Lúmen Atendimento",
       short_name: "Atendimento",
       description: "App de triagem e atendimento do Lúmen — funil comercial, conversas e gestão de leads",
+      id: "/atendimento-app",
       start_url: "/atendimento-app",
       scope: "/atendimento-app",
       display: "standalone",

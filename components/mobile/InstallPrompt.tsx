@@ -13,12 +13,15 @@ type Platform = "ios" | "installable" | null;
 // mostra a instrução manual (não existe prompt nativo lá); no Android/Chrome
 // usa o evento beforeinstallprompt para oferecer instalação com um toque.
 // O navegador decide quando esse evento dispara (critério dele, não controlamos).
-export default function InstallPrompt() {
+// `app`/`nome`: cada PWA tem o seu convite e a sua dispensa — a chave de localStorage é uma só por
+// ORIGEM, então dispensar o convite do app mobile não pode silenciar o do Atendimento (e vice-versa).
+export default function InstallPrompt({ app = "mobile", nome = "Lúmen" }: { app?: string; nome?: string } = {}) {
+  const dismissKey = app === "mobile" ? DISMISS_KEY : `${DISMISS_KEY}_${app}`;
   const [platform, setPlatform] = useState<Platform>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<Event & { prompt?: () => void; userChoice?: Promise<unknown> } | null>(null);
 
   useEffect(() => {
-    if (localStorage.getItem(DISMISS_KEY)) return;
+    if (localStorage.getItem(dismissKey)) return;
 
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
@@ -40,10 +43,10 @@ export default function InstallPrompt() {
     }
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-  }, []);
+  }, [dismissKey]);
 
   function dismiss() {
-    localStorage.setItem(DISMISS_KEY, "1");
+    localStorage.setItem(dismissKey, "1");
     setPlatform(null);
   }
 
@@ -51,7 +54,7 @@ export default function InstallPrompt() {
     if (!deferredPrompt?.prompt) return;
     deferredPrompt.prompt();
     await deferredPrompt.userChoice;
-    localStorage.setItem(DISMISS_KEY, "1");
+    localStorage.setItem(dismissKey, "1");
     setPlatform(null);
   }
 
@@ -75,7 +78,7 @@ export default function InstallPrompt() {
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold">Instale o app Lúmen</p>
+              <p className="text-sm font-semibold">Instale o app {nome}</p>
               {/* eslint-disable-next-line no-restricted-syntax -- Cartão bg-grafite-800, fixo nos dois temas. */}
               <p className="text-corpo text-white/70 mt-1">Acesso rápido direto da tela inicial do seu celular.</p>
               <button

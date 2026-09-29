@@ -46,6 +46,7 @@ export default function TelaSessao({
   largura = "sm",
   rodape,
   saida = true,
+  marcaHref = "/",
   children,
 }: {
   titulo: string;
@@ -54,6 +55,8 @@ export default function TelaSessao({
   rodape?: React.ReactNode;
   /** `false` só quando a tela tem uma saída própria mais correta — hoje, apenas /escolher. */
   saida?: boolean;
+  /** Destino da marca. `null` = sem link (telas de entrada dos PWAs: qualquer link para "/" sairia do escopo do app). */
+  marcaHref?: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -71,10 +74,17 @@ export default function TelaSessao({
         ) : null}
         {/* A marca também é link para "/", mas é a marca — quem procura a porta procura o botão
             acima, não o logotipo. */}
-        <Link href="/" className="flex items-center gap-2 mb-8 justify-center">
-          <LumenMark size={30} />
-          <span className="font-extrabold text-xl tracking-[.16em] text-tx">LÚMEN</span>
-        </Link>
+        {marcaHref ? (
+          <Link href={marcaHref} className="flex items-center gap-2 mb-8 justify-center">
+            <LumenMark size={30} />
+            <span className="font-extrabold text-xl tracking-[.16em] text-tx">LÚMEN</span>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2 mb-8 justify-center">
+            <LumenMark size={30} />
+            <span className="font-extrabold text-xl tracking-[.16em] text-tx">LÚMEN</span>
+          </div>
+        )}
         <h1 className="guia-sessao text-destaque font-extrabold text-tx">{titulo}</h1>
         <div className="bg-sf border-2 border-regua-forte rounded-[2px] p-6">
           {apoio ? <p className="text-corpo text-tx-2 mb-5">{apoio}</p> : null}
