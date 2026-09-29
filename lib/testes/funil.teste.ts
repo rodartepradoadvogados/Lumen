@@ -128,7 +128,7 @@ teste("a bolinha é FATO e não depende do estágio, em nenhuma das telas", () =
     // As duas telas do celular: a lista e a conversa. Se a bolinha existir só no computador, quem
     // atende do celular — que é a maioria fora do escritório — não vê quem está esperando.
     ["components/mobile/MobileAtendimentosCard.tsx", "q.esperandoHa !== null"],
-    ["app/m/atendimento/[id]/page.tsx", "ultimaEhDoCliente"],
+    ["app/m/(shell)/atendimento/[id]/page.tsx", "ultimaEhDoCliente"],
   ];
   for (const [caminho, marca] of telas) {
     const fonte = codigoDe(readFileSync(caminho, "utf8"));
@@ -144,7 +144,7 @@ teste('a bolinha usa o MESMO critério em toda tela: a última mensagem é do cl
   for (const caminho of [
     "app/(app)/atendimento/funil/page.tsx",
     "app/(app)/atendimento/[id]/page.tsx",
-    "app/m/atendimento/[id]/page.tsx",
+    "app/m/(shell)/atendimento/[id]/page.tsx",
   ]) {
     const fonte = codigoDe(readFileSync(caminho, "utf8"));
     verdade(/direction === "IN"/.test(fonte), `${caminho} usa outro critério para "esperando resposta"`);

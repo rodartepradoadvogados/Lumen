@@ -497,7 +497,7 @@ export default async function HomePage() {
                     <p className="mt-1 text-capa-mini text-tx-2">
                       {plan.maxOabs != null && `Até ${plan.maxOabs} advogado${plan.maxOabs > 1 ? "s" : ""}`}
                       {plan.maxOabs != null && plan.maxProcessos != null && " · "}
-                      {plan.maxProcessos != null && `até ${plan.maxProcessos.toLocaleString("pt-BR")} processos`}
+                      {plan.maxProcessos != null && `até ${new Intl.NumberFormat("pt-BR").format(plan.maxProcessos)} processos`}
                     </p>
                     <p className="mt-4 flex items-baseline gap-1.5">
                       {semPreco ? (

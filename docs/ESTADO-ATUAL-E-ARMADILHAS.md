@@ -584,3 +584,27 @@ Agora:
   com o motivo claro, mas a faixa só aparece no próximo refresh (a Central já atualiza ao vivo). Escritório sem `WhatsappConfig` e
   conversa sem nenhuma entrada conta como janela fechada no servidor (na tela `podeResponder` já esconde a caixa nesse caso).
 - Teste: `lib/testes/siteJanela24h.teste.ts`. NÃO provado: renderização real no navegador (tema Dia/Noite do site) e envio real pela Meta.
+
+## 23. Dez suítes vermelhas na main: dois tipos de causa, e um deles era regressão de verdade (29/09/2026)
+
+`npm run testar` chegou a 10 suítes falhando na main. Nenhuma foi afrouxada; a triagem foi esta:
+
+- **Teste velho (o código mudou de propósito):** as telas do celular moveram de `app/m/...` para `app/m/(shell)/...`
+  (PWAs lado a lado). Seis suítes liam o caminho antigo e davam `ENOENT`. O caminho foi atualizado; as verificações
+  (que a bolinha usa `direction === "IN"`, que `/m/mais` não importa `navSections`, que a proposta da Ana chega a uma
+  pessoa, que a lista exclui o já excluído) continuam exatamente as mesmas, agora lendo o arquivo certo.
+- **Regressão real, causada por merge:** o merge `f5d6101` ("resolve conflicts, keep my changes") da branch do PWA de
+  Atendimento **devolveu `app/(app)/atendimento/funil/page.tsx` e `app/(app)/atendimento/page.tsx` à versão anterior à
+  Triagem** — sumiram as três guias (Esperando / Funil / Recusados), a bolinha, a exclusão do lead recusado, o `isAdmin`
+  repassado ao quadro, a lista de estágios única (o estágio `AGUARDANDO` caía em "Novo") e, na lista, o título "Suas
+  demandas" para quem só vê os próprios, o botão de nova conversa e a data com fuso. As duas páginas foram restauradas da
+  versão anterior ao merge, mantendo o recorte novo (`whereDoAtendimento`, funil só no nível total).
+  `app/api/alerts/count/route.ts` (contador do app) também voltou ao formato antigo e chamava `getAlertsCount` sem os dois
+  recortes fail-closed (Atendimento e Peticionamento); passou a passar os mesmos que todo outro chamador.
+- **Data sem fuso:** `triagem/page.tsx` do app usava `formatDate(createdAt)` (instante) e passou a `dataDeBrasilia`. Em
+  `app/page.tsx` a trava do fuso casou com `Number.toLocaleString` (falso positivo da heurística); o código passou a usar
+  `Intl.NumberFormat("pt-BR")`, mesmo resultado, sem mexer na trava.
+
+**Lição:** depois de resolver conflito de merge em favor de "a minha branch", rode `npm run testar` antes de mergear e
+olhe o diff do MERGE contra a `main` (`git diff <main> <merge>`), não só o da branch: arquivos que a branch nunca
+pretendeu tocar podem voltar no tempo sem erro de compilação.

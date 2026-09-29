@@ -1,8 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, Card, Badge, formatDate, EmptyState } from "@/components/ui";
+import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import NewAttendanceModal from "@/components/NewAttendanceModal";
+import NovaConversaModal from "@/components/atendimento/NovaConversaModal";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { Filter } from "lucide-react";
@@ -29,9 +31,12 @@ export default async function AtendimentoPage({
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
-  // A REGRA DO DONO (lib/acessoAtendimento.ts): sem acesso, 404; só os próprios, só os repassados.
+  // Três níveis (ver lib/acessoAtendimento.ts): quem não tem nenhum não chega nem a saber que a
+  // tela existe; quem só vê os próprios recebe a mesma tela com a consulta recortada.
   if (!podeVerAtendimentos(viewer)) notFound();
-  const veTodo = veTodoOAtendimento(viewer);
+  // O RÓTULO TEM DE DIZER A VERDADE. Um advogado que abre a tela e lê "Atendimento · 3 registros"
+  // conclui que o escritório inteiro tem três leads. São três DELE.
+  const soOsMeus = !veTodoOAtendimento(viewer);
 
   const q = (searchParams.q || "").trim();
   // officeId/status entram aqui em baseFilters (não só no `where` abaixo) de propósito:
@@ -39,6 +44,10 @@ export default async function AtendimentoPage({
   // looseNameSearch.ts), então o conjunto candidato da busca por nome (tolerante a
   // acento/pontuação — mesma regra já usada na busca global e em Processos) já sai escopado.
   const baseFilters: Prisma.AttendanceWhereInput = {
+    // whereDoAtendimento = escritório + recorte por dono (lib/acessoAtendimento.ts). O recorte vai
+    // na CONSULTA, e não no render: filtrar depois de buscar já teria trazido para a memória do
+    // servidor a conversa que esta pessoa não pode ler, e bastaria um `console.log` de depuração
+    // para ela sair do outro lado.
     ...whereDoAtendimento(viewer),
     // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
     // na aba própria "Rascunhos" — não fazem parte da triagem normal.
@@ -83,16 +92,24 @@ export default async function AtendimentoPage({
   return (
     <div className="tela">
       <PageHeader
-        title="Atendimento"
-        subtitle="Triagem de novos contatos antes de virarem processos/casos"
+        title={soOsMeus ? "Suas demandas" : "Atendimento"}
+        subtitle={
+          soOsMeus
+            ? "Os atendimentos repassados a você. A lista completa do escritório é dos sócios e da recepção."
+            : "Triagem de novos contatos antes de virarem processos/casos"
+        }
         action={
           <div className="flex items-center gap-2">
-            {veTodo && <Link
-              href="/atendimento/funil"
-              className="inline-flex items-center gap-1.5 bg-sf text-tx-2 border border-regua hover:bg-sf-apoio text-sm font-semibold px-3.5 py-2 transition-colors"
-            >
-              <Filter size={16} /> Funil Comercial
-            </Link>}
+            {/* O funil é do nível total (404 para os demais): o atalho não aparece para quem não entra. */}
+            {!soOsMeus && (
+              <Link
+                href="/atendimento/funil"
+                className="inline-flex items-center gap-1.5 bg-sf text-tx-2 border border-regua hover:bg-sf-apoio text-sm font-semibold px-3.5 py-2 transition-colors"
+              >
+                <Filter size={16} /> Funil Comercial
+              </Link>
+            )}
+            <NovaConversaModal />
             <NewAttendanceModal
               users={users}
               assessorias={assessorias}
@@ -138,11 +155,7 @@ export default async function AtendimentoPage({
         ) : (
           <div className="divide-y divide-regua">
             {attendances.map((a) => (
-              <Link
-                key={a.id}
-                href={`/atendimento/${a.id}`}
-                className="atd-row flex items-center gap-4 px-5 py-3.5 hover:bg-sf-apoio transition-colors"
-              >
+              <Link key={a.id} href={`/atendimento/${a.id}`} className="atd-row flex items-center gap-4 px-5 py-3.5 hover:bg-sf-apoio transition-colors">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium text-tx">{a.clientName}</p>
@@ -153,9 +166,17 @@ export default async function AtendimentoPage({
                   <p className="text-xs text-tx-3 mt-0.5">{a.subject}</p>
                 </div>
                 <div className="meta text-right shrink-0">
-                  <p className="text-xs text-tx-3">{formatDate(a.createdAt)}</p>
+                  {/* createdAt é instante — formatDate() lia sem fuso e virava um dia errado
+                      perto da meia-noite. */}
+                  <p className="text-xs text-tx-3">{dataDeBrasilia(a.createdAt)}</p>
                   {a.responsible && <p className="text-xs text-tx-3 mt-0.5">{a.responsible.name}</p>}
                 </div>
+                {/* SEM LIXEIRA AQUI, DE PROPÓSITO (pedido do dono): "perder o cliente" (Estágio
+                    PERDIDO, com motivo obrigatório) e "arquivar" já cobrem todo desfecho possível
+                    de um atendimento, e os dois preservam a conversa. Excluir apagava a única
+                    cópia das mensagens trocadas com o lead — risco que nenhum dos dois desfechos
+                    tem, e que aqui não existia ganho nenhum para compensar. Ver
+                    lib/actions/deletion.ts, de onde o ramo ATTENDANCE saiu junto. */}
               </Link>
             ))}
           </div>

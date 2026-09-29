@@ -209,11 +209,11 @@ teste("o texto explica a diferença entre o alternador desta tela e o do Peticio
 
 teste("app/m não importa lib/navSections — a mudança de menu do desktop não pode vazar para o app de celular", () => {
   const arquivosDoApp = [
-    "app/m/page.tsx",
-    "app/m/mais/page.tsx",
-    "app/m/atendimento/page.tsx",
-    "app/m/atendimento/[id]/page.tsx",
-    "app/m/atendimento/novo/page.tsx",
+    "app/m/(shell)/page.tsx",
+    "app/m/(shell)/mais/page.tsx",
+    "app/m/(shell)/atendimento/page.tsx",
+    "app/m/(shell)/atendimento/[id]/page.tsx",
+    "app/m/(shell)/atendimento/novo/page.tsx",
   ];
   for (const rel of arquivosDoApp) {
     const t = readFileSync(join(RAIZ, rel), "utf8");
@@ -222,8 +222,8 @@ teste("app/m não importa lib/navSections — a mudança de menu do desktop não
 });
 
 teste("as rotas de atendimento do app de celular continuam apontando para /m/atendimento, sem mudança", () => {
-  const maisPage = readFileSync(join(RAIZ, "app", "m", "mais", "page.tsx"), "utf8");
-  verdade(maisPage.includes('"/m/atendimento"'), "app/m/mais/page.tsx deixou de apontar para /m/atendimento — o item de navegação do celular mudou de destino");
+  const maisPage = readFileSync(join(RAIZ, "app", "m", "(shell)", "mais", "page.tsx"), "utf8");
+  verdade(maisPage.includes('"/m/atendimento"'), "app/m/(shell)/mais/page.tsx deixou de apontar para /m/atendimento — o item de navegação do celular mudou de destino");
 });
 
 resumo("Central de Atendimento — etapa 1 (casca e navegação)");

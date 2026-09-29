@@ -3,7 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { whereDoAtendimento, veTodoOAtendimento } from "@/lib/acessoAtendimento";
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
-import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
+import { Card, Badge, EmptyState } from "@/components/ui";
+import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import { Plus, Search } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
@@ -106,7 +107,7 @@ export default async function TriagemAppPage({ searchParams }: { searchParams: {
                   </div>
                 </div>
                 <div className="meta text-right shrink-0">
-                  <p className="text-corpo text-tx-2">{formatDate(a.createdAt)}</p>
+                  <p className="text-corpo text-tx-2">{dataDeBrasilia(a.createdAt)}</p>
                   {a.responsible && <p className="text-corpo text-tx-2 mt-0.5">{a.responsible.name}</p>}
                 </div>
               </Link>

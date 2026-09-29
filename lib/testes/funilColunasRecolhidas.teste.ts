@@ -61,12 +61,13 @@ teste("o componente: armazenamento em try/catch, aria-expanded, alvo de 44 px, p
 });
 
 teste("as três telas do funil usam as colunas recolhíveis (nenhuma volta a abrir tudo)", () => {
-  for (const f of ["app/(app)/atendimento/funil/page.tsx", "app/atendimento-app/(shell)/funil/page.tsx"]) {
-    const c = codigoDe(le(f));
-    verdade(c.includes("<ColunasRecolhiveis") && c.includes("<ColunaRecolhivel"), `${f}: usa as colunas recolhíveis`);
-    verdade(!c.includes('<h3 className="font-semibold text-sm text-tx">'), `${f}: cabeçalho fixo antigo`);
-  }
-  verdade(codigoDe(le("app/(app)/atendimento/funil/page.tsx")).includes("stageOptions as STAGES"), "a página do site tem as SEIS colunas (Aguardando incluída)");
+  // O funil do site usa o MESMO quadro da Central (QuadroDoFunil, que já tem as colunas recolhíveis e as SEIS
+  // colunas de lib/funil.ts); o do aplicativo tem página própria.
+  const site = codigoDe(le("app/(app)/atendimento/funil/page.tsx"));
+  verdade(site.includes("<QuadroDoFunil"), "a página do site usa o quadro da Central (recolhível, com Aguardando)");
+  const app = codigoDe(le("app/atendimento-app/(shell)/funil/page.tsx"));
+  verdade(app.includes("<ColunasRecolhiveis") && app.includes("<ColunaRecolhivel"), "o funil do aplicativo usa as colunas recolhíveis");
+  verdade(!app.includes('<h3 className="font-semibold text-sm text-tx">'), "o funil do aplicativo: cabeçalho fixo antigo");
   const q = codigoDe(le("components/atendimento/QuadroDoFunil.tsx"));
   verdade(q.includes('useColunasRecolhidas("central", stageOptions)'), "o quadro da Central");
   verdade(q.includes("<BotaoDeTodas") && q.includes("<TituloDaColuna"), "botão de todas e título com botão");
