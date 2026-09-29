@@ -64,7 +64,12 @@ export default function PageSectionTabs({
   }
 
   return (
-    <div className="secao-abas h-10 shrink-0 flex items-center gap-4 px-4 md:px-6 border-b-2 border-regua-forte bg-sf overflow-x-auto scrollbar-thin">
+    // <nav> com nome: era um <div> — leitor de tela não anunciava a barra como navegação, e a aba
+    // ativa só se distinguia pela cor/peso (sem aria-current).
+    <nav
+      aria-label="Seções"
+      className="secao-abas h-10 shrink-0 flex items-center gap-4 px-4 md:px-6 border-b-2 border-regua-forte bg-sf overflow-x-auto scrollbar-thin"
+    >
       {items.map((item) => {
         // O Peticionamento (e qualquer item futuro marcado assim) nunca passa pelo mecanismo de
         // clique único/duplo-clique acima: é uma <a target="_blank"> de verdade, aba NOVA do
@@ -89,15 +94,16 @@ export default function PageSectionTabs({
             key={item.href}
             href={item.href}
             onClick={(e) => handleClick(e, item.href, item.label)}
+            aria-current={active ? "page" : undefined}
             className={clsx(
               "shrink-0 h-full flex items-center text-sm border-b-2 -mb-0.5 transition-colors",
-              active ? "font-extrabold text-tx border-marca-tx" : "font-normal text-tx-2 border-transparent hover:text-tx"
+              active ? "font-bold text-tx border-tx" : "font-normal text-tx-2 border-transparent hover:text-tx"
             )}
           >
             {item.label}
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

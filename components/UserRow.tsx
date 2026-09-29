@@ -251,7 +251,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
               <button
                 type="button"
                 onClick={handleCopyLink}
-                data-tip="Copiar"
+                data-tip="Copiar" aria-label="Copiar"
                 className="p-2 text-tx-2 hover:text-tx hover:bg-sf-apoio shrink-0 rounded-md"
               >
                 {linkCopied ? <Check size={14} className="text-concluido" /> : <Copy size={14} />}
@@ -319,12 +319,16 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
   }
 
   return (
-    <div className="flex items-center gap-3 px-5 py-3 relative">
-      {/* eslint-disable-next-line no-restricted-syntax -- Círculo com a cor escolhida pelo usuário (style inline). */}
-      <span className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: user.color }}>
+    // flex-wrap: a linha tem até 8 botões de 44px no celular (a regra de toque de app/globals.css) e
+    // estourava o <main> em 124px; agora os botões quebram para a linha de baixo.
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3 relative">
+      {/* Avatar NEUTRO: a cor cadastrada da pessoa não é categoria do produto (DESIGN.md §2.1) e as
+          iniciais em `text-white` sobre ela mediam de 2,07 a 3,6:1. A cor continua editável e é
+          usada onde ela significa algo (agenda). */}
+      <span aria-hidden="true" className="h-8 w-8 rounded-full flex items-center justify-center bg-sf-apoio border border-regua-forte text-tx text-xs font-bold shrink-0">
         {user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
       </span>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-[12rem]">
         <p className="text-sm font-medium text-tx">{user.name}</p>
         <p className="text-xs text-tx-2 truncate">
           {user.role} {user.oab && `· ${user.oab}`} · {user.email}
@@ -344,7 +348,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             setLinkError(null);
             setLinkOpen(true);
           }}
-          data-tip="Gerar link de redefinição de senha"
+          data-tip="Gerar link de redefinição de senha" aria-label="Gerar link de redefinição de senha"
           className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors rounded-md"
         >
           <Link2 size={14} />
@@ -357,7 +361,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           settings.ts) já permitia isso sem restrição — só a UI escondia o botão. Sem isso, não
           havia NENHUM jeito de mudar o e-mail de login de um sócio pelo produto. */}
       {canManage && (
-        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
+        <button onClick={() => setEditing(true)} data-tip="Editar" aria-label="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
           <Pencil size={14} />
         </button>
       )}
@@ -371,7 +375,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
         <button
           onClick={handleToggleTransferencia}
           disabled={pending}
-          data-tip={user.recebeTransferencia ? "Tirar do rodízio de leads do WhatsApp" : "Incluir no rodízio de leads do WhatsApp"}
+          data-tip={user.recebeTransferencia ? "Tirar do rodízio de leads do WhatsApp" : "Incluir no rodízio de leads do WhatsApp"} aria-label={user.recebeTransferencia ? "Tirar do rodízio de leads do WhatsApp" : "Incluir no rodízio de leads do WhatsApp"}
           className={`p-1.5 transition-colors disabled:opacity-40 rounded-md ${
             user.recebeTransferencia
               ? "text-marca-tx hover:text-aviso hover:bg-aviso-bg"
@@ -389,7 +393,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
               setCredError(null);
               setCredOpen(true);
             }}
-            data-tip={user.username ? "Redefinir senha" : "Definir acesso"}
+            data-tip={user.username ? "Redefinir senha" : "Definir acesso"} aria-label={user.username ? "Redefinir senha" : "Definir acesso"}
             className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors rounded-md"
           >
             <KeyRound size={14} />
@@ -397,7 +401,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           <button
             onClick={handleToggleFinanceAccess}
             disabled={pending}
-            data-tip={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
+            data-tip={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"} aria-label={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
             className={`p-1.5 transition-colors disabled:opacity-40 ${
               user.financeAccess
                 ? "text-concluido hover:text-atencao hover:bg-grave-bg"
@@ -409,12 +413,12 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           <button
             onClick={handleToggleActive}
             disabled={pending}
-            data-tip={user.active ? "Inativar" : "Reativar"}
+            data-tip={user.active ? "Inativar" : "Reativar"} aria-label={user.active ? "Inativar" : "Reativar"}
             className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 rounded-md"
           >
             <Power size={14} />
           </button>
-          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-grave-bg transition-colors disabled:opacity-40 rounded-md">
+          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" aria-label="Excluir definitivamente" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-grave-bg transition-colors disabled:opacity-40 rounded-md">
             <Trash2 size={14} />
           </button>
         </div>

@@ -71,7 +71,7 @@ export default function ChipsFiltro({
                 "text-xs font-medium px-2.5 py-1 rounded-full border transition-colors",
                 on && o.vazio && "bg-atencao text-rotulo border-transparent font-semibold",
                 on && !o.vazio && "bg-acao text-acao-tx border-transparent font-semibold",
-                !on && o.vazio && "border-atencao text-atencao bg-sf italic hover:bg-sf-apoio",
+                !on && o.vazio && "border-marca-tx text-marca-tx bg-sf italic hover:bg-sf-apoio",
                 !on && !o.vazio && "border-regua-forte bg-sf text-tx-2 hover:bg-sf-apoio"
               )}
             >

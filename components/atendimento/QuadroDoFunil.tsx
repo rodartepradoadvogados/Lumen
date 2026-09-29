@@ -132,7 +132,7 @@ export default function QuadroDoFunil({
     <div>
       {erro && <p className="mb-3 text-etiqueta font-medium text-urgente">{erro}</p>}
 
-      <div className="flex items-start gap-4 overflow-x-auto pb-4">
+      <div className="flex items-start gap-4 overflow-x-auto pb-4 quadro-empilha">
         {stageOptions.map((stage) => {
           const doEstagio = cards.filter((c) => estagioDe(c) === stage);
           // Indicador, não registro (ver o comentário de topo e lib/valorEstimado.ts): a soma da

@@ -6,6 +6,7 @@ import UserRow from "@/components/UserRow";
 import { createUser } from "@/lib/actions/settings";
 import { getCurrentUser } from "@/lib/currentUser";
 import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
+import { contar } from "@/lib/plural";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export default async function EquipePage({ searchParams }: { searchParams: { q?:
       <Link href="/contatos" className="text-xs font-semibold text-tx-3 hover:text-tx">
         ← Contatos
       </Link>
-      <PageHeader title="Equipe" subtitle={`${users.length} membro(s)`} />
+      <PageHeader title="Equipe" subtitle={contar(users.length, "membro")} />
 
       {q && <FiltradoPorNome q={q} href="/contatos/equipe" total={users.length} />}
 

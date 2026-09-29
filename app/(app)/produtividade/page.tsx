@@ -3,12 +3,16 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getUserHistory } from "@/lib/timesheet";
+import { contar } from "@/lib/plural";
+import { VBars } from "@/components/gestao/Barras";
 import { PageHeader, Card, Badge, EmptyState, formatDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
 import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
+
+const MES_ABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -144,7 +148,11 @@ export default async function ProdutividadePage({
 
   const responsibleId = searchParams.responsibleId || undefined;
 
-  const [tasks, users] = await Promise.all([
+  // Total de pontos da equipe nos 6 meses que terminam no mês visto — o gráfico que morava em
+  // Relatórios > Produtividade. Mesma conta do histórico abaixo (tarefa concluída, com
+  // responsável, `Task.points`), então o mês visto bate com a soma da lista.
+  const serieInicio = new Date(year, month - 5, 1);
+  const [tasks, users, serieTarefas, pontosPorTipo] = await Promise.all([
     prisma.task.findMany({
       where: {
         status: "CONCLUIDO",
@@ -159,7 +167,24 @@ export default async function ProdutividadePage({
       orderBy: { completedAt: "desc" },
     }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.task.findMany({
+      where: { status: "CONCLUIDO", completedAt: { gte: serieInicio, lt: end }, responsibleId: { not: null }, officeId: viewer.officeId },
+      select: { completedAt: true, points: true },
+    }),
+    prisma.taskTypePoints.findMany({ where: { officeId: viewer.officeId } }),
   ]);
+
+  const serie = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(year, month - 5 + i, 1);
+    const value = serieTarefas
+      .filter((t) => t.completedAt && t.completedAt.getFullYear() === d.getFullYear() && t.completedAt.getMonth() === d.getMonth())
+      .reduce((soma, t) => soma + t.points, 0);
+    return { label: `${MES_ABBR[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`, display: String(value), value };
+  });
+  const totalDoMes = tasks.reduce((soma, t) => soma + t.points, 0);
+  const tabelaPontos = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"].map(
+    (tipo) => `${taskTypeLabels[tipo]} ${pontosPorTipo.find((p) => p.type === tipo)?.points ?? 10}`
+  );
 
   type Row = {
     user: { id: string; name: string; color: string };
@@ -205,7 +230,7 @@ export default async function ProdutividadePage({
             >
               <ChevronLeft size={16} />
             </Link>
-            <span className="text-sm font-semibold text-tx min-w-[150px] text-center capitalize">{label}</span>
+            <span className="text-sm font-semibold text-tx min-w-[150px] text-center">{label}</span>
             <Link
               href={`/produtividade?mes=${nextParam}${responsibleId ? `&responsibleId=${responsibleId}` : ""}`}
               className="h-8 w-8 flex items-center justify-center bg-sf border border-regua text-tx-2 hover:bg-sf-apoio"
@@ -253,6 +278,24 @@ export default async function ProdutividadePage({
 
       <Card>
         <div className="px-5 py-4 border-b border-regua">
+          <h3 className="font-bold text-tx text-base">Pontos da equipe por mês</h3>
+          <p className="text-xs text-tx-2 mt-0.5">Últimos 6 meses, até {label}. Neste mês: {totalDoMes} pts.</p>
+        </div>
+        <div className="p-5">
+          <VBars items={serie} color="var(--faixa-ardosia)" />
+        </div>
+        {/* "Como se calcula": a tela mostrava pontos sem dizer o que são (consolidado, R4). A tabela
+            vem de TaskTypePoints, a mesma de Configurações > Fluxos, não escrita à mão. */}
+        <div className="px-5 py-3 border-t border-regua text-xs text-tx-2">
+          <p>
+            <span className="font-semibold text-tx">Como se calcula.</span> Cada tarefa concluída vale os pontos do seu tipo (
+            {tabelaPontos.join(" · ")}), definidos quando a tarefa é criada, e conta para o responsável. Tarefas de fluxos podem ter pontuação própria.
+          </p>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="px-5 py-4 border-b border-regua">
           <h3 className="font-bold text-tx text-base">Histórico</h3>
           <p className="text-xs text-tx-2 mt-0.5">Clique em um nome para ver as tarefas concluídas no mês</p>
         </div>
@@ -263,14 +306,16 @@ export default async function ProdutividadePage({
             {rows.map((row) => (
               <details key={row.user.id} className="group">
                 <summary className="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-sf-apoio list-none">
+                  {/* Avatar NEUTRO: a cor cadastrada da pessoa não é categoria do produto (cor é
+                      risco ou seção, DESIGN.md §2.1) e as iniciais mediam 2,07 a 3,6:1 sobre ela. */}
                   <span
-                    className="h-7 w-7 rounded-full flex items-center justify-center text-rotulo text-etiqueta font-bold shrink-0"
-                    style={{ backgroundColor: row.user.color }}
+                    aria-hidden="true"
+                    className="h-7 w-7 rounded-full flex items-center justify-center bg-sf-apoio border border-regua-forte text-tx text-etiqueta font-bold shrink-0"
                   >
                     {initials(row.user.name)}
                   </span>
                   <p className="text-sm font-medium text-tx flex-1">{row.user.name}</p>
-                  <span className="text-xs text-tx-2">{row.count} tarefa(s)</span>
+                  <span className="text-xs text-tx-2">{contar(row.count, "tarefa")}</span>
                   <span className="text-xs font-semibold text-tx">{row.points} pts</span>
                   <ChevronRight size={14} className="text-tx-3 transition-transform group-open:rotate-90" />
                 </summary>

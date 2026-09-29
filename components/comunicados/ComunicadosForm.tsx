@@ -64,19 +64,31 @@ export default function ComunicadosForm({ initial }: { initial: ComunicadoPrefer
       {/* Bloco 1 — Resumo diário */}
       <div className="space-y-3">
         <div className="flex items-center gap-3">
+          {/* Interruptor. O botão é só a área de toque (44x44, exigência do @media mobile de
+              app/globals.css, que força min-height/min-width de 44px em TODO <button>); o trilho
+              de 44x24 e o botão deslizante são filhos, posicionados dentro do trilho. Antes o
+              botão deslizante era `absolute` SEM `left-0`, dependia da posição estática, e no
+              celular o min-height esticava o trilho para 44px e o botão saía do lugar — a bolinha
+              aparecia solta, cobrindo o texto ao lado. */}
           <button
             type="button"
             role="switch"
             aria-checked={state.digestOn}
+            aria-label="Resumo diário"
             onClick={() => {
               setSaved(false);
               setState((s) => ({ ...s, digestOn: !s.digestOn }));
             }}
-            className={`relative h-7 w-[52px] shrink-0 transition-colors ${state.digestOn ? "bg-acao" : "bg-regua-forte"}`}
+            className="h-11 w-11 shrink-0 flex items-center justify-center"
           >
             <span
-              className={`absolute top-[3px] h-[22px] w-[22px] bg-white transition-transform ${state.digestOn ? "translate-x-[27px]" : "translate-x-[3px]"}`}
-            />
+              aria-hidden="true"
+              className={`relative block h-6 w-11 transition-colors ${state.digestOn ? "bg-acao" : "bg-regua-forte"}`}
+            >
+              <span
+                className={`absolute left-0 top-[3px] block h-[18px] w-[18px] bg-white transition-transform ${state.digestOn ? "translate-x-[23px]" : "translate-x-[3px]"}`}
+              />
+            </span>
           </button>
           <p className="text-sm font-semibold text-tx">Resumo diário {state.digestOn ? "ativo" : "inativo"}</p>
         </div>

@@ -9,6 +9,7 @@ import DeleteButton from "@/components/DeleteButton";
 import { deleteSupplier } from "@/lib/actions/suppliers";
 import FiltradoPorNome from "@/components/contatos/FiltradoPorNome";
 import IniciarConversaContatoButton from "@/components/atendimento/IniciarConversaContatoButton";
+import { contar } from "@/lib/plural";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function FornecedoresPage({ searchParams }: { searchParams:
       <Link href="/contatos" className="text-xs font-semibold text-tx-3 hover:text-tx">
         ← Contatos
       </Link>
-      <PageHeader title="Fornecedores" subtitle={`${suppliers.length} registro(s)`} action={<NewSupplierModal />} />
+      <PageHeader title="Fornecedores" subtitle={contar(suppliers.length, "registro")} action={<NewSupplierModal />} />
 
       {q && <FiltradoPorNome q={q} href="/contatos/fornecedores" total={suppliers.length} />}
 

@@ -821,9 +821,13 @@ html:has(.site-publico) {
     border-radius: 2px;
     white-space: nowrap;
     box-shadow: var(--sombra-menu);
-    opacity: 0;
+    /* `display: none` até o hover/foco, e NÃO só `opacity: 0`: um pseudo-elemento invisível
+       continua contando na largura rolável do <main>. A dica de um botão no canto direito (ex.:
+       "Excluir definitivamente" na linha da Equipe, ~200px centrados no botão) empurrava o
+       scrollWidth 65px além da tela — a barra de rolagem horizontal que o consolidado da Gestão
+       registrou como R17. */
+    display: none;
     pointer-events: none;
-    transition: opacity 0.15s ease-out;
     z-index: 60;
   }
   [data-tip]::before {
@@ -834,16 +838,20 @@ html:has(.site-publico) {
     transform: translateX(-50%);
     border: 4px solid transparent;
     border-top-color: var(--grafite-800);
-    opacity: 0;
+    display: none;
     pointer-events: none;
-    transition: opacity 0.15s ease-out;
     z-index: 60;
   }
   [data-tip]:hover::after,
   [data-tip]:focus-visible::after,
   [data-tip]:hover::before,
   [data-tip]:focus-visible::before {
-    opacity: 1;
+    display: block;
+    animation: dicaEntra 0.15s ease-out;
+  }
+  @keyframes dicaEntra {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   /* Variante opt-in: inverte a dica pra abrir PRA BAIXO em vez de pra cima. Use apenas em
@@ -907,15 +915,26 @@ html:has(.site-publico) {
   --tinta-2: #b8bbbf;
   --tinta-3: #93969d;
 
+  /* Anel de foco NEUTRO. O global `:focus-visible` usa --acao (bordô #8a2f42), que sobre a ficha
+     escura mede 1,88:1 (mínimo WCAG 2.2 para indicador de foco: 3:1). A tinta mede 12,9:1. */
+  --foco: #e9ebef;
+  /* Borda de campo: --linha-forte mede 1,86:1 contra a ficha no Noite (1.4.11 pede 3:1). */
+  --campo-borda: #6b7684;
+
   /* --- faixa de secao: tres hues, nenhum vermelho e nenhum roxo (ver a nota no :root). --- */
   --faixa-ardosia: #4a93b5;
   --faixa-oliva: #699848;
   --faixa-ocre: #b4821a;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
-  --risco-vencido: #c98b92;
-  --risco-hoje: #bd7e00;
-  --risco-em-dia: #299d78;
+  /* Contraste (Gestão, PR gestao-correcoes): estes três são usados como TEXTO de selo sobre o
+     próprio risco a 14% (bg-urgente-bg etc.) e medem, sobre esse selo: vencido #c98b92 4,67:1,
+     hoje #bd7e00 3,78:1, em dia #299d78 3,76:1 — os dois últimos reprovam AA (4,5:1). Clareados
+     no mesmo matiz: #ee8891 5,27:1, #e0a020 5,67:1, #4fbf98 5,61:1 (e 6,3 a 6,8:1 sobre a ficha).
+     Só no Noite: no Dia os três já medem 6,9 / 4,9 / 5,4:1. */
+  --risco-vencido: #ee8891;
+  --risco-hoje: #e0a020;
+  --risco-em-dia: #4fbf98;
 
   /* --- rotulo sobre faixa PREENCHIDA: troca com o tema. No claro as faixas sao escuras e
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
@@ -1029,6 +1048,10 @@ html:has(.site-publico) {
   --tinta: #14161a;
   --tinta-2: #3d4045;
   --tinta-3: #585c63;
+
+  /* Foco e borda de campo do Dia — ver a nota no .portal-shell acima. 18,1:1 e 3,47:1. */
+  --foco: #14161a;
+  --campo-borda: #7f8b99;
 
   /* --- faixa de secao: tres hues, nenhum vermelho e nenhum roxo (ver a nota no :root). --- */
   --faixa-ardosia: #2f5d73;
@@ -1755,7 +1778,8 @@ html:has(.site-publico) {
 .profile-input,
 .settle-input {
   width: 100%;
-  border: 1px solid var(--linha-forte);
+  /* --campo-borda só existe nas cascas do portal (ver .portal-shell); fora dele vale o de sempre. */
+  border: 1px solid var(--campo-borda, var(--linha-forte));
   border-radius: 2px;
   padding: 0.5rem 0.7rem;
   font-size: 0.9375rem;
@@ -1855,6 +1879,10 @@ html:has(.site-publico) {
 ::selection { background: var(--selecao); color: var(--tinta); }
 html { caret-color: var(--acao); accent-color: var(--acao); }
 :focus-visible { outline: 2px solid var(--acao); outline-offset: 2px; border-radius: 2px; }
+/* No portal o anel é neutro (--foco): o bordô mede ~1,9:1 no Noite. Especificidade maior que a
+   das regras de campo acima, então vale também para elas. */
+.portal-shell :focus-visible { outline-color: var(--foco); }
+.portal-shell :is(.campo, .fin-input, .cfg-input, .fp-input, .pr-input, .doc-input, .lic-input, .acf-input, .at-input, .cl-input, .cqm-input, .ct-input, .cvt-input, .gd-input, .lc-input, .pj-input, .pm-input, .pmm-input, .profile-input, .settle-input):focus-visible { outline-color: var(--foco); border-color: var(--foco); }
 a { text-underline-offset: 0.18em; text-decoration-thickness: from-font; }
 /* Todo digito que entra em coluna alinha. O produto e cheio de valor, data e prazo. */
 table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums; }
@@ -2167,16 +2195,19 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     padding: 0.25rem 0.75rem;
   }
 
-  /* Funil — colunas viram cartões empilhados. Escopado: esta regra casava com QUALQUER faixa
-     "flex gap-4 overflow-x-auto", inclusive a das abas de seção (.secao-abas, components/
-     PageSectionTabs.tsx) — no celular as abas empilhavam em coluna e cobriam o título da tela. */
-  .flex.gap-4.overflow-x-auto:not(.secao-abas),
-  .flex.gap-4.overflow-x-auto:not(.secao-abas) > div {
+  /* Quadros de colunas (Kanban, funil do app) — colunas viram cartões empilhados.
+     ANTES o seletor era `.flex.gap-4.overflow-x-auto`, que casa com QUALQUER faixa horizontal
+     rolável de gap 16px — inclusive a barra de abas de seção (components/PageSectionTabs.tsx) e a
+     barra de abas do Atendimento. No celular elas empilhavam em coluna, cada aba 52px abaixo da
+     outra, e sobrepunham o título da página (Gestão, Financeiro, Jurídico, Publicações...).
+     Agora só quem se declara quadro (`quadro-empilha`) empilha. */
+  .quadro-empilha,
+  .quadro-empilha > div {
     flex-direction: column !important;
     overflow-x: visible !important;
   }
 
-  .flex.gap-4.overflow-x-auto:not(.secao-abas) > div {
+  .quadro-empilha > div {
     width: 100% !important;
     min-width: 0 !important;
   }
@@ -2207,9 +2238,11 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     margin-bottom: 1rem;
   }
 
-  /* Filtros — scroll horizontal se necessário. O formulário de filtros de /publicacoes
-     (.pub-filtros) fica de fora: ele precisa QUEBRAR linha, senão media 760px numa tela de 390. */
-  .flex.gap-2.flex-wrap:not(.pub-filtros),
+  /* Filtros do Atendimento — scroll horizontal em vez de quebrar linha.
+     ANTES o seletor incluía `.flex.gap-2.flex-wrap`, que casa com QUALQUER linha de controles de
+     gap 8px que quebra linha — formulários de Publicações, Relatórios e Configurações. No celular
+     o `nowrap` empurrava os botões (Salvar, Filtrar, Adicionar) para fora da tela, escondidos
+     numa rolagem que ninguém percebe. Só quem se declara filtro (`.atd-filters`) rola. */
   .atd-filters {
     overflow-x: auto;
     flex-wrap: nowrap;
@@ -2217,7 +2250,6 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     padding-bottom: 0.25rem;
     scrollbar-width: none;
   }
-  .flex.gap-2.flex-wrap:not(.pub-filtros)::-webkit-scrollbar,
   .atd-filters::-webkit-scrollbar {
     display: none;
   }
@@ -2278,7 +2310,7 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
     width: 100%;
   }
 
-  .flex.gap-4.overflow-x-auto:not(.secao-abas) > div {
+  .quadro-empilha > div {
     width: 100% !important;
     min-width: 0 !important;
   }
