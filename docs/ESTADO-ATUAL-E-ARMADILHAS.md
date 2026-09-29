@@ -207,3 +207,29 @@ em computador. Defeitos que isto corrigiu e que voltam se for desfeito:
   redirecionamento é recusado pelo navegador).
 - O PWA do site (escopo "/") engloba os outros dois; em celular/tablet o layout do site herda
   o manifesto mobile (`lib/pwaManifestoDoSite.ts`).
+
+---
+
+## 12. Publicações: o prazo vem do TEXTO, nunca de um número fixo nem de um campo pré-preenchido
+
+A tela `/publicacoes` somava 15 dias úteis a qualquer publicação (`lib/prazoSugerido.ts`, removido)
+e pré-preenchia o "Prazo fatal" do modal com essa data. No banco de demonstração, 16 de 19
+publicações que traziam o prazo escrito no texto mostravam data errada. O que vale agora, e o que
+volta a quebrar se for desfeito:
+
+- **`lib/prazoExtraido.ts`** extrai o prazo do teor (função pura, com testes de regressão sobre os
+  textos do seed em `lib/testes/prazoExtraido.teste.ts`). Toda extração traz **confiança (0 a 3) com
+  o motivo em texto** e o **trecho exato de origem**. Sem número no texto, **não há data**: "prazo não
+  identificado". Algarismo diferente do extenso ("5 (dez) dias") é conflito e também não sugere data.
+- **Nenhum caminho pré-preenche `Task.dueDate`.** O campo "Prazo fatal" abre vazio; a sugestão é o
+  botão "Usar sugestão" (`DelegateTaskForm`, `dueSuggestion`) e o botão de confirmar fica desabilitado
+  até haver data. O tipo `DelegateTaskInitial` não tem mais `dueDate` de propósito.
+- **"Vencido" só é afirmado com confiança média ou alta.** Com confiança baixa a tela diz
+  "possivelmente vencido, confira". A fila é ordenada por urgência (vencido, hoje, até 3 dias úteis,
+  até 15, depois, prazo não identificado, só ciência) **antes** do corte de 150 grupos.
+- **Arquivar publicação que cita prazo, sem prazo registrado, pede confirmação.**
+- **CSS global do celular:** as regras `.flex.gap-4.overflow-x-auto` e `.flex.gap-2.flex-wrap`
+  casavam com qualquer tela e empilhavam as abas de seção sobre o título. Agora excluem `.secao-abas`
+  e `.pub-filtros`. Ao mexer nelas, confira o funil e as abas em 390 px.
+- Os filtros de pessoa ("Citado", "Responsável") vêm dos dados do escritório; nenhum nome de advogado
+  fica escrito no código, e parâmetro inexistente avisa em vez de ser descartado em silêncio.

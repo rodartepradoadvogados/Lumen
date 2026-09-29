@@ -64,7 +64,7 @@ export default function PageSectionTabs({
   }
 
   return (
-    <div className="h-10 shrink-0 flex items-center gap-4 px-4 md:px-6 border-b-2 border-regua-forte bg-sf overflow-x-auto scrollbar-thin">
+    <div className="secao-abas h-10 shrink-0 flex items-center gap-4 px-4 md:px-6 border-b-2 border-regua-forte bg-sf overflow-x-auto scrollbar-thin">
       {items.map((item) => {
         // O Peticionamento (e qualquer item futuro marcado assim) nunca passa pelo mecanismo de
         // clique único/duplo-clique acima: é uma <a target="_blank"> de verdade, aba NOVA do
