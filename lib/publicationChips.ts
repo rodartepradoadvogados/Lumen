@@ -11,7 +11,7 @@
 // o desfecho de "Arquivar" na barra de ações do teor — os outros dois valores (PENDENTE/
 // EM_ANALISE) continuam existindo e não têm chip próprio aqui, só o seletor que já existe na
 // tela do Processo.
-export type PublicationChipKey = "nao-triadas" | "minhas" | "sem-processo" | "arquivadas";
+export type PublicationChipKey = "nao-triadas" | "a-tratar" | "minhas" | "sem-processo" | "arquivadas";
 
 export type ChipMatchable = {
   allRead: boolean;
@@ -26,10 +26,14 @@ export function matchesPublicationChip(group: ChipMatchable, chip: PublicationCh
   if (chip === "minhas") return group.primary.assignedToId === viewerId;
   if (chip === "sem-processo") return !group.primary.case;
   if (chip === "arquivadas") return group.primary.triageStatus === "TRATADA";
+  // "A tratar": status do ESCRITÓRIO (não a leitura de cada pessoa) — tudo que ainda não foi
+  // tratado, tenha alguém visto ou não. É onde reaparece o que "Não triadas" (leitura pessoal)
+  // esconde: publicação vista e nunca tratada.
+  if (chip === "a-tratar") return group.primary.triageStatus !== "TRATADA";
   return !group.allRead; // nao-triadas (padrão) — mesmo critério da antiga aba "Não lidas"
 }
 
 export function parsePublicationChip(value: string | undefined): PublicationChipKey {
-  if (value === "minhas" || value === "sem-processo" || value === "arquivadas") return value;
+  if (value === "a-tratar" || value === "minhas" || value === "sem-processo" || value === "arquivadas") return value;
   return "nao-triadas";
 }

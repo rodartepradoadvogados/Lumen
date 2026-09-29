@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { delegateTask, searchCasesForDelegation, searchAttendancesForDelegation } from "@/lib/actions/tasks";
+import { formatCalendarDate } from "@/components/ui";
 import { Check, ChevronLeft, ChevronRight, Search, UserPlus, Hourglass } from "lucide-react";
 
 type Option = { id: string; name: string };
@@ -53,12 +54,15 @@ export type DelegateTaskInitial = {
   // Pré-seleciona o tipo (ex.: atalhos "Gerar Prazo"/"Marcar Audiência" em PublicationRow —
   // ver AGENDA_TYPE_SHORTCUTS) — usuário ainda pode trocar no passo 2.
   type?: string;
-  // Pré-seleciona responsável e prazo — usado pela triagem por teclado de /publicacoes
+  // Pré-seleciona responsável (o prazo NUNCA é pré-selecionado, ver dueSuggestion) — usado pela triagem por teclado de /publicacoes
   // (documento 05: "Enter abre o modal de tarefa já preenchido"). Quando os três primeiros
   // passos já chegam decididos (responsável, tipo, vínculo), o formulário pula direto pro
   // passo 4 (revisão) em vez de forçar o usuário a clicar "Avançar" três vezes à toa.
   responsibleIds?: string[];
-  dueDate?: string;
+  // SUGESTÃO de prazo (nunca valor do campo): extraída do teor da publicação (lib/prazoExtraido.ts).
+  // O campo "Prazo fatal" sempre abre VAZIO; a sugestão aparece como botão "Usar sugestão" e só
+  // vira prazo com esse gesto do advogado. Um prazo processual errado é o pior erro possível.
+  dueSuggestion?: { date: string; basis: string };
 };
 
 // Prévia do prazo de segurança (24h antes do prazo fatal) exibida no passo 4 — mesma conta
@@ -123,7 +127,7 @@ export default function DelegateTaskForm({
     selectedLink: initial?.selectedLink ?? emptyState.selectedLink,
     title: initial?.title ?? emptyState.title,
     type: initial?.type ?? emptyState.type,
-    dueDate: initial?.dueDate ?? emptyState.dueDate,
+    dueDate: emptyState.dueDate,
   }));
   const [linkResults, setLinkResults] = useState<LinkHit[]>([]);
   const [searching, setSearching] = useState(false);
@@ -170,7 +174,7 @@ export default function DelegateTaskForm({
       selectedLink: initial?.selectedLink ?? emptyState.selectedLink,
       title: initial?.title ?? emptyState.title,
       type: initial?.type ?? emptyState.type,
-      dueDate: initial?.dueDate ?? emptyState.dueDate,
+      dueDate: emptyState.dueDate,
     });
     setLinkResults([]);
     setSearching(false);
@@ -440,13 +444,33 @@ export default function DelegateTaskForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-tx-2">Prazo fatal</label>
+              <label htmlFor="delegate-due-date" className="text-xs font-medium text-tx-2">Prazo fatal</label>
               <input
+                id="delegate-due-date"
                 type="date"
                 value={state.dueDate}
                 onChange={(e) => setState((s) => ({ ...s, dueDate: e.target.value }))}
+                aria-describedby={initial?.publicationId ? "delegate-due-hint" : undefined}
                 className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
               />
+              {initial?.publicationId && (
+                <div id="delegate-due-hint" className="mt-1.5 text-xs text-tx-2">
+                  {initial.dueSuggestion ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setState((s) => ({ ...s, dueDate: initial.dueSuggestion!.date }))}
+                        className="inline-flex items-center min-h-9 px-2.5 py-1 font-semibold border border-regua bg-sf-apoio hover:bg-regua text-tx"
+                      >
+                        Usar sugestão: {formatCalendarDate(initial.dueSuggestion.date)}
+                      </button>
+                      <span className="block mt-1">Sugestão do sistema. {initial.dueSuggestion.basis} Confira na íntegra antes de confirmar.</span>
+                    </>
+                  ) : (
+                    <span>Prazo não informado. O sistema não identificou um prazo no texto: confira na íntegra e informe a data.</span>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="text-xs font-medium text-tx-2">Hora do prazo fatal (opcional)</label>
@@ -586,7 +610,8 @@ export default function DelegateTaskForm({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || !state.dueDate}
+            title={!state.dueDate ? "Informe o prazo fatal para continuar" : undefined}
             className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-5 py-2 disabled:opacity-50"
           >
             <UserPlus size={15} /> {loading ? "Delegando..." : "Delegar"}

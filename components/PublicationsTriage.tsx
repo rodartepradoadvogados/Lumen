@@ -23,9 +23,11 @@ import ProcessNumberChip from "@/components/ProcessNumberChip";
 import PeticionarButton from "@/components/PeticionarButton";
 import { formatCalendarDate } from "@/components/ui";
 import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
-import { CalendarClock, FilePlus2, UserPlus, Archive, Search, Layers, Ban, CheckCheck } from "lucide-react";
+import { CalendarClock, FilePlus2, UserPlus, Archive, Search, Layers, Ban, CheckCheck, TriangleAlert, Clock, CircleHelp, CircleCheck } from "lucide-react";
 import type { PublicationGroup } from "@/lib/publicationGrouping";
 import { matchesPublicationChip, type PublicationChipKey } from "@/lib/publicationChips";
+import type { PrazoExtraido, SituacaoPrazo } from "@/lib/prazoExtraido";
+import { rotuloPrazo, CONFIANCA_TXT, type TomPrazo } from "@/lib/prazoRotulo";
 
 // FILETE LATERAL DELIBERADO — o detector acusa `side-tab` aqui e a acusação fica em pé de
 // propósito, sem ignore de arquivo (que silenciaria todo achado futuro deste arquivo, inclusive
@@ -52,7 +54,15 @@ export type TriagePub = {
   triageStatus: string;
 };
 
-export type TriageGroup = PublicationGroup<TriagePub> & { prazoSugeridoDate: string; prazoSugeridoDiasUteis: number };
+export type TriageGroup = PublicationGroup<TriagePub> & {
+  // O que o TEXTO diz sobre prazo (lib/prazoExtraido.ts) — sugestão, nunca valor de campo.
+  prazo: PrazoExtraido;
+  situacao: SituacaoPrazo;
+  // Idade da publicação em dias úteis: fato, independe da extração.
+  idadeDu: number;
+  // Já existe tarefa/prazo criado a partir desta publicação.
+  registrado: boolean;
+};
 
 // Desfecho visual de um card saindo da fila (ver dismissGroup, mais abaixo, e as animações
 // .animate-slide-out-*/.animate-flash-*-out em app/globals.css).
@@ -88,11 +98,13 @@ export default function PublicationsTriage({
   users,
   activeChip,
   viewerId,
+  initialKey,
 }: {
   groups: TriageGroup[];
   users: { id: string; name: string }[];
   activeChip: PublicationChipKey;
   viewerId: string;
+  initialKey?: string;
 }) {
   const router = useRouter();
   const { showUndo } = useUndoToast();
@@ -104,12 +116,30 @@ export default function PublicationsTriage({
     [items, activeChip, viewerId]
   );
 
-  const [selectedKey, setSelectedKey] = useState<string | null>(visible[0]?.key ?? null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(
+    (initialKey && visible.some((g) => g.key === initialKey) ? initialKey : visible[0]?.key) ?? null
+  );
   useEffect(() => {
     if (!visible.some((g) => g.key === selectedKey)) setSelectedKey(visible[0]?.key ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible.map((g) => g.key).join(",")]);
   const selected = visible.find((g) => g.key === selectedKey) ?? null;
+
+  // A publicação aberta vai para a URL (?p=<id>): dá para copiar o link, recarregar sem perder o
+  // lugar, e a linha selecionada na fila é sempre a que está aberta no painel (rola até ela).
+  useEffect(() => {
+    if (!selectedKey) return;
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("p") !== selectedKey) {
+        url.searchParams.set("p", selectedKey);
+        window.history.replaceState(window.history.state, "", url.toString());
+      }
+    } catch {
+      /* sem history/URL: só perde o link por publicação */
+    }
+    listRef.current?.querySelector<HTMLElement>('[aria-current="true"]')?.scrollIntoView({ block: "nearest" });
+  }, [selectedKey]);
 
   const [busy, setBusy] = useState(false);
   const [taskModal, setTaskModal] = useState<{ open: boolean; groupKey: string | null; type: string }>({
@@ -118,6 +148,9 @@ export default function PublicationsTriage({
     type: "PRAZO",
   });
   const [linkModal, setLinkModal] = useState(false);
+  // Arquivar publicação que CITA PRAZO sem ter criado prazo exige confirmação (guarda contra o
+  // "A" sem querer: o prazo que ninguém registrou é o que vence).
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Card "saindo" da fila — cada ação tem seu próprio desfecho visual (ver .animate-slide-out-*/
@@ -175,6 +208,12 @@ export default function PublicationsTriage({
         return next;
       });
     }, DISMISS_ANIMATION_MS);
+  }
+
+  function pedirArquivar() {
+    if (!selected || busy) return;
+    if (citaPrazoSemRegistro(selected)) setConfirmArchive(true);
+    else archive();
   }
 
   async function archive() {
@@ -238,7 +277,7 @@ export default function PublicationsTriage({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (taskModal.open || linkModal) return; // Esc dos modais é tratado pelo próprio ModalShell
+      if (taskModal.open || linkModal || confirmArchive) return; // Esc dos modais é tratado pelo próprio ModalShell
       const tag = (document.activeElement?.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select") return;
       if (!selected) return;
@@ -256,7 +295,7 @@ export default function PublicationsTriage({
         openLink();
       } else if (e.key === "a" || e.key === "A") {
         e.preventDefault();
-        archive();
+        pedirArquivar();
       } else if (e.key === "l" || e.key === "L") {
         e.preventDefault();
         marcarLida();
@@ -265,7 +304,7 @@ export default function PublicationsTriage({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, taskModal.open, linkModal, visible]);
+  }, [selected, taskModal.open, linkModal, confirmArchive, visible]);
 
   const taskGroup = items.find((g) => g.key === taskModal.groupKey) ?? null;
   const taskInitial: DelegateTaskInitial | undefined = taskGroup
@@ -276,7 +315,11 @@ export default function PublicationsTriage({
         referTo: taskGroup.primary.case ? "PROCESSO" : "OUTROS",
         selectedLink: taskGroup.primary.case ? { id: taskGroup.primary.case.id, label: taskGroup.primary.case.title } : undefined,
         responsibleIds: taskGroup.primary.assignedToId ? [taskGroup.primary.assignedToId] : undefined,
-        dueDate: taskModal.type === "PRAZO" ? taskGroup.prazoSugeridoDate : undefined,
+        // O prazo NÃO é preenchido: só sugerido (botão "Usar sugestão" no formulário).
+        dueSuggestion:
+          taskModal.type === "PRAZO" && taskGroup.prazo.tipo === "PRAZO" && taskGroup.prazo.data
+            ? { date: taskGroup.prazo.data, basis: basisDoPrazo(taskGroup.prazo) }
+            : undefined,
       }
     : undefined;
 
@@ -335,7 +378,7 @@ export default function PublicationsTriage({
                 onCriarTarefa={() => openTask("PRAZO")}
                 onVincular={openLink}
                 onDelegar={() => openTask("TAREFA")}
-                onArquivar={archive}
+                onArquivar={pedirArquivar}
                 onMarcarLida={marcarLida}
               />
             ) : (
@@ -361,6 +404,40 @@ export default function PublicationsTriage({
         >
           <div className="overflow-y-auto scrollbar-thin flex-1">
             <DelegateTaskForm users={users} initial={taskInitial} onSuccess={handleTaskSuccess} />
+          </div>
+        </ModalShell>
+      )}
+
+      {confirmArchive && selected && (
+        <ModalShell size="compacto" title="Arquivar sem registrar o prazo?" onClose={() => setConfirmArchive(false)}>
+          <div className="p-5 space-y-4">
+            <p className="text-sm text-tx">
+              Esta publicação cita prazo{selected.prazo.tipo === "PRAZO" && selected.prazo.dias ? ` (${selected.prazo.dias} dias)` : ""}, e nenhum prazo foi registrado a partir dela.
+              Se você arquivar, ela sai da fila e ninguém mais vai vê-la como pendente.
+            </p>
+            <div className="flex gap-2 justify-end flex-wrap">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => {
+                  setConfirmArchive(false);
+                  openTask("PRAZO");
+                }}
+                className="min-h-11 px-4 py-2 text-sm font-semibold bg-acao hover:bg-acao-hover text-acao-tx"
+              >
+                Registrar prazo
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmArchive(false);
+                  archive();
+                }}
+                className="min-h-11 px-4 py-2 text-sm font-semibold text-tx-2 hover:bg-sf-apoio"
+              >
+                Arquivar mesmo assim
+              </button>
+            </div>
           </div>
         </ModalShell>
       )}
@@ -404,6 +481,46 @@ export default function PublicationsTriage({
   );
 }
 
+// Cita prazo (ou fala em prazo sem número, ou traz números divergentes) e ainda não há prazo criado.
+function citaPrazoSemRegistro(g: TriageGroup): boolean {
+  if (g.registrado) return false;
+  return g.prazo.tipo === "PRAZO" || g.prazo.tipo === "CONFLITO" || Boolean(g.prazo.mencionaPrazo);
+}
+
+function basisDoPrazo(p: PrazoExtraido): string {
+  const base = p.base ? p.base.split("-").reverse().join("/") : "";
+  const tipo = p.corridos ? "corridos" : "úteis";
+  return `Contado a partir de ${base}, ${p.dias} dias ${tipo} (o texto diz "${p.trecho}").`;
+}
+
+const TOM_CLASSE: Record<TomPrazo, string> = {
+  venc: "bg-campo-risco text-risco-vencido border border-campo-risco-linha",
+  hoje: "bg-aviso-bg text-aviso border border-linha-aviso",
+  neutro: "bg-sf-apoio text-tx-2 border border-regua",
+  ok: "bg-concluido-bg text-concluido border border-regua",
+};
+
+// Selo de prazo: ícone + texto + cor (o risco nunca é só cor).
+function SeloPrazo({ group }: { group: TriageGroup }) {
+  const r = rotuloPrazo({
+    prazo: group.prazo,
+    situacao: group.situacao,
+    registrado: group.registrado,
+    tratada: group.primary.triageStatus === "TRATADA",
+  });
+  const Icone = r.tom === "venc" ? TriangleAlert : r.tom === "hoje" ? Clock : r.tom === "ok" ? CircleCheck : group.situacao.faixa === "sem" ? CircleHelp : CalendarClock;
+  return (
+    <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-etiqueta font-bold", TOM_CLASSE[r.tom])}>
+      <Icone size={12} aria-hidden="true" />
+      {r.texto}
+      {r.detalhe && <span className="font-medium"> · {r.detalhe}</span>}
+    </span>
+  );
+}
+
+// Idade (dias úteis desde a publicação) a partir da qual a tela destaca a data: fato, não estimativa.
+const IDADE_DESTAQUE_DU = 10;
+
 const DISMISS_ANIMATION_CLASS: Record<DismissKind, string> = {
   read: "animate-slide-out-left",
   archive: "animate-slide-out-down",
@@ -429,10 +546,12 @@ function FilaCard({
       type="button"
       onClick={onSelect}
       disabled={Boolean(dismissing)}
+      aria-current={selected ? "true" : undefined}
       className={clsx(
         "block w-full text-left px-4 py-3 border-l-4 transition-colors",
         sourceBorderColor(pub.source),
-        selected ? "bg-sf-apoio" : "bg-sf hover:bg-sf-apoio",
+        // A aberta no painel: fundo + contorno de 2px (não só fundo, que some no tema Noite).
+        selected ? "bg-sf-apoio outline outline-2 -outline-offset-2 outline-marca-tx" : "bg-sf hover:bg-sf-apoio",
         dismissing && [DISMISS_ANIMATION_CLASS[dismissing], "pointer-events-none"]
       )}
     >
@@ -451,9 +570,17 @@ function FilaCard({
         </span>
         {/* publishedAt é instante (quando o diário publicou) — formatDate() lia sem fuso e virava
             um dia errado perto da meia-noite; dataDeBrasilia() força o fuso do escritório. */}
-        <span className="font-display text-etiqueta text-tx-3 shrink-0 tabular-nums">{dataDeBrasilia(pub.publishedAt)}</span>
+        <span className="font-display text-etiqueta text-tx-3 shrink-0 tabular-nums">
+          {dataDeBrasilia(pub.publishedAt)}
+          {group.idadeDu >= 1 && (
+            <span className={group.idadeDu >= IDADE_DESTAQUE_DU && !group.registrado ? "font-bold text-tx-2" : undefined}> · há {group.idadeDu} du</span>
+          )}
+        </span>
       </div>
-      <p className="text-sm text-tx mt-1 line-clamp-2">{pub.content}</p>
+      <div className="mt-1.5">
+        <SeloPrazo group={group} />
+      </div>
+      <p className="text-sm text-tx mt-1.5 line-clamp-2">{pub.content}</p>
       {pub.case ? (
         <p className="text-corpo font-extrabold text-tx mt-1 truncate">{pub.case.title}</p>
       ) : (
@@ -462,6 +589,66 @@ function FilaCard({
         </span>
       )}
     </button>
+  );
+}
+
+// Texto da publicação com o trecho de onde saiu a extração de prazo destacado (<mark>), para o
+// advogado conferir a fonte no próprio texto.
+function TeorComTrecho({ content, trecho }: { content: string; trecho?: string }) {
+  if (!trecho) return <>{content}</>;
+  const norm = content.replace(/\u00a0/g, " ");
+  const i = norm.indexOf(trecho);
+  if (i < 0) return <>{content}</>;
+  return (
+    <>
+      {content.slice(0, i)}
+      <mark className="bg-aviso-bg text-tx px-0.5 font-semibold">{content.slice(i, i + trecho.length)}</mark>
+      {content.slice(i + trecho.length)}
+    </>
+  );
+}
+
+// O que o sistema entendeu do prazo, com a confiança, o motivo e como a data foi contada. Sempre
+// "sugestão": quem decide o prazo é o advogado, com a íntegra na mão.
+function BlocoPrazo({ group }: { group: TriageGroup }) {
+  const p = group.prazo;
+  const base = p.base ? p.base.split("-").reverse().join("/") : null;
+  return (
+    <section aria-label="Prazo identificado no texto" className="max-w-[78ch] mb-5 border border-regua bg-sf-apoio px-4 py-3 space-y-1.5">
+      {p.tipo === "PRAZO" && p.data ? (
+        <p className="text-sm text-tx">
+          <span className="font-semibold">Prazo citado no texto: {p.dias} dias {p.corridos ? "corridos" : "úteis"}</span> → {formatCalendarDate(p.data)}{" "}
+          <span className="text-tx-2">(sugestão do sistema, confira na íntegra)</span>
+        </p>
+      ) : p.tipo === "EVENTO" && p.data ? (
+        <p className="text-sm text-tx">
+          <span className="font-semibold">Data citada no texto: {formatCalendarDate(p.data)}{p.hora ? ` às ${p.hora}` : ""}</span>{" "}
+          <span className="text-tx-2">(não é contagem de prazo)</span>
+        </p>
+      ) : p.tipo === "CONFLITO" ? (
+        <p className="text-sm font-semibold text-tx">Prazo com números divergentes: não sugerimos data.</p>
+      ) : group.primary.kind === "ANDAMENTO" && !p.mencionaPrazo ? (
+        <p className="text-sm font-semibold text-tx">Andamento sem prazo no texto: só ciência.</p>
+      ) : (
+        <p className="text-sm font-semibold text-tx">Prazo não identificado. Confirme na íntegra antes de decidir.</p>
+      )}
+      {p.tipo === "PRAZO" && (
+        <p className="text-xs text-tx-2">
+          Confiança <span className="font-semibold">{CONFIANCA_TXT[p.confianca]}</span>. {p.notas.join(" ")}
+        </p>
+      )}
+      {p.tipo !== "PRAZO" && p.notas.length > 0 && <p className="text-xs text-tx-2">{p.notas.join(" ")}</p>}
+      {p.tipo === "PRAZO" && (
+        <details className="text-xs text-tx-2">
+          <summary className="cursor-pointer font-semibold text-tx-2 hover:text-tx">Como calculamos</summary>
+          <p className="mt-1">
+            Contamos a partir de {base} (dia da publicação em Brasília), sem contar esse dia, {p.corridos ? "em dias corridos, seguindo para o próximo dia útil se terminar em dia não útil" : "só em dias úteis"}. Pulamos sábados, domingos, feriados nacionais, os feriados
+            cadastrados pelo escritório e o recesso de 20/12 a 20/01 (CPC art. 220). Em intimação eletrônica o início pode variar (data da ciência, ou da disponibilização mais um dia útil):
+            confira. Prazos especiais (Juizado, Fazenda, litisconsortes) não são considerados.
+          </p>
+        </details>
+      )}
+    </section>
   );
 }
 
@@ -514,13 +701,12 @@ function Teor({
               Tribunal identificado pelo número: {pub.tribunalDetectado}
             </span>
           )}
-          <span className="text-xs font-semibold text-tx-2">
-            Prazo sugerido ({group.prazoSugeridoDiasUteis} dias úteis) → <span className="text-tx">{formatCalendarDate(group.prazoSugeridoDate)}</span>
-          </span>
+          <SeloPrazo group={group} />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5">
+        <BlocoPrazo group={group} />
         <div className="max-w-[78ch] space-y-4">
           {group.items.map((item) => (
             <div key={item.id} className={group.items.length > 1 ? "border-t-2 border-regua-forte pt-4 first:border-t-0 first:pt-0" : ""}>
@@ -529,7 +715,9 @@ function Teor({
                   {item.source} · {dataDeBrasilia(item.publishedAt)}
                 </p>
               )}
-              <p className="text-corpo leading-[1.6] text-tx whitespace-pre-wrap">{item.content}</p>
+              <p className="text-corpo leading-[1.6] text-tx whitespace-pre-wrap">
+                <TeorComTrecho content={item.content} trecho={group.prazo.itemId === item.id ? group.prazo.trecho : undefined} />
+              </p>
             </div>
           ))}
         </div>

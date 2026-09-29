@@ -135,6 +135,17 @@
      lugar quando a janela muda de tamanho. */
   --atd-largura-leitura: 1040px;
 
+  /* AS MEDIDAS DA GRADE (A1 do plano de 29/09/2026) — só medida, nenhuma cor. Vivem aqui, e não
+     como `w-[340px]` no JSX, pela mesma razão do token de leitura acima: a medida de uma coluna é
+     decisão da tela, tem de ter um lugar só, e o teste de acabamento proíbe largura fixa travada
+     dentro de classe utilitária.
+       lista  340px (3 colunas) / 320px (2 colunas — a janela pequena do PWA, 877px, deixa 557px para
+              a conversa em vez dos 157px que sobravam com 340 + 380 fixos)
+       trilho 380px, e em janela estreita vira gaveta por cima da conversa */
+  --atd-largura-lista: 340px;
+  --atd-largura-lista-estreita: 320px;
+  --atd-largura-trilho: 380px;
+
   color-scheme: light;
 }
 
@@ -180,4 +191,128 @@
   --atd-shadow-card: 0 8px 20px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.35);
 
   color-scheme: dark;
+}
+
+
+/* ============================================================================
+   A GRADE DA CENTRAL — cabeçalho que NUNCA sai da tela (A1, 29/09/2026).
+
+   O DEFEITO, medido no navegador: a raiz era `h-screen` (100vh) dentro de um invólucro `min-h-screen`,
+   e nada travava o DOCUMENTO. A coluna do trilho (380px) recebia o trilho (`h-full`) MAIS o painel de
+   recusa como irmão embaixo, então a coluna ficava mais alta que a linha da grade e empurrava o
+   documento. Em janela pequena (877x612, a do PWA) o documento passava a rolar; a barra "Sair para o
+   Lúmen" e o título "Atendimento" subiam para fora da janela.
+
+   O CONSERTO tem três partes que só funcionam juntas:
+     1. o documento nunca rola: `html`/`body` com overflow oculto e o invólucro com a altura da janela
+        em `dvh` (a barra de endereço do celular não corta), `overflow: clip` — clip proíbe até o
+        deslocamento por programa (âncora `#recusa-do-lead`, foco), que `hidden` ainda permite;
+     2. só regiões INTERNAS rolam: a lista, a conversa e a coluna do trilho (com o painel de recusa
+        DENTRO dela, e o rodapé "Transformar em processo" preso);
+     3. a grade responde ao tamanho da janela, não a largura fixa: 3 colunas a partir de 1240px, 2
+        abaixo (o trilho vira gaveta), 1 até 760px (lista -> conversa, botão Voltar).
+   ============================================================================ */
+html:has(.atd-central-fixa),
+html:has(.atd-central-fixa) body {
+  height: 100%;
+  overflow: hidden;
+}
+.atd-central-fixa {
+  height: 100vh;
+  height: 100dvh;
+  overflow: clip;
+}
+
+.atd-corpo {
+  position: relative;
+  display: grid;
+  flex: 1 1 0%;
+  min-height: 0;
+  grid-template-columns: var(--atd-largura-lista) minmax(0, 1fr) var(--atd-largura-trilho);
+}
+.atd-lista,
+.atd-conversa,
+.atd-trilho {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.atd-lista {
+  border-right: 1px solid var(--atd-border);
+  background: var(--list-bg);
+}
+.atd-conversa {
+  background: var(--work-bg);
+}
+.atd-trilho {
+  border-left: 1px solid var(--atd-border);
+  background: var(--work-bg);
+}
+/* Os controles que só existem em janela estreita (Detalhes, Fechar, Voltar). */
+.atd-so-estreito,
+.atd-so-celular {
+  display: none;
+}
+
+@media (max-width: 1239px) {
+  .atd-corpo {
+    grid-template-columns: var(--atd-largura-lista-estreita) minmax(0, 1fr);
+  }
+  /* A GAVETA: o trilho sai da grade e flutua sobre a conversa. Flutua, então tem sombra (DESIGN.md §4:
+     sombra só onde algo literalmente flutua). Fechada por padrão; o botão Detalhes abre. */
+  .atd-trilho {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    display: none;
+    width: min(var(--atd-largura-trilho), 100%);
+    border-left-color: var(--atd-border-strong);
+    box-shadow: var(--atd-shadow-card);
+  }
+  .atd-corpo[data-trilho="aberto"] .atd-trilho {
+    display: flex;
+  }
+  .atd-so-estreito {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 760px) {
+  .atd-corpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Uma coluna: ou a lista, ou a conversa. `data-vista` vem do servidor: com `?id=` na URL é a
+     conversa; sem ele, a lista. No computador o primeiro da lista abre sozinho; no celular quem
+     abre sozinho seria uma conversa que ninguém pediu, e a lista nunca apareceria. */
+  .atd-corpo[data-vista="lista"] .atd-conversa,
+  .atd-corpo[data-vista="conversa"] .atd-lista {
+    display: none;
+  }
+  .atd-lista {
+    border-right: 0;
+  }
+  .atd-trilho {
+    width: 100%;
+  }
+  .atd-so-celular {
+    display: inline-flex;
+  }
+  /* Sem teclado físico esperado: a legenda dos atalhos não ocupa o pé da lista. */
+  .atd-dica {
+    display: none;
+  }
+}
+
+/* Janela BAIXA (a do PWA tem 612px de altura): a barra superior encolhe e as dicas somem — o
+   cabeçalho continua inteiro, só mais apertado. */
+@media (max-height: 640px) {
+  .atd-barra-topo {
+    height: 2.375rem;
+  }
+  .atd-dica {
+    display: none;
+  }
 }
