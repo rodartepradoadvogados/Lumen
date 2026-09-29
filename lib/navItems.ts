@@ -17,15 +17,15 @@ const NAV_LABELS: { href: string; label: string }[] = [
   { href: "/contatos/advogados", label: "Advogados" },
   { href: "/contatos/fornecedores", label: "Fornecedores" },
   { href: "/contatos/equipe", label: "Equipe" },
-  { href: "/contatos", label: "Contatos" },
+  { href: "/contatos", label: "Pessoas" },
   { href: "/financeiro/despesas", label: "Despesas" },
   { href: "/financeiro/receitas", label: "Receitas" },
   { href: "/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa" },
   { href: "/financeiro/dre", label: "DRE" },
   { href: "/financeiro/livro-caixa", label: "Livro Caixa" },
   { href: "/financeiro", label: "Financeiro" },
-  { href: "/relatorios", label: "Relatórios" },
-  { href: "/produtividade", label: "Produtividade" },
+  { href: "/relatorios", label: "Indicadores" },
+  { href: "/produtividade", label: "Indicadores - Produtividade" },
   { href: "/configuracoes", label: "Configurações" },
 ].sort((a, b) => b.href.length - a.href.length);
 

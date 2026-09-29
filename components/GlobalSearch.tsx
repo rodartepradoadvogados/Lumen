@@ -26,6 +26,8 @@ type PaletteItem = {
   href: string;
   /** Ver lib/navSections.ts:abrirEmNovaAba — Peticionamento nunca troca o conteúdo desta aba. */
   abrirEmNovaAba?: boolean;
+  /** Nomes antigos e sinônimos que também acham este destino (lib/navSections.ts:busca). */
+  busca?: string[];
 };
 const GROUP_ORDER: PaletteItem["type"][] = ["Processos", "Clientes", "Ações", "Navegação"];
 
@@ -204,7 +206,7 @@ export default function GlobalSearch({
     for (const section of RAIL_SECTIONS) {
       if (!isSectionVisible(section, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento })) continue;
       for (const item of visibleSectionItems(section, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento })) {
-        all.push({ type: "Navegação", id: item.href, titulo: item.label, href: item.href, abrirEmNovaAba: item.abrirEmNovaAba });
+        all.push({ type: "Navegação", id: item.href, titulo: item.label, href: item.href, abrirEmNovaAba: item.abrirEmNovaAba, busca: item.busca });
       }
     }
     // Atendimento e Peticionamento saíram de RAIL_SECTIONS em 24/09/2026 (viraram os dois
@@ -214,7 +216,9 @@ export default function GlobalSearch({
     for (const item of visibleStandaloneItems({ hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento })) {
       all.push({ type: "Navegação", id: item.href, titulo: item.label, href: item.href, abrirEmNovaAba: item.abrirEmNovaAba });
     }
-    return q ? all.filter((n) => looseIncludes(n.titulo, q)) : all;
+    // Os nomes antigos (Triagem, Contatos, Relatórios...) continuam achando o destino novo: link
+    // de hábito que para de funcionar por causa de um rótulo é defeito silencioso.
+    return q ? all.filter((n) => looseIncludes(n.titulo, q) || (n.busca ?? []).some((b) => looseIncludes(b, q))) : all;
   })();
 
   // globalSearch() é compartilhada com a busca mobile (components/mobile/MobileGlobalSearch.tsx)

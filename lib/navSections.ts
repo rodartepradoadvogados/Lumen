@@ -74,6 +74,10 @@ export type SectionPanelItem = {
   subParam?: string;
   subDefaultValue?: string;
   subItems?: SubNavItem[];
+  /** Outras rotas que PERTENCEM a este item (ex.: redirecionamentos antigos e telas de impressão). */
+  aliases?: string[];
+  /** Palavras que o ⌘K também associa a este destino (nomes antigos: "triagem", "contatos"...). */
+  busca?: string[];
   /**
    * ABRE EM ABA NOVA DO NAVEGADOR — decisão do dono para o Peticionamento (ver
    * app/peticionamento/layout.tsx): "sensação de sair do Lúmen", nunca a navegação em-página
@@ -111,6 +115,9 @@ export const RAIL_SECTIONS: SectionDef[] = [
       { href: "/agenda", label: "Calendário" },
       { href: "/kanban", label: "Kanban" },
       { href: "/alertas", label: "Alertas" },
+      // "Delegar" saiu de Gestão > Produtividade (era o único item de AÇÃO numa seção de leitura).
+      // Mesma tela, mesmo formulário; só mudou de lugar. O endereço antigo redireciona.
+      { href: "/delegar", label: "Delegar" },
     ],
   },
   {
@@ -152,49 +159,31 @@ export const RAIL_SECTIONS: SectionDef[] = [
     key: "gestao",
     label: "Gestão",
     icon: BarChart3,
-    // ORDEM FIXADA PELO DONO, 24/09/2026 (da esquerda para a direita): Configurações, Conexões,
-    // Contatos, Produtividade, Relatórios. Configurações virou o PRIMEIRO item — e por isso é
-    // para onde o ícone de Gestão do rail agora navega (`section.items[0].href`), o que também é
-    // o que aposenta o antigo atalho fixo "Ajustes" no pé do rail sem perder alcance nenhum (ver
-    // components/NavRail.tsx): clicar em Gestão já abre Configurações.
+    // NOVA GESTÃO (aprovada pelo dono, 29/09/2026, plano em gauntlet/propostas/gestao-plano.md).
+    // Substitui a ordem que o dono havia fixado em 24/09/2026 (Configurações, Conexões, Contatos,
+    // Produtividade, Relatórios), em que o ícone abria a tela de MENOR uso (Configurações). Agora
+    // a Gestão se divide por intenção: LER o escritório (Indicadores), ACHAR gente (Pessoas),
+    // LIGAR (Conexões) e AJUSTAR (Configurações). O ícone de Gestão do rail navega para
+    // `section.items[0].href` — Indicadores, a Visão geral "como está o escritório" — e o antigo
+    // caminho de 5 a 6 cliques até a carga por advogado cai para 1.
+    //
+    // Nenhum link salvo quebra: /relatorios, /produtividade, /configuracoes/duplicados e
+    // /configuracoes/relatorio-pastas redirecionam para o lugar novo (ver as páginas), e `aliases`
+    // mantém a seção ativa na tela de impressão do Personalizado, que continua em /relatorios/....
     items: [
       {
-        href: "/configuracoes",
-        label: "Configurações",
-        subParam: "secao",
-        subDefaultValue: "geral",
-        subItems: [
-          { label: "Equipe", value: "equipe", adminOnly: true },
-          { label: "Financeiro", value: "financeiro", adminOnly: true },
-          { label: "Geral", value: "geral" },
-          { label: "Workflows", value: "workflows", adminOnly: true },
-          { label: "Blog Jurídico", value: "blog", adminOnly: true },
-        ],
+        href: "/indicadores",
+        label: "Indicadores",
+        aliases: ["/relatorios", "/produtividade"],
+        busca: ["relatorios", "relatórios", "produtividade", "carga", "triagem", "funil", "pontos", "inadimplencia", "inadimplência"],
       },
-      // Rota nova do documento 04 (handoff do redesenho Modernist) — sempre visível no rail, como
-      // Configurações: a permissão de verdade (isAdmin || canConfigureIntegrations, ver
-      // lib/supportCapabilities.ts) é decidida dentro da própria página, não escondendo o link do
-      // menu (mesmo padrão que Configurações já usa — a maior parte do conteúdo dela também exige
-      // isAdmin, e o link continua aparecendo pra todo mundo).
-      { href: "/conexoes", label: "Conexões" },
-      // Contatos passou a viver aqui (pedido do dono, 24/09/2026) — antes vivia na seção
-      // "Comunicação", que deixou de existir. Mesma rota (/contatos), mesma ausência de
-      // restrição: estava sempre visível lá, e continua sempre visível aqui.
-      { href: "/contatos", label: "Contatos" },
-      { href: "/produtividade", label: "Produtividade" },
-      {
-        href: "/relatorios",
-        label: "Relatórios",
-        subParam: "secao",
-        subDefaultValue: "processos",
-        subItems: [
-          { label: "Personalizado", value: "personalizado" },
-          { label: "Processos", value: "processos" },
-          { label: "Funil comercial", value: "funil" },
-          { label: "Publicações", value: "publicacoes" },
-          { label: "Financeiro", value: "financeiro", financeOnly: true },
-        ],
-      },
+      // "Pessoas" é o rótulo novo de Contatos; a ROTA continua /contatos (quem tem o endereço
+      // salvo segue funcionando). Abre direto em Clientes.
+      { href: "/contatos", label: "Pessoas", busca: ["contatos", "equipe", "clientes", "advogados", "fornecedores", "duplicados", "usuarios", "usuários"] },
+      // Sempre visível, como Configurações: a permissão de verdade (isAdmin ||
+      // canConfigureIntegrations, ver lib/supportCapabilities.ts) é decidida dentro da página.
+      { href: "/conexoes", label: "Conexões", busca: ["integracoes", "integrações", "webhooks", "log", "drive", "whatsapp", "djen", "datajud"] },
+      { href: "/configuracoes", label: "Configurações", busca: ["ajustes", "senha", "modulos", "módulos", "importar", "exportar", "workflows", "blog", "cobranca", "cobrança", "plano"] },
     ],
   },
 ];
@@ -267,6 +256,11 @@ export function visibleStandaloneItems(ctx: ContextoDeVisibilidade): SectionPane
   return RAIL_STANDALONE.filter((item) => itemVisivel(item, ctx));
 }
 
+// O item que "é dono" de um pathname: o próprio href, o que vem depois dele, ou um alias.
+export function itemContem(item: SectionPanelItem, pathname: string): boolean {
+  return [item.href, ...(item.aliases ?? [])].some((h) => pathname === h || pathname.startsWith(`${h}/`));
+}
+
 // Deriva a seção ativa a partir do pathname — não é estado próprio (ver README da proposta:
 // "secao ... derivado do pathname"). "painel" é tratado à parte pelo NavRail (não é uma seção
 // deste array: é o único ícone que RECOLHE o painel em vez de abri-lo).
@@ -277,9 +271,7 @@ export function visibleStandaloneItems(ctx: ContextoDeVisibilidade): SectionPane
 export function sectionForPathname(pathname: string | null): SectionKey | "painel" | null {
   if (!pathname) return null;
   if (pathname.startsWith("/painel")) return "painel";
-  const match = RAIL_SECTIONS.find((section) =>
-    section.items.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
-  );
+  const match = RAIL_SECTIONS.find((section) => section.items.some((item) => itemContem(item, pathname)));
   return match ? match.key : null;
 }
 
@@ -301,7 +293,7 @@ export function resolveTwoLevelLabel(pathname: string): string | null {
   if (!section || section === "painel") return null;
   const def = RAIL_SECTIONS.find((s) => s.key === section);
   if (!def) return null;
-  const item = def.items.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const item = def.items.find((i) => itemContem(i, pathname));
   if (!item || def.items.length < 2) return def.label;
   return `${def.label} - ${item.label}`;
 }

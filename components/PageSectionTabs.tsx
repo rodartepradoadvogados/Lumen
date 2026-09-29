@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
 import { useTabs } from "@/components/TabsProvider";
-import { RAIL_SECTIONS, visibleSectionItems, type SectionKey } from "@/lib/navSections";
+import { RAIL_SECTIONS, visibleSectionItems, itemContem, type SectionKey } from "@/lib/navSections";
 import type { OfficeModules } from "@/lib/officeModules";
 
 // Abas horizontais no topo do conteúdo, logo abaixo da TopBar — substituem o painel de seção de
@@ -88,7 +88,7 @@ export default function PageSectionTabs({
             </a>
           );
         }
-        const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+        const active = pathname ? itemContem(item, pathname) : false;
         return (
           <Link
             key={item.href}
