@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { temaEfetivo } from "@/lib/theme";
 import { CHAVE_DO_TEMA, estaEmNoite, lerPreferenciaDeTema, type PreferenciaDeTema } from "@/lib/temaDoAtendimentoApp";
 
 // O lado de navegador do tema (Dia / Noite / Automático). A regra é de lib/temaDoAtendimentoApp.ts;
@@ -28,7 +29,18 @@ function sistemaEscuro(): boolean {
 function aplicar(pref: PreferenciaDeTema): boolean {
   const noite = estaEmNoite(pref, sistemaEscuro());
   document.getElementById("atendimento-shell")?.classList.toggle("atendimento-dark", noite);
+  // O tema escuro do SITE (`dark` no <html>) não pode vazar para dentro do app: ver SCRIPT_INICIAL_DO_TEMA.
+  document.documentElement.classList.remove("dark");
   return noite;
+}
+
+/** Ao sair do app (navegação para o site), devolve ao <html> o tema do site que o app tirou. */
+export function devolverTemaDoSite() {
+  try {
+    document.documentElement.classList.toggle("dark", temaEfetivo() === "dark");
+  } catch {
+    /* sem armazenamento: o site decide sozinho no próximo carregamento */
+  }
 }
 
 export function salvarTema(pref: PreferenciaDeTema) {
