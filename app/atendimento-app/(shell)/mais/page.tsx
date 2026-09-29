@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Card } from "@/components/ui";
-import { User, Users, Palette, LogOut, ExternalLink } from "lucide-react";
+import { User, Users, Palette, LogOut, ExternalLink, Zap } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,10 @@ export default async function MaisAppPage() {
         <Link href="/atendimento-app/equipe" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
           <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Users size={18} className="text-ouro-acento" /></div>
           <div className="flex-1"><p className="font-medium text-tx">Equipe</p><p className="text-xs text-tx-2">Usuários e permissões</p></div>
+        </Link>
+        <Link href="/atendimento-app/respostas-rapidas" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
+          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Zap size={18} className="text-ouro-acento" /></div>
+          <div className="flex-1"><p className="font-medium text-tx">Respostas rápidas</p><p className="text-xs text-tx-2">Textos prontos do escritório para o chat</p></div>
         </Link>
         <Link href="/atendimento-app/tema" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
           <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Palette size={18} className="text-ouro-acento" /></div>

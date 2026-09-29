@@ -37,7 +37,7 @@ export function itensDaBarra(nivel: NivelDeAcesso): ItemDaBarra[] {
 }
 
 /** As telas estáticas do app. Qualquer OUTRO primeiro segmento é o id de uma conversa. */
-const SEGMENTOS_ESTATICOS = ["funil", "triagem", "mais", "novo", "alertas", "equipe", "perfil", "tema", "sair", "conversas", "entrar"];
+const SEGMENTOS_ESTATICOS = ["funil", "triagem", "mais", "novo", "alertas", "equipe", "perfil", "tema", "sair", "conversas", "entrar", "respostas-rapidas"];
 
 /** Os segmentos do caminho DEPOIS de /atendimento-app ("" e barra final não contam). */
 export function segmentosDoApp(pathname: string): string[] {
@@ -77,7 +77,7 @@ export function abaAtiva(pathname: string): ChaveDaAba | null {
   const [primeiro] = segmentosDoApp(pathname);
   if (primeiro === undefined || primeiro === "conversas") return "conversas";
   if (primeiro === "funil" || primeiro === "triagem" || primeiro === "novo" || primeiro === "mais") return primeiro;
-  if (["alertas", "equipe", "perfil", "tema", "sair"].includes(primeiro)) return "mais";
+  if (["alertas", "equipe", "perfil", "tema", "sair", "respostas-rapidas"].includes(primeiro)) return "mais";
   return ehConversa(pathname) ? "conversas" : null;
 }
 

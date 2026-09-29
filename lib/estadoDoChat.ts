@@ -1,5 +1,6 @@
 import { detalheDoRelogio, estadoDoRelogio, tituloDoRelogio } from "@/lib/relogioDoAtendimento";
 import type { JanelaDoWhatsapp } from "@/lib/janelaDe24h";
+import type { FixadaDoChat } from "@/lib/mensagemFixada";
 
 // ============================================================================
 // O ESTADO DA CONVERSA QUE O CHAT DO CELULAR PRECISA (sem banco, sem React) — e a BARRA DE ESTADO de uma
@@ -21,6 +22,8 @@ export type EstadoDoChat = {
   ultimaDirecao: "IN" | "OUT" | null;
   temWhatsapp: boolean;
   janela: { aberta: true } | { aberta: false; horasDesdeAUltimaEntrada: number | null };
+  /** A mensagem fixada no topo (PR 10), ou nula. Opcional: quem monta o estado sem ela continua valendo. */
+  fixada?: FixadaDoChat | null;
 };
 
 export function montarEstadoDoChat(
@@ -28,6 +31,7 @@ export function montarEstadoDoChat(
   ultimaDirecao: string | null,
   agenteAtivoNoEscritorio: boolean,
   janela: JanelaDoWhatsapp,
+  fixada: FixadaDoChat | null = null,
 ): EstadoDoChat {
   return {
     agenteResponde: a.agenteResponde,
@@ -37,6 +41,7 @@ export function montarEstadoDoChat(
     ultimaDirecao: ultimaDirecao === "IN" ? "IN" : ultimaDirecao === "OUT" ? "OUT" : null,
     temWhatsapp: Boolean(a.waPhone),
     janela,
+    fixada,
   };
 }
 

@@ -34,6 +34,9 @@ import {
   type TriagemGravada,
 } from "@/lib/triagemApurada";
 import { lerDatetimeLocalEmBrasilia } from "@/lib/horaDeBrasilia";
+import { finalizeAttachmentUpload, deleteAttachment } from "@/lib/actions/attachments";
+import { isValidBlobUrl } from "@/lib/blobUrl";
+import { nomeFinalDoAnexo, podeDesfazerAnexo, validarArquivoDoCelular } from "@/lib/anexoDoCelular";
 
 // ============================================================================
 // AS AÇÕES DA ABA DETALHES DO APLICATIVO DE ATENDIMENTO.
@@ -470,4 +473,55 @@ export async function definirArquivamento(id: string, arquivar: boolean, situaca
   if (n.count !== 1) return { error: "A situação mudou enquanto você olhava. Recarregue a tela." };
   recarregar(id);
   return { situacao: novo };
+}
+
+
+// ── ANEXOS PELO CELULAR (PR 9) ─────────────────────────────────────────────────────────────────────────────
+// O arquivo já subiu do aparelho direto para o Vercel Blob (rota /api/attachments/blob-token, que recusa mais
+// de 25 MB); aqui o servidor termina o fluxo do site (`finalizeAttachmentUpload`: baixa do Blob, manda ao Drive
+// na pasta deste atendimento e apaga o Blob). O que esta ação acrescenta: a guarda `atendimentoDaAcao` ANTES de
+// tudo (lead de outro dono/escritório = nada acontece) e a lista de tipos do celular (lib/anexoDoCelular.ts).
+
+export async function anexarArquivoDoCelular(
+  id: string,
+  d: { blobUrl: string; nome: string; tipo: string; tamanho: number; docType: string },
+): Promise<{ error?: string; anexo?: { id: string; name: string } }> {
+  const r = await atendimentoDaAcao(id);
+  if (r.erro !== undefined) return { error: r.erro };
+  const { attendance } = r;
+
+  const arquivo = { name: typeof d.nome === "string" ? d.nome : "", size: Number(d.tamanho), type: typeof d.tipo === "string" ? d.tipo : "" };
+  const v = validarArquivoDoCelular(arquivo);
+  if (!v.ok) return { error: v.erro };
+  if (typeof d.blobUrl !== "string" || !isValidBlobUrl(d.blobUrl)) return { error: "Erro ao processar o arquivo enviado. Tente novamente." };
+  const docType = typeof d.docType === "string" && d.docType.trim() ? d.docType.trim().slice(0, 60) : "OUTRO";
+
+  const res = await finalizeAttachmentUpload({
+    blobUrl: d.blobUrl,
+    name: nomeFinalDoAnexo(arquivo.name, arquivo),
+    contentType: arquivo.type || "application/octet-stream",
+    docType,
+    attendanceId: attendance.id,
+  });
+  if (res.error || !res.id) return { error: res.error ?? "Não foi possível anexar o arquivo." };
+  recarregar(attendance.id);
+  return { anexo: { id: res.id, name: res.name ?? arquivo.name } };
+}
+
+/** Desfazer o anexo que ESTA pessoa acabou de mandar (10 min). Nunca a mídia do cliente nem o anexo de outra pessoa. */
+export async function desfazerAnexoDoCelular(id: string, anexoId: string): Promise<R> {
+  const r = await atendimentoDaAcao(id);
+  if (r.erro !== undefined) return { error: r.erro };
+  const { viewer, attendance } = r;
+  const a = await prisma.attachment.findFirst({
+    where: { id: String(anexoId), attendanceId: attendance.id, officeId: viewer.officeId },
+    select: { id: true, uploadedById: true, createdAt: true, docType: true },
+  });
+  if (!a) return { error: "Anexo não encontrado." };
+  if (!podeDesfazerAnexo(a, viewer, new Date())) return { error: "Só é possível desfazer o anexo que você mesmo enviou, nos primeiros 10 minutos." };
+  const res = await deleteAttachment(a.id, { confirmarProtocolado: false });
+  if (res.error) return { error: res.error };
+  if (res.precisaConfirmar) return { error: "Este anexo já faz parte de um protocolo. Exclua pelo Lúmen no computador." };
+  recarregar(attendance.id);
+  return {};
 }

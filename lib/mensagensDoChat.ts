@@ -12,6 +12,8 @@ import { rotuloDeTranscricaoNaTela, type TranscricaoDaMensagem } from "@/lib/tra
 // offset deslocaria a página inteira. O id entra no cursor porque duas mensagens no MESMO instante
 // (comum no ingest em rajada) sem ele seriam puladas ou repetidas na fronteira.
 //
+// MÍDIA NO BALÃO (PR 8): o balão mostra a imagem, toca o áudio e abre o vídeo/documento pela rota autenticada
+// /api/atendimento/[id]/midia/[mensagemId] (lib/midiaDoChat.ts); o texto abaixo é a origem do rótulo.
 // MÍDIA É RÓTULO. A mensagem de mídia recebida vira `[imagem]`, `[documento: nome.pdf]`, `[áudio]`
 // (lib/driveNaming.ts:rotuloDaMidiaWhatsapp), com a legenda depois. O arquivo mora no Drive do
 // escritório; abrir/tocar pelo celular chega numa etapa seguinte. O áudio mostra o rótulo e a
@@ -30,6 +32,9 @@ export type MidiaDaMensagem = {
   nome: string | null;
   /** O texto que o cliente mandou junto (legenda), ou "". */
   legenda: string;
+  /** Tamanho e tipo do arquivo, quando o ingest os gravou (mídia nova). Nulos = não se sabe; o cartão omite. */
+  bytes?: number | null;
+  mime?: string | null;
 };
 
 const ROTULO_DO_TIPO: Record<TipoDeMidia, string> = {
@@ -92,11 +97,14 @@ export type LinhaDeMensagem = {
   status: string;
   createdAt: Date;
   clientMessageId?: string | null;
+  midiaBytes?: number | null;
+  midiaMime?: string | null;
   transcricao?: TranscricaoDaMensagem;
 };
 
 export function prepararMensagem(m: LinhaDeMensagem, agora: Date): MensagemDoChat {
-  const midia = lerMidia(m.body);
+  const lida = lerMidia(m.body);
+  const midia = lida ? { ...lida, bytes: m.midiaBytes ?? null, mime: m.midiaMime ?? null } : null;
   const rotuloTranscricao = rotuloDeTranscricaoNaTela(m.transcricao);
   return {
     id: m.id,
