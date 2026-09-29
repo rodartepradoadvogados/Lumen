@@ -161,13 +161,16 @@ function arquivosDe(pasta: string): string[] {
 }
 
 teste("toda página de atendimento tem a trava de nível", () => {
-  const paginas = arquivosDe("app").filter((a) => a.includes("atendimento") && a.endsWith("page.tsx"));
+  // Fora da varredura: telas do app que não tocam em lead (login, perfil, tema e sair).
+  const semLead = /atendimento-app\/(entrar|\(shell\)\/(perfil|tema|sair))\/page\.tsx$/;
+  const paginas = arquivosDe("app").filter((a) => a.includes("atendimento") && a.endsWith("page.tsx") && !semLead.test(a));
   verdade(paginas.length >= 6, `só ${paginas.length} páginas encontradas — a varredura não está lendo certo`);
   // Procura a CHAMADA, e não o nome: a linha de `import` sozinha satisfazia um teste que buscasse
   // só o identificador, e uma página que perdesse a trava passaria com o import órfão em cima.
   const sem = paginas.filter((a) => {
     const t = readFileSync(join(process.cwd(), a), "utf8");
-    return !t.includes("if (!podeVerAtendimentos(") && !t.includes("if (!veTodoOAtendimento(");
+    // `exigirAcessoAoAtendimentoNaTela()` (lib/guardaDoAtendimento.ts) é a mesma trava, numa chamada.
+    return !t.includes("if (!podeVerAtendimentos(") && !t.includes("if (!veTodoOAtendimento(") && !t.includes("await exigirAcessoAoAtendimentoNaTela(");
   });
   igual(sem, [], "páginas de atendimento SEM a trava: ");
 });

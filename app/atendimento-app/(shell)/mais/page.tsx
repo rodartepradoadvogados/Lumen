@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getCurrentUser } from "@/lib/currentUser";
+import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Card } from "@/components/ui";
 import { ArrowLeft, User, Users, Palette, LogOut, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function MaisAppPage() {
-  const viewer = await getCurrentUser();
-  if (!viewer) notFound();
+  await exigirAcessoAoAtendimentoNaTela();
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">

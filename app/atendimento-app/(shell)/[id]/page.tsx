@@ -11,18 +11,19 @@ import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList"
 import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import EditAttendanceSubject from "@/components/EditAttendanceSubject";
 import { ArrowLeft, Send } from "lucide-react";
-import { getCurrentUser } from "@/lib/currentUser";
+import { whereDeUmAtendimento } from "@/lib/acessoAtendimento";
+import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 
 export const dynamic = "force-dynamic";
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
 export default async function AtendimentoAppDetail({ params }: { params: { id: string } }) {
-  const viewer = await getCurrentUser();
-  if (!viewer) notFound();
+  const viewer = await exigirAcessoAoAtendimentoNaTela();
 
   const a = await prisma.attendance.findFirst({
-    where: { id: params.id, officeId: viewer.officeId },
+    // O dono entra no WHERE (não num `if` depois): o lead do colega simplesmente não existe aqui.
+    where: whereDeUmAtendimento(viewer, params.id),
     include: {
       responsible: true,
       convertedCase: true,

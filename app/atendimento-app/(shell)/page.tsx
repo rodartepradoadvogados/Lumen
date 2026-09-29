@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/currentUser";
+import { whereDoAtendimento, veTodoOAtendimento } from "@/lib/acessoAtendimento";
+import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
 import { Plus, Search } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
@@ -31,13 +31,15 @@ const TABS = [
 ];
 
 export default async function AtendimentoAppHome({ searchParams }: { searchParams: { status?: string; q?: string } }) {
-  const viewer = await getCurrentUser();
-  if (!viewer) notFound();
+  // O aplicativo NÃO é um caminho paralelo ao site: mesma porta, mesmo recorte por dono
+  // (lib/acessoAtendimento.ts). Sem acesso: 404, e nenhuma consulta abaixo chega a rodar.
+  const viewer = await exigirAcessoAoAtendimentoNaTela();
+  const soOsMeus = !veTodoOAtendimento(viewer);
 
   const q = (searchParams.q || "").trim();
 
   const baseFilters: Prisma.AttendanceWhereInput = {
-    officeId: viewer.officeId,
+    ...whereDoAtendimento(viewer),
     status: searchParams.status || { not: "RASCUNHO" },
   };
   const matchingIds = q ? await findAttendanceIdsByLooseName(q, baseFilters) : [];
@@ -60,8 +62,8 @@ export default async function AtendimentoAppHome({ searchParams }: { searchParam
     <div className="p-4 space-y-4 animate-fade-in">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-tx">Triagem</h1>
-          <p className="text-sm text-tx-2">{totalCount} registro(s)</p>
+          <h1 className="text-xl font-bold text-tx">{soOsMeus ? "Suas demandas" : "Triagem"}</h1>
+          <p className="text-sm text-tx-2">{totalCount} {soOsMeus ? "repassado(s) a você" : "registro(s)"}</p>
         </div>
         <Link href="/atendimento-app/novo" className="inline-flex items-center gap-1.5 bg-ouro-acento hover:bg-ouro-hover text-ouro-tx text-corpo font-semibold px-3 py-2 shrink-0">
           <Plus size={14} /> Novo

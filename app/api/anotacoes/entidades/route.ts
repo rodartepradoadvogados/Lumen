@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { naturezaWhere, type CaseNatureza } from "@/lib/caseNatureza";
+import { podeVerAtendimentos, whereDoAtendimento } from "@/lib/acessoAtendimento";
 import { isAnotacaoLinkType, anotacaoLinkNeedsEntity, type AnotacaoLinkType } from "@/lib/anotacoes";
 
 export const dynamic = "force-dynamic";
@@ -34,8 +35,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (tipo === "ATENDIMENTO") {
+    // Lista de leads (nome + assunto): mesmo recorte do Atendimento — sem acesso, nada; só os
+    // próprios, só os repassados (lib/acessoAtendimento.ts).
+    if (!podeVerAtendimentos(viewer)) return NextResponse.json({ options: [] });
     const attendances = await prisma.attendance.findMany({
-      where: { officeId: viewer.officeId },
+      where: whereDoAtendimento(viewer),
       select: { id: true, clientName: true, subject: true },
       orderBy: { createdAt: "desc" },
       take: 500,

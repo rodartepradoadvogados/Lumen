@@ -362,3 +362,34 @@ dia de Brasília comparado em meia-noite UTC (`lib/gestao/dias.ts`). Comparar `d
 (`isAdmin || financeAccess`); os demais veem a própria carga. O funil só a quem vê o Atendimento
 inteiro. "Cobrar" (enviar lembrete ao cliente) **não existe**: é comportamento novo que depende de
 decisão do dono; hoje o bloco leva ao Financeiro.
+
+## 15. O aplicativo de Atendimento e a API têm o MESMO recorte da Central (29/09/2026)
+
+**O defeito (explorável em produção):** `app/atendimento-app/**`, `app/api/atendimento/[id]/{stage,ana-responde}`
+e a lista/funil do site (`app/(app)/atendimento`, `/funil`) filtravam Attendance **só por `officeId`**.
+Quem não tinha acesso ao Atendimento (ou só devia ver os leads repassados a si) listava, abria e
+alterava a conversa de WhatsApp de qualquer lead do escritório, e trocava fase / "Ana responde" pela
+API. Só a Central e o mobile `/m` aplicavam os três níveis de `lib/acessoAtendimento.ts`.
+
+**O que não pode voltar atrás:**
+
+- **Toda consulta de Attendance feita a partir de tela ou rota de Atendimento parte de
+  `whereDoAtendimento(viewer)` / `whereDeUmAtendimento(viewer, id)`** (`lib/acessoAtendimento.ts`):
+  escritório + recorte por dono, **fechado** sem acesso (`responsibleId` impossível). O `id` da URL
+  é palpite, nunca prova. Não escreva `officeId: viewer.officeId` cru numa consulta de Attendance.
+- **Telas** chamam `exigirAcessoAoAtendimentoNaTela()` (404 sem acesso); **rotas de API** chamam
+  `atendimentoDaRota(id)` (401 sem sessão, 403 sem acesso, 404 para lead de outro dono/escritório),
+  ambas em `lib/guardaDoAtendimento.ts`, **antes** de ler o corpo ou tocar no lead.
+- **Funil** (site e app) é só do nível total (`veTodoOAtendimento`), como a aba Triagem da Central.
+  O layout do app mostra a frase `SEM_ACESSO_AO_ATENDIMENTO` sem renderizar nenhum filho.
+- Ações de servidor com `attendanceId` (pendências, anexos, anotações vinculadas) também conferem o
+  recorte; antes só conferiam o escritório.
+- O teste `lib/testes/atendimentoRecorteApp.teste.ts` varre esses caminhos e falha se uma consulta
+  de Attendance aparecer sem o recorte, se uma página nova do app não chamar a porta, ou se a API
+  voltar a filtrar só por escritório.
+
+**Ainda NÃO coberto (mesma família, fora deste PR):** ferramentas do assistente de IA e do agente
+MCP (`lib/assistantTools.ts` `consultarAtendimento`, sem o viewer no contexto), relatório
+personalizado (`lib/actions/relatorioPersonalizado.ts`), agregados de `/indicadores/[secao]` e
+`m/(shell)/relatorios` (só contagens), `relatorio-pastas` (contagem), export do escritório (admin),
+e `painel` (consulta do funil roda para todos, mas só é exibida ao nível total).

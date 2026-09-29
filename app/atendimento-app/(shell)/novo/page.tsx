@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/currentUser";
+import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { Card } from "@/components/ui";
 import MobileNewAttendanceForm from "@/components/mobile/MobileNewAttendanceForm";
 import ModuleDisabledNotice from "@/components/ModuleDisabledNotice";
@@ -11,8 +10,7 @@ import { ArrowLeft } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function NovoAtendimentoAppPage() {
-  const viewer = await getCurrentUser();
-  if (!viewer) notFound();
+  const viewer = await exigirAcessoAoAtendimentoNaTela();
   const modules = await getOfficeModules(viewer.officeId);
   if (!modules.atendimento) {
     return <ModuleDisabledNotice moduleName="Atendimento" />;

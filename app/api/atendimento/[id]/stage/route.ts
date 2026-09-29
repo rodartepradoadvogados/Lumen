@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/currentUser";
+import { atendimentoDaRota } from "@/lib/guardaDoAtendimento";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const viewer = await getCurrentUser();
-  if (!viewer) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  // 401 sem sessão, 403 sem acesso ao Atendimento, 404 para lead de outro dono/escritório —
+  // o mesmo recorte da Central e do site (lib/acessoAtendimento.ts).
+  const r = await atendimentoDaRota(params.id);
+  if (r.erro) return r.erro;
+  const { attendance } = r;
 
   const { stage } = await req.json();
   const validStages = ["NOVO", "QUALIFICACAO", "PROPOSTA", "AGUARDANDO_RESPOSTA", "FECHADO", "PERDIDO"];
@@ -12,13 +15,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "Estágio inválido" }, { status: 400 });
   }
 
-  const attendance = await prisma.attendance.findFirst({
-    where: { id: params.id, officeId: viewer.officeId },
-  });
-  if (!attendance) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-
   const updated = await prisma.attendance.update({
-    where: { id: params.id },
+    where: { id: attendance.id },
     data: { stage, stageChangedAt: new Date() },
   });
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { del } from "@vercel/blob";
 import { getCurrentUser } from "@/lib/currentUser";
+import { podeVerAtendimentos, whereDoAtendimento } from "@/lib/acessoAtendimento";
 import {
   uploadFileToDrive,
   uploadFileToDriveFolder,
@@ -47,7 +48,8 @@ export async function createAttachment(data: {
     if (!c) return { error: "Processo não encontrado." };
   }
   if (data.attendanceId) {
-    const a = await prisma.attendance.findFirst({ where: { id: data.attendanceId, officeId: user.officeId }, select: { id: true } });
+    if (!podeVerAtendimentos(user)) return { error: "Atendimento não encontrado." };
+    const a = await prisma.attendance.findFirst({ where: { id: data.attendanceId, ...whereDoAtendimento(user) }, select: { id: true } });
     if (!a) return { error: "Atendimento não encontrado." };
   }
   let licitacaoAssessoriaId: string | null = null;
@@ -125,7 +127,7 @@ export async function finalizeAttachmentUpload(data: {
       const containerFolderId = await getOrCreateCaseFolder(resolvedCaseId, c.title, user.officeId);
       targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(data.docType), user.officeId);
     } else if (resolvedAttendanceId) {
-      const a = await prisma.attendance.findFirst({ where: { id: resolvedAttendanceId, officeId: user.officeId }, select: { subject: true } });
+      const a = await prisma.attendance.findFirst({ where: { id: resolvedAttendanceId, ...whereDoAtendimento(user) }, select: { subject: true } });
       if (!a) return { error: "Atendimento não encontrado." };
       const containerFolderId = await getOrCreateAttendanceFolder(resolvedAttendanceId, a.subject, user.officeId);
       targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(data.docType), user.officeId);

@@ -1,14 +1,12 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/currentUser";
+import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft, Users, Shield } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function EquipeAppPage() {
-  const viewer = await getCurrentUser();
-  if (!viewer) redirect("/");
+  const viewer = await exigirAcessoAoAtendimentoNaTela();
 
   const users = await prisma.user.findMany({
     where: { officeId: viewer.officeId },
