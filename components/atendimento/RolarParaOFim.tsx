@@ -138,10 +138,12 @@ export default function RolarParaOFim({ conversa, chave, total }: { conversa: st
               vistas.current = total;
               setNovas(0);
             }}
+            aria-label={novas === 1 ? "Ir para o fim da conversa: 1 nova mensagem" : `Ir para o fim da conversa: ${novas} novas mensagens`}
             className="pointer-events-auto min-h-9 bg-acao px-4 text-etiqueta font-semibold text-acao-tx hover:bg-acao-hover focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
             style={{ boxShadow: "var(--atd-shadow-card)" }}
           >
-            ↓ {novas} {novas === 1 ? "nova mensagem" : "novas mensagens"}
+            <span aria-hidden="true">↓ </span>
+            {novas} {novas === 1 ? "nova mensagem" : "novas mensagens"}
           </button>
         </div>
       )}

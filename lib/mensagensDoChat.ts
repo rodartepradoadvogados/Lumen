@@ -82,6 +82,14 @@ export type MensagemDoChat = {
   clientMessageId: string | null;
   /** SÓ NA TELA: a mensagem que ainda não foi confirmada pelo servidor (balão "enviando", "falhou"...). */
   envioLocal?: { estado: "enviando" | "enviada" | "falhou" | "sem-confirmacao"; erro: string | null; podeTentarDeNovo: boolean };
+  /**
+   * AUSENTE = mensagem de WhatsApp (a de sempre). "nota" = nota interna escrita por uma pessoa; "sistema" =
+   * aviso do Lúmen. Os dois vêm de `NotaDaConversa` (lib/notaDaConversa.ts), são só da equipe e nunca foram
+   * nem serão enviados ao cliente. Opcional de propósito: quem monta um MensagemDoChat de WhatsApp não muda.
+   */
+  tipo?: "nota" | "sistema";
+  /** Quem escreveu a nota (só em `tipo: "nota"`). */
+  autor?: string | null;
 };
 
 export type LinhaDeMensagem = {

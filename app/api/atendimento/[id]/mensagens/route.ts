@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { atendimentoDaRota } from "@/lib/guardaDoAtendimento";
 import { carregarMensagensDepois, carregarPaginaDoChat } from "@/lib/mensagensDoChatDb";
 import { lerCursor } from "@/lib/mensagensDoChat";
-import { validarPedidoDeEnvio } from "@/lib/envioDeMensagem";
-import { enviarMensagemDoApp } from "@/lib/envioDeMensagemDb";
+import { despacharPedidoDoChat } from "@/lib/pedidoDoChatDb";
 import { lerEstadoDoChat } from "@/lib/estadoDoChatDb";
 
 export const dynamic = "force-dynamic";
@@ -44,8 +43,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(pagina, { headers: SEM_CACHE });
 }
 
-// POST /api/atendimento/[id]/mensagens — envia um TEXTO ao cliente pelo WhatsApp.
-//   corpo: { clientMessageId, texto, confirmouReenvio? }   (JSON)
+// POST /api/atendimento/[id]/mensagens — envia um TEXTO ao cliente pelo WhatsApp, ou salva uma NOTA INTERNA.
+//   corpo: { clientMessageId, texto, confirmouReenvio?, modo?: "mensagem" | "nota" }   (JSON)
 //
 // A GUARDA VEM ANTES DE LER O CORPO (401 / 403 / 404, sem gravar nada). O corpo só é aceito como JSON
 // (um formulário de outro site não consegue mandar `application/json` sem pedir licença ao navegador).
@@ -67,9 +66,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   } catch {
     return NextResponse.json({ ok: false, codigo: "INVALIDO", erro: "Pedido inválido." }, { status: 400, headers: SEM_CACHE });
   }
-  const pedido = validarPedidoDeEnvio(corpo);
-  if (!pedido.ok) return NextResponse.json({ ok: false, codigo: "INVALIDO", erro: pedido.erro }, { status: 400, headers: SEM_CACHE });
-
-  const resposta = await enviarMensagemDoApp({ officeId, userId, attendance }, pedido);
+  // `modo`: ausente/"mensagem" envia ao cliente; "nota" grava a nota interna (só da equipe, NUNCA ao WhatsApp);
+  // qualquer outro valor é 400. Quem decide é lib/pedidoDoChatDb.ts.
+  const resposta = await despacharPedidoDoChat({ officeId, userId, autorNome: viewer.name, attendance }, corpo);
   return NextResponse.json(resposta.corpo, { status: resposta.status, headers: SEM_CACHE });
 }
