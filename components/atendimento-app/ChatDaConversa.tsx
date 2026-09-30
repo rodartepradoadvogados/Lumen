@@ -346,11 +346,11 @@ export default function ChatDaConversa({
         aria-label="Mensagens da conversa"
         aria-live="off"
         tabIndex={0}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-atd-chat-fundo px-3 pb-3 pt-2"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-atd-tela px-3 pb-3 pt-2"
       >
         {exibidas.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center px-6 text-center text-tx-2">
-            <p className="text-destaque font-semibold text-tx">{semWhatsapp ? "Sem conversa de WhatsApp" : "Nenhuma mensagem ainda"}</p>
+          <div className="flex h-full flex-col items-center justify-center px-6 text-center text-atd-previa">
+            <p className="text-destaque font-semibold text-atd-tinta">{semWhatsapp ? "Sem conversa de WhatsApp" : "Nenhuma mensagem ainda"}</p>
             <p className="mt-1 text-corpo">{semWhatsapp ? "Este atendimento não tem WhatsApp. Veja os dados e os e-mails em Detalhes." : "Quando o cliente escrever, as mensagens aparecem aqui."}</p>
           </div>
         ) : (
@@ -361,12 +361,12 @@ export default function ChatDaConversa({
                   type="button"
                   onClick={carregarAnteriores}
                   disabled={carregando}
-                  className="inline-flex min-h-11 items-center rounded-[2px] border border-regua-forte bg-sf px-4 text-corpo font-semibold text-tx disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center rounded-atd-pilula bg-atd-pilula px-4 text-corpo font-semibold text-atd-tinta disabled:opacity-60"
                 >
                   {carregando ? "Carregando…" : "Carregar mensagens anteriores"}
                 </button>
                 {erro && (
-                  <p role="alert" className="max-w-xs text-center text-etiqueta font-semibold text-urgente">
+                  <p role="alert" className="max-w-xs text-center text-app-meta font-semibold text-urgente">
                     {erro}
                   </p>
                 )}
@@ -374,7 +374,7 @@ export default function ChatDaConversa({
             )}
             {grupos.map((g) => (
               <section key={g.dia} aria-label={g.rotulo} className="flex flex-col gap-1">
-                <h2 className="mx-auto mb-1 mt-3 rounded-[2px] border border-regua bg-sf-apoio px-2.5 py-0.5 text-etiqueta font-bold uppercase tracking-wider text-tx-2">
+                <h2 className="mx-auto mb-1 mt-3 rounded-atd-pilula bg-atd-pilula px-3 py-1 text-app-meta font-medium text-atd-previa">
                   {g.rotulo}
                 </h2>
                 {g.mensagens.map((m) => (

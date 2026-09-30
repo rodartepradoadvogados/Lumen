@@ -744,3 +744,51 @@ só na não lida; fundo Noite `#14151c`; etiqueta 11px/600 e título 26px/700; b
 fluxo real com login e banco (a lista foi vista em Chromium com dados de exemplo, não com um escritório real); aparelho de verdade (safe area,
 teclado, PWA instalado); leitor de tela.
 
+
+## 27. O chat do aplicativo de Atendimento no "acabamento WhatsApp" (etapa 2, 30/09/2026)
+
+Continua o item 26: o CHAT (`/atendimento-app/<id>`) migrou para os tokens `--atd-*`. **Só apresentação**: a lógica de envio, a idempotência, os
+recortes de acesso, a rota de mídia, o `aria-live`, o `visualViewport`/teclado e os rascunhos não foram tocados (os testes de cada PR seguem valendo).
+O que **não pode voltar atrás**:
+
+- **Tokens novos do chat** (`app/globals.css`, dentro de `.atendimento-shell`/`.atendimento-dark`; `tailwind.config.ts` como `bg-atd-balao-in`,
+  `bg-atd-balao-out`, `text-atd-balao-out-tx`, `text-atd-balao-out-sec`, `bg-atd-nota`, `border-atd-nota-borda`). O texto secundário do balão enviado
+  tem tom próprio: NADA de `opacity` para "esmaecer" a hora (opacidade derruba o contraste sem que o teste perceba). Os tokens antigos
+  (`atd-bolha-*`, `atd-ardosia*`, `atd-chat-fundo`, `atd-borda-*`) continuam no CSS só porque telas não migradas (Detalhes) ainda os leem; o chat não usa mais nenhum.
+- **Balão**: `rounded-atd-balao` (14 px) com o canto do rabicho em 4 px (`rounded-bl-[4px]` recebido, `rounded-br-[4px]` enviado). Hora e ✓✓ ficam
+  DENTRO do balão (a hora flutua à direita da última linha do texto, como no WhatsApp). **O ✓✓ é cinza e significa "o WhatsApp aceitou o envio", nunca
+  "lida"** (não existe confirmação de leitura). A Ana leva o nome e o ícone em cima, não mais uma borda de ouro.
+- **Nota interna distinguível sem cor**: rótulo "Nota interna · só a equipe", cadeado, borda TRACEJADA de 1,5 px em ouro (`--atd-nota-borda`, 4,2:1 no Dia
+  contra a tela), fundo `--atd-nota-bg`, autor e hora, e o texto para leitor de tela. O aviso "A Ana não respondeu" é uma pílula central com o rótulo
+  "Aviso do sistema · só a equipe" e ícone de informação (o começo "A Ana não respondeu:" em destaque). O campo em modo nota fica tracejado e o botão de
+  envio troca o avião pelo cadeado (e o nome acessível é "Salvar nota interna").
+- **Estados de envio** (enviando / não enviada / sem confirmação / sem chave) mantêm ícone + TEXTO + "Tentar de novo / Conferir e tentar de novo /
+  Descartar / Enviar mesmo assim" em botões de 44 px (agora pílulas). Falha e dúvida ainda têm borda fina (`border-urgente`/`border-aviso`): é a exceção
+  aceita ao "hierarquia por fundo", porque erro precisa de mais que um tom.
+- **Áudio** (`PlayerDeAudio`, em `MidiaDaBolha.tsx`): o `<audio>` NÃO tem mais a barra nativa; no lugar há botão play/pause em ouro de 44 px
+  (`aria-pressed`, "Ouvir/Pausar áudio do cliente"), forma de onda **estática** (30 barras derivadas do id da mensagem: o WhatsApp não manda a onda real)
+  que se pinta de ouro conforme o progresso, um campo `<input type="range">` invisível por cima da onda para adiantar/voltar (setas do teclado, `aria-valuetext`,
+  anel de foco visível pelo irmão `peer-focus-visible`, desligado até a duração ser conhecida) e o tempo escrito. Continua `preload="none"`: nada baixa antes do toque.
+  Antes do primeiro toque o rótulo mostra o tamanho do arquivo, não a duração (a duração só se sabe depois de carregar).
+- **Miniatura que nunca carregava (correção de passagem)**: a `<img>` ficava `sr-only` (1 px recortado) com `loading="lazy"`; no Chromium ela nunca entrava na
+  fila de carga. Agora ela ocupa o quadro (`absolute inset-0 opacity-0`) enquanto carrega, e um `useEffect` confere `img.complete` ao montar, porque o
+  `onLoad` do React não vê uma imagem que termina de carregar ANTES da hidratação (ficaria para sempre em "Carregando imagem…").
+- **Cabeçalho**: sem faixa grafite e sem filete de ouro; `BotaoVoltar` ganhou `tom="claro"` (o padrão continua `grafite` para as telas de Detalhes/Novo que ainda
+  usam o cabeçalho grafite). O estado "Ana responde" **não** está no cabeçalho (o cabeçalho é do servidor e não conhece o estado vivo): mora na `BarraDoChat`,
+  logo abaixo das guias. Com o interruptor presente, o título da barra fica só para leitor de tela (o interruptor já escreve "Ana responde: Ligada") e a
+  linha mostra a frase / o relógio de 15 min. O fundo vermelho suave só aparece quando o relógio está grave.
+- **`InterruptorDaAna` é um só componente para o site e o app**: ganhou a propriedade `pilula` (só o app a liga) para o canto em pílula. A borda de 2 px, os
+  44 px, `role="switch"` e o "Ana responde: Ligada/Desligada" escrito NÃO mudam. O site segue com canto de 2 px (o teste `atendimentoAppVisualChat` prova os dois).
+- **`FaixaDaJanelaFechada` também é compartilhada com o site** (`tema="site"`): o tema do app (cartão de ouro suave, botões em pílula) e o do site (2 px, tokens do
+  sistema, nenhum `atd-`) ficam lado a lado em `TEMAS`. Mexer num não pode mexer no outro (o teste `siteJanela24h` e o `atendimentoAppVisualChat` conferem).
+- **Sem clipe no campo**: o desenho aprovado mostra um clipe, mas o Lúmen NÃO envia mídia ao cliente (ver item 25: anexar é `Detalhes > Anexos`, e mídia de saída é o
+  PR 14). Um clipe que não faz nada seria promessa falsa; o campo tem só as respostas rápidas (raio) e o envio. Quando o PR 14 existir, o clipe entra à esquerda da pílula.
+- **Alvos**: nenhum controle do chat tem menos de 44 px (o alternador "Mensagem | Nota interna" desenha uma cápsula de 32 px, mas cada botão tem 44 px de altura de toque).
+  O botão "⋮" (Mais ações) ao lado do balão continua: é o único caminho para Responder/Fixar; o desenho aprovado não o mostra.
+- Teste: `lib/testes/atendimentoAppVisualChat.teste.tsx` (tokens, contraste AA/3:1 em Dia e Noite, balão, ✓✓, nota, aviso, estados, áudio, mídia, guias, barra, fixada,
+  campo, faixa, folhas, e a varredura de hex/sombra/faixa lateral/token antigo). Os testes `atendimentoAppNota` (borda/ contraste da nota), `atendimentoAppEnvio` (regex
+  de jargão ignora `text-app-meta`) e `siteJanela24h` (tema do app) foram atualizados para a nova regra, sem tirar nenhuma verificação de segurança ou acesso.
+
+**Não provado**: aparelho real (safe area, teclado virtual, PWA instalado, áudio no iPhone com Range), leitor de tela de verdade, a hora flutuante em textos muito longos
+com palavras sem espaço, a barra de estado "Ana responde" com o relógio de 15 min correndo nos últimos cinco minutos (só o código e o contraste), o fluxo com login e
+banco reais (as capturas foram de uma página temporária com mensagens de exemplo e mídia interceptada, já removida), e o Safari/Firefox (só Chromium).

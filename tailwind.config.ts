@@ -194,6 +194,12 @@ const config: Config = {
           avatar: "var(--atd-avatar-bg)",
           "avatar-tx": "var(--atd-avatar-tx)",
           "barra-borda": "var(--atd-barra-borda)",
+          "balao-in": "var(--atd-balao-in)",
+          "balao-out": "var(--atd-balao-out)",
+          "balao-out-tx": "var(--atd-balao-out-tx)",
+          "balao-out-sec": "var(--atd-balao-out-sec)",
+          nota: "var(--atd-nota-bg)",
+          "nota-borda": "var(--atd-nota-borda)",
         },
         gaveta: {
           DEFAULT: "var(--gaveta)",

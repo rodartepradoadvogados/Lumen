@@ -1,14 +1,15 @@
 "use client";
 
-import { AlertTriangle, Check, Clock, Ear, HelpCircle, Info, Lock, MoreVertical, Pin, RefreshCw, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, CheckCheck, Clock, Ear, HelpCircle, Info, Lock, MoreVertical, Pin, RefreshCw, Trash2 } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
 import MidiaDaBolha from "@/components/atendimento-app/MidiaDaBolha";
 import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 
-// O BALÃO. Recebida em branco; enviada por pessoa em ouro suave; da Ana com borda de ouro e o nome.
-// Quem falou nunca depende de cor: a bolha tem lado, e o leitor de tela ouve "Cliente" ou "Escritório".
-// MÍDIA É RÓTULO; o ÁUDIO mostra o rótulo e a transcrição, "para consulta da equipe". Toque na bolha
-// não faz nada.
+// O BALÃO (acabamento WhatsApp, etapa 2): raio de 14 px com o canto do rabicho em 4 px, hora e ✓✓ DENTRO do balão.
+// Recebida em `bg-atd-balao-in`; enviada por pessoa em `bg-atd-balao-out` (ouro suave); da Ana igual, com o nome
+// dela e o ícone em cima. Quem falou nunca depende de cor: o balão tem lado, e o leitor de tela ouve "Cliente"
+// ou "Escritório". MÍDIA: ver MidiaDaBolha. O ÁUDIO mostra o player e a transcrição, "para consulta da equipe".
+// O ✓✓ CINZA significa "o WhatsApp aceitou o envio", nunca "lida" (não existe confirmação de leitura).
 //
 // OS ESTADOS DE ENVIO (mensagem que saiu deste aparelho e o servidor ainda não devolveu):
 //   enviando        relógio + "Enviando…"
@@ -19,9 +20,9 @@ import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 //
 // NOTA INTERNA (`m.tipo === "nota"`) e AVISO DE SISTEMA (`"sistema"`) vêm de NotaDaConversa, não do WhatsApp:
 // só a equipe vê e nunca saíram para o cliente. Nunca se confundem com mensagem ao cliente: a nota tem borda
-// TRACEJADA de ardósia, cadeado e o rótulo "Nota interna · só a equipe" com autor e hora; o aviso é centralizado,
-// de borda contínua, com ícone de informação e "Aviso do sistema · só a equipe". Rótulo e ícone dizem o que é;
-// a cor só reforça.
+// TRACEJADA em ouro, fundo de ouro suave, cadeado e o rótulo "Nota interna · só a equipe" com autor e hora; o aviso
+// é uma pílula centralizada, com ícone de informação e "Aviso do sistema · só a equipe". Rótulo e ícone dizem o
+// que é; a cor só reforça.
 
 export default function BolhaDaMensagem({
   m,
@@ -57,18 +58,32 @@ export default function BolhaDaMensagem({
   const enviando = local?.estado === "enviando";
   const chave = m.clientMessageId;
   const ehNota = m.tipo === "nota";
+  const alerta = falhou || duvida;
+  const foto = !!m.midia && m.midia.tipo === "imagem" && !saiu && !ehNota;
 
   if (m.tipo === "sistema") {
+    // "A Ana não respondeu: <motivo>." — o começo em destaque, o motivo em tom normal (o texto é o mesmo).
+    const marca = "A Ana não respondeu:";
+    const comMarca = m.texto.startsWith(marca);
     return (
       <div className="flex justify-center py-0.5" data-mensagem={m.id} data-tipo="sistema">
-        <div className="max-w-[92%] break-words rounded-[2px] border border-regua-forte bg-sf-apoio px-2.5 py-1.5 text-center [overflow-wrap:anywhere]">
+        <div className="max-w-[92%] break-words rounded-atd-balao bg-atd-pilula px-3.5 py-1.5 text-center [overflow-wrap:anywhere]">
           <span className="sr-only">Aviso do sistema, só da equipe: </span>
-          <p className="mb-0.5 flex items-center justify-center gap-1.5 text-etiqueta font-bold text-tx-2">
+          <p className="mb-0.5 flex items-center justify-center gap-1.5 text-app-meta font-medium text-atd-terciario">
             <Info size={12} aria-hidden="true" />
             Aviso do sistema · só a equipe
           </p>
-          <p className="whitespace-pre-wrap text-corpo text-tx">{m.texto}</p>
-          <p className="mt-0.5 text-etiqueta tabular-nums text-tx-2">
+          <p className="whitespace-pre-wrap text-app-previa text-atd-previa">
+            {comMarca ? (
+              <>
+                <b className="font-semibold text-atd-tinta">{marca}</b>
+                {m.texto.slice(marca.length)}
+              </>
+            ) : (
+              m.texto
+            )}
+          </p>
+          <p className="mt-0.5 text-app-meta tabular-nums text-atd-terciario">
             <time dateTime={m.criadoEm}>{m.hora}</time>
           </p>
         </div>
@@ -76,73 +91,97 @@ export default function BolhaDaMensagem({
     );
   }
 
+  // As cores do balão: o de alerta (não enviada / sem confirmação) usa o vermelho/âmbar suave do sistema; a nota, o ouro
+  // suave tracejado; o resto, o par dentro/fora do acabamento. `sec` é o tom da hora e das linhas de apoio.
+  const superficie = falhou
+    ? "border border-urgente bg-urgente-bg text-tx"
+    : duvida
+      ? "border border-aviso bg-aviso-bg text-tx"
+      : ehNota
+        ? "border-[1.5px] border-dashed border-atd-nota-borda bg-atd-nota text-atd-tinta"
+        : saiu
+          ? "bg-atd-balao-out text-atd-balao-out-tx rounded-br-[4px]"
+          : "bg-atd-balao-in text-atd-tinta rounded-bl-[4px]";
+  const sec = alerta ? "text-tx-2" : ehNota ? "text-atd-previa" : saiu ? "text-atd-balao-out-sec" : "text-atd-terciario";
+
+  // Hora, autor da nota, estado do envio, ✓✓ e "Fixada": tudo dentro do balão, no canto de baixo à direita.
+  const meta = (
+    <>
+      {ehNota && <span className="min-w-0 truncate font-semibold">{m.autor || "Você"} ·</span>}
+      {enviando && (
+        <span className="inline-flex items-center gap-1">
+          <Clock size={12} aria-hidden="true" /> Enviando…
+        </span>
+      )}
+      {falhou && (
+        <span className="inline-flex items-center gap-1 font-semibold text-urgente">
+          <AlertTriangle size={12} aria-hidden="true" /> {ehNota ? "Não salva" : "Não enviada"}
+        </span>
+      )}
+      {duvida && (
+        <span className="inline-flex items-center gap-1 font-semibold text-tx">
+          <HelpCircle size={12} aria-hidden="true" /> Sem confirmação
+        </span>
+      )}
+      {fixada && (
+        <span className="inline-flex items-center gap-0.5 font-semibold">
+          <Pin size={12} aria-hidden="true" /> Fixada
+        </span>
+      )}
+      <time dateTime={m.criadoEm}>{m.hora}</time>
+      {(m.enviada || local?.estado === "enviada") && (
+        <span className="inline-flex items-center" title={ehNota ? "Salva" : "Enviada"}>
+          {ehNota ? <Check size={14} aria-hidden="true" /> : <CheckCheck size={15} aria-hidden="true" />}
+          <span className="sr-only">{ehNota ? "Salva" : "Enviada"}</span>
+        </span>
+      )}
+    </>
+  );
+  const classeDaMeta = `inline-flex items-center gap-1.5 text-app-meta leading-none tabular-nums ${sec}`;
+
   return (
     <div className={`flex flex-col ${saiu ? "items-end" : "items-start"}`} data-mensagem={m.id} data-tipo={ehNota ? "nota" : undefined} data-envio={local?.estado ?? (m.enviada ? "enviada" : undefined)}>
       <div className={`flex w-full items-end gap-0.5 ${saiu ? "flex-row-reverse" : ""}`}>
       <div
-        className={`min-w-0 max-w-[84%] break-words rounded-[2px] border px-2.5 pb-1 pt-1.5 [overflow-wrap:anywhere] ${
-          falhou ? "border-urgente bg-urgente-bg" : duvida ? "border-aviso bg-aviso-bg" : ehNota ? "border-dashed border-atd-ardosia bg-atd-ardosia-bg" : `${saiu ? "bg-atd-bolha-out" : "bg-atd-bolha-in"} ${m.porAgente ? "border-ouro-acento" : saiu ? "border-atd-borda-out" : "border-atd-borda-in"}`
-        }`}
+        className={`min-w-0 max-w-[84%] break-words rounded-atd-balao [overflow-wrap:anywhere] ${foto ? "min-w-[15rem] p-[3px] pb-1" : "px-2.5 pb-1.5 pt-1.5"} ${superficie}`}
       >
         <span className="sr-only">{ehNota ? `Nota interna, só da equipe, de ${m.autor || "você"}: ` : `${autor} disse: `}</span>
         {ehNota && (
-          <p className="mb-0.5 flex items-center gap-1.5 text-etiqueta font-bold text-atd-ardosia">
-            <Lock size={12} aria-hidden="true" />
+          <p className="mb-0.5 flex items-center gap-1.5 text-app-meta font-semibold text-atd-texto-ouro">
+            <Lock size={13} aria-hidden="true" />
             Nota interna · só a equipe
           </p>
         )}
         {saiu && m.porAgente && (
-          <p className="mb-0.5 flex items-center gap-1.5 text-etiqueta font-bold text-tx-2">
-            <IconeAgente size={12} className="text-tx-3" />
+          <p className="mb-0.5 flex items-center gap-1.5 text-app-meta font-semibold text-atd-texto-ouro">
+            <IconeAgente size={12} className="text-atd-texto-ouro" />
             {nomeDoAtendente}
           </p>
         )}
         {m.midia && <MidiaDaBolha idDaConversa={idDaConversa} idDaMensagem={m.id} midia={m.midia} recebida={!saiu} />}
-        {m.texto && <p className="whitespace-pre-wrap text-corpo text-tx">{m.texto}</p>}
+        {m.texto && (
+          <p className="whitespace-pre-wrap text-corpo leading-[1.35]">
+            {m.texto}
+            {/* A hora flutua à direita da última linha (como no WhatsApp); se não cabe, desce para a linha de baixo. */}
+            {!ehNota && <span className={`float-right ml-2.5 mt-1.5 ${classeDaMeta}`}>{meta}</span>}
+          </p>
+        )}
         {m.transcricao && (
-          <div className="mt-1.5 rounded-[2px] border border-regua bg-atd-ardosia-bg px-2 py-1.5">
-            <p className="mb-0.5 flex items-center gap-1.5 text-etiqueta font-bold text-atd-ardosia">
+          <div className="mt-1.5 rounded-atd-etiqueta border border-atd-pilula-borda px-2 py-1.5">
+            <p className={`mb-0.5 flex items-center gap-1.5 text-app-meta font-semibold ${saiu ? "text-atd-balao-out-sec" : "text-atd-previa"}`}>
               <Ear size={13} aria-hidden="true" />
               Transcrição do áudio, para consulta da equipe
             </p>
-            <p className={`whitespace-pre-wrap text-corpo text-tx-2 ${m.transcricao.ehConteudo ? "italic" : ""}`}>
+            <p className={`whitespace-pre-wrap text-app-previa ${m.transcricao.ehConteudo ? "italic" : ""}`}>
               {m.transcricao.ehConteudo ? `“${m.transcricao.texto}”` : m.transcricao.texto}
             </p>
           </div>
         )}
-        <p className="mt-0.5 flex items-center justify-end gap-1.5 text-etiqueta tabular-nums text-tx-2">
-          {ehNota && <span className="min-w-0 truncate font-semibold">{m.autor || "Você"} ·</span>}
-          {enviando && (
-            <span className="inline-flex items-center gap-1">
-              <Clock size={12} aria-hidden="true" /> Enviando…
-            </span>
-          )}
-          {falhou && (
-            <span className="inline-flex items-center gap-1 font-semibold text-urgente">
-              <AlertTriangle size={12} aria-hidden="true" /> {ehNota ? "Não salva" : "Não enviada"}
-            </span>
-          )}
-          {duvida && (
-            <span className="inline-flex items-center gap-1 font-semibold text-tx">
-              <HelpCircle size={12} aria-hidden="true" /> Sem confirmação
-            </span>
-          )}
-          {(m.enviada || local?.estado === "enviada") && (
-            <span className="inline-flex items-center gap-0.5" title={ehNota ? "Salva" : "Enviada"}>
-              <Check size={12} aria-hidden="true" />
-              <span className="sr-only">{ehNota ? "Salva" : "Enviada"}</span>
-            </span>
-          )}
-          {fixada && (
-            <span className="inline-flex items-center gap-0.5 font-semibold">
-              <Pin size={12} aria-hidden="true" /> Fixada
-            </span>
-          )}
-          <time dateTime={m.criadoEm}>{m.hora}</time>
-        </p>
+        {(!m.texto || ehNota || m.transcricao) && <p className={`mt-0.5 flex justify-end ${classeDaMeta} w-full`}>{meta}</p>}
+        {!!m.texto && !ehNota && !m.transcricao && <span className="clear-both block" aria-hidden="true" />}
       </div>
       {aoAbrirAcoes && !local && !m.id.startsWith("local-") && (
-        <button type="button" onClick={() => aoAbrirAcoes(m)} aria-label={`Mais ações da mensagem de ${autor}, ${m.hora}`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] text-tx-3 hover:bg-sf-apoio hover:text-tx">
+        <button type="button" onClick={() => aoAbrirAcoes(m)} aria-label={`Mais ações da mensagem de ${autor}, ${m.hora}`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-atd-terciario hover:bg-atd-linha-hover hover:text-atd-tinta">
           <MoreVertical size={16} aria-hidden="true" />
         </button>
       )}
@@ -150,15 +189,15 @@ export default function BolhaDaMensagem({
 
       {local && (falhou || duvida) && chave && (
         <div role="alert" className="mt-1 flex max-w-[92%] flex-col items-end gap-1.5 text-right">
-          <p className={`text-corpo font-semibold ${falhou ? "text-urgente" : "text-tx"}`}>{falhou ? `${ehNota ? "Não salva" : "Não enviada"} · ${local.erro ?? "erro desconhecido"}` : (local.erro ?? "Pode ter sido enviada: confira antes de repetir.")}</p>
+          <p className={`text-corpo font-semibold ${falhou ? "text-urgente" : "text-atd-tinta"}`}>{falhou ? `${ehNota ? "Não salva" : "Não enviada"} · ${local.erro ?? "erro desconhecido"}` : (local.erro ?? "Pode ter sido enviada: confira antes de repetir.")}</p>
           {confirmandoReenvio ? (
             <div className="flex flex-col items-end gap-1.5">
-              <p className="text-corpo text-tx">Não dá para saber se saiu. Enviar de novo pode chegar duas vezes ao cliente.</p>
+              <p className="text-corpo text-atd-tinta">Não dá para saber se saiu. Enviar de novo pode chegar duas vezes ao cliente.</p>
               <div className="flex flex-wrap justify-end gap-2">
-                <button type="button" onClick={aoCancelarReenvio} className="inline-flex min-h-11 items-center rounded-[2px] border border-regua-forte bg-sf px-3 text-corpo font-semibold text-tx">
+                <button type="button" onClick={aoCancelarReenvio} className="inline-flex min-h-11 items-center rounded-atd-pilula bg-atd-pilula-2 px-4 text-corpo font-semibold text-atd-tinta">
                   Cancelar
                 </button>
-                <button type="button" onClick={() => aoConfirmarReenvio?.(chave)} className="inline-flex min-h-11 items-center gap-1.5 rounded-[2px] bg-acao px-3 text-corpo font-semibold text-acao-tx hover:bg-acao-hover">
+                <button type="button" onClick={() => aoConfirmarReenvio?.(chave)} className="inline-flex min-h-11 items-center gap-1.5 rounded-atd-pilula bg-atd-ouro px-4 text-corpo font-semibold text-atd-ouro-tx">
                   <RefreshCw size={15} aria-hidden="true" /> Enviar mesmo assim
                 </button>
               </div>
@@ -166,11 +205,11 @@ export default function BolhaDaMensagem({
           ) : (
             <div className="flex flex-wrap justify-end gap-2">
               {local.podeTentarDeNovo && (
-                <button type="button" onClick={() => aoTentarDeNovo?.(chave)} className="inline-flex min-h-11 items-center gap-1.5 rounded-[2px] border border-regua-forte bg-sf px-3 text-corpo font-semibold text-tx">
+                <button type="button" onClick={() => aoTentarDeNovo?.(chave)} className="inline-flex min-h-11 items-center gap-1.5 rounded-atd-pilula bg-atd-pilula-2 px-4 text-corpo font-semibold text-atd-tinta">
                   <RefreshCw size={15} aria-hidden="true" /> {duvida ? "Conferir e tentar de novo" : "Tentar de novo"}
                 </button>
               )}
-              <button type="button" onClick={() => aoDescartar?.(chave)} className="inline-flex min-h-11 items-center gap-1.5 rounded-[2px] border border-regua-forte bg-sf px-3 text-corpo font-semibold text-tx-2">
+              <button type="button" onClick={() => aoDescartar?.(chave)} className="inline-flex min-h-11 items-center gap-1.5 rounded-atd-pilula bg-atd-pilula px-4 text-corpo font-semibold text-atd-previa">
                 <Trash2 size={15} aria-hidden="true" /> Descartar
               </button>
             </div>

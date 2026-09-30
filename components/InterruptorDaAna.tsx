@@ -21,6 +21,7 @@ export default function InterruptorDaAna({
   bordaLigada,
   bordaDesligada,
   classe = "",
+  pilula = false,
 }: {
   ligado: boolean;
   desabilitado?: boolean;
@@ -29,6 +30,8 @@ export default function InterruptorDaAna({
   bordaLigada: string;
   bordaDesligada: string;
   classe?: string;
+  /** Só no aplicativo de Atendimento (acabamento WhatsApp): canto em pílula. A borda de 2 px e os 44 px ficam. */
+  pilula?: boolean;
 }) {
   return (
     <button
@@ -38,7 +41,7 @@ export default function InterruptorDaAna({
       data-interruptor-da-ana=""
       onClick={aoAlternar}
       disabled={desabilitado}
-      className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[2px] border-2 px-3 text-corpo font-semibold transition-colors disabled:opacity-60 motion-reduce:transition-none ${
+      className={`inline-flex min-h-11 shrink-0 items-center gap-2 ${pilula ? "rounded-atd-pilula" : "rounded-[2px]"} border-2 px-3 text-corpo font-semibold transition-colors disabled:opacity-60 motion-reduce:transition-none ${
         ligado ? `bg-acao text-acao-tx ${bordaLigada}` : `bg-sf text-tx ${bordaDesligada}`
       } ${classe}`}
     >

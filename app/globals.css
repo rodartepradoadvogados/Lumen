@@ -350,6 +350,14 @@
   --atd-sombra-flutuante: 0 6px 18px rgba(22, 25, 29, .28);
   /* Linha fina da barra inferior. */
   --atd-barra-borda: rgba(0, 0, 0, .07);
+
+  /* CHAT (etapa 2): balões, nota interna. Texto secundário do balão enviado em tom próprio (nada de opacidade). */
+  --atd-balao-in: #f1efe9;
+  --atd-balao-out: #f6ecd0;
+  --atd-balao-out-tx: #2a2110;
+  --atd-balao-out-sec: #5f5027;
+  --atd-nota-bg: #fdf8ea;
+  --atd-nota-borda: #a07415;
   /* Raios: pílula, balão, etiqueta, botão flutuante. */
   --atd-raio-pilula: 9999px;
   --atd-raio-balao: 14px;
@@ -406,6 +414,13 @@
   --atd-selo-tx: #1a1608;
   --atd-sombra-flutuante: 0 6px 18px rgba(0, 0, 0, .45);
   --atd-barra-borda: rgba(255, 255, 255, .07);
+
+  --atd-balao-in: #22242f;
+  --atd-balao-out: #3a3110;
+  --atd-balao-out-tx: #f8f0d8;
+  --atd-balao-out-sec: #d2c6a0;
+  --atd-nota-bg: #211f1e;
+  --atd-nota-borda: #d4a83a;
 
   /* Retematizar superfícies para o modo escuro do Atendimento */
   --sf-fundo: var(--atd-tela);

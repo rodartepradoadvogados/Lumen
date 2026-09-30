@@ -26,13 +26,23 @@ import {
 // `--atd-*` NÃO existem (borda e fundo do campo ficariam transparentes), então o tema do site usa os tokens do sistema
 // (`regua-forte`, `sf`, `marca-tx`). O texto, as saídas e a regra (lib/faixaDaJanela.ts) são os mesmos.
 const BOTAO_BASE = "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[2px] border border-regua-forte bg-sf px-3 text-corpo font-semibold text-tx hover:bg-sf-apoio focus-visible:outline-none focus-visible:ring-2";
+// No app (acabamento WhatsApp, etapa 2): a faixa é um cartão de ouro suave de canto de 14 px, os botões são pílulas
+// preenchidas e o campo é uma pílula. No site a faixa é a de sempre (canto de 2 px, tokens do sistema).
 const TEMAS = {
   app: {
-    botao: `${BOTAO_BASE} focus-visible:ring-[var(--atd-foco)]`,
-    campo: "mt-0.5 block min-h-11 w-full rounded-[2px] border border-atd-campo bg-atd-bolha-in px-3 text-base font-normal text-tx focus:border-atd-ouro-texto focus:outline-none focus:ring-2 focus:ring-[var(--atd-foco)]",
+    caixa: "rounded-atd-balao bg-atd-ouro-suave px-3.5 py-2.5 text-corpo text-atd-tinta",
+    divisoria: "border-t border-atd-pilula-borda",
+    apoio: "text-atd-previa",
+    botao: "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-atd-pilula bg-atd-tela px-4 text-corpo font-semibold text-atd-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--atd-foco)]",
+    primario: "inline-flex min-h-11 items-center rounded-atd-pilula bg-atd-ouro px-4 text-corpo font-semibold text-atd-ouro-tx disabled:bg-atd-pilula-2 disabled:text-atd-terciario",
+    campo: "mt-0.5 block min-h-11 w-full rounded-atd-pilula bg-atd-tela px-4 text-base font-normal text-atd-tinta focus:outline-none focus:ring-2 focus:ring-[var(--atd-foco)]",
   },
   site: {
+    caixa: "rounded-[2px] border border-regua-forte bg-aviso-bg px-3 py-2 text-corpo text-tx",
+    divisoria: "border-t border-regua-forte",
+    apoio: "text-tx-2",
     botao: `${BOTAO_BASE} focus-visible:ring-marca-tx`,
+    primario: "inline-flex min-h-11 items-center rounded-[2px] bg-acao px-3.5 text-corpo font-semibold text-acao-tx hover:bg-acao-hover disabled:bg-sf-apoio disabled:text-tx-3",
     campo: "mt-0.5 block min-h-11 w-full rounded-[2px] border border-regua-forte bg-sf px-3 text-base font-normal text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx",
   },
 } as const;
@@ -56,6 +66,7 @@ export default function FaixaDaJanelaFechada({
 }) {
   const BOTAO = TEMAS[tema].botao;
   const CAMPO = TEMAS[tema].campo;
+  const T = TEMAS[tema];
   const idAjuda = useId();
   const idTarefa = useId();
   const [ajuda, setAjuda] = useState(false);
@@ -93,12 +104,12 @@ export default function FaixaDaJanelaFechada({
   }
 
   return (
-    <div role="region" aria-label={TITULO_DA_FAIXA} className="rounded-[2px] border border-regua-forte bg-aviso-bg px-3 py-2 text-corpo text-tx">
+    <div role="region" aria-label={TITULO_DA_FAIXA} className={T.caixa}>
       <p className="flex items-center gap-2 font-semibold">
         <Clock size={16} aria-hidden="true" /> {TITULO_DA_FAIXA}
       </p>
       <p className="mt-0.5">{fraseDaJanelaFechada(nome, janela)}</p>
-      <p className="mt-1 text-tx-2">{EXPLICACAO_DA_FAIXA}</p>
+      <p className={`mt-1 ${T.apoio}`}>{EXPLICACAO_DA_FAIXA}</p>
 
       <div className="mt-2 flex flex-wrap gap-1.5">
         {ligar && (
@@ -120,21 +131,21 @@ export default function FaixaDaJanelaFechada({
       </div>
 
       {(ligar || whatsapp) && (
-        <ul className="mt-1.5 space-y-0.5 text-etiqueta text-tx-2">
+        <ul className={`mt-1.5 space-y-0.5 text-etiqueta ${T.apoio}`}>
           {ligar && <li>Ligar: {APOIO_DO_LIGAR}</li>}
           {whatsapp && <li>Meu WhatsApp: {APOIO_DO_WHATSAPP_PESSOAL}</li>}
         </ul>
       )}
-      {!ligar && !whatsapp && <p className="mt-1.5 text-etiqueta text-tx-2">Este número não tem dígitos suficientes para ligar. Confira o cadastro em Detalhes.</p>}
+      {!ligar && !whatsapp && <p className={`mt-1.5 text-etiqueta ${T.apoio}`}>Este número não tem dígitos suficientes para ligar. Confira o cadastro em Detalhes.</p>}
 
       <p role="status" className="text-etiqueta font-semibold text-tx">
         {criada ? "Tarefa criada. Aparece também na Agenda e em Detalhes." : ""}
       </p>
 
-      <div id={idTarefa} hidden={!tarefa} className="mt-2 border-t border-regua-forte pt-2">
+      <div id={idTarefa} hidden={!tarefa} className={`mt-2 pt-2 ${T.divisoria}`}>
         {tarefa && (
           <div className="space-y-1.5">
-            <label className="block text-etiqueta font-semibold text-tx-2">
+            <label className={`block text-etiqueta font-semibold ${T.apoio}`}>
               O que fazer
               <input
                 value={titulo}
@@ -143,7 +154,7 @@ export default function FaixaDaJanelaFechada({
                 className={CAMPO}
               />
             </label>
-            <label className="block text-etiqueta font-semibold text-tx-2">
+            <label className={`block text-etiqueta font-semibold ${T.apoio}`}>
               Para quando
               <input
                 type="date"
@@ -158,7 +169,7 @@ export default function FaixaDaJanelaFechada({
               </p>
             )}
             <div className="flex gap-1.5">
-              <button type="button" onClick={salvar} disabled={ocupado} className="inline-flex min-h-11 items-center rounded-[2px] bg-acao px-3.5 text-corpo font-semibold text-acao-tx hover:bg-acao-hover disabled:bg-sf-apoio disabled:text-tx-3">
+              <button type="button" onClick={salvar} disabled={ocupado} className={T.primario}>
                 {ocupado ? "Salvando…" : "Salvar tarefa"}
               </button>
               <button type="button" onClick={() => setTarefa(false)} disabled={ocupado} className={BOTAO}>
@@ -169,7 +180,7 @@ export default function FaixaDaJanelaFechada({
         )}
       </div>
 
-      <div id={idAjuda} hidden={!ajuda} className="mt-2 border-t border-regua-forte pt-2">
+      <div id={idAjuda} hidden={!ajuda} className={`mt-2 pt-2 ${T.divisoria}`}>
         {ajuda && (
           <div>
             <p className="font-semibold">Como reabrir a conversa</p>

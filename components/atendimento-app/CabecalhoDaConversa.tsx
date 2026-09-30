@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { ChevronRight, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 import BotaoVoltar from "@/components/atendimento-app/BotaoVoltar";
 import GuiasDaConversa from "@/components/atendimento-app/GuiasDaConversa";
-import { iniciaisDoNome } from "@/lib/conversasDoApp";
+import { Avatar } from "@/components/atendimento-app/ui";
 import { nomeDaLinha } from "@/lib/rotulosDaEspera";
 import { telefoneLegivel } from "@/lib/quemEEsteNumero";
 
-// O cabeçalho grafite da conversa (chat e detalhes): voltar, nome e número (um só botão, que abre os
-// Detalhes), ligar (o discador do aparelho) e as guias Chat / Detalhes. Fica fora da rolagem.
+// O cabeçalho da conversa (chat e detalhes), no acabamento WhatsApp: SEM faixa grafite e SEM filete de ouro, sobre o
+// fundo da tela. Voltar, avatar de iniciais em tom suave, nome e número (um só link, que abre os Detalhes), ligar (o
+// discador do aparelho) e as guias Chat / Detalhes. Fica fora da rolagem. O estado da Ana ("Ana responde aqui") mora na
+// barra logo abaixo das guias (BarraDoChat), que é quem conhece o estado vivo da conversa.
 export default function CabecalhoDaConversa({
   id,
   clientName,
@@ -29,30 +31,27 @@ export default function CabecalhoDaConversa({
   const sub = numero && numero !== nome ? numero : subject;
 
   return (
-    <header className="atd-hdr shrink-0 border-b-2 border-ouro-acento bg-atd-hdr text-atd-hdr-tx pt-[env(safe-area-inset-top)]">
-      <div className="flex min-h-[60px] items-center pl-0.5 pr-0.5">
-        <BotaoVoltar tela="conversa" idDaConversa={id} rotulo="Voltar" />
+    <header className="shrink-0 bg-atd-tela pt-[env(safe-area-inset-top)] text-atd-tinta">
+      <div className="flex min-h-[58px] items-center pl-0.5 pr-1">
+        <BotaoVoltar tela="conversa" idDaConversa={id} rotulo="Voltar" tom="claro" />
         <h1 className="min-w-0 flex-1">
           <Link
             href={`/atendimento-app/${id}/detalhes`}
             aria-label={`Detalhes de ${nome}${numero ? `, ${numero}` : ""}`}
-            className="flex min-h-12 min-w-0 items-center gap-2.5 rounded-[2px] px-1.5 hover:bg-atd-hdr-linha"
+            className="flex min-h-12 min-w-0 items-center gap-2.5 rounded-atd-balao px-1.5 hover:bg-atd-linha-hover"
           >
-            <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-atd-hdr-linha bg-atd-hdr-linha text-corpo font-bold">
-              {iniciaisDoNome(nome)}
-            </span>
+            <Avatar nome={nome} tamanho="sm" />
             <span className="min-w-0 flex-1 leading-tight">
-              <span className="block truncate text-destaque font-semibold">{nome}</span>
-              {sub && <span className="block truncate text-etiqueta text-atd-hdr-tx2">{sub}</span>}
+              <span className="block truncate text-app-nome font-semibold text-atd-tinta">{nome}</span>
+              {sub && <span className="block truncate text-app-meta text-atd-terciario">{sub}</span>}
             </span>
-            <ChevronRight size={18} aria-hidden="true" className="shrink-0 text-atd-hdr-tx2" />
           </Link>
         </h1>
         {digitos.length >= 8 && (
           <a
             href={`tel:+${digitos}`}
             aria-label={`Ligar para ${nome}`}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] text-atd-hdr-tx hover:bg-atd-hdr-linha"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-atd-tinta hover:bg-atd-linha-hover"
           >
             <Phone size={20} aria-hidden="true" />
           </a>
@@ -62,3 +61,4 @@ export default function CabecalhoDaConversa({
     </header>
   );
 }
+
