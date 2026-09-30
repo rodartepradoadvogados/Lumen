@@ -28,6 +28,7 @@ export default function PhoneInput({
   value,
   onChange,
   className,
+  classeDoPais,
   placeholder,
   required,
 }: {
@@ -37,6 +38,8 @@ export default function PhoneInput({
   value?: PhoneValue;
   onChange?: (v: PhoneValue) => void;
   className?: string;
+  /** Classes do botão do país; sem elas, o visual de sempre (o aplicativo de Atendimento passa as suas). */
+  classeDoPais?: string;
   placeholder?: string;
   required?: boolean;
 }) {
@@ -103,7 +106,7 @@ export default function PhoneInput({
             <button
               type="button"
               onClick={() => setOpen((o) => !o)}
-              className="h-full flex items-center gap-1 border border-regua rounded-md px-2.5 text-sm text-tx bg-sf whitespace-nowrap"
+              className={classeDoPais ?? "h-full flex items-center gap-1 border border-regua rounded-md px-2.5 text-sm text-tx bg-sf whitespace-nowrap"}
             >
               +{ddi}
               <ChevronDown size={13} strokeWidth={1.5} className="text-tx-3" />

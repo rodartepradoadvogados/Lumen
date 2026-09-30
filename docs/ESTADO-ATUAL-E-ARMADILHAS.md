@@ -744,3 +744,28 @@ só na não lida; fundo Noite `#14151c`; etiqueta 11px/600 e título 26px/700; b
 fluxo real com login e banco (a lista foi vista em Chromium com dados de exemplo, não com um escritório real); aparelho de verdade (safe area,
 teclado, PWA instalado); leitor de tela.
 
+## 29. Funil, Triagem, Nova conversa e telas de estado no acabamento WhatsApp (etapa 4, 30/09/2026)
+
+Só VISUAL; nenhuma regra mudou (recorte de acesso, nível total x próprios, ações). O que **não pode voltar atrás**:
+
+- **O funil do app tem colunas PRÓPRIAS** (`components/atendimento-app/ColunasDoFunilApp.tsx`), mas a REGRA de recolher é a mesma do site
+  (`useColunasRecolhidas("app", ...)`, `lib/colunasDoFunil.ts`): tudo recolhido por padrão, escolha em `localStorage` (`rp-funil-abertas-app`, em
+  try/catch), primeiro desenho sempre recolhido. `ColunasRecolhiveis`/`QuadroDoFunil` (site e Central) NÃO importam nada do app: o teste
+  `atendimentoAppVisual` proíbe `components/atendimento-app/ui` fora do app, por isso o visual novo não foi enfiado no componente compartilhado.
+- **Cartão de lead** (`LeadDoFunil`) e **linha da triagem** (`LinhaDaTriagem`) são componentes do app (avatar, selinhos, sem contorno). O seletor de fase
+  (`EstagioDoLeadSelect`, só usado pelo app) fica FORA do link e agora MOSTRA o erro (`role="alert"`) quando a ação recusa ou falha, em vez de só voltar ao
+  valor anterior. Regras preservadas: "Perdido" não aparece como destino (motivo da perda), follow-up atrasado só fora de Fechado/Perdido.
+- **Triagem**: o botão "Novo" do topo saiu (o botão flutuante da casca já existe nessa tela); busca é formulário GET (funciona sem JavaScript).
+  A classe `atd-row` (que empilha filhos no celular, `globals.css`) NÃO deve ser usada em linha com avatar: quebra o layout.
+- **Nova conversa**: `MobileNewAttendanceForm` ganhou `variante="app"` (o site `/m` não passa e fica idêntico); `PhoneInput` ganhou `classeDoPais` (opcional).
+  Dois pequenos ganhos de acessibilidade valem também no site: `aria-pressed` nos botões de modo de honorário e `aria-label` no "remover anexo".
+- **Estados**: `error.tsx`, `SemAcessoAConversa`, "Sem acesso ao Atendimento" (layout) e o NOVO `(shell)/not-found.tsx` ("Tela indisponível": é o que quem só vê os
+  próprios atendimentos lê ao abrir o Funil por endereço; a página continua chamando `notFound()` ANTES de consultar).
+- Testes: `atendimentoAppFunilTriagemNova.teste.tsx` (acesso intacto, cartões, colunas, triagem, formulário, estados, contraste AA em Dia e Noite,
+  higiene sem hex/sombra, site intacto); `funilColunasRecolhidas` aponta agora para as colunas do app.
+
+**Não provado**: banco e login reais (Chromium foi com dados de exemplo em rota temporária, já removida); a barra inferior e o botão flutuante NÃO apareceram nos
+prints (a rota temporária caía em "tela cheia"); `PendenciasEditor` e `DocumentTypeSelect` (dentro de "Mais detalhes") e a lista de países do telefone ainda têm o
+visual antigo (são compartilhados com o site); `error.tsx` e o Sem acesso só foram conferidos por código e contraste calculado (os prints da rota temporária
+saíram com tema errado por falta do script do tema); leitor de tela e aparelho de verdade; o `router.push("/m")` ao salvar uma nova conversa pelo app leva ao
+app mobile do site (comportamento antigo, não alterado aqui, merece decisão do dono).

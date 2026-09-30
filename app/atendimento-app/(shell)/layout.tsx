@@ -30,10 +30,10 @@ export default async function AtendimentoAppLayout({ children }: { children: Rea
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_INICIAL_DO_TEMA }} />
         <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-6 py-10 text-center">
           <h1 className="text-guia font-bold text-tx">Sem acesso ao Atendimento</h1>
-          <p className="text-corpo text-tx-2">{SEM_ACESSO_AO_ATENDIMENTO}</p>
-          <p className="text-corpo text-tx-2">Para liberar, peça a um sócio administrador.</p>
+          <p className="text-corpo text-atd-previa">{SEM_ACESSO_AO_ATENDIMENTO}</p>
+          <p className="text-corpo text-atd-previa">Para liberar, peça a um sócio administrador.</p>
           <form action={logout.bind(null, PWA_APPS.atendimento.entrar)}>
-            <button type="submit" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[2px] bg-acao px-4 text-corpo font-bold text-acao-tx hover:bg-acao-hover">
+            <button type="submit" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-atd-pilula bg-atd-ouro px-4 text-corpo font-bold text-atd-ouro-tx active:scale-95">
               <LogOut size={18} aria-hidden="true" /> Sair
             </button>
           </form>

@@ -117,6 +117,7 @@ const PARES: [string, string, string][] = [
   ["atd-etiqueta-fase-tx", "atd-etiqueta-fase-bg", "selinho de fase"],
   ["atd-etiqueta-tx", "atd-etiqueta-bg", "selinho neutro"],
   ["atd-avatar-tx", "atd-avatar-bg", "iniciais do avatar"],
+  ["atd-cinza-previa", "atd-pilula-bg-2", "rótulo 'Fase' do seletor do funil"],
 ];
 for (const tema of ["dia", "noite"] as const) {
   teste(`CONTRASTE AA (>= 4,5:1) em ${tema === "dia" ? "Dia" : "Noite"}: todo texto do acabamento sobre o seu fundo`, () => {
