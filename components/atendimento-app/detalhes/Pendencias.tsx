@@ -98,7 +98,7 @@ export default function Pendencias({ p }: { p: PropsDosDetalhes }) {
     const feita = x.status === "CONCLUIDA";
     const prazo = !feita ? fraseDoPrazo(x.dueDay, p.hoje) : null;
     return (
-      <li key={x.id} className="flex items-center gap-1 border-t border-regua first:border-t-0">
+      <li key={x.id} className="flex items-center gap-1">
         <button
           type="button"
           role="checkbox"
@@ -108,7 +108,7 @@ export default function Pendencias({ p }: { p: PropsDosDetalhes }) {
           onClick={() => alternar(x)}
           className="flex h-11 w-11 shrink-0 items-center justify-center disabled:opacity-60"
         >
-          <span aria-hidden="true" className={`flex h-6 w-6 items-center justify-center rounded-[2px] border-2 ${feita ? "border-concluido bg-concluido text-sf" : "border-atd-campo bg-sf text-transparent"}`}>
+          <span aria-hidden="true" className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${feita ? "border-concluido bg-concluido text-sf" : "border-atd-campo text-transparent"}`}>
             <Check size={16} />
           </span>
         </button>
@@ -121,20 +121,20 @@ export default function Pendencias({ p }: { p: PropsDosDetalhes }) {
           className="flex min-h-[52px] min-w-0 flex-1 flex-col justify-center py-1 text-left"
           aria-label={`Ajustar prazo e responsável: ${nome(x)}`}
         >
-          <span className={`break-words text-corpo font-semibold ${feita ? "text-tx-2 line-through" : "text-tx"}`}>{nome(x)}</span>
-          <span className="text-etiqueta text-tx-2">
+          <span className={`break-words text-corpo font-semibold ${feita ? "text-atd-previa line-through" : "text-tx"}`}>{nome(x)}</span>
+          <span className="text-etiqueta text-atd-previa">
             {x.description ? `${pendenciaKindLabel(x.direction, x.kind)} · ` : ""}
             {x.responsibleName ? x.responsibleName.split(" ")[0] : "sem responsável"}
             {feita ? "" : x.dueDay ? ` · ${dataCurta(x.dueDay)}` : ""}
           </span>
           {prazo && (
-            <span className={`flex items-center gap-1 text-etiqueta font-semibold ${prazo.tom === "vencido" ? "text-urgente" : prazo.tom === "hoje" ? "text-aviso" : "text-tx-2"}`}>
+            <span className={`flex items-center gap-1 text-etiqueta font-semibold ${prazo.tom === "vencido" ? "text-urgente" : prazo.tom === "hoje" ? "text-aviso" : "text-atd-previa"}`}>
               {prazo.tom !== "futuro" && <AlertCircle size={14} aria-hidden="true" />}
               {prazo.texto}
             </span>
           )}
         </button>
-        <button type="button" onClick={() => excluir(x)} disabled={pendente} aria-label={`Excluir: ${nome(x)}`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-tx-2 hover:text-urgente disabled:opacity-60">
+        <button type="button" onClick={() => excluir(x)} disabled={pendente} aria-label={`Excluir: ${nome(x)}`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-atd-previa hover:text-urgente disabled:opacity-60">
           <Trash2 size={18} aria-hidden="true" />
         </button>
       </li>
@@ -189,7 +189,7 @@ export default function Pendencias({ p }: { p: PropsDosDetalhes }) {
           <div className="space-y-3">
             <fieldset>
               <legend className={cx.rotulo}>Quem deve o quê</legend>
-              <div className="mt-1 grid grid-cols-2 border border-atd-campo" role="radiogroup">
+              <div className="mt-1 grid grid-cols-2 gap-1 rounded-atd-pilula bg-atd-pilula-2 p-1" role="radiogroup">
                 {(["SOLICITAR", "ENVIAR"] as const).map((d) => (
                   <button
                     key={d}
@@ -197,7 +197,7 @@ export default function Pendencias({ p }: { p: PropsDosDetalhes }) {
                     role="radio"
                     aria-checked={nova.direction === d}
                     onClick={() => setNova({ ...nova, direction: d, kind: opcoes(d)[0].kind })}
-                    className={`min-h-11 px-2 text-corpo font-semibold ${nova.direction === d ? "bg-acao text-acao-tx" : "bg-sf text-tx-2"}`}
+                    className={`min-h-11 rounded-atd-pilula px-2 text-corpo font-semibold ${nova.direction === d ? "bg-acao text-acao-tx" : "text-atd-previa"}`}
                   >
                     {d === "SOLICITAR" ? "Falta chegar do cliente" : "O escritório deve enviar"}
                   </button>

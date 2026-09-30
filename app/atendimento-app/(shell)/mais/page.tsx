@@ -1,61 +1,64 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
-import { Card } from "@/components/ui";
-import { User, Users, Palette, LogOut, ExternalLink, Zap, BellOff } from "lucide-react";
+import { TituloDeTela } from "@/components/atendimento-app/ui";
+import { User, Users, Palette, LogOut, ExternalLink, Zap, BellOff, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+// A tela MAIS no acabamento WhatsApp: título grande, um cartão preenchido (sem contorno) com as linhas de
+// atalho — ícone em círculo suave, título, apoio e seta — e, separados, o aviso honesto e o Sair. Só o visual:
+// as rotas e a porta de acesso são as mesmas.
+function Linha({ href, icone, titulo, apoio, perigo = false }: { href: string; icone: ReactNode; titulo: string; apoio: string; perigo?: boolean }) {
+  return (
+    <Link href={href} data-linha-mais="" className="flex min-h-14 items-center gap-3.5 rounded-atd-balao px-3 py-2 hover:bg-atd-linha-hover active:bg-atd-linha-hover">
+      <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${perigo ? "bg-atd-tela text-urgente" : "bg-atd-pilula-2 text-atd-texto-ouro"}`}>
+        {icone}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className={`block text-app-nome font-semibold ${perigo ? "text-urgente" : "text-tx"}`}>{titulo}</span>
+        <span className="block text-app-previa text-atd-previa">{apoio}</span>
+      </span>
+      {!perigo && <ChevronRight size={18} aria-hidden="true" className="shrink-0 text-atd-terciario" />}
+    </Link>
+  );
+}
 
 export default async function MaisAppPage() {
   await exigirAcessoAoAtendimentoNaTela();
 
   return (
-    <div className="p-4 space-y-4 animate-fade-in">
-      <h1 className="text-xl font-bold text-tx">Mais</h1>
+    <div className="animate-fade-in pb-4">
+      <TituloDeTela titulo="Mais" />
 
-      <Card className="p-4 space-y-3">
-        <Link href="/atendimento-app/perfil" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
-          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><User size={18} className="text-ouro-acento" /></div>
-          <div className="flex-1"><p className="font-medium text-tx">Perfil</p><p className="text-xs text-tx-2">Dados da conta e preferências</p></div>
-        </Link>
-        <Link href="/atendimento-app/equipe" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
-          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Users size={18} className="text-ouro-acento" /></div>
-          <div className="flex-1"><p className="font-medium text-tx">Equipe</p><p className="text-xs text-tx-2">Usuários e permissões</p></div>
-        </Link>
-        <Link href="/atendimento-app/respostas-rapidas" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
-          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Zap size={18} className="text-ouro-acento" /></div>
-          <div className="flex-1"><p className="font-medium text-tx">Respostas rápidas</p><p className="text-xs text-tx-2">Textos prontos do escritório para o chat</p></div>
-        </Link>
-        <Link href="/atendimento-app/tema" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
-          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><Palette size={18} className="text-ouro-acento" /></div>
-          <div className="flex-1"><p className="font-medium text-tx">Tema</p><p className="text-xs text-tx-2">Dia, Noite ou Automático</p></div>
-        </Link>
-        <Link href="/" className="flex items-center gap-3 p-3 hover:bg-sf-apoio rounded-[2px] transition-colors">
-          <div className="h-10 w-10 rounded-full bg-ouro-bg flex items-center justify-center shrink-0"><ExternalLink size={18} className="text-ouro-acento" /></div>
-          <div className="flex-1"><p className="font-medium text-tx">Abrir site completo</p><p className="text-xs text-tx-2">Ir para o Lúmen desktop</p></div>
-        </Link>
-      </Card>
+      <div className="mx-4 mt-2 space-y-3">
+        <nav aria-label="Mais opções" className="rounded-atd-balao bg-atd-pilula p-1.5">
+          <Linha href="/atendimento-app/perfil" icone={<User size={18} />} titulo="Perfil" apoio="Dados da conta e preferências" />
+          <Linha href="/atendimento-app/equipe" icone={<Users size={18} />} titulo="Equipe" apoio="Usuários e permissões" />
+          <Linha href="/atendimento-app/respostas-rapidas" icone={<Zap size={18} />} titulo="Respostas rápidas" apoio="Textos prontos do escritório para o chat" />
+          <Linha href="/atendimento-app/tema" icone={<Palette size={18} />} titulo="Tema" apoio="Dia, Noite ou Automático" />
+          <Linha href="/" icone={<ExternalLink size={18} />} titulo="Abrir site completo" apoio="Ir para o Lúmen desktop" />
+        </nav>
 
-      <Card className="p-4" data-avisos-de-mensagem-nova="">
-        <div className="flex items-start gap-3">
-          <BellOff size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-tx-2" />
-          <div className="min-w-0">
-            <p className="font-medium text-tx">Avisos de mensagem nova · a construir</p>
-            <p className="mt-0.5 text-xs text-tx-2">
-              Com o aplicativo aberto, o número de mensagens novas aparece no título da aba e no ícone do aplicativo enquanto você está em outra tela.
-              Com o aplicativo fechado o aviso ainda não existe: confira as Conversas.
-            </p>
+        <div className="rounded-atd-balao bg-atd-pilula p-4" data-avisos-de-mensagem-nova="">
+          <div className="flex items-start gap-3">
+            <BellOff size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-atd-terciario" />
+            <div className="min-w-0">
+              <p className="text-corpo font-semibold text-tx">Avisos de mensagem nova · a construir</p>
+              <p className="mt-1 text-app-previa text-atd-previa">
+                Com o aplicativo aberto, o número de mensagens novas aparece no título da aba e no ícone do aplicativo enquanto você está em outra tela.
+                Com o aplicativo fechado o aviso ainda não existe: confira as Conversas.
+              </p>
+            </div>
           </div>
         </div>
-      </Card>
 
-      <Card className="p-4 space-y-3 border-urgente bg-urgente-bg">
-        <Link href="/atendimento-app/sair" className="flex items-center gap-3 p-3 hover:bg-urgente-bg/80 rounded-[2px] transition-colors">
-          <div className="h-10 w-10 rounded-full bg-urgente/10 flex items-center justify-center shrink-0"><LogOut size={18} className="text-urgente" /></div>
-          <div className="flex-1"><p className="font-medium text-urgente">Sair do Atendimento</p><p className="text-xs text-tx-3">Encerrar sessão neste dispositivo</p></div>
-        </Link>
-      </Card>
+        <div className="rounded-atd-balao bg-urgente-bg p-1.5">
+          <Linha href="/atendimento-app/sair" icone={<LogOut size={18} />} titulo="Sair do Atendimento" apoio="Encerrar sessão neste dispositivo" perigo />
+        </div>
+      </div>
 
-      <p className="text-xs text-tx-3 text-center mt-4">Lúmen Atendimento — Versão PWA independente</p>
+      <p className="mt-6 text-center text-app-meta text-atd-terciario">Lúmen Atendimento — Versão PWA independente</p>
     </div>
   );
 }

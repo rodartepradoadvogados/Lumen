@@ -105,27 +105,22 @@ function Corpo(p: PropsDosDetalhes) {
     <div ref={rolagem} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-28" data-rolagem-dos-detalhes="">
       <h2 className="sr-only">Detalhes de {c.clientName}</h2>
 
-      <nav ref={indice} aria-label="Ir para um bloco dos detalhes" className="sticky top-0 z-10 flex items-center border-b border-regua bg-sf-fundo py-1.5 pl-1.5">
-        <Link href={`/atendimento-app/${c.id}`} replace className={`${cx.discreto} shrink-0 border-r border-regua pl-2 pr-3`} data-voltar-ao-chat="">
+      <nav ref={indice} aria-label="Ir para um bloco dos detalhes" className="sticky top-0 z-10 flex items-center bg-atd-tela py-1.5 pl-2">
+        <Link href={`/atendimento-app/${c.id}`} replace className={`${cx.discreto} shrink-0 pl-2 pr-3`} data-voltar-ao-chat="">
           <ArrowLeft size={18} aria-hidden="true" /> Voltar ao chat
         </Link>
         <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-2">
           {BLOCOS_DOS_DETALHES.map((b) => (
             <li key={b.chave} className="shrink-0">
-              <button
-                type="button"
-                onClick={() => abrirEIr(b.chave)}
-                aria-current={ativo === b.chave ? "true" : undefined}
-                className={`inline-flex min-h-11 items-center rounded-[2px] border px-3 text-corpo ${ativo === b.chave ? "border-acao bg-acao font-bold text-acao-tx" : "border-regua-forte bg-sf font-semibold text-tx"}`}
-              >
-                {b.rotulo}
+              <button type="button" onClick={() => abrirEIr(b.chave)} aria-current={ativo === b.chave ? "true" : undefined} data-indice-pilula="" className="inline-flex min-h-11 items-center">
+                <span className={`inline-flex h-9 items-center whitespace-nowrap rounded-atd-pilula px-3.5 text-corpo ${ativo === b.chave ? "bg-atd-ouro-suave font-semibold text-atd-texto-ouro" : "bg-atd-pilula font-medium text-atd-previa"}`}>{b.rotulo}</span>
               </button>
             </li>
           ))}
         </ul>
       </nav>
 
-      <p className="mx-3 mt-3 rounded-[2px] bg-sf-apoio px-3 py-2 text-corpo font-semibold text-tx" role="note" data-resumo="">
+      <p className="mx-4 mt-3 rounded-atd-balao bg-atd-ouro-suave px-4 py-3 text-corpo font-semibold text-atd-texto-ouro" role="note" data-resumo="">
         {resumo}
       </p>
 
