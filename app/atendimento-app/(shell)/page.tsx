@@ -93,7 +93,9 @@ export default async function ConversasAppPage({ searchParams }: { searchParams:
       agenteResponde: true,
       agenteSilenciadoEm: true,
       responsible: { select: { name: true } },
-      whatsappMessages: { orderBy: { createdAt: "desc" }, take: 1, select: { direction: true, body: true, porAgente: true, createdAt: true } },
+      // O alfinete da linha: 1 consulta por chave única (attendanceId @unique), só o id.
+      mensagemFixada: { select: { id: true } },
+      whatsappMessages: { orderBy: { createdAt: "desc" }, take: 1, select: { direction: true, body: true, porAgente: true, createdAt: true, status: true } },
     },
     orderBy: ORDEM_POR_ATIVIDADE,
     take: LIMITE_DA_LISTA,
@@ -104,7 +106,7 @@ export default async function ConversasAppPage({ searchParams }: { searchParams:
   return (
     <div className="animate-fade-in">
       <h1 className="sr-only">Conversas</h1>
-      <div className="bg-sf-fundo px-3 pb-2 pt-3">
+      <div className="px-4 pb-2.5 pt-2">
         <BuscaDaLista q={q} f={filtro} arq={arq} />
       </div>
       <ListaDeConversasApp

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { teste, igual, verdade, resumo, codigoDe } from "./executar";
 import vm from "node:vm";
-import { abaAtiva, destinoDoVoltar, ehConversa, ehTelaCheia, guiaDaConversa, idDaConversaNoCaminho, itensDaBarra } from "@/lib/navegacaoDoAtendimentoApp";
+import { abaAtiva, botaoNovoVisivel, ITEM_NOVO, temBotaoNovo, destinoDoVoltar, ehConversa, ehTelaCheia, guiaDaConversa, idDaConversaNoCaminho, itensDaBarra } from "@/lib/navegacaoDoAtendimentoApp";
 import { CHAVE_DO_TEMA, SCRIPT_INICIAL_DO_TEMA, estaEmNoite, lerPreferenciaDeTema } from "@/lib/temaDoAtendimentoApp";
 
 // ============================================================================
@@ -15,28 +15,40 @@ const le = (...p: string[]) => readFileSync(join(RAIZ, ...p), "utf8");
 
 // ── A BARRA POR NÍVEL ───────────────────────────────────────────────────────────────────────────
 
-teste("barra do nível TOTAL: Conversas · Funil · + · Triagem · Mais, nessa ordem", () => {
-  igual(itensDaBarra("total").map((i) => i.chave), ["conversas", "funil", "novo", "triagem", "mais"]);
-  igual(itensDaBarra("total").map((i) => i.rotulo), ["Conversas", "Funil", "Novo atendimento", "Triagem", "Mais"]);
+teste("barra do nível TOTAL (acabamento WhatsApp): Conversas · Funil · Triagem · Mais, nessa ordem; 'nova conversa' saiu da barra", () => {
+  igual(itensDaBarra("total").map((i) => i.chave), ["conversas", "funil", "triagem", "mais"]);
+  igual(itensDaBarra("total").map((i) => i.rotulo), ["Conversas", "Funil", "Triagem", "Mais"]);
+  igual(temBotaoNovo("total"), true);
 });
 
-teste("barra do nível PRÓPRIOS: quatro itens, SEM o Funil (o funil é do escritório inteiro)", () => {
-  igual(itensDaBarra("proprios").map((i) => i.chave), ["conversas", "novo", "triagem", "mais"]);
+teste("barra do nível PRÓPRIOS: três alvos, SEM o Funil (o funil é do escritório inteiro), e o botão flutuante", () => {
+  igual(itensDaBarra("proprios").map((i) => i.chave), ["conversas", "triagem", "mais"]);
+  igual(temBotaoNovo("proprios"), true);
 });
 
-teste("barra do nível NENHUM: nenhuma (só a tela 'Sem acesso' e o Sair)", () => {
+teste("barra do nível NENHUM: nenhuma e SEM botão flutuante (só a tela 'Sem acesso' e o Sair)", () => {
   igual(itensDaBarra("nenhum"), []);
+  igual(temBotaoNovo("nenhum"), false);
+  for (const c of ["/atendimento-app", "/atendimento-app/funil", "/atendimento-app/triagem"]) igual(botaoNovoVisivel("nenhum", c), false, c);
 });
 
-teste("os destinos da barra são os do app, e o + abre o novo atendimento que já existe", () => {
+teste("o botão flutuante aparece em Conversas, Funil e Triagem; não em Mais, nem na conversa, nem no '+'", () => {
+  for (const c of ["/atendimento-app", "/atendimento-app/funil", "/atendimento-app/triagem"]) {
+    igual(botaoNovoVisivel("total", c), true, c);
+    igual(botaoNovoVisivel("proprios", c), true, c);
+  }
+  for (const c of ["/atendimento-app/mais", "/atendimento-app/tema", "/atendimento-app/novo", "/atendimento-app/abc123", "/atendimento-app/abc123/detalhes"]) igual(botaoNovoVisivel("total", c), false, c);
+});
+
+teste("os destinos da barra são os do app, e o botão flutuante abre o novo atendimento que já existe", () => {
   const h = Object.fromEntries(itensDaBarra("total").map((i) => [i.chave, i.href]));
   igual(h, {
     conversas: "/atendimento-app",
     funil: "/atendimento-app/funil",
-    novo: "/atendimento-app/novo",
     triagem: "/atendimento-app/triagem",
     mais: "/atendimento-app/mais",
   });
+  igual(ITEM_NOVO.href, "/atendimento-app/novo");
 });
 
 // ── TELA CHEIA: a barra some na conversa ────────────────────────────────────────────────────────
@@ -141,6 +153,7 @@ teste("o tema do app não deixa o `dark` do site vazar: aplicar() tira e a saíd
 teste("a casca aplica a barra por nível e esconde na tela cheia; o layout barra o nível nenhum", () => {
   const casca = codigoDe(le("app/atendimento-app/(shell)/AtendimentoAppShell.tsx"));
   verdade(casca.includes("ehTelaCheia(pathname)") && casca.includes("<BarraInferior nivel={nivel}"), "casca");
+  verdade(casca.includes("botaoNovoVisivel(nivel, pathname)") && casca.includes("<BotaoFlutuante"), "a casca monta o botão flutuante pela regra por nível");
   const layout = codigoDe(le("app/atendimento-app/(shell)/layout.tsx"));
   verdade(layout.includes('nivel === "nenhum"'), "o nível nenhum não renderiza filhos");
   verdade(layout.includes("Sem acesso ao Atendimento"), "título da tela sem acesso");

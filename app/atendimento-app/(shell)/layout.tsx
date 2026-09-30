@@ -25,7 +25,7 @@ export default async function AtendimentoAppLayout({ children }: { children: Rea
   const nivel = nivelDeAcessoAoAtendimento(user);
   if (nivel === "nenhum") {
     return (
-      <div id="atendimento-shell" className="atendimento-shell min-h-dvh bg-sf-fundo text-tx">
+      <div id="atendimento-shell" className="atendimento-shell min-h-dvh bg-atd-tela text-tx">
         {/* eslint-disable-next-line react/no-danger -- texto fixo do próprio código */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_INICIAL_DO_TEMA }} />
         <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-6 py-10 text-center">

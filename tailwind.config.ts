@@ -85,6 +85,14 @@ const config: Config = {
         "capa-corpo": ["1rem", { lineHeight: "1.6" }],
         "capa-mini": ["0.875rem", { lineHeight: "1.5" }],
 
+        // APLICATIVO DE ATENDIMENTO, acabamento WhatsApp (etapa 1). A etiqueta em caixa alta é de 11px por
+        // decisão do dono (a rampa do produto tem piso de 12px; o app é a exceção deliberada).
+        "app-titulo": ["1.625rem", { lineHeight: "1.15", letterSpacing: "-0.015em" }],
+        "app-nome": ["1.03rem", { lineHeight: "1.3" }],
+        "app-previa": ["0.906rem", { lineHeight: "1.35" }],
+        "app-meta": ["0.78rem", { lineHeight: "1.3" }],
+        "app-tag": ["0.6875rem", { lineHeight: "1.3", letterSpacing: "0.04em" }],
+
         xs: ["0.75rem", { lineHeight: "1.35" }],
         sm: ["0.9375rem", { lineHeight: "1.55" }],
         base: ["0.9375rem", { lineHeight: "1.55" }],
@@ -162,6 +170,30 @@ const config: Config = {
           "borda-out": "var(--atd-borda-out)",
           ardosia: "var(--atd-ardosia)",
           "ardosia-bg": "var(--atd-ardosia-bg)",
+          // Acabamento WhatsApp (etapa 1): ver o bloco de tokens em app/globals.css.
+          tela: "var(--atd-tela)",
+          "linha-bg": "var(--atd-linha-bg)",
+          "linha-hover": "var(--atd-linha-hover)",
+          pilula: "var(--atd-pilula-bg)",
+          "pilula-2": "var(--atd-pilula-bg-2)",
+          "pilula-borda": "var(--atd-pilula-borda)",
+          "ouro-suave": "var(--atd-ouro-suave)",
+          "texto-ouro": "var(--atd-texto-ouro)",
+          hora: "var(--atd-hora-destaque)",
+          previa: "var(--atd-cinza-previa)",
+          terciario: "var(--atd-cinza-terciario)",
+          tinta: "var(--atd-tinta)",
+          ouro: "var(--atd-ouro)",
+          "ouro-tx": "var(--atd-ouro-tx)",
+          selo: "var(--atd-selo-bg)",
+          "selo-tx": "var(--atd-selo-tx)",
+          etiqueta: "var(--atd-etiqueta-bg)",
+          "etiqueta-tx": "var(--atd-etiqueta-tx)",
+          "etiqueta-fase": "var(--atd-etiqueta-fase-bg)",
+          "etiqueta-fase-tx": "var(--atd-etiqueta-fase-tx)",
+          avatar: "var(--atd-avatar-bg)",
+          "avatar-tx": "var(--atd-avatar-tx)",
+          "barra-borda": "var(--atd-barra-borda)",
         },
         gaveta: {
           DEFAULT: "var(--gaveta)",
@@ -334,6 +366,8 @@ const config: Config = {
         // sombra de propósito: cartão parado se separa por régua de 1px. Assim os ~200 usos de
         // `shadow-card` param de sombrear sem precisar editar 200 arquivos.
         card: "none",
+        // Botão flutuante do app de Atendimento (única sombra do app: exceção assumida).
+        "atd-flutuante": "var(--atd-sombra-flutuante)",
         pop: "var(--sombra-menu)",
         menu: "var(--sombra-menu)",
         modal: "var(--sombra-modal)",
@@ -369,6 +403,12 @@ const config: Config = {
         xl: "2px",
         "2xl": "2px",
         "3xl": "2px",
+        // APLICATIVO DE ATENDIMENTO (acabamento WhatsApp): estes quatro leem os tokens --atd-raio-* e
+        // só existem dentro do app. A escala de 2px acima segue valendo para o resto do produto.
+        "atd-pilula": "var(--atd-raio-pilula)",
+        "atd-balao": "var(--atd-raio-balao)",
+        "atd-etiqueta": "var(--atd-raio-etiqueta)",
+        "atd-flutuante": "var(--atd-raio-flutuante)",
       }
     },
   },
