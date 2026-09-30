@@ -12,9 +12,9 @@ export async function lerEstadoDoChat(
 ): Promise<EstadoDoChat> {
   const [ultima, cfg, janela, fixada] = await Promise.all([
     prisma.whatsappMessage.findFirst({ where: { attendanceId: a.id, officeId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { direction: true } }),
-    prisma.whatsappConfig.findUnique({ where: { officeId }, select: { agenteAtivo: true } }),
+    prisma.whatsappConfig.findUnique({ where: { officeId }, select: { agenteAtivo: true, provider: true } }),
     janelaDaConversa(a.id, officeId, agora),
     lerFixadaDoAtendimento(a.id, officeId),
   ]);
-  return montarEstadoDoChat(a, ultima?.direction ?? null, Boolean(cfg?.agenteAtivo), janela, fixada);
+  return montarEstadoDoChat(a, ultima?.direction ?? null, Boolean(cfg?.agenteAtivo), janela, fixada, cfg ? (cfg.provider === "EVOLUTION" ? "EVOLUTION" : "META") : null);
 }

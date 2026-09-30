@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import RolarParaOFim from "@/components/atendimento/RolarParaOFim";
 import BarraDoChat from "@/components/atendimento-app/BarraDoChat";
 import BolhaDaMensagem from "@/components/atendimento-app/BolhaDaMensagem";
@@ -15,6 +16,7 @@ import { useAvisoDeMensagemNova } from "@/components/atendimento-app/useAvisoDeM
 import { deveBuscarAgora, novasDoCliente } from "@/lib/avisoDeMensagemNova";
 import { novaChaveDeMensagem, resultadoDoPedido } from "@/lib/envioDeMensagem";
 import { resultadoDaNota } from "@/lib/notaDaConversa";
+import { caminhoDoTemporario, type TipoDeSaida } from "@/lib/midiaDeSaida";
 import { comoAguardandoConexao, decidirSaida, gravarPendentesNoAparelho, lerPendentesDoAparelho, novoPendente, pendenteComoMensagem, pendentesParaReenviarAoVoltar, semOsJaConfirmados, type Pendente } from "@/lib/filaDoChat";
 import { registrarFalhaDeRede, registrarRedeOk } from "@/lib/conexaoDoApp";
 import { useSemConexao } from "@/components/atendimento-app/useConexaoDoApp";
@@ -45,6 +47,8 @@ type Pagina = { mensagens: MensagemDoChat[]; temAnteriores: boolean; cursorDasAn
 
 const INTERVALO_MS = 15_000;
 const TEMPO_ESGOTADO_MS = 25_000;
+// Arquivo: o servidor baixa o temporário, confere, chama o provedor (até 75 s) e guarda a cópia no Drive (maxDuration 120 s).
+const TEMPO_ESGOTADO_DA_MIDIA_MS = 110_000;
 const CURSOR_DO_INICIO = "1970-01-01T00:00:00.000Z|0";
 
 function exibidasVazia(servidor: number, locais: number): boolean {
@@ -101,6 +105,9 @@ export default function ChatDaConversa({
   vivo.current = { todas, pendentes, estado, semConexao };
   // As chaves que já saíram por causa da volta da conexão: o mesmo pedido não parte duas vezes.
   const reenviando = useRef(new Set<string>());
+  // Os ARQUIVOS dos envios de mídia em andamento, por chave. Só na memória desta tela: nunca em sessionStorage, nunca em cache.
+  const arquivos = useRef(new Map<string, File>());
+  const emVoo = useRef(new Set<string>());
 
   // As mensagens do aparelho voltam depois da hidratação (guardadas por conversa em sessionStorage).
   // `restaurado` impede que a gravação do estado inicial (vazio) apague o que estava guardado antes de ele
@@ -321,10 +328,110 @@ export default function ChatDaConversa({
     [disparar],
   );
 
+
+  // ── ENVIAR UM ARQUIVO (R3) ────────────────────────────────────────────────────────────────────────
+  // 1) sobe o arquivo direto para o Blob (caminho amarrado a esta conversa e a esta chave; o token só sai depois da guarda), com
+  //    progresso; 2) manda ao servidor só o ENDEREÇO. O servidor baixa, confere, envia ao WhatsApp, guarda a cópia no Drive e APAGA o
+  //    temporário. Tentar de novo sobe o arquivo outra vez (o temporário já foi apagado) e REUSA a chave: nunca duplica no WhatsApp.
+  // Sem conexão o pedido não sai e NÃO fica na fila (o arquivo só existe na memória desta tela): a bolha diz para tentar de novo.
+  const dispararMidia = useCallback(
+    async (p: Pendente, confirmouReenvio: boolean, legenda: string) => {
+      const midia = p.midia;
+      const arquivo = arquivos.current.get(p.clientMessageId);
+      if (!midia || emVoo.current.has(p.clientMessageId)) return;
+      if (!arquivo) {
+        atualizarPendente(p.clientMessageId, { estado: "falhou", erro: "O arquivo não está mais neste aparelho. Escolha-o outra vez.", podeTentarDeNovo: false, progresso: undefined });
+        return;
+      }
+      if (vivo.current.semConexao || (typeof navigator !== "undefined" && navigator.onLine === false)) {
+        atualizarPendente(p.clientMessageId, { estado: "falhou", erro: "Sem conexão agora. Quando a internet voltar, toque em Tentar de novo.", podeTentarDeNovo: true, progresso: undefined });
+        anunciar("Sem conexão. Tente de novo quando a internet voltar.");
+        return;
+      }
+      emVoo.current.add(p.clientMessageId);
+      const eraRetentativaIncerta = p.estado === "sem-confirmacao";
+      atualizarPendente(p.clientMessageId, { estado: "enviando", erro: null, podeTentarDeNovo: false, aguardando: false, progresso: 0 });
+      anunciar("Enviando arquivo…");
+      try {
+        let blobUrl: string;
+        try {
+          const blob = await upload(caminhoDoTemporario(idDaConversa, p.clientMessageId, midia.nome), arquivo, {
+            access: "public",
+            handleUploadUrl: `/api/atendimento/${encodeURIComponent(idDaConversa)}/midia-saida/token`,
+            contentType: midia.mime,
+            onUploadProgress: ({ percentage }) => atualizarPendente(p.clientMessageId, { progresso: Math.min(99, Math.round(percentage)) }),
+          });
+          blobUrl = blob.url;
+        } catch {
+          // O arquivo NÃO chegou ao servidor: nada saiu ao cliente. Pode tentar de novo com segurança.
+          atualizarPendente(p.clientMessageId, { estado: "falhou", erro: "Não foi possível enviar o arquivo. Confira a internet e tente de novo.", podeTentarDeNovo: true, progresso: undefined });
+          anunciar("Arquivo não enviado. Confira a internet e tente de novo.");
+          return;
+        }
+        atualizarPendente(p.clientMessageId, { progresso: undefined });
+
+        let status: number | null = null;
+        let corpo: { codigo?: string; erro?: string; mensagem?: MensagemDoChat | null } | null = null;
+        const controle = new AbortController();
+        const limite = window.setTimeout(() => controle.abort(), TEMPO_ESGOTADO_DA_MIDIA_MS);
+        try {
+          const resp = await fetch(`/api/atendimento/${encodeURIComponent(idDaConversa)}/midia-saida`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clientMessageId: p.clientMessageId, blobUrl, nome: midia.nome, legenda, confirmouReenvio }),
+            cache: "no-store",
+            signal: controle.signal,
+          });
+          status = resp.status;
+          corpo = await resp.json().catch(() => null);
+        } catch {
+          status = null; // rede caiu ou tempo esgotado: NÃO se sabe se saiu
+          registrarFalhaDeRede();
+        } finally {
+          window.clearTimeout(limite);
+        }
+        if (status !== null) registrarRedeOk();
+        const r = resultadoDoPedido(status, corpo, { midia: true });
+        if (r.estado === "enviada") {
+          arquivos.current.delete(p.clientMessageId);
+          if (corpo?.mensagem) {
+            const m = corpo.mensagem;
+            setTodas((atuais) => mesclarMensagens(atuais, [m]));
+            setPendentes((atuais) => atuais.filter((x) => x.clientMessageId !== p.clientMessageId));
+          } else {
+            atualizarPendente(p.clientMessageId, { estado: "enviada", erro: null, podeTentarDeNovo: false });
+          }
+          // Quem enviou assumiu (o servidor calou a Ana só porque o envio deu certo).
+          setEstado((e) => (e.agenteSilenciadoEm ? e : { ...e, agenteSilenciadoEm: new Date().toISOString(), agenteResponde: false }));
+          anunciar("Arquivo enviado.");
+          return;
+        }
+        if (eraRetentativaIncerta && corpo?.codigo === "SEM_CONFIRMACAO" && !confirmouReenvio) setConfirmando(p.clientMessageId);
+        atualizarPendente(p.clientMessageId, { estado: r.estado, erro: r.erro, podeTentarDeNovo: r.podeTentarDeNovo });
+        anunciar(r.estado === "sem-confirmacao" ? `Sem confirmação. ${r.erro ?? ""}` : `Arquivo não enviado. ${r.erro ?? ""}`);
+      } finally {
+        emVoo.current.delete(p.clientMessageId);
+      }
+    },
+    [idDaConversa, atualizarPendente, anunciar],
+  );
+
+  const enviarMidia = useCallback(
+    (m: { arquivo: File; nome: string; tipo: TipoDeSaida; mime: string; legenda: string }) => {
+      const p = novoPendente(novaChaveDeMensagem(), m.legenda, new Date(), false, { tipo: m.tipo, nome: m.nome, mime: m.mime, bytes: m.arquivo.size });
+      arquivos.current.set(p.clientMessageId, m.arquivo);
+      setPendentes((atuais) => [...atuais, p]);
+      irAoFim();
+      void dispararMidia(p, false, m.legenda);
+    },
+    [dispararMidia],
+  );
+
   // A CONEXÃO VOLTOU (ou a tela acabou de abrir com mensagens aguardando): sai o que estava esperando, uma vez cada.
   useEffect(() => {
     if (!restaurado || semConexao || (typeof navigator !== "undefined" && navigator.onLine === false)) return;
     for (const p of pendentesParaReenviarAoVoltar(vivo.current.pendentes, false)) {
+      if (p.midia) continue; // arquivo nunca sai sozinho: só por "Tentar de novo"
       if (reenviando.current.has(p.clientMessageId)) continue;
       reenviando.current.add(p.clientMessageId);
       void disparar(p, false).finally(() => reenviando.current.delete(p.clientMessageId));
@@ -334,22 +441,27 @@ export default function ChatDaConversa({
   const tentarDeNovo = useCallback(
     (chave: string) => {
       const p = vivo.current.pendentes.find((x) => x.clientMessageId === chave);
-      if (p) void disparar(p, false);
+      if (!p) return;
+      if (p.midia) void dispararMidia(p, false, p.texto);
+      else void disparar(p, false);
     },
-    [disparar],
+    [disparar, dispararMidia],
   );
 
   const confirmarReenvio = useCallback(
     (chave: string) => {
       const p = vivo.current.pendentes.find((x) => x.clientMessageId === chave);
       setConfirmando(null);
-      if (p) void disparar(p, true);
+      if (!p) return;
+      if (p.midia) void dispararMidia(p, true, p.texto);
+      else void disparar(p, true);
     },
-    [disparar],
+    [disparar, dispararMidia],
   );
 
   const descartar = useCallback((chave: string) => {
     setConfirmando(null);
+    arquivos.current.delete(chave);
     setPendentes((atuais) => atuais.filter((x) => x.clientMessageId !== chave));
     anunciar("Mensagem descartada.");
   }, [anunciar]);
@@ -448,7 +560,7 @@ export default function ChatDaConversa({
           </div>
         )}
       </div>
-      <CompositorDoChat idDaConversa={idDaConversa} estado={estado} nomeDoContato={nomeDoContato} primeiroNome={primeiroNome} nomeTemporario={nomeTemporario} telefone={telefone} nomeDoAtendente={nomeDoAtendente} aoEnviar={enviar} citando={citando} aoLimparCitacao={() => setCitando(null)} />
+      <CompositorDoChat idDaConversa={idDaConversa} estado={estado} nomeDoContato={nomeDoContato} primeiroNome={primeiroNome} nomeTemporario={nomeTemporario} telefone={telefone} nomeDoAtendente={nomeDoAtendente} aoEnviar={enviar} aoEnviarMidia={enviarMidia} citando={citando} aoLimparCitacao={() => setCitando(null)} />
       {acoesDe && (
         <AcoesDaMensagem
           m={acoesDe}

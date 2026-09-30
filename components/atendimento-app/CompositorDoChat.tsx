@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CornerUpLeft, Info, Lock, Phone, Send, X, Zap } from "lucide-react";
+import { AlertTriangle, CornerUpLeft, Info, Lock, Phone, Send, X, Zap } from "lucide-react";
 import FaixaDaJanelaFechada from "@/components/atendimento-app/FaixaDaJanelaFechada";
 import RespostasRapidasDoChat from "@/components/atendimento-app/RespostasRapidasDoChat";
+import AnexarMidia from "@/components/atendimento-app/AnexarMidia";
+import PreviaDaMidia from "@/components/atendimento-app/PreviaDaMidia";
+import { classificarArquivoDeSaida, type TipoDeSaida } from "@/lib/midiaDeSaida";
 import { textoDepoisDeInserir } from "@/lib/respostasRapidas";
 import { gravarRascunho, lerRascunho } from "@/lib/filaDoChat";
 import type { EstadoDoChat } from "@/lib/estadoDoChat";
@@ -30,7 +33,11 @@ import type { EstadoDoChat } from "@/lib/estadoDoChat";
 //   nome acessível do botão ("Enviar mensagem a…" x "Salvar nota interna") e no ícone (avião x cadeado), não só em cor. Cada modo guarda o SEU rascunho. Ao abrir a
 //   conversa o modo é sempre "ao cliente" (não fica gravado: ninguém escreve nota sem querer). A nota não
 //   depende de WhatsApp nem da janela de 24 h, então o seletor existe mesmo quando o campo ao cliente não.
-// - Nada de anexo ou modelo no campo: o campo só faz o que o código faz.
+// - ANEXO (R3, mídia de saída): o clipe (AnexarMidia) abre "Foto ou vídeo da galeria", "Câmera" e "Documento ou áudio". Escolher NÃO
+//   envia: o arquivo é conferido (lista fechada por provedor, tamanho por tipo; o servidor repete tudo) e abre a pré-visualização
+//   (PreviaDaMidia), onde o texto do campo vira a LEGENDA. O envio, o progresso, o erro e o "Tentar de novo" são da bolha na conversa
+//   (ChatDaConversa). O clipe só existe no modo "ao cliente" (nota interna não leva arquivo) e onde o campo existe (janela aberta).
+// - Nada de modelo aprovado no campo (fora de escopo): o campo só faz o que o código faz.
 const MAX_LINHAS_EM_PX = 132;
 
 export default function CompositorDoChat({
@@ -42,6 +49,7 @@ export default function CompositorDoChat({
   telefone,
   nomeDoAtendente,
   aoEnviar,
+  aoEnviarMidia,
   citando = null,
   aoLimparCitacao,
 }: {
@@ -53,6 +61,8 @@ export default function CompositorDoChat({
   telefone: string | null;
   nomeDoAtendente: string;
   aoEnviar: (texto: string, nota?: boolean) => void;
+  /** Um arquivo já conferido e com legenda, para a conversa subir e enviar (a bolha mostra o andamento). */
+  aoEnviarMidia?: (m: { arquivo: File; nome: string; tipo: TipoDeSaida; mime: string; legenda: string }) => void;
   citando?: { id: string; autor: string; trecho: string } | null;
   aoLimparCitacao?: () => void;
 }) {
@@ -61,6 +71,9 @@ export default function CompositorDoChat({
   const texto = useRef("");
   const [vazio, setVazio] = useState(true);
   const [nota, setNota] = useState(false);
+  // O arquivo escolhido e conferido (pré-visualização aberta) e a recusa da tela quando o arquivo não serve.
+  const [previa, setPrevia] = useState<{ arquivo: File; nome: string; tipo: TipoDeSaida; mime: string; legendaInicial: string } | null>(null);
+  const [erroDoAnexo, setErroDoAnexo] = useState<string | null>(null);
   const alvo = nomeTemporario || !primeiroNome ? "este número" : primeiroNome;
 
   function crescer() {
@@ -121,6 +134,34 @@ export default function CompositorDoChat({
     aoEnviar(t, nota);
     aoLimparCitacao?.();
     campo.current?.focus({ preventScroll: true });
+  }
+
+  function escolheuArquivo(arquivo: File) {
+    const c = classificarArquivoDeSaida({ name: arquivo.name, size: arquivo.size, type: arquivo.type }, estado.provedor);
+    if (!c.ok) {
+      setErroDoAnexo(c.erro);
+      return;
+    }
+    setErroDoAnexo(null);
+    setPrevia({ arquivo, nome: c.nome, tipo: c.tipo, mime: c.mime, legendaInicial: texto.current.trim() });
+  }
+
+  function enviarArquivo(legenda: string) {
+    const p = previa;
+    if (!p || !aoEnviarMidia) return;
+    setPrevia(null);
+    // O texto que estava no campo foi para a legenda: sai do campo, como numa mensagem enviada. (Áudio não leva legenda: o texto fica.)
+    if (p.tipo !== "audio" && texto.current.trim()) {
+      texto.current = "";
+      if (campo.current) {
+        campo.current.value = "";
+        campo.current.style.height = "auto";
+      }
+      setVazio(true);
+      gravarRascunho(idDaConversa, "", false);
+    }
+    aoEnviarMidia({ arquivo: p.arquivo, nome: p.nome, tipo: p.tipo, mime: p.mime, legenda });
+    aoLimparCitacao?.();
   }
 
   function aoTeclar(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -233,6 +274,15 @@ export default function CompositorDoChat({
           </button>
         </div>
       )}
+      {erroDoAnexo && (
+        <div role="alert" className="mb-1.5 flex items-start gap-1.5 rounded-atd-balao border border-urgente bg-urgente-bg px-3 py-1.5" data-erro-do-anexo="">
+          <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-urgente" />
+          <p className="min-w-0 flex-1 break-words text-corpo font-medium text-atd-tinta [overflow-wrap:anywhere]">{erroDoAnexo}</p>
+          <button type="button" onClick={() => setErroDoAnexo(null)} aria-label="Fechar o aviso do arquivo" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-atd-previa hover:bg-atd-linha-hover">
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
       <div className="flex items-end gap-2">
         <div
           className={`flex min-w-0 flex-1 items-end rounded-[23px] focus-within:ring-2 focus-within:ring-[var(--atd-foco)] ${
@@ -249,6 +299,7 @@ export default function CompositorDoChat({
             onKeyDown={aoTeclar}
             className="atd-campo-de-mensagem block min-h-[46px] min-w-0 flex-1 resize-none bg-transparent py-[10px] pl-4 pr-1 text-atd-tinta placeholder:text-atd-terciario focus:outline-none"
           />
+          {!nota && aoEnviarMidia && <AnexarMidia provedor={estado.provedor} desabilitado={Boolean(previa)} aoEscolher={escolheuArquivo} />}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
@@ -273,6 +324,9 @@ export default function CompositorDoChat({
         </button>
       </div>
       {respostas && <RespostasRapidasDoChat aoInserir={inserir} aoFechar={() => setRespostas(false)} />}
+      {previa && (
+        <PreviaDaMidia arquivo={previa.arquivo} tipo={previa.tipo} nome={previa.nome} legendaInicial={previa.legendaInicial} nomeDoContato={nomeNoCampo} aoEnviar={enviarArquivo} aoCancelar={() => setPrevia(null)} />
+      )}
     </div>
   );
 }

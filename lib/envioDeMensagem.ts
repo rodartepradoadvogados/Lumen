@@ -85,7 +85,20 @@ export function novaChaveDeMensagem(): string {
 
 // ── O QUE A ROTA RESPONDE, E O QUE A TELA FAZ COM ISSO ───────────────────────────────────────────
 
-export type CodigoDeEnvio = "FORA_DA_JANELA" | "RECUSADA" | "SEM_CONFIRMACAO" | "EM_ANDAMENTO" | "SEM_WHATSAPP" | "CHAVE_REUTILIZADA" | "INVALIDO";
+export type CodigoDeEnvio =
+  | "FORA_DA_JANELA"
+  | "RECUSADA"
+  | "SEM_CONFIRMACAO"
+  | "EM_ANDAMENTO"
+  | "SEM_WHATSAPP"
+  | "CHAVE_REUTILIZADA"
+  | "INVALIDO"
+  // Mídia de saída (R3): tipo fora da lista do provedor / conteúdo que não confere, arquivo acima do limite, arquivo temporário que não
+  // pôde ser lido e limite de envios por minuto. Nenhum deles chega ao WhatsApp.
+  | "TIPO_NAO_PERMITIDO"
+  | "GRANDE_DEMAIS"
+  | "ARQUIVO_INDISPONIVEL"
+  | "MUITOS_ENVIOS";
 
 /** O estado do balão depois que o pedido terminou. */
 export type EstadoDoEnvio = "enviando" | "enviada" | "falhou" | "sem-confirmacao";
@@ -105,13 +118,17 @@ const FRASE_SEM_CONFIRMACAO = "Pode ter sido enviada: confira a conversa antes d
  * chegou a voltar (rede caiu, tempo esgotado): NÃO se sabe se saiu, então é "sem confirmação" e nunca
  * "não enviada". Qualquer 5xx é a mesma coisa: o servidor pode ter chamado o WhatsApp e caído depois.
  */
-export function resultadoDoPedido(status: number | null, corpo: { codigo?: string; erro?: string } | null): ResultadoDoPedido {
+export function resultadoDoPedido(status: number | null, corpo: { codigo?: string; erro?: string } | null, opcoes: { midia?: boolean } = {}): ResultadoDoPedido {
   if (status === 200) return { estado: "enviada", erro: null, podeTentarDeNovo: false };
   if (status === null || status >= 500) return { estado: "sem-confirmacao", erro: FRASE_SEM_CONFIRMACAO, podeTentarDeNovo: true };
   const codigo = corpo?.codigo;
   if (codigo === "SEM_CONFIRMACAO") return { estado: "sem-confirmacao", erro: FRASE_SEM_CONFIRMACAO, podeTentarDeNovo: true };
   if (codigo === "EM_ANDAMENTO") return { estado: "sem-confirmacao", erro: "Este envio ainda está em andamento. Espere um instante e confira a conversa.", podeTentarDeNovo: true };
-  if (codigo === "FORA_DA_JANELA") return { estado: "falhou", erro: "Fora da janela de 24 h: o WhatsApp não deixa responder por texto agora.", podeTentarDeNovo: false };
+  if (codigo === "FORA_DA_JANELA") return { estado: "falhou", erro: opcoes.midia ? "Fora da janela de 24 h: o WhatsApp não deixa enviar arquivo agora." : "Fora da janela de 24 h: o WhatsApp não deixa responder por texto agora.", podeTentarDeNovo: false };
+  // Mídia de saída: a frase do servidor já diz o motivo (tipo, tamanho); repetir não adianta, exceto o limite por minuto e o arquivo que não pôde ser lido.
+  if (codigo === "TIPO_NAO_PERMITIDO" || codigo === "GRANDE_DEMAIS") return { estado: "falhou", erro: corpo?.erro || "Este arquivo não pode ser enviado.", podeTentarDeNovo: false };
+  if (codigo === "MUITOS_ENVIOS") return { estado: "falhou", erro: corpo?.erro || "Muitos arquivos em pouco tempo. Espere um instante.", podeTentarDeNovo: true };
+  if (codigo === "ARQUIVO_INDISPONIVEL") return { estado: "falhou", erro: corpo?.erro || "Não foi possível ler o arquivo enviado. Tente de novo.", podeTentarDeNovo: true };
   if (codigo === "SEM_WHATSAPP") return { estado: "falhou", erro: corpo?.erro || "Este atendimento não tem WhatsApp.", podeTentarDeNovo: false };
   if (status === 401) return { estado: "falhou", erro: "Sessão expirada. Entre de novo para enviar.", podeTentarDeNovo: true };
   if (status === 403 || status === 404) return { estado: "falhou", erro: "Sem acesso a esta conversa.", podeTentarDeNovo: false };

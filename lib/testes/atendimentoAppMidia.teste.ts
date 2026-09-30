@@ -180,13 +180,25 @@ teste("ROTA: id de mensagem fora do formato nunca chega ao banco", async () => {
   }
 });
 
-teste("ROTA: só mídia RECEBIDA e guardada tem arquivo (texto, mensagem nossa e figurinha = 404)", async () => {
-  for (const m of [{ ...MSG_FOTO, body: "oi, bom dia" }, { ...MSG_FOTO, direction: "OUT" }, { ...MSG_FOTO, body: "[figurinha]" }]) {
+teste("ROTA: só mídia GUARDADA tem arquivo (texto, saída sem vínculo e figurinha = 404); a de SAÍDA só com o vínculo gravado (R3)", async () => {
+  for (const m of [{ ...MSG_FOTO, body: "oi, bom dia" }, { ...MSG_FOTO, direction: "OUT", attachmentId: null }, { ...MSG_FOTO, direction: "OUT", attachmentId: null, waMessageId: "wamid.X" }, { ...MSG_FOTO, body: "[figurinha]" }, { ...MSG_FOTO, direction: "OUT", body: "[figurinha]" }]) {
     const { portas, espia } = montar({ mensagem: m });
     const r = await decidirRespostaDaMidia(pedido(), portas);
     igual(r.status, 404);
     verdade(espia.anexo.length === 0 && espia.baixar.length === 0, "não pode ir atrás do arquivo");
   }
+});
+
+teste("ROTA (R3): a mídia ENVIADA com vínculo sai pela MESMA rota, com o mesmo recorte e os mesmos cabeçalhos", async () => {
+  const { portas, espia } = montar({ mensagem: { ...MSG_FOTO, direction: "OUT", body: "[imagem: foto.jpg] segue", waMessageId: "wamid.SAIDA" } });
+  const r = await decidirRespostaDaMidia(pedido({ idDaConversa: "conv-chutada" }), portas);
+  igual(r.status, 200);
+  const h = "headers" in r ? (r.headers ?? {}) : {};
+  igual(h["Cache-Control"], "private, no-store");
+  igual(h["X-Content-Type-Options"], "nosniff");
+  verdade((h["Content-Security-Policy"] || "").includes("sandbox"), "sandbox");
+  igual(espia.mensagem, [{ id: "msg1", attendanceId: "att-do-viewer", officeId: "off1" }]);
+  igual(espia.anexo, [{ m: "msg1", q: { attendanceId: "att-do-viewer", officeId: "off1" } }]);
 });
 
 teste("ROTA: anexo que não existe mais no Drive = 404 com frase de 'indisponível', sem baixar", async () => {
@@ -312,7 +324,7 @@ teste("BALÃO (código): nada baixa sozinho além da miniatura; áudio preload n
   verdade(/<audio[^>]*preload="none"/.test(c), "áudio precisa de preload=none");
   verdade(/videoPedido/.test(c) && /videoPedido \? \(/.test(c), "o vídeo só é montado depois do toque");
   verdade(!/<video[^>]*autoPlay[^>]*>[\s\S]*?videoPedido/.test(c), "o vídeo não pode existir antes do toque");
-  verdade(/loading="lazy"/.test(c) && /alt=\{`Imagem enviada pelo cliente/.test(c), "imagem: lazy e alt");
+  verdade(/loading="lazy"/.test(c) && /alt=\{`\$\{doCliente \? "Imagem enviada pelo cliente"/.test(c), "imagem: lazy e alt");
   verdade(/aria-label=\{`Ampliar imagem/.test(c) && /role="dialog"/.test(c) && /aria-modal="true"/.test(c) && /Escape/.test(c), "ampliar: botão nomeado, diálogo e Esc");
   verdade(/role="alert"/.test(c) && /role="status"/.test(c) && /Tentar de novo/.test(c), "estados de erro e carregando com texto");
   verdade(/rel="noopener noreferrer"/.test(c) && /target="_blank"/.test(c), "documento abre em outra aba com noopener");
@@ -320,7 +332,7 @@ teste("BALÃO (código): nada baixa sozinho além da miniatura; áudio preload n
   verdade(!/#[0-9a-fA-F]{3,8}\b/.test(c) && !/\bshadow-/.test(c), "hex cru ou sombra");
   verdade(!/border-l-|border-r-/.test(c), "faixa lateral colorida");
   const b = codigoDe(le("components/atendimento-app/BolhaDaMensagem.tsx"));
-  verdade(b.includes("<MidiaDaBolha") && b.includes("recebida={!saiu}"), "a bolha não usa o componente de mídia");
+  verdade(b.includes("<MidiaDaBolha") && b.includes("recebida={!saiu || (!local && m.midia.bytes != null)}") && b.includes("doCliente={!saiu}"), "a bolha não usa o componente de mídia (recebida ou enviada e guardada)");
 });
 
 resumo("Atendimento app, PR 8 — mídia no balão");

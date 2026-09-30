@@ -133,7 +133,7 @@ export default function BolhaDaMensagem({
       {ehNota && <span className="min-w-0 truncate font-semibold">{m.autor || "Você"} ·</span>}
       {enviando && (
         <span className="inline-flex items-center gap-1">
-          <Clock size={12} aria-hidden="true" /> {local?.aguardando ? "Aguardando conexão" : "Enviando…"}
+          <Clock size={12} aria-hidden="true" /> {local?.aguardando ? "Aguardando conexão" : local?.progresso !== undefined ? `Enviando arquivo… ${local.progresso}%` : "Enviando…"}
         </span>
       )}
       {falhou && (
@@ -176,7 +176,8 @@ export default function BolhaDaMensagem({
             {nomeDoAtendente}
           </p>
         )}
-        {m.midia && <MidiaDaBolha idDaConversa={idDaConversa} idDaMensagem={m.id} midia={m.midia} recebida={!saiu} />}
+        {/* Tem ARQUIVO para abrir a mídia recebida e a que o aplicativo enviou e guardou (bytes gravados); o balão "enviando" mostra só o rótulo. */}
+        {m.midia && <MidiaDaBolha idDaConversa={idDaConversa} idDaMensagem={m.id} midia={m.midia} recebida={!saiu || (!local && m.midia.bytes != null)} doCliente={!saiu} />}
         {m.texto && (
           <p className="whitespace-pre-wrap text-corpo leading-[1.35]">
             {m.texto}

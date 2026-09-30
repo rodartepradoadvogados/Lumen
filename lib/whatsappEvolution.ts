@@ -50,9 +50,10 @@ async function pedir(
   metodo: "GET" | "POST" | "DELETE",
   caminho: string,
   corpo?: unknown,
+  esperaMs: number = ESPERA_MS,
 ): Promise<unknown> {
   const controlador = new AbortController();
-  const relogio = setTimeout(() => controlador.abort(), ESPERA_MS);
+  const relogio = setTimeout(() => controlador.abort(), esperaMs);
   try {
     const resposta = await fetch(`${raiz(config.baseUrl)}${caminho}`, {
       method: metodo,
@@ -180,6 +181,51 @@ export async function enviarTexto(config: ConfigEvolution, paraE164: string, tex
     number: somenteDigitos(paraE164),
     text: texto,
   })) as { key?: { id?: string } } | null;
+  return d?.key?.id ?? "";
+}
+
+/** O arquivo que vai ao cliente (R3, mídia de saída). O conteúdo já foi conferido pelo servidor antes de chegar aqui. */
+export type MidiaParaEnviar = {
+  tipo: "imagem" | "video" | "audio" | "documento";
+  mime: string;
+  buffer: Buffer;
+  nome: string;
+  /** Vazia em áudio. */
+  legenda: string;
+};
+
+// Mídia é mais pesada que texto: 20 s não bastam para um vídeo de 15 MB subir em base64. Passou disso sem resposta, a falha é
+// INCERTA (a Evolution pode ter enviado), como em toda falha sem resposta.
+const ESPERA_DA_MIDIA_MS = 75_000;
+
+/**
+ * Envia imagem, vídeo ou documento (v2: `POST /message/sendMedia/{instância}`, corpo plano com `mediatype`, `mimetype`, `caption`,
+ * `fileName` e `media` em base64) e áudio (`POST /message/sendWhatsAppAudio/{instância}`, `audio` em base64). O arquivo vai em
+ * base64 no corpo: nada de URL pública. Devolve o id da mensagem no WhatsApp ("" quando a Evolution não devolve).
+ *
+ * NÃO PROVADO contra uma Evolution real: o formato segue a documentação da v2. Numa v1 o corpo é aninhado (`mediaMessage`) e
+ * esta chamada seria recusada com o erro da própria Evolution (recusa com resposta, não incerta).
+ */
+export async function enviarMidia(config: ConfigEvolution, paraE164: string, m: MidiaParaEnviar): Promise<string> {
+  const numero = somenteDigitos(paraE164);
+  const base64 = m.buffer.toString("base64");
+  const instancia = encodeURIComponent(config.instancia);
+  const d = (await (m.tipo === "audio"
+    ? pedir(config, "POST", `/message/sendWhatsAppAudio/${instancia}`, { number: numero, audio: base64, encoding: true }, ESPERA_DA_MIDIA_MS)
+    : pedir(
+        config,
+        "POST",
+        `/message/sendMedia/${instancia}`,
+        {
+          number: numero,
+          mediatype: m.tipo === "imagem" ? "image" : m.tipo === "video" ? "video" : "document",
+          mimetype: m.mime,
+          caption: m.legenda || undefined,
+          fileName: m.nome,
+          media: base64,
+        },
+        ESPERA_DA_MIDIA_MS,
+      ))) as { key?: { id?: string } } | null;
   return d?.key?.id ?? "";
 }
 

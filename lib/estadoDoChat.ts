@@ -24,6 +24,11 @@ export type EstadoDoChat = {
   janela: { aberta: true } | { aberta: false; horasDesdeAUltimaEntrada: number | null };
   /** A mensagem fixada no topo (PR 10), ou nula. Opcional: quem monta o estado sem ela continua valendo. */
   fixada?: FixadaDoChat | null;
+  /**
+   * O provedor de WhatsApp do escritório ("META" | "EVOLUTION"), ou nulo sem configuração. Decide a LISTA de arquivos que o clipe
+   * aceita (R3: a Meta recusa webp e zip, a Evolution aceita). Só orienta a tela: o servidor confere de novo.
+   */
+  provedor?: "META" | "EVOLUTION" | null;
 };
 
 export function montarEstadoDoChat(
@@ -32,6 +37,7 @@ export function montarEstadoDoChat(
   agenteAtivoNoEscritorio: boolean,
   janela: JanelaDoWhatsapp,
   fixada: FixadaDoChat | null = null,
+  provedor: "META" | "EVOLUTION" | null = null,
 ): EstadoDoChat {
   return {
     agenteResponde: a.agenteResponde,
@@ -42,6 +48,7 @@ export function montarEstadoDoChat(
     temWhatsapp: Boolean(a.waPhone),
     janela,
     fixada,
+    provedor,
   };
 }
 

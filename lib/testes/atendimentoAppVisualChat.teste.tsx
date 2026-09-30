@@ -278,7 +278,10 @@ teste("CAMPO: pílula com respostas rápidas dentro e envio ouro CIRCULAR; alter
   verdade(c.includes("Só a equipe vê. Não é enviada ao cliente, e a Ana não lê."), "linha de apoio da nota");
   verdade(c.includes("atd-campo-de-mensagem") && c.includes("focus-within:ring-2") && c.includes("focus:outline-none"), "16 px e foco visível na pílula");
   verdade(c.includes("rounded-atd-balao bg-atd-pilula") && c.includes('aria-label="Cancelar a citação"') && c.includes("h-11 w-11"), "citação em pílula, com cancelar de 44 px");
-  verdade(!/Paperclip|Paperclip|anexar/i.test(c), "não há clipe: o campo não envia anexo (não promete o que não faz)");
+  // R3: o clipe voltou porque agora há envio de mídia (AnexarMidia); só no modo ao cliente, nunca na nota.
+  verdade(c.includes("AnexarMidia") && /!nota && aoEnviarMidia/.test(c), "o clipe existe e só no modo ao cliente");
+  const clipe = C("AnexarMidia.tsx");
+  verdade(clipe.includes("h-11 w-11") && clipe.includes('aria-label="Anexar arquivo"') && clipe.includes("min-h-14"), "clipe de 44 px com nome; linhas do menu de 56 px");
 });
 
 teste("FAIXA DA JANELA FECHADA: o app usa cartão de ouro suave e botões em pílula de 44 px; o SITE segue igual (2 px, sem token do app)", () => {
