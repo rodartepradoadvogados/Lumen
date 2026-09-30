@@ -951,6 +951,63 @@ navegador de verdade (a tela foi vista só por código e contraste calculado); a
 banco real (`db push`, a consulta `entradasRecentes`, a limpeza 404/410 contra o Prisma); a volta da conexão dentro de um PWA instalado; `Notification.permission`
 "denied" no iOS. Ainda não existe preferência por pessoa/horário para o aviso (liga/desliga só por aparelho).
 
+## 32. Contorno fino nos campos de digitação dos formulários do aplicativo de Atendimento (30/09/2026)
+
+Decisão do dono, **só dentro de `/atendimento-app`**: o item 28 dizia "campos sem contorno" (preenchimento a ~1,1:1 contra o cartão, por desenho).
+Isso deixou de valer para CAMPO DE DIGITAÇÃO DE FORMULÁRIO (WCAG 1.4.11, componente de interface >= 3:1). O que **não pode voltar atrás**:
+
+- **Token `--atd-campo-borda`** (Dia `#78808b`, Noite `#818b98`) e `--atd-campo-erro` (Dia `#8a2f42`, Noite `#f3a19b`), em `.atendimento-shell`/`.atendimento-dark`
+  (`app/globals.css`), mapeados em `tailwind.config.ts` (`border-atd-campo-borda`, `border-atd-campo-erro`). Medido contra os TRÊS fundos onde um campo aparece
+  (tela, cartão `--atd-pilula-bg`, painel `--atd-pilula-bg-2`): Dia 4,0 / 3,6 / 3,2:1 (piso 3,2); Noite 5,3 / 4,7 / 4,2:1 (piso 4,2). Erro >= 3:1 nos três (Dia >= 6,6; Noite >= 7,2).
+  Não é o `--atd-campo` (esse é o contorno da caixinha/rádio, outro token). Se mudar um fundo (tela, cartão, painel), rode o teste: ele mede.
+- **Contorno de 1 px**, fundo preenchido, raio e alvo de 44 px mantidos (a borda entra no `border-box`; o campo de data nativo mede 46 px). Sem sombra. O foco é o anel global
+  de 2 px (`.atendimento-shell :where(input...):focus-visible`), intocado: contorno + anel juntos.
+- **Onde vale**: `cx.campo` (`detalhes/base.tsx`: todo campo de Contato, Dados, Triagem, Pendências, Processo, Tarefas, Anotações, Anexos e Encerrar), `CAMPO` de
+  `ManterRespostasRapidas`, e na Nova conversa (`MobileNewAttendanceForm variante="app"`: `APP.input`, `APP.pais`, `APP.ddi`, `APP.pend`, `APP.selo`) os campos, o seletor de país, o DDI livre,
+  os campos de Pendências e o tipo de documento do anexo. A busca da **Triagem** é formulário GET com botão "Buscar": ganhou o contorno (`CampoPilula contorno`).
+- **Não ganham contorno, de propósito (ficam como no WhatsApp)**: busca da lista de Conversas, campo de mensagem do chat, barra de filtros.
+- **Estado de erro**: `Campo` marca o entorno com `data-campo-invalido` quando há `erro`; o CSS escopado ao app pinta o contorno de `--atd-campo-erro`, e o TEXTO do erro (`role="alert"`,
+  `aria-describedby`) continua logo abaixo: cor nunca é o único sinal. Campos avulsos usam `aria-invalid` (`aria-invalid:border-atd-campo-erro`).
+- **O site e o `/m` não mudam**: `PhoneInput` (`classeDoPais`, `classeDoDdi`), `PendenciasEditor` (`classeDoCampo`) e `MobileNewAttendanceForm` só trocam de classe quando o app passa a sua; sem elas, as
+  strings de sempre (o teste as compara literalmente). `CampoPilula` ganhou `contorno` (padrão desligado; com ele o `<input>` mede 42 px para o conjunto continuar em 44).
+- Testes: `atendimentoAppVisualDetalhes` (contraste do contorno e do erro nos três fundos em Dia e Noite; varredura de todo input/select/textarea dos formulários do app; o que não ganha contorno) e
+  `atendimentoAppFunilTriagemNova` (site e /m idênticos). O teste antigo "campo sem contorno" foi invertido de propósito.
+
+**Não provado**: o app com login e banco reais (Chromium 390x844 com dados de exemplo numa rota temporária, já removida); aparelho de verdade e leitor de tela; o filtro de países DENTRO da lista suspensa do
+`PhoneInput` e a lista suspensa em si (compartilhados com o site) e o modal de escolha de tipo do `DocumentTypeSelect` seguem com o visual do site; o campo "O que fazer"/"Para quando" da tarefa dentro da
+`FaixaDaJanelaFechada` (parte do chat, de outro trabalho em curso) NÃO foi tocado; os campos de Pendências da Nova conversa ficam dentro de um quadro com fundo/contorno do site (`bg-sf-apoio`), cujo
+contraste contra o contorno novo não foi medido; o anel de foco não foi refotografado (só o contorno em repouso e o de erro).
+
+## 33. A Ana na linha das abas: pílula que abre pop-up de confirmação (30/09/2026)
+
+O dono achou a barra da Ana (abaixo das abas) grande demais. **Só apresentação e fluxo de confirmação mudaram; nenhuma regra de acesso, recorte, envio ou idempotência.**
+
+- **Onde fica:** uma pílula ("Ana: Ligada", "Ana: Desligada", "Ana: pausada" quando uma pessoa assumiu) na MESMA linha das abas, à direita de "Detalhes". A linha é `GuiasDaConversa` (layout do servidor);
+  o estado vivo mora em `ChatDaConversa`, então `BarraDoChat` desenha a pílula **por portal** no `[data-slot-da-ana]` da linha. O `tablist` (Chat/Detalhes, setas/Home/End, roving tabindex) ficou intacto e a
+  pílula está **fora** dele. Só existe na guia Chat (em Detalhes o espaço fica vazio). Alvo de 44 px, borda de 2 px (`atd-campo` / `atd-ouro-texto`, >= 3:1), ligada em ouro cheio com texto `atd-ouro-tx`.
+  Cabe em 360 px (medido no Chromium: 133 x 44 px; com o relógio, 2 linhas dentro dos mesmos 44 px). Escritório sem atendente automático: um rótulo sem botão ("Automático desligado").
+- **Saíram:** a barra inteira abaixo das abas, o texto "Ao enviar, você assume e ela para" e o botão avulso "Responder última mensagem". O espaço voltou para a conversa.
+- **Pop-ups** (`DialogoDaAna`, `role="dialog"`, `aria-modal`, nomeado pelo título, foco começa em "Não", Tab preso entre os dois botões, Esc fecha, o foco volta para quem estava focado, botões de 44 px):
+  ligar: "Ao ligar, a Ana passa a responder às mensagens automaticamente. Deseja ligar?"; desligar: "Ao desligar, a Ana não responderá às mensagens. Deseja desligar?"; pausada: o texto de
+  "Devolver a conversa à Ana?" que já existia, com Sim/Não. Textos e regras em `lib/anaNoTopo.ts` (puro, testado). **Nada é chamado antes do "Sim"**; "Não"/Esc fecham sem mudar nada. Enquanto grava, os botões
+  ficam desabilitados, o "Sim" vira "…" e a pílula "…". Um erro da ação fica DENTRO do pop-up (`role="alert"`, motivo real) e o estado otimista é revertido.
+- **Segundo pop-up** ("Responder à última mensagem?"): abre depois de LIGAR com sucesso, **só se a última mensagem é do cliente** (`abrirPerguntaDeResposta`). "Sim" chama `responderUltimaPergunta` (a ação de
+  sempre, com recorte), mostra "Ana está respondendo…", o motivo real se falhar, e ao terminar a conversa busca as mensagens na hora. "Não" fecha.
+- **Relógio de 15 min:** não tem mais linha. Aparece só como texto pequeno DENTRO da pílula ("fila em 3 min" / "fila vencida") nos últimos 5 minutos ou vencido, e por extenso no `title` e no texto só-leitor-de-tela. Fora disso, nada.
+- **"Responder agora" (Ana JÁ ligada e o cliente esperando):** escolhido o desenho mais leve, **sem botão novo na tela**: um item **"Pedir à Ana que responda agora"** no menu "⋮" da ÚLTIMA mensagem do cliente
+  (`AcoesDaMensagem`, prop `respostaDaAna`), que só existe quando `modo === "ligada"` E a última é do cliente; ele abre o mesmo pop-up "Responder à última mensagem?" (com confirmação, carregando e erro). Descartados: chip
+  na linha das abas (não cabe em 360 px com a pílula) e usar o pop-up de desligar. Custo: exige abrir o "⋮" (menos descobrível que o botão antigo); é a troca aceita pelo espaço.
+- **Site intacto:** `AtendenteIaControle` e `InterruptorDaAna` não mudaram (o app deixou de usar o interruptor; a variante `pilula` dele continua existindo).
+- **Armadilha:** a pílula depende de existir o `[data-slot-da-ana]` na página (vem de `GuiasDaConversa`); sem ele o portal não desenha nada (de propósito, sem quebrar). O pop-up de responder é controlado pela conversa
+  (`respostaAberta`) para o menu "⋮" e o fluxo de ligar chegarem no mesmo componente.
+
+Testes: `atendimentoAppAnaTopo.teste.tsx` (11 casos: textos exatos, Sim/Não, 2º pop-up só com a última do cliente, ações só depois do "Sim", diálogo, pílula fora do tablist, 44 px, relógio, "responder agora"); contraste AA
+Dia e Noite acrescentado em `atendimentoAppVisualChat.teste.tsx`; os testes da barra antiga (`AnaBotao`, `VisualChat`, `Envio`) foram reescritos para o novo desenho sem afrouxar acesso/recorte.
+
+**Provado no Chromium real** (rota temporária, ações simuladas por interceptação, removida antes do commit): 360x740 e 390x844, Dia e Noite; abrir/Não/Esc/Sim, foco inicial/preso/devolvido, carregando, 2º pop-up, erro real, devolver,
+desligar, menu "⋮" só na última do cliente, sem rolagem horizontal. **Não provado:** as Server Actions reais contra o banco (só simuladas), leitor de tela real, iOS/Android reais, teclado virtual aberto com a pílula (a linha se recolhe
+como antes, não testado com teclado de verdade), e o nome da Ana configurado diferente de "Ana" (os textos usam o nome do escritório).
+
 
 ## 34. Mídia de saída pelo celular: o arquivo que vai ao cliente pelo WhatsApp (R3, PR 14, 30/09/2026)
 

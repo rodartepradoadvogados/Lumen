@@ -9,7 +9,7 @@ import { telefoneLegivel } from "@/lib/quemEEsteNumero";
 // O cabeçalho da conversa (chat e detalhes), no acabamento WhatsApp: SEM faixa grafite e SEM filete de ouro, sobre o
 // fundo da tela. Voltar, avatar de iniciais em tom suave, nome e número (um só link, que abre os Detalhes), ligar (o
 // discador do aparelho) e as guias Chat / Detalhes. Fica fora da rolagem. O estado da Ana ("Ana responde aqui") mora na
-// barra logo abaixo das guias (BarraDoChat), que é quem conhece o estado vivo da conversa.
+// pílula na linha das guias (BarraDoChat, por portal), que é quem conhece o estado vivo da conversa.
 export default function CabecalhoDaConversa({
   id,
   clientName,

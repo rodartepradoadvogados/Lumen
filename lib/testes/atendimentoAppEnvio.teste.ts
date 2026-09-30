@@ -306,11 +306,11 @@ teste("o campo de mensagem: sem modelo aprovado (fora de escopo); o clipe só ap
   verdade(/\.atd-campo-de-mensagem\s*\{\s*font-size:\s*1rem/.test(g), "classe de 16 px");
 });
 
-teste("teclado virtual: a tela usa visualViewport e recolhe a barra da Ana e as guias", () => {
+teste("teclado virtual: a tela usa visualViewport e recolhe a linha das guias (com a pílula da Ana)", () => {
   const t = codigoDe(le("components/atendimento-app/TelaCheiaDaConversa.tsx"));
   verdade(t.includes("visualViewport") && t.includes("vv.height") && t.includes("offsetTop"), "altura da viewport visual");
   verdade(codigoDe(le("app/atendimento-app/(shell)/[id]/layout.tsx")).includes("TelaCheiaDaConversa"), "o layout usa a moldura");
-  verdade(le("components/atendimento-app/BarraDoChat.tsx").includes("data-oculta-com-teclado") && le("components/atendimento-app/GuiasDaConversa.tsx").includes("data-oculta-com-teclado"), "os dois se recolhem");
+  verdade(le("components/atendimento-app/GuiasDaConversa.tsx").includes("data-oculta-com-teclado"), "a linha das guias (com a pílula da Ana dentro) se recolhe");
 });
 
 teste("atualização de 15 s: rota JSON leve, sem router.refresh (não perde rolagem nem rascunho); aria-live à parte", () => {

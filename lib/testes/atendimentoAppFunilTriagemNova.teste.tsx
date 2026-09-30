@@ -142,4 +142,21 @@ teste("SITE INTACTO: o quadro do funil do site e da Central não importam nada d
   }
 });
 
+teste("CONTORNO DOS CAMPOS: site e /m ficam IDÊNTICOS (classes de sempre, sem o token do app); o app leva o contorno só na variante", () => {
+  const INPUT_DO_SITE = "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx";
+  verdade(FORM.includes(`const INPUT_DO_SITE =\n  "${INPUT_DO_SITE}"`), "input do site em /m: a mesma string de antes");
+  verdade(FORM.includes('"flex-1 min-w-0 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx"'), "assunto do site: igual");
+  verdade(FORM.includes('"text-corpo border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[140px] shrink-0"'), "tipo de documento do anexo no site: igual");
+  verdade(/const ehApp = variante === "app";/.test(FORM) && /ehApp \? APP\.pais : undefined/.test(FORM) && /ehApp \? APP\.ddi : undefined/.test(FORM) && /ehApp \? APP\.pend : undefined/.test(FORM) && /ehApp \? APP\.selo :/.test(FORM), "todo campo novo é condicionado à variante do app");
+  const tel = codigoDe(le("components/PhoneInput.tsx"));
+  verdade(tel.includes('classeDoPais ?? "h-full flex items-center gap-1 border border-regua rounded-md px-2.5 text-sm text-tx bg-sf whitespace-nowrap"') && tel.includes('classeDoDdi ?? "w-16 shrink-0 border border-regua rounded-md px-2 text-sm text-tx bg-sf text-center"'), "PhoneInput sem props: visual de sempre");
+  verdade(!tel.includes("atd-"), "PhoneInput não conhece tokens do app");
+  const pend = codigoDe(le("components/PendenciasEditor.tsx"));
+  verdade(pend.includes('classeDoCampo ?? INPUT_DO_SITE') && pend.includes('INPUT_DO_SITE = "w-full text-xs border border-regua-forte bg-sf text-tx px-2 py-1"') && !pend.includes("atd-"), "PendenciasEditor sem prop: visual de sempre");
+  for (const f of ["app/m/(shell)/atendimento/novo/page.tsx", "components/NewAttendanceModal.tsx", "components/AttendancePendenciasPanel.tsx"]) {
+    const c = codigoDe(le(f));
+    verdade(!c.includes("atd-campo") && !c.includes("classeDoDdi") && !c.includes("classeDoCampo") && !c.includes('variante="app"'), `${f}: sem nada do contorno do app`);
+  }
+});
+
 resumo("Atendimento app — Funil, Triagem, Nova conversa e estados (etapa 4)");

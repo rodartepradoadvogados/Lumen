@@ -11,6 +11,7 @@ import FixadaDoChatTopo from "@/components/atendimento-app/FixadaDoChat";
 import { trechoDaMensagem } from "@/lib/mensagemFixada";
 import { agruparMensagensPorDia, aplicarEntregas, cursorDaMaisNova, mesclarMensagens, type EntregaDaLinha, type MensagemDoChat } from "@/lib/mensagensDoChat";
 import type { EstadoDoChat } from "@/lib/estadoDoChat";
+import { pilulaDaAna } from "@/lib/anaNoTopo";
 import { useAvisoDeMensagemNova } from "@/components/atendimento-app/useAvisoDeMensagemNova";
 import { deveBuscarAgora, novasDoCliente } from "@/lib/avisoDeMensagemNova";
 import { novaChaveDeMensagem, resultadoDoPedido } from "@/lib/envioDeMensagem";
@@ -87,6 +88,8 @@ export default function ChatDaConversa({
   const [aviso, setAviso] = useState("");
   // PR 10: o menu da mensagem (Responder / Fixar) e a citação local (só na tela de quem responde).
   const [acoesDe, setAcoesDe] = useState<MensagemDoChat | null>(null);
+  // O pop-up "Responder à última mensagem?": abre depois de ligar a Ana (BarraDoChat) ou pelo menu "⋮" da última mensagem do cliente.
+  const [respostaAberta, setRespostaAberta] = useState(false);
   const [citando, setCitando] = useState<{ id: string; autor: string; trecho: string } | null>(null);
   // O ponto de corte: só o que é MAIS NOVO que a primeira mensagem da primeira página conta como
   // "nova" para o aviso "↓ N novas" (carregar anteriores não pode acender o aviso).
@@ -488,11 +491,13 @@ export default function ChatDaConversa({
   const grupos = useMemo(() => agruparMensagensPorDia(exibidas), [exibidas]);
   const totalNaCauda = useMemo(() => todas.filter((m) => m.criadoEm >= corte.current).length, [todas]);
   const ultima = exibidas[exibidas.length - 1];
+  // "Responder agora": a Ana está LIGADA, o cliente escreveu por último e ainda espera. Só então o menu da última mensagem do cliente oferece.
+  const podeResponderAgora = estado.temWhatsapp && pilulaDaAna(estado, agora, nomeDoAtendente).modo === "ligada" && estado.ultimaDirecao === "IN" && ultima?.direction === "IN";
   const semWhatsapp = !estado.temWhatsapp && exibidas.length === 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <BarraDoChat idDaConversa={idDaConversa} estado={estado} agora={agora} nomeDoAtendente={nomeDoAtendente} aoMudar={(parte) => setEstado((e) => ({ ...e, ...parte }))} aoResponder={() => void buscarNovas()} />
+      <BarraDoChat idDaConversa={idDaConversa} estado={estado} agora={agora} nomeDoAtendente={nomeDoAtendente} aoMudar={(parte) => setEstado((e) => ({ ...e, ...parte }))} aoResponder={() => void buscarNovas()} respostaAberta={respostaAberta} aoMudarRespostaAberta={setRespostaAberta} />
       {estado.fixada && (
         <FixadaDoChatTopo idDaConversa={idDaConversa} fixada={estado.fixada} aoIr={irParaAMensagem} aoDesafixar={() => setEstado((e) => ({ ...e, fixada: null }))} />
       )}
@@ -563,6 +568,7 @@ export default function ChatDaConversa({
           autor={acoesDe.direction === "OUT" ? (acoesDe.porAgente ? nomeDoAtendente : "Escritório") : "Cliente"}
           fixadaAgora={estado.fixada?.mensagemId === acoesDe.id}
           aoResponder={responderA}
+          respostaDaAna={podeResponderAgora && ultima?.id === acoesDe.id ? { nome: nomeDoAtendente, aoPedir: () => setRespostaAberta(true) } : undefined}
           aoMudarFixada={(f) => setEstado((e) => ({ ...e, fixada: f }))}
           aoFechar={() => setAcoesDe(null)}
         />
