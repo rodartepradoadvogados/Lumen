@@ -11,7 +11,7 @@ export type PendenciaRow = {
   dueDate: string; // YYYY-MM-DD
 };
 
-const inputCls = "w-full text-xs border border-regua-forte bg-sf text-tx px-2 py-1";
+const INPUT_DO_SITE = "w-full text-xs border border-regua-forte bg-sf text-tx px-2 py-1";
 
 // Duas colunas de caixas de seleção (Solicitar ao lead / Enviar ao lead) — marcar uma abre, na
 // hora, uma pergunta a mais ("quais?" quando o tipo pedir) e os campos de responsável/prazo,
@@ -24,12 +24,16 @@ export default function PendenciasEditor({
   onChange,
   users,
   compact,
+  classeDoCampo,
 }: {
   rows: PendenciaRow[];
   onChange: (rows: PendenciaRow[]) => void;
   users: { id: string; name: string }[];
   compact?: boolean;
+  /** Classes dos campos; sem elas, o visual de sempre (o aplicativo de Atendimento passa as suas). */
+  classeDoCampo?: string;
 }) {
+  const inputCls = classeDoCampo ?? INPUT_DO_SITE;
   function toggle(direction: PendenciaDirection, kind: string, checked: boolean) {
     if (checked) {
       onChange([

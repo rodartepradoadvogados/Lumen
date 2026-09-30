@@ -365,6 +365,11 @@
   --atd-raio-balao: 14px;
   --atd-raio-etiqueta: 5px;
   --atd-raio-flutuante: 18px;
+
+  /* Contorno FINO dos campos de digitação dos formulários (decisão do dono, 30/09/2026; WCAG 1.4.11).
+     >= 3:1 contra cada fundo em que um campo aparece: tela, cartão e painel (o teste mede os três). */
+  --atd-campo-borda: #78808b;
+  --atd-campo-erro: #8a2f42;
   /* A tela do app usa o fundo uniforme nas telas que ainda leem --sf-fundo. */
   --sf-fundo: var(--atd-tela);
   /* A cor de ação do Atendimento é o ouro, nos dois temas (no Dia era o bordô do site). */
@@ -424,6 +429,8 @@
   --atd-nota-bg: #211f1e;
   --atd-nota-borda: #d4a83a;
   --atd-lida: #6cb6ff;
+  --atd-campo-borda: #818b98;
+  --atd-campo-erro: #f3a19b;
 
   /* Retematizar superfícies para o modo escuro do Atendimento */
   --sf-fundo: var(--atd-tela);
@@ -477,6 +484,10 @@
 .atendimento-shell .bg-ouro-bg { background-color: var(--atd-ouro-bg) !important; }
 .atendimento-shell .border-ouro-acento { border-color: var(--atd-ouro) !important; }
 .atendimento-shell .focus\\:ring-ouro-acento:focus { --tw-ring-color: var(--atd-foco) !important; }
+
+/* Campo de digitação com erro: o `Campo` das telas de Detalhes marca o entorno com data-campo-invalido. O
+   contorno passa a --atd-campo-erro (>= 3:1); o TEXTO do erro (role="alert") continua logo abaixo do campo. */
+.atendimento-shell [data-campo-invalido] :where(input, select, textarea) { border-color: var(--atd-campo-erro); }
 
 /* Foco visível de 2 px em tudo o que se toca (teclado), com o tom de foco do tema. No cabeçalho
    grafite o anel é o ouro claro (o do Dia some sobre o grafite). */

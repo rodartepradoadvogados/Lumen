@@ -34,11 +34,15 @@ const INPUT_DO_SITE =
   "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx";
 const LABEL_DO_SITE = "text-corpo font-medium text-tx-2";
 
-// Visual do APLICATIVO DE ATENDIMENTO (acabamento WhatsApp): campos preenchidos em pílula, sem contorno;
-// botão primário em ouro; erro em cartão. O site (/m) não passa `variante` e segue igual.
+// Visual do APLICATIVO DE ATENDIMENTO (acabamento WhatsApp): campos preenchidos em pílula COM contorno fino
+// (--atd-campo-borda, >= 3:1: WCAG 1.4.11, decisão do dono); botão primário em ouro; erro em cartão. O site (/m) não passa `variante` e segue igual.
 const APP = {
   input:
-    "w-full mt-1.5 min-h-11 rounded-atd-pilula bg-atd-pilula px-4 py-2 text-corpo text-tx placeholder:text-atd-terciario",
+    "w-full mt-1.5 min-h-11 rounded-atd-pilula border border-atd-campo-borda bg-atd-pilula px-4 py-2 text-corpo text-tx placeholder:text-atd-terciario",
+  pend: "w-full min-h-11 rounded-atd-pilula border border-atd-campo-borda bg-atd-pilula px-3 text-corpo text-tx",
+  pais: "flex min-h-11 items-center gap-1 whitespace-nowrap rounded-atd-pilula border border-atd-campo-borda bg-atd-pilula px-4 text-corpo text-tx",
+  ddi: "min-h-11 w-16 shrink-0 rounded-atd-pilula border border-atd-campo-borda bg-atd-pilula px-2 text-center text-corpo text-tx",
+  selo: "min-h-11 max-w-[140px] shrink-0 rounded-atd-pilula border border-atd-campo-borda px-3 text-corpo text-tx",
   label: "block px-1 text-app-meta font-semibold text-atd-previa",
   secao: "text-app-meta font-semibold uppercase tracking-wide text-atd-previa mb-2 px-1",
 };
@@ -257,7 +261,8 @@ export default function MobileNewAttendanceForm({
           <PhoneInput
             name="contactPhone"
             className={ehApp ? `${inputClass} !mt-0` : inputClass}
-            classeDoPais={ehApp ? "flex min-h-11 items-center gap-1 whitespace-nowrap rounded-atd-pilula bg-atd-pilula px-4 text-corpo text-tx" : undefined}
+            classeDoPais={ehApp ? APP.pais : undefined}
+            classeDoDdi={ehApp ? APP.ddi : undefined}
           />
         </div>
       </div>
@@ -456,7 +461,7 @@ export default function MobileNewAttendanceForm({
             não podem aparecer expandidas por padrão, mesmo dentro do painel "Mais detalhes" — só
             abrem atrás deste toggle explícito. */}
         {showPendencias ? (
-          <PendenciasEditor rows={pendenciaRows} onChange={setPendenciaRows} users={users} compact />
+          <PendenciasEditor rows={pendenciaRows} onChange={setPendenciaRows} users={users} compact classeDoCampo={ehApp ? APP.pend : undefined} />
         ) : (
           <button
             type="button"
@@ -528,7 +533,7 @@ export default function MobileNewAttendanceForm({
                       value={att.docType}
                       onChange={(v) => setStagedAttachments((prev) => prev.map((a) => (a.key === att.key ? { ...a, docType: v } : a)))}
                       excludeKeys={["PARECER"]}
-                      className="text-corpo border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[140px] shrink-0"
+                      className={ehApp ? APP.selo : "text-corpo border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[140px] shrink-0"}
                       allowCreate
                     />
                     <button

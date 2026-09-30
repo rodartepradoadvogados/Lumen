@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { teste, verdade, resumo, codigoDe } from "./executar";
 import { BlocoRecolhivel, cx } from "@/components/atendimento-app/detalhes/base";
+import { CampoPilula } from "@/components/atendimento-app/ui/Pilula";
 
 // ============================================================================
 // ACABAMENTO WHATSAPP, ETAPA 3 (30/09/2026): a aba DETALHES da conversa e a tela MAIS (com Perfil, Equipe, Tema,
@@ -137,7 +138,8 @@ teste("VISUAL: sombra só no aviso que flutua (shadow-atd-flutuante); nada mais 
 teste("CONTROLES: primário em ouro com texto escuro, secundário preenchido suave, campo em pílula preenchida — todos com 44 px", () => {
   verdade(/bg-acao\b/.test(cx.primario) && /text-acao-tx/.test(cx.primario) && /rounded-atd-pilula/.test(cx.primario), "primário: ouro (--acao) + texto escuro + pílula");
   verdade(/bg-atd-pilula-2/.test(cx.secundario) && /rounded-atd-pilula/.test(cx.secundario) && !/border/.test(cx.secundario), "secundário: preenchido suave, sem contorno");
-  verdade(/rounded-atd-balao/.test(cx.campo) && /bg-atd-pilula-2/.test(cx.campo) && !/border/.test(cx.campo), "campo: preenchido, sem contorno");
+  verdade(/rounded-atd-balao/.test(cx.campo) && /bg-atd-pilula-2/.test(cx.campo) && /\bborder\b/.test(cx.campo) && /border-atd-campo-borda/.test(cx.campo) && /aria-invalid:border-atd-campo-erro/.test(cx.campo), "campo: preenchido E com contorno fino de 1 px no token --atd-campo-borda");
+  verdade(!/shadow|ring-/.test(cx.campo), "campo: sem sombra nem anel próprio (o foco é o anel global)");
   for (const k of ["campo", "primario", "secundario", "discreto"] as const) verdade(/min-h-11/.test(cx[k]), `cx.${k} sem alvo de 44 px`);
   verdade(/disabled:opacity-60/.test(cx.primario + cx.secundario + cx.campo), "estado desligado visível");
   verdade(/uppercase/.test(cx.etiqueta) && /text-app-tag/.test(cx.etiqueta) && /font-semibold/.test(cx.etiqueta), "título de seção: caixa alta discreta 11px/600");
@@ -195,6 +197,98 @@ teste("FILHAS DE MAIS: cada tela tem '‹ Mais' (44 px) e título grande; o Sair
   verdade(s.includes("limparRastrosDoAparelho") && s.includes("bg-acao") && s.includes("min-h-11") && s.includes("rounded-atd-pilula"), "Sair: limpa, ouro, pílula, 44 px");
   const r = codigoDe(le("components/atendimento-app/ManterRespostasRapidas.tsx"));
   verdade(r.includes("Excluir “{i.titulo}” para todo o escritório?") && r.includes("rounded-atd-pilula") && r.includes("rounded-atd-balao"), "respostas rápidas: confirmação de exclusão e novo visual");
+});
+
+// ── CONTORNO DOS CAMPOS DE DIGITAÇÃO (decisão do dono, 30/09/2026; WCAG 1.4.11) ─────────────────────────────
+
+for (const [nome, t] of Object.entries(TEMAS)) {
+  teste(`CONTORNO DOS CAMPOS ${nome}: --atd-campo-borda >= 3:1 contra CADA fundo em que um campo aparece (tela, cartão, painel); erro >= 3:1 também`, () => {
+    const borda = t("atd-campo-borda");
+    const erro = t("atd-campo-erro");
+    for (const [fundo, onde] of [[t("atd-tela"), "a tela/gaveta (Nova conversa, Mais)"], [t("atd-pilula-bg"), "o cartão (bloco de Detalhes)"], [t("atd-pilula-bg-2"), "o painel (campo dentro de painel)"]] as const) {
+      const c = contraste(borda, fundo);
+      verdade(c >= 3, `${nome}: contorno ${borda} sobre ${onde} mede ${c.toFixed(2)}:1 (< 3:1)`);
+      const e = contraste(erro, fundo);
+      verdade(e >= 3, `${nome}: contorno de erro ${erro} sobre ${onde} mede ${e.toFixed(2)}:1 (< 3:1)`);
+    }
+    // o texto de erro (role="alert") segue AA sobre o cartão e sobre a tela
+    for (const fundo of [t("atd-tela"), t("atd-pilula-bg")]) verdade(contraste(t("urgente"), fundo) >= 4.5, `${nome}: texto de erro < 4,5:1 sobre ${fundo}`);
+  });
+}
+
+teste("CONTORNO DOS CAMPOS: token só dentro do app (Dia e Noite), mapeado no Tailwind, e o marcador de erro do Campo escopado ao app", () => {
+  verdade(Object.keys(declaracoes(".atendimento-shell")).includes("atd-campo-borda") && Object.keys(declaracoes(".atendimento-dark")).includes("atd-campo-borda"), "token nos dois temas");
+  verdade(!("atd-campo-borda" in declaracoes(":root")) && !("atd-campo-borda" in declaracoes(".dark")), "nada no :root nem no .dark do site");
+  verdade(/"campo-borda": "var\(--atd-campo-borda\)"/.test(le("tailwind.config.ts")), "tailwind: border-atd-campo-borda");
+  verdade(/\.atendimento-shell \[data-campo-invalido\] :where\(input, select, textarea\) \{ border-color: var\(--atd-campo-erro\); \}/.test(CSS), "erro: contorno de erro escopado ao app");
+  const base = codigoDe(le("components/atendimento-app/detalhes/base.tsx"));
+  verdade(base.includes('data-campo-invalido={erro ? "" : undefined}') && base.includes('role="alert"'), "Campo com erro: marca o contorno E mantém o texto do erro");
+});
+
+/** Abre cada <input|select|textarea|DocumentTypeSelect ...> e devolve o trecho da tag (chaves/aspas respeitadas: `=>` não fecha a tag). */
+function tagsDeCampo(codigo: string): string[] {
+  const out: string[] = [];
+  const re = /<(input|select|textarea|DocumentTypeSelect)\b/g;
+  for (let m = re.exec(codigo); m; m = re.exec(codigo)) {
+    let i = m.index + m[0].length, chaves = 0, aspas = "";
+    for (; i < codigo.length; i++) {
+      const ch = codigo[i];
+      if (aspas) { if (ch === aspas) aspas = ""; continue; }
+      if (ch === '"' || ch === "'" || ch === "`") aspas = ch;
+      else if (ch === "{") chaves++;
+      else if (ch === "}") chaves--;
+      else if (ch === ">" && chaves === 0 && codigo[i - 1] !== "=") break;
+    }
+    out.push(codigo.slice(m.index, i + 1));
+  }
+  return out;
+}
+// o filtro de países DENTRO da lista suspensa do PhoneInput é busca de lista (fica como o site), não campo de formulário
+const NAO_E_DIGITACAO = /type="(hidden|file|checkbox|radio|range)"|placeholder="Buscar país/;
+const COM_CONTORNO = /cx\.campo|\bCAMPO\b|border-atd-campo-borda|classeDoCampo|classeDoPais|classeDoDdi|inputClass|inputCls|className=\{className\}|APP\.(input|pend|pais|ddi|selo)/;
+
+teste("VARREDURA: todo input/select/textarea dos formulários do app (Detalhes, Respostas rápidas, Nova conversa) usa a classe com contorno", () => {
+  const arquivos = [
+    ...readdirSync(join(RAIZ, DIR_DETALHES)).filter((f) => f.endsWith(".tsx") && f !== "base.tsx").map((f) => `${DIR_DETALHES}/${f}`),
+    "components/atendimento-app/ManterRespostasRapidas.tsx",
+    "components/mobile/MobileNewAttendanceForm.tsx",
+    "components/PhoneInput.tsx",
+    "components/PendenciasEditor.tsx",
+  ];
+  let total = 0;
+  for (const f of arquivos) {
+    const c = codigoDe(le(f));
+    for (const tag of tagsDeCampo(c)) {
+      if (NAO_E_DIGITACAO.test(tag)) continue;
+      total++;
+      // Na Nova conversa, o campo do assunto no app usa APP.input; o do site, a string do site (a variante decide).
+      verdade(COM_CONTORNO.test(tag), `${f}: campo sem a classe com contorno: ${tag.slice(0, 140).replace(/\s+/g, " ")}`);
+    }
+  }
+  verdade(total >= 40, `a varredura achou só ${total} campos (esperava >= 40): o scanner quebrou?`);
+  // o token de contorno está nas classes-mãe
+  verdade(/border-atd-campo-borda/.test(cx.campo), "cx.campo");
+  const rr = codigoDe(le("components/atendimento-app/ManterRespostasRapidas.tsx"));
+  verdade(/const CAMPO = "[^"]*border border-atd-campo-borda/.test(rr), "CAMPO das respostas rápidas");
+  const form = codigoDe(le("components/mobile/MobileNewAttendanceForm.tsx"));
+  for (const k of ["input", "pend", "pais", "ddi", "selo"]) verdade(new RegExp(`\\b${k}:\\s*\\n?\\s*"[^"]*border border-atd-campo-borda`).test(form), `APP.${k} com contorno`);
+  for (const k of ["input", "pend", "pais", "ddi", "selo"]) {
+    const linha = form.match(new RegExp(`\\b${k}:\\s*\\n?\\s*"([^"]*)"`))?.[1] ?? "";
+    verdade(/min-h-11/.test(linha) && !/shadow/.test(linha), `APP.${k}: alvo de 44 px, sem sombra`);
+  }
+});
+
+teste("VARREDURA: os campos que NÃO ganham contorno continuam como estavam (busca da Conversas, mensagem do chat, filtros)", () => {
+  const busca = codigoDe(le("components/atendimento-app/BuscaDaLista.tsx"));
+  verdade(!/contorno/.test(busca), "busca da lista de Conversas: sem contorno (como no WhatsApp)");
+  const sem = renderToStaticMarkup(<CampoPilula id="c" rotulo="Buscar" value="" onChange={() => {}} />);
+  verdade(!/border/.test(sem), "CampoPilula por padrão: sem contorno");
+  const com = renderToStaticMarkup(<CampoPilula id="c" rotulo="Buscar" value="" onChange={() => {}} contorno />);
+  verdade(com.includes("border border-atd-campo-borda") && com.includes("min-h-[2.625rem]"), "CampoPilula com contorno: 1 px, e o alvo total segue em 44 px (42 + 2 de borda)");
+  verdade(codigoDe(le("app/atendimento-app/(shell)/triagem/page.tsx")).includes("contorno"), "busca da Triagem (formulário com botão Buscar): com contorno");
+  const compositor = codigoDe(le("components/atendimento-app/CompositorDoChat.tsx"));
+  verdade(!/atd-campo-borda/.test(compositor), "campo de mensagem do chat: intocado");
+  verdade(!/atd-campo-borda/.test(codigoDe(le("components/atendimento-app/ui/FiltroPilula.tsx"))), "filtros: intocados");
 });
 
 resumo("Atendimento app — acabamento WhatsApp: Detalhes e Mais (etapa 3)");

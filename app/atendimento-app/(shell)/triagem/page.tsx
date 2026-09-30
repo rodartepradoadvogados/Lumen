@@ -63,6 +63,7 @@ export default async function TriagemAppPage({ searchParams }: { searchParams: {
         <div className="min-w-0 flex-1">
           <CampoPilula
             id="busca-da-triagem"
+            contorno
             rotulo="Buscar por nome ou assunto"
             icone={<Search size={20} />}
             type="search"

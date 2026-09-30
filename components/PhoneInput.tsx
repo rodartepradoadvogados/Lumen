@@ -29,6 +29,7 @@ export default function PhoneInput({
   onChange,
   className,
   classeDoPais,
+  classeDoDdi,
   placeholder,
   required,
 }: {
@@ -40,6 +41,8 @@ export default function PhoneInput({
   className?: string;
   /** Classes do botão do país; sem elas, o visual de sempre (o aplicativo de Atendimento passa as suas). */
   classeDoPais?: string;
+  /** Classes do campo de DDI livre; sem elas, o visual de sempre. */
+  classeDoDdi?: string;
   placeholder?: string;
   required?: boolean;
 }) {
@@ -149,7 +152,7 @@ export default function PhoneInput({
             placeholder="DDI"
             inputMode="numeric"
             autoComplete="off"
-            className="w-16 shrink-0 border border-regua rounded-md px-2 text-sm text-tx bg-sf text-center"
+            className={classeDoDdi ?? "w-16 shrink-0 border border-regua rounded-md px-2 text-sm text-tx bg-sf text-center"}
           />
         )}
         <input
