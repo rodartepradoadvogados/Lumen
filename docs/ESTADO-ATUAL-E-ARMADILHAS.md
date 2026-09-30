@@ -977,3 +977,33 @@ Isso deixou de valer para CAMPO DE DIGITAÇÃO DE FORMULÁRIO (WCAG 1.4.11, comp
 `PhoneInput` e a lista suspensa em si (compartilhados com o site) e o modal de escolha de tipo do `DocumentTypeSelect` seguem com o visual do site; o campo "O que fazer"/"Para quando" da tarefa dentro da
 `FaixaDaJanelaFechada` (parte do chat, de outro trabalho em curso) NÃO foi tocado; os campos de Pendências da Nova conversa ficam dentro de um quadro com fundo/contorno do site (`bg-sf-apoio`), cujo
 contraste contra o contorno novo não foi medido; o anel de foco não foi refotografado (só o contorno em repouso e o de erro).
+
+## 33. A Ana na linha das abas: pílula que abre pop-up de confirmação (30/09/2026)
+
+O dono achou a barra da Ana (abaixo das abas) grande demais. **Só apresentação e fluxo de confirmação mudaram; nenhuma regra de acesso, recorte, envio ou idempotência.**
+
+- **Onde fica:** uma pílula ("Ana: Ligada", "Ana: Desligada", "Ana: pausada" quando uma pessoa assumiu) na MESMA linha das abas, à direita de "Detalhes". A linha é `GuiasDaConversa` (layout do servidor);
+  o estado vivo mora em `ChatDaConversa`, então `BarraDoChat` desenha a pílula **por portal** no `[data-slot-da-ana]` da linha. O `tablist` (Chat/Detalhes, setas/Home/End, roving tabindex) ficou intacto e a
+  pílula está **fora** dele. Só existe na guia Chat (em Detalhes o espaço fica vazio). Alvo de 44 px, borda de 2 px (`atd-campo` / `atd-ouro-texto`, >= 3:1), ligada em ouro cheio com texto `atd-ouro-tx`.
+  Cabe em 360 px (medido no Chromium: 133 x 44 px; com o relógio, 2 linhas dentro dos mesmos 44 px). Escritório sem atendente automático: um rótulo sem botão ("Automático desligado").
+- **Saíram:** a barra inteira abaixo das abas, o texto "Ao enviar, você assume e ela para" e o botão avulso "Responder última mensagem". O espaço voltou para a conversa.
+- **Pop-ups** (`DialogoDaAna`, `role="dialog"`, `aria-modal`, nomeado pelo título, foco começa em "Não", Tab preso entre os dois botões, Esc fecha, o foco volta para quem estava focado, botões de 44 px):
+  ligar: "Ao ligar, a Ana passa a responder às mensagens automaticamente. Deseja ligar?"; desligar: "Ao desligar, a Ana não responderá às mensagens. Deseja desligar?"; pausada: o texto de
+  "Devolver a conversa à Ana?" que já existia, com Sim/Não. Textos e regras em `lib/anaNoTopo.ts` (puro, testado). **Nada é chamado antes do "Sim"**; "Não"/Esc fecham sem mudar nada. Enquanto grava, os botões
+  ficam desabilitados, o "Sim" vira "…" e a pílula "…". Um erro da ação fica DENTRO do pop-up (`role="alert"`, motivo real) e o estado otimista é revertido.
+- **Segundo pop-up** ("Responder à última mensagem?"): abre depois de LIGAR com sucesso, **só se a última mensagem é do cliente** (`abrirPerguntaDeResposta`). "Sim" chama `responderUltimaPergunta` (a ação de
+  sempre, com recorte), mostra "Ana está respondendo…", o motivo real se falhar, e ao terminar a conversa busca as mensagens na hora. "Não" fecha.
+- **Relógio de 15 min:** não tem mais linha. Aparece só como texto pequeno DENTRO da pílula ("fila em 3 min" / "fila vencida") nos últimos 5 minutos ou vencido, e por extenso no `title` e no texto só-leitor-de-tela. Fora disso, nada.
+- **"Responder agora" (Ana JÁ ligada e o cliente esperando):** escolhido o desenho mais leve, **sem botão novo na tela**: um item **"Pedir à Ana que responda agora"** no menu "⋮" da ÚLTIMA mensagem do cliente
+  (`AcoesDaMensagem`, prop `respostaDaAna`), que só existe quando `modo === "ligada"` E a última é do cliente; ele abre o mesmo pop-up "Responder à última mensagem?" (com confirmação, carregando e erro). Descartados: chip
+  na linha das abas (não cabe em 360 px com a pílula) e usar o pop-up de desligar. Custo: exige abrir o "⋮" (menos descobrível que o botão antigo); é a troca aceita pelo espaço.
+- **Site intacto:** `AtendenteIaControle` e `InterruptorDaAna` não mudaram (o app deixou de usar o interruptor; a variante `pilula` dele continua existindo).
+- **Armadilha:** a pílula depende de existir o `[data-slot-da-ana]` na página (vem de `GuiasDaConversa`); sem ele o portal não desenha nada (de propósito, sem quebrar). O pop-up de responder é controlado pela conversa
+  (`respostaAberta`) para o menu "⋮" e o fluxo de ligar chegarem no mesmo componente.
+
+Testes: `atendimentoAppAnaTopo.teste.tsx` (11 casos: textos exatos, Sim/Não, 2º pop-up só com a última do cliente, ações só depois do "Sim", diálogo, pílula fora do tablist, 44 px, relógio, "responder agora"); contraste AA
+Dia e Noite acrescentado em `atendimentoAppVisualChat.teste.tsx`; os testes da barra antiga (`AnaBotao`, `VisualChat`, `Envio`) foram reescritos para o novo desenho sem afrouxar acesso/recorte.
+
+**Provado no Chromium real** (rota temporária, ações simuladas por interceptação, removida antes do commit): 360x740 e 390x844, Dia e Noite; abrir/Não/Esc/Sim, foco inicial/preso/devolvido, carregando, 2º pop-up, erro real, devolver,
+desligar, menu "⋮" só na última do cliente, sem rolagem horizontal. **Não provado:** as Server Actions reais contra o banco (só simuladas), leitor de tela real, iOS/Android reais, teclado virtual aberto com a pílula (a linha se recolhe
+como antes, não testado com teclado de verdade), e o nome da Ana configurado diferente de "Ana" (os textos usam o nome do escritório).
