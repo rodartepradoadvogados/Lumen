@@ -4,17 +4,20 @@ import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import InstallPrompt from "@/components/mobile/InstallPrompt";
 import type { NivelDeAcesso } from "@/lib/acessoAtendimento";
-import { ehTelaCheia } from "@/lib/navegacaoDoAtendimentoApp";
+import { Plus } from "lucide-react";
+import { botaoNovoVisivel, ehTelaCheia, ITEM_NOVO } from "@/lib/navegacaoDoAtendimentoApp";
 import { SCRIPT_INICIAL_DO_TEMA } from "@/lib/temaDoAtendimentoApp";
 import BarraInferior from "@/components/atendimento-app/BarraInferior";
 import CabecalhoDoApp from "@/components/atendimento-app/CabecalhoDoApp";
+import BotaoFlutuante from "@/components/atendimento-app/ui/BotaoFlutuante";
 import SeguidorDeNavegacao from "@/components/atendimento-app/SeguidorDeNavegacao";
 
 const SCRIPT_DO_SERVICE_WORKER = `if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw-atendimento.js', {scope: '/atendimento-app'}).catch(function(){}); }`;
 
 // A CASCA DO APLICATIVO DE ATENDIMENTO.
 //
-// Telas de aba (Conversas, Funil, Triagem, Mais): cabeçalho grafite + conteúdo + barra inferior.
+// Telas de aba (Conversas, Funil, Triagem, Mais): título grande sobre o fundo da tela + conteúdo + barra inferior
+// de quatro alvos + botão flutuante de nova conversa (acabamento WhatsApp; sem faixa grafite nem filete de ouro).
 // Telas cheias (a conversa, seus Detalhes e o "+" Novo atendimento): SEM cabeçalho e SEM barra — a
 // conversa é a tela. A decisão é `ehTelaCheia(pathname)` (lib/navegacaoDoAtendimentoApp.ts).
 //
@@ -26,7 +29,7 @@ export default function AtendimentoAppShell({ officeName, nivel, children }: { o
   const cheia = ehTelaCheia(pathname);
 
   return (
-    <div id="atendimento-shell" className="atendimento-shell min-h-dvh bg-sf-fundo text-tx transition-colors">
+    <div id="atendimento-shell" className="atendimento-shell min-h-dvh bg-atd-tela text-tx transition-colors">
       {/* eslint-disable-next-line react/no-danger -- texto fixo do próprio código (lib/temaDoAtendimentoApp.ts), sem dado de usuário */}
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_INICIAL_DO_TEMA }} />
       {/* eslint-disable-next-line react/no-danger -- texto fixo do próprio código */}
@@ -38,6 +41,7 @@ export default function AtendimentoAppShell({ officeName, nivel, children }: { o
         <>
           <CabecalhoDoApp officeName={officeName} />
           <main className="mx-auto min-h-[calc(100dvh-4rem)] max-w-md pb-24">{children}</main>
+          {botaoNovoVisivel(nivel, pathname) && <BotaoFlutuante href={ITEM_NOVO.href} rotulo={ITEM_NOVO.rotulo} icone={<Plus size={26} strokeWidth={2.2} aria-hidden="true" />} />}
           <BarraInferior nivel={nivel} />
           <InstallPrompt app="atendimento" nome="Lúmen Atendimento" />
         </>

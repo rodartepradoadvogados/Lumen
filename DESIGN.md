@@ -398,3 +398,24 @@ sobre `var()` e por nome montado em runtime. Nenhum desses aparece no `tsc`, no 
 
 **Renderize.** `capitalize` numa data em português, lista sem marcador, entrelinha esmagada por um
 `sm:` posterior, anel de foco azul — nenhum desses aparece lendo código.
+
+## 9. Exceção deliberada: o aplicativo de Atendimento segue a direção "acabamento WhatsApp" (30/09/2026)
+
+O dono aprovou, só para o PWA de Atendimento (`/atendimento-app`), um visual no nível de acabamento de um app de mensagens. **O site (tudo fora de `/atendimento-app`) NÃO muda**: continua o sistema "Guias" acima (canto de 2px, régua no lugar de sombra, sem pílula). Os quatorze rompimentos aprovados, que só valem dentro do app:
+
+1. **Pílulas arredondadas** (busca, filtros, campo de mensagem, abas, botão de enviar) no lugar de caixas de canto vivo.
+2. **Balões de ~14px** de raio (`--atd-raio-balao`).
+3. **Etiquetas de ~5px** de raio (`--atd-raio-etiqueta`), em caixa alta 11px/600 (abaixo do piso de 12px do produto: exceção só do app).
+4. **Botão flutuante de nova conversa com sombra** (`--atd-sombra-flutuante`): a única sombra do app, exceção assumida à regra "sombra só em coisa que flutua de verdade" (aqui ele flutua).
+5. **Fim das divisórias entre linhas** da lista: o respiro é espaço.
+6. **Fim do filete de ouro sob o cabeçalho.**
+7. **Fim do cabeçalho em bloco/faixa grafite**: título grande (26px/700) sobre o fundo da tela, com o escritório em cinza discreto e o botão Dia/Noite sem caixa.
+8. **Seleção em ouro SUAVE (18%)** (`--atd-ouro-suave`); o ouro cheio fica só em selo de contagem, botão flutuante, envio e play.
+9. **Hierarquia por fundo preenchido, não por contorno** (`--atd-pilula-bg`).
+10. **Avatar circular com iniciais em tom suave**; sem foto de contato por ora (o componente já aceita `fotoUrl` opcional e cai nas iniciais).
+11. **Nome em negrito só quando há não lida** (hoje: quando a conversa espera resposta).
+12. **Fundo Noite uniforme `#14151c`** (`--atd-tela`).
+13. **Etiquetas em caixa alta 11px/600** e título de tela 26px/700.
+14. **Barra inferior de quatro alvos** (Conversas, Funil, Triagem, Mais; ícone + rótulo; a ativa com pílula suave atrás do ícone) e "nova conversa" como botão flutuante.
+
+Como fica isolado: os tokens são `--atd-*` em `.atendimento-shell` (Dia) e `.atendimento-dark` (Noite) de `app/globals.css`, mapeados em `tailwind.config.ts` (`bg-atd-*`, `rounded-atd-*`, `shadow-atd-flutuante`, `text-app-*`); os componentes comuns ficam em `components/atendimento-app/ui/`. Nada disso pode ser importado fora do app (um teste varre isso). Ouro: `#c9962f` (Dia) / `#d4a83a` (Noite); texto em ouro sobre fundo: `#7a5810` / `#e3bf5c`. Todo texto continua em AA (>= 4,5:1), calculado no teste `lib/testes/atendimentoAppVisual.teste.tsx`.

@@ -286,7 +286,7 @@
   --atd-ouro-tx: #16191d;
   --atd-ouro-bg: #fbf3dc;
   /* Ouro como TEXTO ou traço fino sobre a ficha: o ouro cheio (#c9962f) só dá 2,6:1 sobre branco. */
-  --atd-ouro-texto: #7a5608;
+  --atd-ouro-texto: #7a5810;
   --atd-grafite: #16191d;
   --atd-grafite-800: #181b1f;
   --atd-vinho: #cd5f77;
@@ -307,6 +307,56 @@
   --atd-ardosia: #2f5d73;
   --atd-ardosia-bg: #e3edf2;
   --atd-foco: #8a5c00;
+
+  /* ==========================================================================
+     "ACABAMENTO WHATSAPP" (etapa 1, 30/09/2026) — tokens do novo visual do app de Atendimento.
+     Escopo: SÓ o aplicativo (.atendimento-shell / .atendimento-dark). O site não os enxerga.
+     Regras do dono: hierarquia por FUNDO preenchido (não por contorno); ouro SUAVE (18%) para
+     seleção; ouro CHEIO só em selo de contagem, botão flutuante, envio e play; nome em negrito só
+     com conversa não lida; sem divisória entre linhas; sem filete ouro sob o cabeçalho.
+     Todo texto >= 4,5:1 (AA) sobre o fundo em que aparece (lib/testes/atendimentoAppVisual.teste.ts). */
+  /* Fundo uniforme da tela (Noite: #14151c) e superfície da linha da lista (a linha é a própria tela). */
+  --atd-tela: #ffffff;
+  --atd-linha-bg: var(--atd-tela);
+  --atd-linha-hover: rgba(0, 0, 0, .045);
+  /* Preenchimento da PÍLULA: campo de busca, filtro em repouso, campo de mensagem, abas. */
+  --atd-pilula-bg: #f3f2ee;
+  /* Um degrau acima da pílula: avatar de iniciais, etiqueta neutra, aba ativa do alternador. */
+  --atd-pilula-bg-2: #e9e7e1;
+  --atd-pilula-borda: rgba(0, 0, 0, .07);
+  /* Ouro SUAVE (18%): seleção (filtro ativo, aba ativa, etiqueta de fase). Sólido, para o contraste ser medível. */
+  --atd-ouro-suave: #f6ecd0;
+  /* Texto EM OURO sobre fundo (ouro suave, tela ou pílula): #7a5810 no Dia, #e3bf5c na Noite. */
+  --atd-texto-ouro: #7a5810;
+  /* Hora da conversa não lida: o texto em ouro. */
+  --atd-hora-destaque: var(--atd-texto-ouro);
+  /* Cinzas de texto secundário: prévia da mensagem e terciário (hora, contagem, subtítulo). */
+  --atd-cinza-previa: #4f5560;
+  --atd-cinza-terciario: #5c626d;
+  /* Texto de leitura forte (nome, prévia de não lida). */
+  --atd-tinta: #16191d;
+  /* Selo de contagem: ouro cheio com tinta escura. */
+  --atd-selo-bg: var(--atd-ouro);
+  --atd-selo-tx: #1a1608;
+  /* Etiqueta neutra (ex.: "Ana") e de fase (ouro suave). */
+  --atd-etiqueta-bg: var(--atd-pilula-bg-2);
+  --atd-etiqueta-tx: var(--atd-cinza-previa);
+  --atd-etiqueta-fase-bg: var(--atd-ouro-suave);
+  --atd-etiqueta-fase-tx: var(--atd-texto-ouro);
+  /* Avatar de iniciais (tom suave) e o azul do "enviada". */
+  --atd-avatar-bg: var(--atd-pilula-bg-2);
+  --atd-avatar-tx: var(--atd-cinza-previa);
+  /* Sombra do botão flutuante (a única sombra do app: exceção assumida). */
+  --atd-sombra-flutuante: 0 6px 18px rgba(22, 25, 29, .28);
+  /* Linha fina da barra inferior. */
+  --atd-barra-borda: rgba(0, 0, 0, .07);
+  /* Raios: pílula, balão, etiqueta, botão flutuante. */
+  --atd-raio-pilula: 9999px;
+  --atd-raio-balao: 14px;
+  --atd-raio-etiqueta: 5px;
+  --atd-raio-flutuante: 18px;
+  /* A tela do app usa o fundo uniforme nas telas que ainda leem --sf-fundo. */
+  --sf-fundo: var(--atd-tela);
   /* A cor de ação do Atendimento é o ouro, nos dois temas (no Dia era o bordô do site). */
   --acao: var(--atd-ouro);
   --acao-hover: var(--atd-ouro-hover);
@@ -320,7 +370,7 @@
   --atd-ouro-hover: #e0b84a;
   --atd-ouro-tx: #1a1608;
   --atd-ouro-bg: #2c2611;
-  --atd-ouro-texto: #d9ae48;
+  --atd-ouro-texto: #e3bf5c;
   --atd-grafite: #181b1f;
   --atd-grafite-800: #0f1113;
   --atd-vinho: #ff6b9d;
@@ -339,8 +389,26 @@
   --atd-ardosia-bg: #182a33;
   --atd-foco: #f0c85a;
 
+  /* Acabamento WhatsApp, Noite (ver a explicação no bloco do Dia acima). */
+  --atd-tela: #14151c;
+  --atd-linha-bg: var(--atd-tela);
+  --atd-linha-hover: rgba(255, 255, 255, .05);
+  --atd-pilula-bg: #1e2029;
+  --atd-pilula-bg-2: #262833;
+  --atd-pilula-borda: rgba(255, 255, 255, .09);
+  --atd-ouro-suave: #372f21;
+  --atd-texto-ouro: #e3bf5c;
+  --atd-hora-destaque: var(--atd-texto-ouro);
+  --atd-cinza-previa: #a6abbd;
+  --atd-cinza-terciario: #8b90a3;
+  --atd-tinta: #f4f4ef;
+  --atd-selo-bg: var(--atd-ouro);
+  --atd-selo-tx: #1a1608;
+  --atd-sombra-flutuante: 0 6px 18px rgba(0, 0, 0, .45);
+  --atd-barra-borda: rgba(255, 255, 255, .07);
+
   /* Retematizar superfícies para o modo escuro do Atendimento */
-  --sf-fundo: #181b1f;
+  --sf-fundo: var(--atd-tela);
   --ficha: #212529;
   --ficha-alt: #131518;
   --linha: #32383f;

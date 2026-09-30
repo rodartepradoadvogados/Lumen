@@ -711,3 +711,36 @@ o limite de 4,5 MB da plataforma vale para resposta NÃO transmitida, e a rota t
 iPhone com Range, a câmera e o `capture` em aparelho de verdade, o contraste no navegador (usei só tokens `--atd-*`).
 **Armadilha de ambiente:** `node_modules` compartilhado entre clones faz um `prisma generate` de outra branch apagar do cliente os modelos
 novos desta; se o `tsc` reclamar de `respostaRapida`/`mensagemFixada`, rode `npx prisma generate` de novo.
+
+## 26. Exceção deliberada: o aplicativo de Atendimento segue o "acabamento WhatsApp"; o site não muda (etapa 1, 30/09/2026)
+
+O `DESIGN.md` (sistema "Guias": canto de 2px, sem sombra, sem pílula) **continua valendo para o site**. O aplicativo de Atendimento
+(`/atendimento-app`) é exceção aprovada pelo dono, com estes quatorze rompimentos (a lista completa está em `DESIGN.md` §9): pílulas;
+balão de 14px; etiqueta de 5px; botão flutuante com sombra; sem divisória entre linhas; sem filete de ouro; sem cabeçalho em faixa;
+seleção em ouro suave (18%) e ouro cheio só em selo, botão flutuante, envio e play; hierarquia por fundo; avatar de iniciais; negrito
+só na não lida; fundo Noite `#14151c`; etiqueta 11px/600 e título 26px/700; barra de quatro alvos + botão flutuante. O que **não pode voltar atrás**:
+
+- **Tudo é escopado ao app**: tokens `--atd-*` em `.atendimento-shell`/`.atendimento-dark` (`app/globals.css`), nada no `:root`. Quem
+  copiar uma classe `bg-atd-*`/`rounded-atd-*` para o site está quebrando a exceção (o teste `atendimentoAppVisual` varre isso).
+  `--sf-fundo` DENTRO do app agora é `--atd-tela` (fundo uniforme), para as telas ainda não migradas não destoarem.
+- **Colisão de nomes no Tailwind**: `text-atd-previa` seria cor E tamanho. Por isso os tamanhos do app se chamam `text-app-*`
+  (`titulo`, `nome`, `previa`, `meta`, `tag`) e as cores `atd.*`. Não misture.
+- **Componentes comuns** (`components/atendimento-app/ui/`, import por `index.ts`): `Avatar` (iniciais; `fotoUrl` opcional que cai nas
+  iniciais), `Pilula`/`CampoPilula`, `FiltroPilula` (ativo em ouro suave), `SeloContagem` (número ou ponto), `Selinho` (tons fase/neutro/alerta),
+  `TituloDeTela`, `BotaoFlutuante`. As próximas telas (chat, Detalhes/Mais, Funil/Triagem/Nova) devem usá-los, não recriar.
+- **Barra inferior**: `itensDaBarra` agora devolve QUATRO alvos no nível `total` (Conversas, Funil, Triagem, Mais) e TRÊS em `proprios`
+  (sem Funil, como antes); `nenhum` continua sem barra. "Nova conversa" saiu da lista e é o botão flutuante (`temBotaoNovo`,
+  `botaoNovoVisivel`: só Conversas/Funil/Triagem, nunca para `nenhum`, nunca em tela cheia). **A regra de quem vê o quê não mudou.**
+  O selo de contagem da barra existe (`contagens` de `BarraInferior`) mas NENHUMA tela o alimenta ainda: sem consulta nova no layout.
+- **"Não lida" NÃO existe no banco** (nem quantas mensagens o cliente mandou em sequência). A lista usa o dado mais próximo, o FATO
+  "esperando resposta" (a última mensagem é do cliente): ele acende o negrito do nome, a hora em ouro e o PONTO de ouro (`SeloContagem` sem
+  número). O chip "Não lidas" do desenho aprovado é, na prática, o chip "Esperando resposta". Quando existir lida/não lida por conversa,
+  troca-se o ponto pelo número. O "✓✓" da prévia significa "o WhatsApp aceitou o envio", NÃO "lida" (não há confirmação de leitura).
+- **Alfinete** da linha = a conversa TEM mensagem fixada (`MensagemFixada`, lida por relação um-para-um em `attendanceId @unique`, só o
+  id). Não é "conversa fixada no topo": esse dado não existe; o ponto de extensão é `LinhaPronta.fixada`.
+- Contraste: texto em ouro `#7a5810` (Dia) / `#e3bf5c` (Noite); `--atd-ouro-texto` (legado) foi alinhado a esses valores.
+
+**Não provado**: telas além da lista (chat, Detalhes, Mais, Funil, Triagem, Nova ainda têm o visual antigo por dentro, sob o fundo e a barra novos);
+fluxo real com login e banco (a lista foi vista em Chromium com dados de exemplo, não com um escritório real); aparelho de verdade (safe area,
+teclado, PWA instalado); leitor de tela.
+

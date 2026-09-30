@@ -3,15 +3,16 @@ import type { NivelDeAcesso } from "@/lib/acessoAtendimento";
 // ============================================================================
 // A NAVEGAÇÃO DO APLICATIVO DE ATENDIMENTO (PWA de celular) — a parte que não toca em React.
 //
-// ONDA A da proposta v2 (docs do PR): a barra inferior, na ordem que o dono pediu, é
+// ACABAMENTO WHATSAPP (etapa 1, 30/09/2026): a barra inferior tem QUATRO alvos
 //
-//     Conversas · Funil · "+" · Triagem · Mais
+//     Conversas · Funil · Triagem · Mais
 //
-// e MUDA POR NÍVEL DE ACESSO (lib/acessoAtendimento.ts):
-//   total     as cinco.
-//   proprios  quatro: sem o Funil, porque o funil é do escritório inteiro (a página também barra —
-//             a barra só não oferece o que o servidor vai recusar).
-//   nenhum    nenhuma: só a tela "Sem acesso" e o botão Sair.
+// e a "nova conversa" saiu da barra: é o BOTÃO FLUTUANTE no canto (`temBotaoNovo`). A regra de quem vê o
+// quê NÃO mudou, e MUDA POR NÍVEL DE ACESSO (lib/acessoAtendimento.ts):
+//   total     os quatro alvos + o botão flutuante.
+//   proprios  três alvos (sem o Funil, porque o funil é do escritório inteiro — a página também barra:
+//             a barra só não oferece o que o servidor vai recusar) + o botão flutuante.
+//   nenhum    nada: só a tela "Sem acesso" e o botão Sair.
 //
 // Vive num módulo puro para a regra ser provada sem navegador (lib/testes/atendimentoAppOndaA.teste.ts).
 // ============================================================================
@@ -25,15 +26,32 @@ export type ItemDaBarra = { chave: ChaveDaAba; rotulo: string; href: string };
 const TODOS_OS_ITENS: ItemDaBarra[] = [
   { chave: "conversas", rotulo: "Conversas", href: BASE_DO_APP },
   { chave: "funil", rotulo: "Funil", href: `${BASE_DO_APP}/funil` },
-  { chave: "novo", rotulo: "Novo atendimento", href: `${BASE_DO_APP}/novo` },
   { chave: "triagem", rotulo: "Triagem", href: `${BASE_DO_APP}/triagem` },
   { chave: "mais", rotulo: "Mais", href: `${BASE_DO_APP}/mais` },
 ];
 
-/** Os itens da barra inferior, da esquerda para a direita, para este nível. */
+/** A "nova conversa": não é alvo da barra, é o botão flutuante do canto. */
+export const ITEM_NOVO: ItemDaBarra = { chave: "novo", rotulo: "Nova conversa", href: `${BASE_DO_APP}/novo` };
+
+/** Os alvos da barra inferior, da esquerda para a direita, para este nível. */
 export function itensDaBarra(nivel: NivelDeAcesso): ItemDaBarra[] {
   if (nivel === "nenhum") return [];
   return TODOS_OS_ITENS.filter((i) => i.chave !== "funil" || nivel === "total");
+}
+
+/** O botão flutuante de nova conversa aparece para quem tem barra (total e próprios), nunca para "nenhum". */
+export function temBotaoNovo(nivel: NivelDeAcesso): boolean {
+  return nivel !== "nenhum";
+}
+
+/**
+ * O botão flutuante aparece nas telas de trabalho (Conversas, Funil, Triagem) para quem tem acesso; em
+ * "Mais" ele só atrapalharia, e nas telas cheias (conversa, "+") não há barra nem botão.
+ */
+export function botaoNovoVisivel(nivel: NivelDeAcesso, pathname: string): boolean {
+  if (!temBotaoNovo(nivel) || ehTelaCheia(pathname)) return false;
+  const [primeiro] = segmentosDoApp(pathname);
+  return primeiro === undefined || primeiro === "conversas" || primeiro === "funil" || primeiro === "triagem";
 }
 
 /** As telas estáticas do app. Qualquer OUTRO primeiro segmento é o id de uma conversa. */

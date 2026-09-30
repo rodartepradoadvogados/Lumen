@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { hrefDaListaApp } from "@/lib/conversasDoApp";
+import { CampoPilula } from "@/components/atendimento-app/ui/Pilula";
 
-// O campo de busca fixo no topo da lista. Digitou, a lista se atualiza sozinha (com uma pausa de meio
+// O campo de busca em PÍLULA no topo da lista. Digitou, a lista se atualiza sozinha (com uma pausa de meio
 // segundo para não consultar a cada letra); Enter busca na hora; o "x" limpa. Sem JavaScript o
 // formulário GET continua funcionando — o filtro escolhido viaja num campo escondido.
 export default function BuscaDaLista({ q, f, arq }: { q: string; f: string; arq: boolean }) {
@@ -38,16 +39,13 @@ export default function BuscaDaLista({ q, f, arq }: { q: string; f: string; arq:
         ultimo.current = texto;
         router.replace(hrefDaListaApp({ f, q: texto, arq }), { scroll: false });
       }}
-      className="relative"
     >
       {f !== "todas" && <input type="hidden" name="f" value={f} />}
       {arq && <input type="hidden" name="arq" value="1" />}
-      <label htmlFor="busca-da-lista" className="sr-only">
-        Buscar conversas por nome, número ou assunto
-      </label>
-      <Search size={18} aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 text-tx-3" />
-      <input
+      <CampoPilula
         id="busca-da-lista"
+        rotulo="Buscar conversas por nome, número ou assunto"
+        icone={<Search size={20} />}
         type="search"
         name="q"
         value={texto}
@@ -55,18 +53,9 @@ export default function BuscaDaLista({ q, f, arq }: { q: string; f: string; arq:
         placeholder="Buscar por nome, número ou assunto"
         autoComplete="off"
         enterKeyHint="search"
-        className="min-h-11 w-full rounded-[2px] border border-atd-campo bg-sf py-2 pl-10 pr-11 text-capa-corpo text-tx placeholder:text-tx-3"
+        aoLimpar={() => setTexto("")}
+        rotuloDoLimpar="Limpar a busca"
       />
-      {texto && (
-        <button
-          type="button"
-          onClick={() => setTexto("")}
-          aria-label="Limpar a busca"
-          className="absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center text-tx-2 hover:text-tx"
-        >
-          <X size={18} aria-hidden="true" />
-        </button>
-      )}
     </form>
   );
 }

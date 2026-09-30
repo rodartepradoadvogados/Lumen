@@ -83,10 +83,10 @@ teste("ESTADO: a fixada viaja com o estado do chat (e sem ela continua nula); mo
   igual(montarEstadoDoChat(a, "IN", true, janela, f).fixada, f);
 });
 
-teste("NAVEGAÇÃO: /respostas-rapidas é tela do app (não id de conversa), acende 'Mais', e a barra não mudou", () => {
+teste("NAVEGAÇÃO: /respostas-rapidas é tela do app (não id de conversa), acende 'Mais', e a barra é a de quatro alvos", () => {
   igual(ehConversa("/atendimento-app/respostas-rapidas"), false);
   igual(abaAtiva("/atendimento-app/respostas-rapidas"), "mais");
-  igual(itensDaBarra("total").map((i) => i.chave), ["conversas", "funil", "novo", "triagem", "mais"]);
+  igual(itensDaBarra("total").map((i) => i.chave), ["conversas", "funil", "triagem", "mais"]);
 });
 
 // ── TRAVAS DE CÓDIGO ─────────────────────────────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { stageLabels, stageOptions, faseDoLead } from "@/lib/funil";
 import { previaDaMensagem, prefixoDaPrevia, tempoRelativo, type ContagensPorFase } from "@/lib/listaDeAtendimentos";
 import { nomeDaLinha, rotuloDaEspera } from "@/lib/rotulosDaEspera";
 import { detalheDoRelogio, estadoDoRelogio, tituloDoRelogio } from "@/lib/relogioDoAtendimento";
-import { previaDoCorpo } from "@/lib/mensagensDoChat";
+import { lerMidia, previaDoCorpo, type TipoDeMidia } from "@/lib/mensagensDoChat";
 import { BASE_DO_APP } from "@/lib/navegacaoDoAtendimentoApp";
 
 // ============================================================================
@@ -79,7 +79,9 @@ export type LinhaDaListaApp = {
   agenteResponde: boolean;
   agenteSilenciadoEm: Date | null;
   responsible: { name: string } | null;
-  whatsappMessages: { direction: string; body: string; porAgente: boolean; createdAt: Date }[];
+  whatsappMessages: { direction: string; body: string; porAgente: boolean; createdAt: Date; status?: string }[];
+  /** A mensagem fixada do atendimento (`MensagemFixada`, uma por atendimento), se houver. Só o id importa aqui. */
+  mensagemFixada?: { id: string } | null;
 };
 
 export type LinhaPronta = {
@@ -98,6 +100,22 @@ export type LinhaPronta = {
   fase: string;
   processo: boolean;
   quemAtende: string | null;
+  /**
+   * ESPERANDO RESPOSTA = a última mensagem é do cliente. É o dado mais próximo de "não lida" que existe HOJE:
+   * o sistema não guarda "lida/não lida" por conversa nem quantas mensagens o cliente mandou em sequência. Por
+   * isso a linha em destaque (nome em negrito, hora em ouro) usa este fato, e o selo é um PONTO, não um número.
+   */
+  esperando: boolean;
+  /** O tipo da mídia da última mensagem (para o ícone da prévia), ou null quando é texto. */
+  midia: TipoDeMidia | null;
+  /** A última mensagem é nossa (pessoa ou Ana) e o WhatsApp a aceitou: mostra "✓✓" (enviada; NÃO diz "lida"). */
+  enviada: boolean;
+  /** A última mensagem nossa foi recusada pelo WhatsApp. */
+  falhou: boolean;
+  /** A Ana está respondendo esta conversa (selinho "Ana"). */
+  anaAtende: boolean;
+  /** A conversa tem mensagem fixada (alfinete). Não é "conversa fixada no topo": esse dado não existe. */
+  fixada: boolean;
 };
 
 export function iniciaisDoNome(nome: string): string {
@@ -134,5 +152,11 @@ export function montarLinha(a: LinhaDaListaApp, agora: Date, nomeDoAtendente: st
     fase: stageLabels[faseChave],
     processo: Boolean(a.convertedCaseId),
     quemAtende: a.agenteResponde && !a.agenteSilenciadoEm ? nomeDoAtendente : a.responsible?.name ?? null,
+    esperando,
+    midia: ultima ? lerMidia(ultima.body)?.tipo ?? null : null,
+    enviada: ultima?.direction === "OUT" && ultima.status !== "FAILED",
+    falhou: ultima?.direction === "OUT" && ultima.status === "FAILED",
+    anaAtende: a.agenteResponde && !a.agenteSilenciadoEm,
+    fixada: Boolean(a.mensagemFixada),
   };
 }
