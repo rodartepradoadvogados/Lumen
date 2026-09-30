@@ -177,6 +177,8 @@ const config: Config = {
           pilula: "var(--atd-pilula-bg)",
           "pilula-2": "var(--atd-pilula-bg-2)",
           "pilula-borda": "var(--atd-pilula-borda)",
+          "campo-borda": "var(--atd-campo-borda)",
+          "campo-erro": "var(--atd-campo-erro)",
           "ouro-suave": "var(--atd-ouro-suave)",
           "texto-ouro": "var(--atd-texto-ouro)",
           hora: "var(--atd-hora-destaque)",

@@ -24,12 +24,17 @@ export type CampoPilulaProps = Omit<InputHTMLAttributes<HTMLInputElement>, "clas
   /** Quando há texto, mostra o "x" que limpa. */
   aoLimpar?: () => void;
   rotuloDoLimpar?: string;
+  /**
+   * Contorno fino (--atd-campo-borda, >= 3:1). Só para busca que é CAMPO DE FORMULÁRIO (com botão "Buscar");
+   * a busca da lista de Conversas fica sem contorno, como no WhatsApp.
+   */
+  contorno?: boolean;
 };
 
-export function CampoPilula({ rotulo, id, icone, aoLimpar, rotuloDoLimpar = "Limpar", value, ...resto }: CampoPilulaProps) {
+export function CampoPilula({ rotulo, id, icone, aoLimpar, rotuloDoLimpar = "Limpar", contorno = false, value, ...resto }: CampoPilulaProps) {
   const temTexto = typeof value === "string" ? value.length > 0 : false;
   return (
-    <div data-campo-pilula="" className="relative flex min-h-11 items-center rounded-atd-pilula bg-atd-pilula">
+    <div data-campo-pilula="" className={`relative flex min-h-11 items-center rounded-atd-pilula bg-atd-pilula ${contorno ? "border border-atd-campo-borda" : ""}`}>
       <label htmlFor={id} className="sr-only">
         {rotulo}
       </label>
@@ -42,7 +47,7 @@ export function CampoPilula({ rotulo, id, icone, aoLimpar, rotuloDoLimpar = "Lim
         id={id}
         value={value}
         {...resto}
-        className={`min-h-11 w-full rounded-atd-pilula bg-transparent py-2 text-corpo text-tx placeholder:text-atd-terciario ${temTexto && aoLimpar ? "pr-11" : "pr-4"} ${icone ? "pl-12" : "pl-4"}`}
+        className={`${contorno ? "min-h-[2.625rem]" : "min-h-11"} w-full rounded-atd-pilula bg-transparent py-2 text-corpo text-tx placeholder:text-atd-terciario ${temTexto && aoLimpar ? "pr-11" : "pr-4"} ${icone ? "pl-12" : "pl-4"}`}
       />
       {temTexto && aoLimpar && (
         <button type="button" onClick={aoLimpar} aria-label={rotuloDoLimpar} className="absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-atd-previa hover:text-tx">
