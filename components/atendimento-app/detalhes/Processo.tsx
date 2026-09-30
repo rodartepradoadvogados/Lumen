@@ -86,12 +86,12 @@ export default function Processo({ p, aoDefinirNome, aoDesfazerRecusa }: { p: Pr
 
   const cc = c.convertedCase;
   const jaConvertido = cc ? (
-      <div className="rounded-[2px] border border-concluido bg-concluido-bg p-3">
+      <div className={cx.painelOk}>
         <p className="flex items-center gap-2 text-corpo font-bold text-tx">
           <Check size={18} aria-hidden="true" className="text-concluido" /> Convertido em {cc.type === "JUDICIAL" ? "processo judicial" : cc.type === "ADMINISTRATIVO" ? "processo administrativo" : "caso"}
         </p>
         <p className="mt-1 break-words text-corpo text-tx">{cc.title}</p>
-        {cc.processNumber && <p className="text-corpo text-tx-2">Nº {cc.processNumber}</p>}
+        {cc.processNumber && <p className="text-corpo text-atd-previa">Nº {cc.processNumber}</p>}
         <a href={`/processos/${cc.id}`} target="_blank" rel="noopener noreferrer" className={`${cx.secundario} mt-2`}>
           <ExternalLink size={16} aria-hidden="true" /> Abrir no site <span className="sr-only">(abre em outra aba)</span>
         </a>
@@ -101,9 +101,9 @@ export default function Processo({ p, aoDefinirNome, aoDesfazerRecusa }: { p: Pr
   return (
     <div>
       {jaConvertido ?? <>
-      <p className="text-corpo text-tx-2">Cria um caso ou processo ligado ao cliente e leva os anexos e a pasta do Drive. A conversa, as pendências e as tarefas continuam neste atendimento.</p>
+      <p className="text-corpo text-atd-previa">Cria um caso ou processo ligado ao cliente e leva os anexos e a pasta do Drive. A conversa, as pendências e as tarefas continuam neste atendimento.</p>
       {c.status === "RECUSADO" ? (
-        <div className="mt-3 rounded-[2px] border border-regua bg-sf-apoio p-3">
+        <div className={`mt-3 ${cx.painel}`}>
           <p className="flex items-start gap-2 text-corpo text-tx">
             <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-aviso" /> Este lead foi recusado. Desfaça a recusa antes de transformá-lo em processo.
           </p>
@@ -114,7 +114,7 @@ export default function Processo({ p, aoDefinirNome, aoDesfazerRecusa }: { p: Pr
           )}
         </div>
       ) : temporario ? (
-        <div className="mt-3 rounded-[2px] border border-regua bg-sf-apoio p-3">
+        <div className={`mt-3 ${cx.painel}`}>
           <p className="flex items-start gap-2 text-corpo text-tx">
             <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-aviso" /> O nome do contato ainda é temporário. Defina o nome de quem é antes de converter: o cliente do processo nasceria com o telefone como nome.
           </p>
@@ -161,7 +161,7 @@ export default function Processo({ p, aoDefinirNome, aoDesfazerRecusa }: { p: Pr
       >
         <ol className="mb-4 flex gap-2" aria-label="Etapas">
           {["1 · Tipo", "2 · Revisar e confirmar", "3 · Pronto"].map((t, i) => (
-            <li key={t} aria-current={etapa === i + 1 ? "step" : undefined} className={`flex-1 border-b-4 pb-1 text-etiqueta font-bold uppercase tracking-wide ${etapa === i + 1 ? "border-acao text-tx" : "border-regua text-tx-2"}`}>
+            <li key={t} aria-current={etapa === i + 1 ? "step" : undefined} className={`flex-1 rounded-atd-pilula px-2 py-1.5 text-center text-app-tag font-semibold uppercase leading-tight tracking-wide ${etapa === i + 1 ? "bg-atd-ouro-suave text-atd-texto-ouro" : "bg-atd-pilula text-atd-terciario"}`}>
               {t}
             </li>
           ))}
@@ -185,14 +185,14 @@ export default function Processo({ p, aoDefinirNome, aoDesfazerRecusa }: { p: Pr
                     setTipo(v);
                     setErro(null);
                   }}
-                  className={`flex min-h-16 w-full items-start gap-3 rounded-[2px] border p-3 text-left ${tipo === v ? "border-acao bg-acao-bg outline outline-2 -outline-offset-2 outline-acao" : "border-regua-forte bg-sf"}`}
+                  className={`flex min-h-16 w-full items-start gap-3 rounded-atd-balao p-3.5 text-left ${tipo === v ? "bg-atd-ouro-suave" : "bg-atd-pilula"}`}
                 >
                   <span aria-hidden="true" className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${tipo === v ? "border-atd-ouro-texto" : "border-atd-campo"}`}>
                     {tipo === v && <span className="h-2.5 w-2.5 rounded-full bg-atd-ouro-texto" />}
                   </span>
                   <span>
                     <span className="block text-corpo font-bold text-tx">{t}</span>
-                    <span className="block text-corpo text-tx-2">{d}</span>
+                    <span className="block text-corpo text-atd-previa">{d}</span>
                   </span>
                 </button>
               ))}
@@ -247,12 +247,12 @@ export default function Processo({ p, aoDefinirNome, aoDesfazerRecusa }: { p: Pr
         )}
 
         {etapa === 3 && feito && (
-          <div className="rounded-[2px] border border-concluido bg-concluido-bg p-3">
+          <div className={cx.painelOk}>
             <p className="flex items-center gap-2 text-corpo font-bold text-tx">
               <Check size={18} aria-hidden="true" className="text-concluido" /> {tipo === "JUDICIAL" ? "Processo judicial criado" : "Caso criado"}
             </p>
             <p className="mt-1 break-words text-corpo text-tx">{feito.titulo}</p>
-            <p className={`mt-1 ${cx.dica}`}>O atendimento agora está “Convertido”. Você continua neste aplicativo.</p>
+            <p className="mt-1 text-etiqueta text-atd-previa">O atendimento agora está “Convertido”. Você continua neste aplicativo.</p>
             <a href={enderecoDoProcesso(feito.caseId, feito.honorarioQuery)} target="_blank" rel="noopener noreferrer" className={`${cx.secundario} mt-3`}>
               <ExternalLink size={16} aria-hidden="true" /> Abrir o {tipo === "JUDICIAL" ? "processo" : "caso"} no site <span className="sr-only">(abre em outra aba)</span>
             </a>

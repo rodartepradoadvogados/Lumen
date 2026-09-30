@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
-import { ArrowLeft, User, Mail, Lock } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
+import { Avatar, TituloDeTela } from "@/components/atendimento-app/ui";
+import VoltarParaMais from "@/components/atendimento-app/VoltarParaMais";
 
 export const dynamic = "force-dynamic";
 
@@ -10,34 +12,27 @@ export default async function PerfilAppPage() {
   if (!viewer) redirect("/");
 
   return (
-    <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/atendimento-app/mais" className="inline-flex min-h-11 items-center gap-1 text-corpo font-semibold text-tx-2">
-        <ArrowLeft size={13} /> Mais
-      </Link>
+    <div className="animate-fade-in pb-4">
+      <VoltarParaMais />
+      <TituloDeTela titulo="Perfil" />
 
-      <h1 className="text-xl font-bold text-tx">Perfil</h1>
-
-      <div className="bg-sf-apoio border border-regua rounded-[2px] p-4 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="h-16 w-16 rounded-full bg-ouro-bg flex items-center justify-center shrink-0">
-            <User size={24} className="text-ouro-acento" />
-          </div>
-          <div>
-            <p className="font-semibold text-tx">{viewer.name}</p>
-            <p className="text-xs text-tx-2">{viewer.role}</p>
+      <div className="mx-4 mt-2 space-y-4 rounded-atd-balao bg-atd-pilula p-4">
+        <div className="flex items-center gap-4">
+          <Avatar nome={viewer.name} tamanho="lg" />
+          <div className="min-w-0">
+            <p className="break-words text-destaque font-bold text-tx">{viewer.name}</p>
+            <p className="text-app-previa text-atd-previa">{viewer.role}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-tx-2">
-          <Mail size={14} /> {viewer.email}
+        <div className="flex items-center gap-2 break-all text-app-previa text-atd-previa">
+          <Mail size={16} aria-hidden="true" className="shrink-0" /> {viewer.email}
         </div>
-        <div className="pt-2 border-t border-regua">
-          <Link href="/configuracoes/comunicados" className="inline-flex items-center gap-2 text-sm font-medium text-ouro-acento hover:underline">
-            <Lock size={14} /> Configurar comunicados
-          </Link>
-        </div>
+        <Link href="/configuracoes/comunicados" className="inline-flex min-h-11 items-center gap-2 rounded-atd-pilula bg-atd-pilula-2 px-4 text-corpo font-semibold text-atd-texto-ouro hover:bg-atd-linha-hover">
+          <Lock size={16} aria-hidden="true" /> Configurar comunicados
+        </Link>
       </div>
 
-      <p className="text-xs text-tx-3 text-center mt-4">Lúmen Atendimento — Perfil do usuário</p>
+      <p className="mt-6 text-center text-app-meta text-atd-terciario">Lúmen Atendimento — Perfil do usuário</p>
     </div>
   );
 }

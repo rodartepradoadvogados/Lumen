@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { ExternalLink, UserRound, Briefcase, Scale, Truck } from "lucide-react";
-import { iniciaisDoNome } from "@/lib/conversasDoApp";
 import { nomeDaLinha } from "@/lib/rotulosDaEspera";
 import { enderecoDoContato, ROTULO_DO_TIPO, TIPOS_PARA_CADASTRAR, telefoneLegivel, type TipoDeContato } from "@/lib/quemEEsteNumero";
 import { nomeEhTemporario } from "@/lib/nomeTemporarioDoLead";
 import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 import { stageLabels } from "@/lib/funil";
 import { cadastrarContatoDoAtendimento, definirNomeDoLead } from "@/lib/actions/contatoDoAtendimento";
+import { Avatar } from "../ui";
 import { Gaveta, Campo, cx, useRodar } from "./base";
 import type { PropsDosDetalhes } from "./tipos";
 
@@ -56,41 +56,45 @@ export default function Contato({
   }
 
   return (
-    <section aria-label="Contato" className="mx-3 mt-3 rounded-[2px] border border-regua bg-sf" data-bloco-contato="">
-      <div className="flex items-center gap-3 p-3">
-        <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-regua-forte bg-sf-apoio text-destaque font-bold text-tx">
-          {temporario ? <UserRound size={24} /> : iniciaisDoNome(exibido)}
-        </span>
+    <section aria-label="Contato" className="mx-4 mt-4" data-bloco-contato="">
+      <div className="flex items-center gap-4 px-1">
+        {temporario ? (
+          <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-atd-avatar text-atd-avatar-tx">
+            <UserRound size={28} />
+          </span>
+        ) : (
+          <Avatar nome={exibido} tamanho="lg" />
+        )}
         <div className="min-w-0">
-          <p className="break-words text-destaque font-semibold leading-tight text-tx">{exibido}</p>
-          <p className="mt-0.5 break-words text-corpo text-tx-2">{p.telefone ? telefoneLegivel(p.telefone) : "sem telefone"}</p>
+          <p className="break-words text-destaque font-bold leading-tight text-tx">{exibido}</p>
+          <p className="mt-0.5 break-words text-corpo text-atd-previa">{p.telefone ? telefoneLegivel(p.telefone) : "sem telefone"}</p>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+      <div className="mt-3 flex flex-wrap gap-1.5 px-1">
         <span className={cx.chip}>Fase: {stageLabels[c.stage] ?? stageLabels.NOVO}</span>
         <span className={cx.chip}>Situação: {attendanceStatusLabels[c.status] ?? c.status}</span>
         <span className={cx.chip}>{ana}</span>
       </div>
 
-      <div className="border-t border-regua px-3 py-3">
+      <div className={`mt-3 p-4 ${cx.cartao}`}>
         <p className={`mb-1.5 ${cx.etiqueta}`}>Quem é este número</p>
         {p.contato ? (
           <div className="flex items-start gap-2.5">
-            <Icone size={18} aria-hidden="true" className={`mt-1 shrink-0 ${adverso ? "text-urgente" : "text-tx-2"}`} />
+            <Icone size={18} aria-hidden="true" className={`mt-1 shrink-0 ${adverso ? "text-urgente" : "text-atd-previa"}`} />
             <div className="min-w-0">
               <p className="break-words text-corpo font-semibold text-tx">{p.contato.nome}</p>
-              <p className={`text-corpo ${adverso ? "font-semibold text-urgente" : "text-tx-2"}`}>{p.contato.detalhe || ROTULO_DO_TIPO[p.contato.tipo]}</p>
+              <p className={`text-corpo ${adverso ? "font-semibold text-urgente" : "text-atd-previa"}`}>{p.contato.detalhe || ROTULO_DO_TIPO[p.contato.tipo]}</p>
               <a href={enderecoDoContato(p.contato)} target="_blank" rel="noopener noreferrer" className={`${cx.discreto} -ml-3`}>
                 <ExternalLink size={16} aria-hidden="true" /> Abrir a ficha no site <span className="sr-only">(abre em outra aba)</span>
               </a>
             </div>
           </div>
         ) : !p.telefone ? (
-          <p className="text-corpo text-tx-2">Este atendimento não tem telefone registrado. Sem telefone não há o que cadastrar.</p>
+          <p className="text-corpo text-atd-previa">Este atendimento não tem telefone registrado. Sem telefone não há o que cadastrar.</p>
         ) : (
           <>
-            <p className="text-corpo text-tx-2">Este número não está na agenda do escritório.</p>
+            <p className="text-corpo text-atd-previa">Este número não está na agenda do escritório.</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {TIPOS_PARA_CADASTRAR.map((t) => (
                 <button key={t} type="button" onClick={() => setCadastrar(t)} className={cx.secundario}>

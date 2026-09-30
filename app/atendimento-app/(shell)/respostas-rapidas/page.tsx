@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { LIMITE_DE_RESPOSTAS_POR_ESCRITORIO, ordenarRespostas, podeMexerNaResposta } from "@/lib/respostasRapidas";
+import { TituloDeTela } from "@/components/atendimento-app/ui";
+import VoltarParaMais from "@/components/atendimento-app/VoltarParaMais";
 import ManterRespostasRapidas from "@/components/atendimento-app/ManterRespostasRapidas";
 
 export const dynamic = "force-dynamic";
@@ -21,15 +21,15 @@ export default async function RespostasRapidasPage() {
   const itens = ordenarRespostas(linhas).map((l) => ({ id: l.id, titulo: l.titulo, texto: l.texto, podeEditar: podeMexerNaResposta(viewer, l.criadaPorId) }));
 
   return (
-    <div className="animate-fade-in space-y-4 p-4">
-      <Link href="/atendimento-app/mais" className="inline-flex min-h-11 items-center gap-1 text-corpo font-semibold text-tx-2">
-        <ArrowLeft size={13} aria-hidden="true" /> Mais
-      </Link>
-      <h1 className="text-xl font-bold text-tx">Respostas rápidas</h1>
-      <p className="text-corpo text-tx-2">
-        Textos prontos do escritório. No chat, um toque no raio coloca a resposta no campo de mensagem; ela só é enviada quando você aperta Enviar. Todos com acesso ao Atendimento criam; edita e exclui quem criou, a recepção e os sócios administradores.
-      </p>
-      <ManterRespostasRapidas inicial={itens} />
+    <div className="animate-fade-in pb-4">
+      <VoltarParaMais />
+      <TituloDeTela titulo="Respostas rápidas" />
+      <div className="mx-4 mt-2 space-y-4">
+        <p className="text-app-previa text-atd-previa">
+          Textos prontos do escritório. No chat, um toque no raio coloca a resposta no campo de mensagem; ela só é enviada quando você aperta Enviar. Todos com acesso ao Atendimento criam; edita e exclui quem criou, a recepção e os sócios administradores.
+        </p>
+        <ManterRespostasRapidas inicial={itens} />
+      </div>
     </div>
   );
 }

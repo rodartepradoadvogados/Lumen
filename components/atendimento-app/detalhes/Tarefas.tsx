@@ -103,7 +103,7 @@ export default function Tarefas({ p }: { p: PropsDosDetalhes }) {
                 type="button"
                 aria-pressed={coluna === c.id}
                 onClick={() => setColuna(c.id)}
-                className={`min-h-11 shrink-0 rounded-[2px] border px-3 text-corpo font-semibold ${coluna === c.id ? "border-acao bg-acao text-acao-tx" : "border-regua-forte bg-sf text-tx"}`}
+                className={`min-h-11 shrink-0 rounded-atd-pilula px-4 text-corpo font-semibold ${coluna === c.id ? "bg-atd-ouro-suave text-atd-texto-ouro" : "bg-atd-pilula-2 text-atd-previa"}`}
               >
                 {c.name} <span className="tabular-nums">({grupos.get(c.id)?.length ?? 0})</span>
               </button>
@@ -117,7 +117,7 @@ export default function Tarefas({ p }: { p: PropsDosDetalhes }) {
                 const feita = t.status === "CONCLUIDO";
                 const prazo = !feita ? fraseDoPrazo(t.dueDay, p.hoje) : null;
                 return (
-                  <li key={t.id} className="flex items-center gap-1 border-t border-regua first:border-t-0">
+                  <li key={t.id} className="flex items-center gap-1">
                     <button
                       type="button"
                       role="checkbox"
@@ -127,7 +127,7 @@ export default function Tarefas({ p }: { p: PropsDosDetalhes }) {
                       onClick={() => concluir(t)}
                       className="flex h-11 w-11 shrink-0 items-center justify-center disabled:opacity-60"
                     >
-                      <span aria-hidden="true" className={`flex h-6 w-6 items-center justify-center rounded-[2px] border-2 ${feita ? "border-concluido bg-concluido text-sf" : "border-atd-campo bg-sf text-transparent"}`}>
+                      <span aria-hidden="true" className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${feita ? "border-concluido bg-concluido text-sf" : "border-atd-campo text-transparent"}`}>
                         <Check size={16} />
                       </span>
                     </button>
@@ -140,13 +140,13 @@ export default function Tarefas({ p }: { p: PropsDosDetalhes }) {
                       aria-label={`Mover ou trocar o responsável: ${t.title}`}
                       className="flex min-h-[52px] min-w-0 flex-1 flex-col justify-center py-1 text-left"
                     >
-                      <span className={`break-words text-corpo font-semibold ${feita ? "text-tx-2 line-through" : "text-tx"}`}>{t.title}</span>
-                      <span className="text-etiqueta text-tx-2">
+                      <span className={`break-words text-corpo font-semibold ${feita ? "text-atd-previa line-through" : "text-tx"}`}>{t.title}</span>
+                      <span className="text-etiqueta text-atd-previa">
                         {TIPOS_DE_TAREFA[t.type] ?? t.type} · {PRIORIDADES_DE_TAREFA[t.priority] ?? t.priority} · {t.responsibleName ? t.responsibleName.split(" ")[0] : "sem responsável"}
                         {t.dueDay ? ` · ${dataCurta(t.dueDay)}` : ""}
                       </span>
                       {prazo && (
-                        <span className={`flex items-center gap-1 text-etiqueta font-semibold ${prazo.tom === "vencido" ? "text-urgente" : prazo.tom === "hoje" ? "text-aviso" : "text-tx-2"}`}>
+                        <span className={`flex items-center gap-1 text-etiqueta font-semibold ${prazo.tom === "vencido" ? "text-urgente" : prazo.tom === "hoje" ? "text-aviso" : "text-atd-previa"}`}>
                           {prazo.tom !== "futuro" && <AlertCircle size={14} aria-hidden="true" />}
                           {prazo.texto}
                         </span>
@@ -283,7 +283,7 @@ export default function Tarefas({ p }: { p: PropsDosDetalhes }) {
                   role="radio"
                   aria-checked={mover.colunaId === c.id}
                   onClick={() => setMover({ ...mover, colunaId: c.id })}
-                  className={`flex min-h-11 w-full items-center gap-3 rounded-[2px] border px-3 text-left text-corpo ${mover.colunaId === c.id ? "border-acao bg-acao-bg font-bold text-tx" : "border-regua bg-sf text-tx"}`}
+                  className={`flex min-h-11 w-full items-center gap-3 rounded-atd-pilula px-4 text-left text-corpo text-tx ${mover.colunaId === c.id ? "bg-atd-ouro-suave font-bold" : "bg-atd-pilula"}`}
                 >
                   <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${mover.colunaId === c.id ? "border-atd-ouro-texto" : "border-atd-campo"}`}>
                     {mover.colunaId === c.id && <span className="h-2.5 w-2.5 rounded-full bg-atd-ouro-texto" />}

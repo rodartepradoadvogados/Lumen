@@ -67,8 +67,8 @@ export default function Anotacoes({ p }: { p: PropsDosDetalhes }) {
       ) : (
         <ul>
           {p.anotacoes.map((n) => (
-            <li key={n.id} className="border-t border-regua py-2 first:border-t-0">
-              <p className="text-etiqueta text-tx-2">Escrita em {dataCurta(n.referenceDay)} · só você vê</p>
+            <li key={n.id} className={`mb-2 p-3 ${cx.painel}`}>
+              <p className="text-etiqueta text-atd-previa">Escrita em {dataCurta(n.referenceDay)} · só você vê</p>
               <div
                 className="mt-0.5 break-words text-corpo text-tx [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1"
                 // n.content é HTML já saneado por sanitizeAnotacaoHtml (lib/anotacoes.ts) no único ponto de escrita.
@@ -78,7 +78,7 @@ export default function Anotacoes({ p }: { p: PropsDosDetalhes }) {
               <div className="mt-1 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className={cx.secundario}
+                  className={cx.discreto}
                   onClick={() => {
                     const { texto: t, temFormatacao } = anotacaoParaTexto(n.content);
                     setErroDaEdicao(null);
@@ -96,7 +96,7 @@ export default function Anotacoes({ p }: { p: PropsDosDetalhes }) {
         </ul>
       )}
 
-      <div className="mt-3 border-t border-regua pt-3">
+      <div className="mt-4">
         <Campo rotulo="Nova anotação" erro={erro} dica="Escreva para você mesmo. Não vai para o cliente nem para a equipe.">
           {({ id, descricao }) => <textarea id={id} aria-describedby={descricao} className={`${cx.campo} min-h-24`} rows={4} value={texto} maxLength={5000} onChange={(e) => setTexto(e.target.value)} />}
         </Campo>
