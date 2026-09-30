@@ -39,7 +39,7 @@ export default function PrivacidadePage() {
           <div className="p-6 sm:p-8 space-y-5 text-sm leading-relaxed text-tx">
             <div>
               <h1 className="font-bold text-tx text-2xl sm:text-3xl leading-tight mb-1">Política de Privacidade</h1>
-              <p className="text-xs text-tx-2">Última atualização: 29 de setembro de 2026</p>
+              <p className="text-xs text-tx-2">Última atualização: 30 de setembro de 2026</p>
             </div>
 
             <p>
@@ -169,6 +169,15 @@ export default function PrivacidadePage() {
                 pela equipe, conforme a seção 4) e o provedor do assistente de inteligência artificial, acionado
                 apenas quando alguém da equipe faz uma pergunta a ele. Nenhum desses provedores está autorizado a
                 usar os dados para finalidade própria.
+              </p>
+              <p>
+                Se um membro da equipe ativar o aviso de mensagem nova no aplicativo de Atendimento, o aparelho dele
+                é registrado no Lúmen por um endereço técnico e o aviso é entregue pelo serviço de notificação do
+                fabricante do aparelho ou do navegador (<b>Google</b>, <b>Apple</b>, <b>Mozilla</b> ou <b>Microsoft</b>).
+                Por esse serviço passa somente o endereço técnico do aparelho e um aviso de conteúdo fixo, do tipo
+                &quot;Nova mensagem no Atendimento&quot;: <b>nem o texto da mensagem, nem o nome ou o telefone de quem
+                escreveu</b> seguem por ele. O aviso só é enviado a quem tem acesso àquela conversa e o aparelho deixa
+                de receber avisos quando a pessoa sai do aplicativo ou desativa a opção.
               </p>
             </section>
 

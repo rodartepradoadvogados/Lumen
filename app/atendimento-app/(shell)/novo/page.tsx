@@ -3,6 +3,7 @@ import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import MobileNewAttendanceForm from "@/components/mobile/MobileNewAttendanceForm";
 import ModuleDisabledNotice from "@/components/ModuleDisabledNotice";
 import BotaoVoltar from "@/components/atendimento-app/BotaoVoltar";
+import FaixaSemConexao from "@/components/atendimento-app/FaixaSemConexao";
 import { getOfficeModules } from "@/lib/officeModules";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,7 @@ export default async function NovoAtendimentoAppPage() {
       <div className="fixed inset-0 z-40 flex justify-center bg-atd-tela">
         <div className="flex h-full w-full max-w-md flex-col">
           {cabecalho}
+          <FaixaSemConexao />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <ModuleDisabledNotice moduleName="Atendimento" />
           </div>
@@ -42,6 +44,7 @@ export default async function NovoAtendimentoAppPage() {
     <div className="fixed inset-0 z-40 flex justify-center bg-atd-tela">
       <div className="flex h-full w-full max-w-md flex-col bg-atd-tela">
         {cabecalho}
+        <FaixaSemConexao />
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-1 animate-fade-in">
           <p className="px-1 text-corpo text-atd-previa">Registre um novo contato rapidamente</p>
           <MobileNewAttendanceForm users={users} driveConnected={driveStatus.connected} variante="app" />

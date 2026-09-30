@@ -298,9 +298,11 @@ teste("BANCO (código): toda consulta da mídia leva attendanceId E officeId no 
   verdade(/achados\.length === 1/.test(c), "dois arquivos com o mesmo hash não podem servir um deles");
 });
 
-teste("SERVICE WORKER: o do Atendimento não guarda mídia nem responde por conta própria", () => {
+teste("SERVICE WORKER: o do Atendimento não guarda mídia nem conteúdo (só a tela 'Sem conexão', na instalação)", () => {
   const sw = codigoDe(le("public/sw-atendimento.js"));
-  verdade(!/\bcaches\b|cache\.put|cache\.add|CacheStorage|respondWith/.test(sw), "o SW guarda ou intercepta conteúdo");
+  // R2B: o SW passou a guardar UMA página estática e a responder SÓ à navegação que falhou por rede. O que continua
+  // proibido: guardar resposta (put), guardar por pedido (add(request)), abrir IndexedDB, ou tocar em mídia/API.
+  verdade(!/cache\.put|\.put\(|cache\.add\(|CacheStorage|indexedDB|\/midia|\/api\//.test(sw), "o SW guarda ou intercepta conteúdo");
   const c = codigoDe(le("lib/midiaDoChat.ts"));
   verdade(c.includes('"Cache-Control": "private, no-store"'), "cabeçalho de cache da mídia");
 });

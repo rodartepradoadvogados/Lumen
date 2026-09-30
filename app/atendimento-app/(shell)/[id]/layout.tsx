@@ -3,6 +3,7 @@ import TelaCheiaDaConversa from "@/components/atendimento-app/TelaCheiaDaConvers
 import CabecalhoDaConversa from "@/components/atendimento-app/CabecalhoDaConversa";
 import SemAcessoAConversa from "@/components/atendimento-app/SemAcessoAConversa";
 import PainelDaConversa from "@/components/atendimento-app/PainelDaConversa";
+import FaixaSemConexao from "@/components/atendimento-app/FaixaSemConexao";
 import { carregarConversaDoApp } from "./dados";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function ConversaLayout({ children, params }: { children: R
     <TelaCheiaDaConversa>
       <div className="flex h-full w-full max-w-md flex-col border-x border-atd-barra-borda bg-atd-tela">
         <CabecalhoDaConversa id={c.id} clientName={c.clientName} waPhone={c.waPhone} contactPhone={c.contactPhone} subject={c.subject} />
+        <FaixaSemConexao />
         <PainelDaConversa>{children}</PainelDaConversa>
       </div>
     </TelaCheiaDaConversa>

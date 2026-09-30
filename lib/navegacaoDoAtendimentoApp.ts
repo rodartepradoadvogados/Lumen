@@ -125,3 +125,16 @@ export function destinoDoVoltar(
   }
   return { tipo: "ir", href: BASE_DO_APP };
 }
+
+// ── DEPOIS DE SALVAR UMA CONVERSA NOVA ──────────────────────────────────────────────────────
+
+/**
+ * Para onde o formulário de "Novo atendimento" leva depois de salvar. O formulário é compartilhado com o site mobile
+ * (`/m`): lá continua voltando a `/m`. Dentro do aplicativo de Atendimento (`variante="app"`) volta para o PRÓPRIO
+ * aplicativo — antes levava ao app mobile do site, arrancando a pessoa do PWA. Com o id da conversa criada abre a
+ * conversa; sem ele, a lista. (Quem cria sempre pode abrir o que criou: o responsável do "próprios" é ele mesmo.)
+ */
+export function destinoDepoisDeSalvar(ehApp: boolean, idDaConversa: string | null | undefined): string {
+  if (!ehApp) return "/m";
+  return idDaConversa && /^[A-Za-z0-9_-]{1,64}$/.test(idDaConversa) ? `${BASE_DO_APP}/${idDaConversa}` : BASE_DO_APP;
+}

@@ -11,6 +11,7 @@ import BarraInferior from "@/components/atendimento-app/BarraInferior";
 import CabecalhoDoApp from "@/components/atendimento-app/CabecalhoDoApp";
 import BotaoFlutuante from "@/components/atendimento-app/ui/BotaoFlutuante";
 import SeguidorDeNavegacao from "@/components/atendimento-app/SeguidorDeNavegacao";
+import FaixaSemConexao from "@/components/atendimento-app/FaixaSemConexao";
 
 const SCRIPT_DO_SERVICE_WORKER = `if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw-atendimento.js', {scope: '/atendimento-app'}).catch(function(){}); }`;
 
@@ -40,6 +41,7 @@ export default function AtendimentoAppShell({ officeName, nivel, children }: { o
       ) : (
         <>
           <CabecalhoDoApp officeName={officeName} />
+          <FaixaSemConexao />
           <main className="mx-auto min-h-[calc(100dvh-4rem)] max-w-md pb-24">{children}</main>
           {botaoNovoVisivel(nivel, pathname) && <BotaoFlutuante href={ITEM_NOVO.href} rotulo={ITEM_NOVO.rotulo} icone={<Plus size={26} strokeWidth={2.2} aria-hidden="true" />} />}
           <BarraInferior nivel={nivel} />

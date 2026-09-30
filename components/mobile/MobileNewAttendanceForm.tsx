@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { createAttendance } from "@/lib/actions/attendance";
+import { destinoDepoisDeSalvar } from "@/lib/navegacaoDoAtendimentoApp";
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import PendenciasEditor, { type PendenciaRow } from "@/components/PendenciasEditor";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
@@ -235,7 +236,7 @@ export default function MobileNewAttendanceForm({
         return;
       }
 
-      router.push("/m");
+      router.push(destinoDepoisDeSalvar(ehApp, attendanceId));
     } catch {
       setError("Não foi possível salvar o atendimento. Tente novamente.");
       setLoading(false);

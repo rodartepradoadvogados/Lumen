@@ -60,6 +60,9 @@ export async function middleware(req: NextRequest) {
     pathname === "/sw.js" ||
     pathname === "/sw-m.js" ||
     pathname === "/sw-atendimento.js" ||
+    // A tela estática "Sem conexão" do Atendimento (public/atendimento-offline.html): o service worker a guarda na
+    // instalação, e um redirecionamento para o login guardaria a tela de login no lugar dela. Sem dado nenhum.
+    pathname === "/atendimento-offline.html" ||
     pathname === "/manifest-desktop.webmanifest" ||
     pathname.startsWith("/atendimento-app/manifest") ||
     pathname.startsWith("/icons-atendimento/") ||

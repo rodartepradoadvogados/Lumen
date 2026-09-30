@@ -27,6 +27,20 @@ export async function exigirAcessoAoAtendimentoNaTela() {
   return viewer;
 }
 
+/**
+ * Para rotas da API que não são de UMA conversa (o aviso de mensagem nova): 401 sem sessão, 403 sem acesso ao
+ * Atendimento. É a mesma porta de `atendimentoDaRota`, sem o id.
+ */
+export async function acessoAoAtendimentoDaRota(): Promise<
+  | { erro: NextResponse }
+  | { erro?: undefined; viewer: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>> }
+> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { erro: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
+  if (!podeVerAtendimentos(viewer)) return { erro: NextResponse.json({ error: SEM_ACESSO_AO_ATENDIMENTO }, { status: 403 }) };
+  return { viewer };
+}
+
 /** Para rotas da API que mexem num atendimento pelo id. */
 export async function atendimentoDaRota(
   id: string,

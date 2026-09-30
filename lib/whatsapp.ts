@@ -10,6 +10,7 @@ import { getOrCreateAttendanceFolder, uploadFileToDriveFolder, type StorageProvi
 import { nomeTemporarioDoLead, assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoLead";
 import { prazoAutomaticoDeFollowUp } from "@/lib/followUpAutomatico";
 import { registrarMensagem } from "@/lib/registrarMensagem";
+import { avisarMensagemNova } from "@/lib/pushDoAtendimento";
 
 // ============================================================================
 // Integração WhatsApp — DOIS provedores, uma porta só para o resto do sistema.
@@ -576,6 +577,13 @@ export async function ingestIncomingWhatsapp({
     { waLastMessageAt: new Date() },
   );
 
+  // AVISO DE MENSAGEM NOVA (push do aplicativo de Atendimento). Começa AGORA, com a mensagem já gravada, e roda
+  // junto do download da mídia abaixo; é esperado só no fim (`await avisoDePush`). Nunca lança e tem relógio
+  // próprio de poucos segundos (lib/pushDoAtendimento.ts): uma falha de push jamais derruba o webhook nem
+  // impede a Ana de responder. Vale para os DOIS provedores porque os dois entram por esta função. O corpo
+  // do aviso não leva texto nem nome, e só quem pode abrir a conversa o recebe.
+  const avisoDePush = avisarMensagemNova({ officeId, attendanceId: attendance.id, mensagemId: novaMensagem.id, recebidaEm: novaMensagem.createdAt });
+
   // F5 — MÍDIA DO WHATSAPP NO DRIVE. Sobe AGORA, no mesmo pedido do webhook, e não numa fila: a
   // URL de mídia da Meta expira em minutos, e a Evolution só guarda o arquivo por um tempo curto —
   // adiar para depois seria arriscar não ter mais o arquivo pra baixar quando a fila rodasse.
@@ -634,6 +642,8 @@ export async function ingestIncomingWhatsapp({
         });
     }
   }
+
+  await avisoDePush;
 
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${attendance.id}`);

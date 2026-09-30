@@ -322,9 +322,10 @@ teste("atualização de 15 s: rota JSON leve, sem router.refresh (não perde rol
   verdade(!p.includes("AtualizarAoVivo"), "a página do chat não recarrega mais a cada 15 s");
 });
 
-teste("sigilo: o service worker do Atendimento não guarda NADA; sair apaga rascunhos e fila do aparelho", () => {
+teste("sigilo: o service worker do Atendimento não guarda NADA de conversa; sair apaga rascunhos e fila do aparelho", () => {
   const sw = codigoDe(le("public/sw-atendimento.js"));
-  verdade(!/\bcaches\b|cache\.put|cache\.add|CacheStorage|indexedDB/.test(sw), "o SW guarda conteúdo");
+  // R2B: o único cache é a casca estática ("Sem conexão"), preenchida só na instalação (lib/testes/atendimentoAppOffline.teste.ts).
+  verdade(!/cache\.put|\.put\(|cache\.add\(|CacheStorage|indexedDB/.test(sw), "o SW guarda conteúdo");
   verdade(!/\bcaches\b/.test(codigoDe(le("public/sw.js")).split("atendimento").join("")) || true, "(o SW do site principal não cobre /atendimento-app)");
   verdade(codigoDe(le("components/atendimento-app/FormularioDeSair.tsx")).includes("limparRastrosDoAparelho"), "sair não limpa");
   verdade(codigoDe(le("app/atendimento-app/(shell)/sair/page.tsx")).includes("FormularioDeSair"), "a página de sair não usa o formulário que limpa");

@@ -411,6 +411,7 @@ model User {
   office   Office @relation(fields: [officeId], references: [id])
 
   pushSubscriptions           PushSubscription[]
+  atendimentoPushInscricoes   AtendimentoPushInscricao[]
   tasksResponsible            Task[]                  @relation("TaskResponsible")
   tasksDelegated              Task[]                  @relation("TaskDelegatedBy")
   tasksCompleted              Task[]                  @relation("TaskCompletedBy")
@@ -514,6 +515,30 @@ model PushSubscription {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============ AVISO DE MENSAGEM NOVA DO APLICATIVO DE ATENDIMENTO (Web Push) ============
+//
+// TABELA PRÓPRIA, e não a `PushSubscription` do site: a inscrição nasce do service worker do aplicativo
+// de Atendimento (escopo /atendimento-app, `sw-atendimento.js`), que é OUTRO registro com outro endpoint; e o
+// que se manda por ela é outra coisa (aviso neutro de conversa, com regra de acesso por atendimento). Misturar as
+// duas mandaria o aviso do Atendimento ao service worker do site (que abre /m) e faria o "Sair" de um app apagar o
+// aviso do outro. O endpoint identifica o APARELHO e é único: reinscrever o mesmo aparelho atualiza a linha.
+// `endpoint`, `p256dh` e `auth` são técnicos (o navegador os entrega); nada de conversa é guardado aqui.
+model AtendimentoPushInscricao {
+  id        String   @id @default(cuid())
+  officeId  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  /// Última vez que este aparelho se anunciou (reinscrição) ou recebeu um aviso com sucesso.
+  lastSeen  DateTime @default(now())
+
+  @@index([officeId, userId])
 }
 
 // ============ MURAL DE RECADOS ============

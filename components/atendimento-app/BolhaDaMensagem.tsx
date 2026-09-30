@@ -110,7 +110,7 @@ export default function BolhaDaMensagem({
       {ehNota && <span className="min-w-0 truncate font-semibold">{m.autor || "Você"} ·</span>}
       {enviando && (
         <span className="inline-flex items-center gap-1">
-          <Clock size={12} aria-hidden="true" /> Enviando…
+          <Clock size={12} aria-hidden="true" /> {local?.aguardando ? "Aguardando conexão" : "Enviando…"}
         </span>
       )}
       {falhou && (

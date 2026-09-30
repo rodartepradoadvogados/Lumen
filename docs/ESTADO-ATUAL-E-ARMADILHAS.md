@@ -843,3 +843,72 @@ prints (a rota temporária caía em "tela cheia"); `PendenciasEditor` e `Documen
 visual antigo (são compartilhados com o site); `error.tsx` e o Sem acesso só foram conferidos por código e contraste calculado (os prints da rota temporária
 saíram com tema errado por falta do script do tema); leitor de tela e aparelho de verdade; o `router.push("/m")` ao salvar uma nova conversa pelo app leva ao
 app mobile do site (comportamento antigo, não alterado aqui, merece decisão do dono).
+
+
+## 31. Aviso de mensagem nova (push), modo offline com sigilo e o retorno depois de salvar (R2B, 30/09/2026)
+
+Três entregas no aplicativo de Atendimento (`/atendimento-app`). O que **não pode voltar atrás**:
+
+**Aviso de mensagem nova (Web Push)**
+- **Tabela própria, aditiva: `AtendimentoPushInscricao`** (`officeId`, `userId` com cascata, `endpoint` ÚNICO, `p256dh`, `auth`, `userAgent`, `createdAt`,
+  `lastSeen`). NÃO é a `PushSubscription` do site: a inscrição nasce do service worker do Atendimento (escopo `/atendimento-app`, outro registro, outro
+  endpoint) e o site abre `/m`. Misturar as duas manda o aviso ao SW errado e faz o Sair de um app apagar o do outro. Nada de conteúdo é guardado nela.
+- **Quem recebe = quem abre aquela conversa**, pela MESMA regra do chat (`podeReceberOAviso` -> `filtroDoAtendimento`): total vê todas; "próprios" só as
+  suas (conversa sem dono não vai a advogado); "nenhum" e pessoa inativa não recebem. Nunca escreva outra regra de destinatário: chame essa.
+- **O corpo NUNCA leva texto nem nome.** `montarCargaDoAviso(id)` só conhece o id da conversa: título "Lúmen Atendimento", corpo "Nova mensagem no Atendimento",
+  `tag = atd-<id>` (agrupa/substitui no aparelho), `url = /atendimento-app/<id>`. Defesa em duas camadas: o SW (`public/sw-atendimento.js`) IGNORA qualquer
+  `title`/`body` da carga e mostra a frase fixa; a `url` só vale se começa com `/atendimento-app` e não tem `//`. Se um dia alguém quiser "nome como opção"
+  (proposta 7.8), isso muda o que passa pelo Google/Apple e exige nova decisão do dono e nova redação da política.
+- **Gancho único: `ingestIncomingWhatsapp`** (lib/whatsapp.ts), depois de `registrarMensagem`; Meta e Evolution entram por ele. O aviso COMEÇA logo após a
+  gravação, corre junto do download da mídia e só é esperado no fim (`await avisoDePush`). `avisarMensagemNova` nunca lança, tem relógio geral de 5 s e 4 s por
+  envio; 404/410 apagam a inscrição; outros erros só viram log. Falha de push não derruba o webhook nem impede a Ana. Saída da equipe e nota interna NÃO
+  disparam aviso (o teste varre `envioDeMensagemDb`, `atendenteResponde`, `notaDaConversaDb`).
+- **Anti-rajada:** se o CLIENTE já mandou outra mensagem na conversa nos 30 s anteriores (`entradasRecentes`, consulta ao banco: vale entre instâncias
+  serverless, ao contrário de um Map em memória), não manda outro. Além disso `tag` (aparelho) e `topic` (serviço de push) iguais substituem o aviso antigo.
+- **Fail-closed:** exige `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` E `VAPID_SUBJECT` válidos (chave pública 65 bytes, privada 32, assunto `mailto:`/`https:`).
+  Faltando qualquer uma: nada é enviado, `POST` dá 503, `GET /api/atendimento/push` diz `disponivel:false` e o cartão da tela Mais mostra "indisponível neste
+  servidor". A chave pública chega ao aparelho por essa rota (autenticada), sem `NEXT_PUBLIC_`; a privada nunca sai. As chaves VAPID **já existentes** (usadas
+  pelo push do site) servem: NÃO gere par novo se já estão na Vercel, trocar invalida todas as inscrições do site. As chaves vão por chamada
+  (`vapidDetails`), sem `setVapidDetails` global, para não brigar com `lib/push.ts`.
+- **Rotas** (`/api/atendimento/push`, `GET` / `POST` / `DELETE`): 401 sem sessão, 403 sem acesso ao Atendimento (`acessoAoAtendimentoDaRota`, novo em
+  `guardaDoAtendimento.ts`), a linha é SEMPRE do usuário da sessão (o corpo não escolhe o dono). **O endereço da inscrição é entrada de quem chama e o servidor
+  faz POST nele:** só entram hosts de serviços de push conhecidos, em https (FCM, Mozilla, Apple, Windows; `enderecoDePushPermitido`), senão seria SSRF cego.
+  Um push service novo fora dessa lista precisa ser acrescentado ali. Teto de 10 aparelhos por pessoa. A decisão mora em `lib/inscricaoDePush.ts`.
+- **Sair:** `logout` apaga TODAS as inscrições do Atendimento da pessoa (mesma política do push do site: aparelho compartilhado não recebe avisos de quem saiu; efeito
+  colateral: sair em um aparelho desliga o aviso nos outros da mesma pessoa até ela abrir a tela Mais neles, que renova a inscrição em silêncio), e o botão Sair
+  (`FormularioDeSair`) desinscreve ESTE aparelho no servidor e no navegador antes de encerrar (espera no máximo 3 s).
+- **Cartão "Avisos de mensagem nova"** (Mais): `AvisosDeMensagemNova` + `lib/avisoPushDoApp.ts`. Estados: verificando, instalar no iPhone, não suportado, indisponível,
+  bloqueado, desligado, ligado. **A permissão só é pedida no toque em "Ativar"** (o teste prova que há um único `Notification.requestPermission()`, dentro de
+  `ativar()`, e nenhum efeito o chama). Texto honesto: no iPhone/iPad só funciona com o app instalado na tela inicial; o aviso passa pelo Google/Apple e não leva
+  nome nem texto.
+- **Política de privacidade** (`app/privacidade/page.tsx`, seção 5, data 30/09/2026) atualizada: o endereço técnico do aparelho e um aviso de conteúdo fixo passam por
+  Google/Apple/Mozilla/Microsoft; nada da conversa. A regra do projeto (item 5) exige a atualização no mesmo PR.
+
+**Modo offline — o service worker NÃO guarda conversa**
+- `public/sw-atendimento.js` tem UM cache, `atd-casca-v1`, preenchido só na instalação com `ATIVOS_DA_CASCA` (a tela `/atendimento-offline.html` e o ícone). Nunca há
+  `cache.put`/`add(request)` durante a navegação, nem IndexedDB. Só a navegação (`mode: navigate`, GET) sob `/atendimento-app` cuja REDE FALHOU recebe a tela
+  "Sem conexão"; erro do servidor (401/404/500) passa intacto; API, mídia, POST e outros sites nem passam pelo SW. Ativação apaga qualquer outro cache.
+  Os testes antigos "o SW não usa `caches`" (`atendimentoAppMidia`, `atendimentoAppEnvio`) foram reescritos para a regra nova (sem `put`/`add(`/IndexedDB/`/api/`/`/midia`)
+  e `atendimentoAppOffline` EXECUTA o SW num sandbox (instala, navega online e offline, vê o que ficou no cache).
+- **`/atendimento-offline.html` é pública no middleware** (senão o redirecionamento ao login faria o SW guardar a tela de login no lugar dela). É HTML+CSS inline, sem
+  script externo, tema Dia/Noite/Automático, botão de 44 px, contraste AA medido nos dois temas.
+- **Faixa "Sem conexão"** (`FaixaSemConexao`, `lib/conexaoDoApp.ts`): sem conexão = `navigator.onLine === false` OU a última chamada do app falhou por rede. Enquanto
+  visível, sonda a cada 8 s um arquivo ESTÁTICO (o ícone, não uma API). Aparece logo abaixo do cabeçalho de cada tela (abas, conversa, Detalhes, Novo).
+- **Fila offline:** tocar em enviar sem conexão NÃO chama o servidor: o balão fica **"Aguardando conexão"** (`Pendente.aguardando`, em `sessionStorage`, apagado ao Sair) e
+  sai sozinho ao voltar, uma vez por chave, na ordem, com a MESMA `clientMessageId` (o servidor devolve a mesma mensagem, nunca outra cópia). **A regra do "sem
+  confirmação" continua exigindo ação humana:** só sai sozinho o que está marcado `aguardando` (nunca saiu); o que saiu e não voltou (rede caiu no meio) é "sem
+  confirmação" e sem conexão só ganha o aviso "toque em Tentar de novo quando a internet voltar"; o reenvio automático nunca leva `confirmouReenvio`. Recarregar a página
+  mantém "aguardando" como aguardando (uma "enviando" comum continua virando dúvida). Rascunhos seguem locais.
+- **`BolhaDaMensagem`** ganhou uma linha (o texto "Aguardando conexão" no lugar de "Enviando…" quando `envioLocal.aguardando`); é a única mudança nesse arquivo.
+
+**Correção do retorno:** `MobileNewAttendanceForm` fazia `router.push("/m")` (levava o PWA ao app mobile do site). Agora `destinoDepoisDeSalvar(ehApp, id)`
+(`lib/navegacaoDoAtendimentoApp.ts`): com `variante="app"` abre `/atendimento-app/<id da conversa criada>` (id fora do formato -> lista); o site `/m` continua indo a `/m`.
+Quem cria sempre vê o que criou (o responsável de quem só vê os próprios é ele mesmo, `responsavelDoNovoAtendimento`).
+
+Testes: `atendimentoAppPush.teste.ts` (24 casos) e `atendimentoAppOffline.teste.ts` (19 casos).
+
+**Não provado**: entrega real de push (nenhum aparelho, nenhuma chave VAPID de produção nem serviço do Google/Apple foi usado: o envio foi provado com portas falsas e o
+SW num sandbox de Node); Safari/iOS instalado, Android e desktop reais; o toque na notificação abrindo a conversa num aparelho; o SW registrado e a tela offline num
+navegador de verdade (a tela foi vista só por código e contraste calculado); a faixa e o "Aguardando conexão" em navegador (lógica testada, layout não visto); o
+banco real (`db push`, a consulta `entradasRecentes`, a limpeza 404/410 contra o Prisma); a volta da conexão dentro de um PWA instalado; `Notification.permission`
+"denied" no iOS. Ainda não existe preferência por pessoa/horário para o aviso (liga/desliga só por aparelho).

@@ -181,7 +181,7 @@ teste("MAIS: título grande, cartão preenchido com as cinco linhas (alvo de 56 
   for (const h of ["/atendimento-app/perfil", "/atendimento-app/equipe", "/atendimento-app/respostas-rapidas", "/atendimento-app/tema", "/atendimento-app/sair", 'href="/"']) verdade(m.includes(h), `linha ${h}`);
   verdade(m.includes("min-h-14") && m.includes("bg-atd-pilula") && m.includes("rounded-atd-balao"), "linhas de 56 px em cartão preenchido");
   verdade(m.includes("bg-urgente-bg") && m.includes("text-urgente"), "Sair em vermelho suave");
-  verdade(m.includes("Avisos de mensagem nova · a construir"), "o aviso honesto continua");
+  verdade(m.includes("<AvisosDeMensagemNova />"), "o cartão de avisos de mensagem nova (estado real) continua na tela");
 });
 
 teste("FILHAS DE MAIS: cada tela tem '‹ Mais' (44 px) e título grande; o Sair continua usando o formulário que limpa o aparelho", () => {
