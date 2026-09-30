@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { X, Zap } from "lucide-react";
+import { Search, X, Zap } from "lucide-react";
+import { CampoPilula } from "@/components/atendimento-app/ui";
 import { listarRespostasRapidas } from "@/lib/actions/respostasRapidas";
 import type { RespostaRapidaDaTela } from "@/lib/respostasRapidas";
 
@@ -55,25 +56,20 @@ export default function RespostasRapidasDoChat({ aoInserir, aoFechar }: { aoInse
 
   return (
     <div className="fixed inset-0 z-40 flex items-end bg-black/50" onClick={aoFechar}>
-      <div role="dialog" aria-modal="true" aria-labelledby="respostas-titulo" className="flex max-h-[75dvh] w-full flex-col border-t-2 border-regua-forte bg-sf p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-tx" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="respostas-titulo" className="flex max-h-[75dvh] w-full flex-col rounded-t-[20px] bg-atd-tela p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-atd-tinta" onClick={(e) => e.stopPropagation()}>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h2 id="respostas-titulo" className="flex items-center gap-1.5 text-destaque font-bold">
             <Zap size={16} aria-hidden="true" /> Respostas rápidas
           </h2>
-          <button ref={fechar} type="button" onClick={aoFechar} aria-label="Fechar respostas rápidas" className="inline-flex h-11 w-11 items-center justify-center rounded-[2px] text-tx-2 hover:bg-sf-apoio">
+          <button ref={fechar} type="button" onClick={aoFechar} aria-label="Fechar respostas rápidas" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-atd-previa hover:bg-atd-linha-hover">
             <X size={18} aria-hidden="true" />
           </button>
         </div>
-        <p className="mb-2 text-etiqueta text-tx-2">Toque numa resposta para colocá-la no campo. Ela só sai quando você apertar Enviar.</p>
+        <p className="mb-2 text-app-meta text-atd-previa">Toque numa resposta para colocá-la no campo. Ela só sai quando você apertar Enviar.</p>
         {itens && itens.length > 6 && (
-          <input
-            type="search"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            aria-label="Buscar resposta rápida"
-            placeholder="Buscar"
-            className="mb-2 min-h-11 w-full rounded-[2px] border border-atd-campo bg-sf px-3 text-corpo text-tx placeholder:text-tx-3"
-          />
+          <div className="mb-2">
+            <CampoPilula id="busca-resposta-rapida" rotulo="Buscar resposta rápida" type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar" icone={<Search size={18} />} aoLimpar={() => setBusca("")} rotuloDoLimpar="Limpar a busca" />
+          </div>
         )}
         <div className="min-h-0 flex-1 overflow-y-auto">
           {erro ? (
@@ -81,11 +77,11 @@ export default function RespostasRapidasDoChat({ aoInserir, aoFechar }: { aoInse
               {erro}
             </p>
           ) : itens === null ? (
-            <p role="status" className="text-corpo text-tx-2">
+            <p role="status" className="text-corpo text-atd-previa">
               Carregando…
             </p>
           ) : itens.length === 0 ? (
-            <p className="text-corpo text-tx-2">
+            <p className="text-corpo text-atd-previa">
               O escritório ainda não tem respostas rápidas.{" "}
               <Link href="/atendimento-app/respostas-rapidas" className="font-semibold text-atd-ouro-texto underline">
                 Criar a primeira
@@ -93,7 +89,7 @@ export default function RespostasRapidasDoChat({ aoInserir, aoFechar }: { aoInse
               .
             </p>
           ) : visiveis.length === 0 ? (
-            <p className="text-corpo text-tx-2">Nenhuma resposta com “{busca}”.</p>
+            <p className="text-corpo text-atd-previa">Nenhuma resposta com “{busca}”.</p>
           ) : (
             <ul className="flex flex-col gap-1.5">
               {visiveis.map((i) => (
@@ -104,10 +100,10 @@ export default function RespostasRapidasDoChat({ aoInserir, aoFechar }: { aoInse
                       aoInserir(i.texto);
                       aoFechar();
                     }}
-                    className="flex min-h-11 w-full flex-col items-start rounded-[2px] border border-regua-forte bg-sf px-3 py-2 text-left hover:bg-sf-apoio"
+                    className="flex min-h-11 w-full flex-col items-start rounded-atd-balao bg-atd-pilula px-3.5 py-2 text-left hover:bg-atd-pilula-2"
                   >
-                    <span className="text-corpo font-semibold text-tx">{i.titulo}</span>
-                    <span className="line-clamp-2 break-words text-etiqueta text-tx-2 [overflow-wrap:anywhere]">{i.texto}</span>
+                    <span className="text-corpo font-semibold text-atd-tinta">{i.titulo}</span>
+                    <span className="line-clamp-2 break-words text-app-meta text-atd-previa [overflow-wrap:anywhere]">{i.texto}</span>
                   </button>
                 </li>
               ))}

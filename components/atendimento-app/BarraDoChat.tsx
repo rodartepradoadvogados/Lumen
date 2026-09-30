@@ -98,12 +98,14 @@ export default function BarraDoChat({
     <div data-oculta-com-teclado="" className="shrink-0">
     <div
       data-barra-do-chat=""
-      className={`flex min-h-12 items-center gap-2.5 border-b border-regua px-3 py-0.5 ${grave ? "bg-urgente-bg text-urgente" : "bg-sf-apoio text-tx-2"}`}
+      className={`mx-3 mt-1.5 flex min-h-11 items-center gap-2.5 rounded-atd-balao px-2.5 py-0.5 ${grave ? "bg-urgente-bg text-urgente" : "text-atd-previa"}`}
     >
-      <Icone size={18} aria-hidden="true" className="shrink-0" />
+      {/* Com o interruptor, ele mesmo já diz "Ana responde: Ligada/Desligada" e leva o ícone de marca: o título fica só para o
+          leitor de tela, e a linha mostra a frase (o relógio de 15 min ou "Ao enviar, você assume…"). */}
+      {barra.controle !== "interruptor" && <Icone size={16} aria-hidden="true" className="shrink-0" />}
       <div className="min-w-0 flex-1 leading-tight">
-        <p className={`truncate text-corpo font-semibold ${grave ? "text-urgente" : "text-tx"}`}>{barra.titulo}</p>
-        <p role={erro ? "alert" : undefined} title={erro ? undefined : barra.fraseCompleta} className={`line-clamp-2 text-etiqueta ${grave ? "font-semibold" : ""}`}>
+        <p className={barra.controle === "interruptor" ? "sr-only" : `truncate text-app-previa font-semibold ${grave ? "text-urgente" : "text-atd-tinta"}`}>{barra.titulo}</p>
+        <p role={erro ? "alert" : undefined} title={erro ? undefined : barra.fraseCompleta} className={`line-clamp-2 text-app-meta ${grave ? "font-semibold" : ""}`}>
           {frase}
         </p>
       </div>
@@ -115,6 +117,7 @@ export default function BarraDoChat({
           aoAlternar={alternar}
           bordaLigada="border-atd-ouro-texto"
           bordaDesligada="border-atd-campo"
+          pilula
         />
       )}
       {barra.controle === "devolver" && (
@@ -123,7 +126,7 @@ export default function BarraDoChat({
           type="button"
           onClick={() => setConfirmando(true)}
           disabled={pendente}
-          className="inline-flex min-h-11 shrink-0 items-center rounded-[2px] border border-regua-forte bg-sf px-3 text-corpo font-semibold text-tx disabled:opacity-60"
+          className="inline-flex min-h-11 shrink-0 items-center rounded-atd-pilula bg-atd-pilula-2 px-3.5 text-app-previa font-semibold text-atd-tinta disabled:opacity-60"
         >
           Devolver à {nomeDoAtendente}
         </button>
@@ -131,26 +134,26 @@ export default function BarraDoChat({
       {confirmando && <ConfirmarDevolucao nome={nomeDoAtendente} aoConfirmar={devolver} aoCancelar={() => { setConfirmando(false); botaoDevolver.current?.focus(); }} />}
     </div>
     {(podeResponderUltima || erroDaResposta || respondida) && (
-      <div data-responder-ultima="" className="flex flex-col gap-1 border-b border-regua bg-sf-apoio px-3 py-1.5">
+      <div data-responder-ultima="" className="mx-3 mt-1 flex flex-col gap-1">
         {podeResponderUltima && (
           <button
             type="button"
             onClick={responderUltima}
             disabled={respondendo}
             aria-busy={respondendo}
-            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[2px] border-2 border-atd-campo bg-sf px-3 text-corpo font-semibold text-tx disabled:opacity-60"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-atd-pilula bg-atd-pilula px-3 text-app-previa font-semibold text-atd-tinta disabled:opacity-60"
           >
             <CornerUpLeft size={16} aria-hidden="true" className="shrink-0" />
             {respondendo ? `${nomeDoAtendente} está respondendo…` : "Responder última mensagem"}
           </button>
         )}
         {erroDaResposta && (
-          <p role="alert" className="text-etiqueta font-semibold text-urgente">
+          <p role="alert" className="text-app-meta font-semibold text-urgente">
             {erroDaResposta}
           </p>
         )}
         {respondida && !erroDaResposta && !respondendo && (
-          <p role="status" className="text-etiqueta text-tx-2">
+          <p role="status" className="text-app-meta text-atd-previa">
             {nomeDoAtendente} respondeu.
           </p>
         )}
@@ -190,18 +193,18 @@ function ConfirmarDevolucao({ nome, aoConfirmar, aoCancelar }: { nome: string; a
         }
       }}
     >
-      <div role="alertdialog" aria-modal="true" aria-labelledby="devolver-titulo" aria-describedby="devolver-texto" className="w-full max-w-sm border border-regua-forte bg-sf p-4 text-tx">
+      <div role="alertdialog" aria-modal="true" aria-labelledby="devolver-titulo" aria-describedby="devolver-texto" className="w-full max-w-sm rounded-atd-flutuante bg-atd-tela p-4 text-atd-tinta">
         <h2 id="devolver-titulo" className="text-destaque font-semibold">
           Devolver a conversa à {nome}?
         </h2>
-        <p id="devolver-texto" className="mt-1 text-corpo text-tx-2">
+        <p id="devolver-texto" className="mt-1 text-corpo text-atd-previa">
           Ela volta a responder a partir da PRÓXIMA mensagem do cliente. O que ficou sem resposta agora continua com você.
         </p>
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <button ref={cancelar} type="button" onClick={aoCancelar} className="min-h-11 rounded-[2px] border border-regua-forte bg-sf px-3 text-corpo font-semibold text-tx">
+          <button ref={cancelar} type="button" onClick={aoCancelar} className="min-h-11 rounded-atd-pilula bg-atd-pilula-2 px-3 text-corpo font-semibold text-atd-tinta">
             Cancelar
           </button>
-          <button ref={confirmar} type="button" onClick={aoConfirmar} className="min-h-11 rounded-[2px] bg-acao px-3 text-corpo font-semibold text-acao-tx hover:bg-acao-hover">
+          <button ref={confirmar} type="button" onClick={aoConfirmar} className="min-h-11 rounded-atd-pilula bg-atd-ouro px-3 text-corpo font-semibold text-atd-ouro-tx">
             Devolver
           </button>
         </div>

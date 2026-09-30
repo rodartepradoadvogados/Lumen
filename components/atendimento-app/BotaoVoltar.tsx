@@ -13,12 +13,15 @@ export default function BotaoVoltar({
   idDaConversa,
   rotulo,
   className = "",
+  tom = "grafite",
 }: {
   /** "conversa" = descobre pelo endereço se está no Chat ou nos Detalhes. */
   tela: "conversa" | "chat" | "detalhes" | "novo";
   idDaConversa?: string | null;
   rotulo: string;
   className?: string;
+  /** "claro" = sobre o fundo da tela (chat, acabamento WhatsApp); "grafite" = cabeçalho grafite das telas ainda não migradas. */
+  tom?: "claro" | "grafite";
 }) {
   const router = useRouter();
   const pathname = usePathname() || "";
@@ -36,7 +39,7 @@ export default function BotaoVoltar({
         if (d.tipo === "voltar") router.back();
         else router.push(d.href);
       }}
-      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] text-atd-hdr-tx hover:bg-atd-hdr-linha ${className}`}
+      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center ${tom === "claro" ? "rounded-full text-atd-tinta hover:bg-atd-linha-hover" : "rounded-[2px] text-atd-hdr-tx hover:bg-atd-hdr-linha"} ${className}`}
     >
       <ArrowLeft size={22} aria-hidden="true" />
     </Link>

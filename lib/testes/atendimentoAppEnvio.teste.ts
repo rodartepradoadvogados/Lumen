@@ -298,7 +298,7 @@ teste("o campo de mensagem: sem anexo e sem modelo (não faz o que o código nã
   verdade(c.includes("env(safe-area-inset-bottom)"), "safe-area");
   verdade(c.includes("min-h-11") && c.includes("h-11"), "alvo de 44 px");
   verdade(c.includes("atd-campo-de-mensagem"), "fonte de 16 px");
-  verdade(!/evolution|\bAPI\b|Meta\b|rota/i.test(c.replace(/\/\/.*$/gm, "").replace(/[a-zA-Z]+Meta[a-zA-Z]*/g, "")), "jargão de plataforma no texto da tela");
+  verdade(!/evolution|\bAPI\b|Meta\b|rota/i.test(c.replace(/\/\/.*$/gm, "").replace(/[a-zA-Z]+Meta[a-zA-Z]*/g, "").replace(/text-app-meta/g, "")), "jargão de plataforma no texto da tela");
   verdade(c.includes("onMouseDown") && c.includes("preventDefault"), "o botão não pode tirar o foco do campo (fecharia o teclado)");
   verdade(c.includes("gravarRascunho") && c.includes("lerRascunho"), "rascunho por conversa");
   const g = codigoDe(le("app/globals.css") ) ;

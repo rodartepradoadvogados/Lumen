@@ -7,8 +7,9 @@ import { guiaDaConversa } from "@/lib/navegacaoDoAtendimentoApp";
 
 // As duas guias da conversa: Chat (principal) e Detalhes. São links de rota (cada guia é uma tela), expostos
 // como `tablist`: setas, Home e End trocam de guia, só a guia aberta entra na ordem do Tab, e `aria-controls`
-// aponta para o painel (`PainelDaConversa`, no layout). A guia aberta leva o filete de ouro embaixo (a cor
-// nunca fala sozinha: o rótulo e o peso da letra também mudam). Alvo de 44 px.
+// aponta para o painel (`PainelDaConversa`, no layout). Acabamento WhatsApp: guias sutis, alinhadas à esquerda, e a
+// aberta leva um sublinhado de 2 px em ouro (a cor nunca fala sozinha: `aria-selected`, o peso e a cor da letra também
+// mudam). Alvo de 44 px.
 export default function GuiasDaConversa({ idDaConversa }: { idDaConversa: string }) {
   const pathname = usePathname() || "";
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function GuiasDaConversa({ idDaConversa }: { idDaConversa: string
   }
 
   return (
-    <div role="tablist" aria-label="Seções da conversa" data-oculta-com-teclado="" className="flex">
+    <div role="tablist" aria-label="Seções da conversa" data-oculta-com-teclado="" className="flex gap-1 border-b border-atd-barra-borda px-3">
       {guias.map((g, i) => {
         const acesa = aberta === g.chave;
         return (
@@ -45,8 +46,8 @@ export default function GuiasDaConversa({ idDaConversa }: { idDaConversa: string
             href={g.href}
             replace={!acesa}
             onKeyDown={(e) => aoTeclar(e, i)}
-            className={`flex min-h-11 flex-1 items-center justify-center border-b-4 text-corpo ${
-              acesa ? "border-ouro-acento font-bold text-atd-hdr-tx" : "border-transparent font-semibold text-atd-hdr-tx2 hover:text-atd-hdr-tx"
+            className={`-mb-px flex min-h-11 items-center border-b-2 px-3 text-app-previa ${
+              acesa ? "border-atd-ouro font-semibold text-atd-tinta" : "border-transparent font-medium text-atd-terciario hover:text-atd-tinta"
             }`}
           >
             {g.rotulo}

@@ -76,7 +76,7 @@ teste("FAIXA: o tema do site não usa tokens --atd-* (só existem dentro de .ate
   const site = f.slice(iSite, iFim);
   verdade(iSite > 0 && iFim > iSite, "não achou o tema do site");
   verdade(!/atd-/.test(site), "o tema do site usa token do app");
-  verdade(/border-atd-campo/.test(f.slice(f.indexOf("app: {"), iSite)), "o tema do app mudou");
+  verdade(/bg-atd-ouro-suave/.test(f.slice(f.indexOf("app: {"), iSite)) && /rounded-atd-pilula/.test(f.slice(f.indexOf("app: {"), iSite)), "o tema do app mudou");
   verdade(f.includes('tema = "app"'), "o padrão deixou de ser o app");
   const compositor = codigoDe(le("components/atendimento-app/CompositorDoChat.tsx"));
   verdade(!compositor.includes("tema="), "o aplicativo passou a passar tema");

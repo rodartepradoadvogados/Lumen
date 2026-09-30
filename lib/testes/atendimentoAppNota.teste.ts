@@ -358,7 +358,7 @@ teste("o que vai ao navegador não importa módulo de servidor (as regras da not
 teste("BALÃO da nota: rótulo 'Nota interna · só a equipe', cadeado, borda TRACEJADA, autor e hora; aviso de sistema centralizado e rotulado", () => {
   const b = codigoDe(le("components/atendimento-app/BolhaDaMensagem.tsx"));
   verdade(b.includes("Nota interna · só a equipe") && b.includes("<Lock"), "rótulo e ícone (não só cor)");
-  verdade(b.includes("border-dashed border-atd-ardosia bg-atd-ardosia-bg"), "borda tracejada de ardósia");
+  verdade(b.includes("border-dashed border-atd-nota-borda bg-atd-nota"), "borda tracejada em ouro, fundo de ouro suave");
   verdade(b.includes("m.autor") && b.includes("<time dateTime={m.criadoEm}>{m.hora}</time>"), "autor e hora");
   verdade(b.includes("Nota interna, só da equipe, de "), "o leitor de tela ouve de quem é a nota");
   verdade(b.includes("Aviso do sistema · só a equipe") && b.includes("Aviso do sistema, só da equipe: ") && b.includes('data-tipo="sistema"') && b.includes("justify-center"), "aviso de sistema rotulado e centralizado");
@@ -374,7 +374,7 @@ teste("CAMPO: dois botões sempre à vista (aria-pressed), 'Salvar nota' com cad
   verdade(c.includes("aoEnviar(t, nota)"), "o pai sabe se é nota");
   verdade(c.includes("bloqueio && !nota"), "o bloqueio (sem WhatsApp / janela) só vale para a mensagem ao cliente");
   verdade(c.includes("useState(false)") && !/sessionStorage|localStorage/.test(c), "o modo abre sempre em 'ao cliente' e não fica gravado");
-  verdade(c.split("min-h-11").length - 1 >= 3, "alvos de 44 px");
+  verdade((c.match(/min-h-11|h-11 w-11|h-12 w-12/g) ?? []).length >= 5, "alvos de 44 px: dois modos, respostas rápidas, envio e cancelar a citação");
 });
 
 teste("CHAT: a nota vai com modo 'nota', NÃO assume a conversa (a Ana continua), tem estado próprio e o aviso de sistema é anunciado", () => {
@@ -386,7 +386,7 @@ teste("CHAT: a nota vai com modo 'nota', NÃO assume a conversa (a Ana continua)
   verdade(c.includes('aria-live="off"') && (c.match(/aria-live=/g) ?? []).length === 2, "o log continua sem aria-live; só a região de status é viva");
 });
 
-teste("CONTRASTE da nota (Dia e Noite): texto de ardósia sobre a nota >= 4,5:1; borda tracejada >= 3:1 contra o fundo do chat", () => {
+teste("CONTRASTE da nota (Dia e Noite): rótulo em ouro e texto sobre a nota >= 4,5:1; borda tracejada >= 3:1 contra o fundo da tela e contra a própria nota", () => {
   const css = le("app/globals.css");
   const tokens = (seletor: string) => {
     const bloco = new RegExp(`\\n${seletor.replace(".", "\\.")}\\s*\\{([\\s\\S]*?)\\n\\}`).exec(css)?.[1] ?? "";
@@ -399,11 +399,15 @@ teste("CONTRASTE da nota (Dia e Noite): texto de ardósia sobre a nota >= 4,5:1;
     return (x + 0.05) / (y + 0.05);
   };
   for (const [nome, t] of [["Dia", tokens(".atendimento-shell")], ["Noite", tokens(".atendimento-dark")]] as const) {
-    verdade(t["atd-ardosia"] && t["atd-ardosia-bg"] && t["atd-chat-fundo"], `${nome}: tokens ausentes`);
-    const texto = razao(t["atd-ardosia"], t["atd-ardosia-bg"]);
-    const borda = razao(t["atd-ardosia"], t["atd-chat-fundo"]);
+    verdade(t["atd-nota-bg"] && t["atd-nota-borda"] && t["atd-tela"] && t["atd-texto-ouro"] && t["atd-tinta"], `${nome}: tokens ausentes`);
+    const texto = razao(t["atd-texto-ouro"], t["atd-nota-bg"]);
+    const corpo = razao(t["atd-tinta"], t["atd-nota-bg"]);
+    const borda = razao(t["atd-nota-borda"], t["atd-tela"]);
+    const bordaNaNota = razao(t["atd-nota-borda"], t["atd-nota-bg"]);
     verdade(texto >= 4.5, `${nome}: rótulo da nota ${texto.toFixed(2)}:1`);
-    verdade(borda >= 3, `${nome}: borda da nota ${borda.toFixed(2)}:1`);
+    verdade(corpo >= 4.5, `${nome}: texto da nota ${corpo.toFixed(2)}:1`);
+    verdade(borda >= 3, `${nome}: borda da nota contra a tela ${borda.toFixed(2)}:1`);
+    verdade(bordaNaNota >= 3, `${nome}: borda da nota contra a nota ${bordaNaNota.toFixed(2)}:1`);
   }
 });
 

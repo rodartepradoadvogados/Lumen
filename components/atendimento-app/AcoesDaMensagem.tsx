@@ -15,7 +15,7 @@ import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 // "outro texto"). Enquanto isso não for desenhado, a citação ajuda quem escreve a não se perder, e o cliente NÃO a
 // vê. O texto do menu diz isso.
 
-const BOTAO = "flex min-h-11 w-full items-center gap-2 rounded-[2px] border border-regua-forte bg-sf px-3 text-left text-corpo font-semibold text-tx hover:bg-sf-apoio disabled:opacity-60";
+const BOTAO = "flex min-h-11 w-full items-center gap-2.5 rounded-atd-balao bg-atd-pilula px-3.5 py-2 text-left text-corpo font-semibold text-atd-tinta hover:bg-atd-pilula-2 disabled:opacity-60";
 
 export default function AcoesDaMensagem({
   m,
@@ -75,15 +75,15 @@ export default function AcoesDaMensagem({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end bg-black/50" onClick={aoFechar}>
-      <div role="dialog" aria-modal="true" aria-labelledby="acoes-titulo" className="w-full border-t-2 border-regua-forte bg-sf p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-tx" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="acoes-titulo" className="w-full rounded-t-[20px] bg-atd-tela p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-atd-tinta" onClick={(e) => e.stopPropagation()}>
         <div className="mb-2 flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h2 id="acoes-titulo" className="text-destaque font-bold">
               Mensagem de {autor}, {m.hora}
             </h2>
-            <p className="mt-0.5 line-clamp-3 break-words text-corpo text-tx-2 [overflow-wrap:anywhere]">{trechoDaMensagem(m.midia ? `[${m.midia.rotulo.toLowerCase()}] ${m.texto}` : m.texto, 200)}</p>
+            <p className="mt-0.5 line-clamp-3 break-words text-corpo text-atd-previa [overflow-wrap:anywhere]">{trechoDaMensagem(m.midia ? `[${m.midia.rotulo.toLowerCase()}] ${m.texto}` : m.texto, 200)}</p>
           </div>
-          <button type="button" onClick={aoFechar} aria-label="Fechar" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] text-tx-2 hover:bg-sf-apoio">
+          <button type="button" onClick={aoFechar} aria-label="Fechar" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-atd-previa hover:bg-atd-linha-hover">
             <X size={18} aria-hidden="true" />
           </button>
         </div>
@@ -92,14 +92,14 @@ export default function AcoesDaMensagem({
             <CornerUpLeft size={16} aria-hidden="true" className="shrink-0" />
             <span>
               Responder a esta mensagem
-              <span className="block text-etiqueta font-normal text-tx-2">A citação aparece só para você. O cliente não a vê.</span>
+              <span className="block text-app-meta font-normal text-atd-previa">A citação aparece só para você. O cliente não a vê.</span>
             </span>
           </button>
           <button type="button" onClick={alternarFixada} disabled={ocupado} className={BOTAO}>
             {fixadaAgora ? <PinOff size={16} aria-hidden="true" className="shrink-0" /> : <Pin size={16} aria-hidden="true" className="shrink-0" />}
             <span>
               {ocupado ? "Aguarde…" : fixadaAgora ? "Desafixar do topo" : "Fixar no topo da conversa"}
-              <span className="block text-etiqueta font-normal text-tx-2">A equipe com acesso a este atendimento vê a mensagem fixada.</span>
+              <span className="block text-app-meta font-normal text-atd-previa">A equipe com acesso a este atendimento vê a mensagem fixada.</span>
             </span>
           </button>
         </div>
