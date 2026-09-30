@@ -9,7 +9,7 @@ import { LIMITE_DO_TEXTO_RAPIDO, LIMITE_DO_TITULO, ordenarRespostas, type Respos
 // confirmação escrita no próprio cartão. Erros do servidor aparecem no lugar (`role="alert"`). A lista local
 // acompanha o que o servidor devolveu; quem não pode mexer não vê Editar nem Excluir (e o servidor recusa de novo).
 
-const CAMPO = "mt-1 min-h-11 w-full rounded-atd-balao bg-atd-pilula-2 px-4 py-2 text-corpo text-tx placeholder:text-atd-terciario disabled:opacity-60";
+const CAMPO = "mt-1 min-h-11 w-full rounded-atd-balao border border-atd-campo-borda bg-atd-pilula-2 px-4 py-2 text-corpo text-tx placeholder:text-atd-terciario aria-invalid:border-atd-campo-erro disabled:opacity-60";
 const PRIMARIO = "inline-flex min-h-11 items-center justify-center gap-2 rounded-atd-pilula bg-acao px-5 text-corpo font-semibold text-acao-tx hover:bg-acao-hover active:opacity-90 disabled:opacity-60";
 const SECUNDARIO = "inline-flex min-h-11 items-center justify-center gap-2 rounded-atd-pilula bg-atd-pilula-2 px-5 text-corpo font-semibold text-tx hover:bg-atd-linha-hover active:opacity-80 disabled:opacity-60";
 
@@ -78,13 +78,13 @@ export default function ManterRespostasRapidas({ inicial }: { inicial: RespostaR
             <label htmlFor="rr-titulo" className="block text-etiqueta font-semibold text-atd-previa">
               Título (só para achar a resposta)
             </label>
-            <input id="rr-titulo" value={edicao.titulo} maxLength={LIMITE_DO_TITULO} onChange={(e) => setEdicao({ ...edicao, titulo: e.target.value })} className={CAMPO} autoFocus />
+            <input id="rr-titulo" value={edicao.titulo} maxLength={LIMITE_DO_TITULO} onChange={(e) => setEdicao({ ...edicao, titulo: e.target.value })} aria-invalid={erro ? true : undefined} className={CAMPO} autoFocus />
           </div>
           <div>
             <label htmlFor="rr-texto" className="block text-etiqueta font-semibold text-atd-previa">
               Texto que vai para o campo de mensagem
             </label>
-            <textarea id="rr-texto" value={edicao.texto} maxLength={LIMITE_DO_TEXTO_RAPIDO} rows={5} onChange={(e) => setEdicao({ ...edicao, texto: e.target.value })} className={`${CAMPO} resize-y`} />
+            <textarea id="rr-texto" value={edicao.texto} maxLength={LIMITE_DO_TEXTO_RAPIDO} rows={5} aria-invalid={erro ? true : undefined} onChange={(e) => setEdicao({ ...edicao, texto: e.target.value })} className={`${CAMPO} resize-y`} />
             <p className="text-etiqueta text-atd-terciario">
               {edicao.texto.length} de {LIMITE_DO_TEXTO_RAPIDO} caracteres
             </p>

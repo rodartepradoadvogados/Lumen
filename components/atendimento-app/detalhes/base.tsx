@@ -12,8 +12,9 @@ import { ChevronDown, X } from "lucide-react";
 
 // ── classes dos controles (mapas estáticos: o Tailwind só gera o que lê escrito) ────────────────────────
 export const cx = {
+  /** Campo de digitação: preenchido E com contorno fino de 1 px (--atd-campo-borda, >= 3:1 em Dia e Noite; WCAG 1.4.11). */
   campo:
-    "min-h-11 w-full rounded-atd-balao bg-atd-pilula-2 px-4 py-2 text-capa-corpo text-tx placeholder:text-atd-terciario disabled:opacity-60",
+    "min-h-11 w-full rounded-atd-balao border border-atd-campo-borda bg-atd-pilula-2 px-4 py-2 text-capa-corpo text-tx placeholder:text-atd-terciario aria-invalid:border-atd-campo-erro disabled:opacity-60",
   primario:
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-atd-pilula bg-acao px-5 text-corpo font-semibold text-acao-tx hover:bg-acao-hover active:opacity-90 disabled:opacity-60",
   secundario:
@@ -314,7 +315,9 @@ export function Campo({ rotulo, dica, erro, children, className = "" }: { rotulo
       <label htmlFor={id} className={cx.rotulo}>
         {rotulo}
       </label>
-      <div className="mt-1">{children({ id, descricao: idDica })}</div>
+      <div className="mt-1" data-campo-invalido={erro ? "" : undefined}>
+        {children({ id, descricao: idDica })}
+      </div>
       {erro ? (
         <p id={idDica} role="alert" className={`mt-1 ${cx.erro}`}>
           {erro}

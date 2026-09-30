@@ -950,3 +950,30 @@ SW num sandbox de Node); Safari/iOS instalado, Android e desktop reais; o toque 
 navegador de verdade (a tela foi vista só por código e contraste calculado); a faixa e o "Aguardando conexão" em navegador (lógica testada, layout não visto); o
 banco real (`db push`, a consulta `entradasRecentes`, a limpeza 404/410 contra o Prisma); a volta da conexão dentro de um PWA instalado; `Notification.permission`
 "denied" no iOS. Ainda não existe preferência por pessoa/horário para o aviso (liga/desliga só por aparelho).
+
+## 32. Contorno fino nos campos de digitação dos formulários do aplicativo de Atendimento (30/09/2026)
+
+Decisão do dono, **só dentro de `/atendimento-app`**: o item 28 dizia "campos sem contorno" (preenchimento a ~1,1:1 contra o cartão, por desenho).
+Isso deixou de valer para CAMPO DE DIGITAÇÃO DE FORMULÁRIO (WCAG 1.4.11, componente de interface >= 3:1). O que **não pode voltar atrás**:
+
+- **Token `--atd-campo-borda`** (Dia `#78808b`, Noite `#818b98`) e `--atd-campo-erro` (Dia `#8a2f42`, Noite `#f3a19b`), em `.atendimento-shell`/`.atendimento-dark`
+  (`app/globals.css`), mapeados em `tailwind.config.ts` (`border-atd-campo-borda`, `border-atd-campo-erro`). Medido contra os TRÊS fundos onde um campo aparece
+  (tela, cartão `--atd-pilula-bg`, painel `--atd-pilula-bg-2`): Dia 4,0 / 3,6 / 3,2:1 (piso 3,2); Noite 5,3 / 4,7 / 4,2:1 (piso 4,2). Erro >= 3:1 nos três (Dia >= 6,6; Noite >= 7,2).
+  Não é o `--atd-campo` (esse é o contorno da caixinha/rádio, outro token). Se mudar um fundo (tela, cartão, painel), rode o teste: ele mede.
+- **Contorno de 1 px**, fundo preenchido, raio e alvo de 44 px mantidos (a borda entra no `border-box`; o campo de data nativo mede 46 px). Sem sombra. O foco é o anel global
+  de 2 px (`.atendimento-shell :where(input...):focus-visible`), intocado: contorno + anel juntos.
+- **Onde vale**: `cx.campo` (`detalhes/base.tsx`: todo campo de Contato, Dados, Triagem, Pendências, Processo, Tarefas, Anotações, Anexos e Encerrar), `CAMPO` de
+  `ManterRespostasRapidas`, e na Nova conversa (`MobileNewAttendanceForm variante="app"`: `APP.input`, `APP.pais`, `APP.ddi`, `APP.pend`, `APP.selo`) os campos, o seletor de país, o DDI livre,
+  os campos de Pendências e o tipo de documento do anexo. A busca da **Triagem** é formulário GET com botão "Buscar": ganhou o contorno (`CampoPilula contorno`).
+- **Não ganham contorno, de propósito (ficam como no WhatsApp)**: busca da lista de Conversas, campo de mensagem do chat, barra de filtros.
+- **Estado de erro**: `Campo` marca o entorno com `data-campo-invalido` quando há `erro`; o CSS escopado ao app pinta o contorno de `--atd-campo-erro`, e o TEXTO do erro (`role="alert"`,
+  `aria-describedby`) continua logo abaixo: cor nunca é o único sinal. Campos avulsos usam `aria-invalid` (`aria-invalid:border-atd-campo-erro`).
+- **O site e o `/m` não mudam**: `PhoneInput` (`classeDoPais`, `classeDoDdi`), `PendenciasEditor` (`classeDoCampo`) e `MobileNewAttendanceForm` só trocam de classe quando o app passa a sua; sem elas, as
+  strings de sempre (o teste as compara literalmente). `CampoPilula` ganhou `contorno` (padrão desligado; com ele o `<input>` mede 42 px para o conjunto continuar em 44).
+- Testes: `atendimentoAppVisualDetalhes` (contraste do contorno e do erro nos três fundos em Dia e Noite; varredura de todo input/select/textarea dos formulários do app; o que não ganha contorno) e
+  `atendimentoAppFunilTriagemNova` (site e /m idênticos). O teste antigo "campo sem contorno" foi invertido de propósito.
+
+**Não provado**: o app com login e banco reais (Chromium 390x844 com dados de exemplo numa rota temporária, já removida); aparelho de verdade e leitor de tela; o filtro de países DENTRO da lista suspensa do
+`PhoneInput` e a lista suspensa em si (compartilhados com o site) e o modal de escolha de tipo do `DocumentTypeSelect` seguem com o visual do site; o campo "O que fazer"/"Para quando" da tarefa dentro da
+`FaixaDaJanelaFechada` (parte do chat, de outro trabalho em curso) NÃO foi tocado; os campos de Pendências da Nova conversa ficam dentro de um quadro com fundo/contorno do site (`bg-sf-apoio`), cujo
+contraste contra o contorno novo não foi medido; o anel de foco não foi refotografado (só o contorno em repouso e o de erro).
