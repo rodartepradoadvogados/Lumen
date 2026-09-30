@@ -744,3 +744,28 @@ só na não lida; fundo Noite `#14151c`; etiqueta 11px/600 e título 26px/700; b
 fluxo real com login e banco (a lista foi vista em Chromium com dados de exemplo, não com um escritório real); aparelho de verdade (safe area,
 teclado, PWA instalado); leitor de tela.
 
+
+## 28. A aba Detalhes e a tela Mais no acabamento WhatsApp: só o visual mudou (etapa 3, 30/09/2026)
+
+Continuação do item 26 (exceção deliberada, só dentro de `/atendimento-app`). Migrados: a aba Detalhes (`components/atendimento-app/detalhes/*`:
+Contato, Triagem, Pendências, Processo, Dados, Anexos, Tarefas, Anotações, Encerrar, índice, `base.tsx`), a tela Mais e suas filhas (Perfil, Equipe,
+Tema, Respostas rápidas, Sair), `ManterRespostasRapidas` e `FormularioDeSair`. **Nenhuma regra mudou**: ações (`atendimentoDaAcao`), recorte de acesso,
+conversão em processo, idempotência, Desfazer e validações são as mesmas e continuam provadas nas suítes antigas. O que **não pode voltar atrás**:
+
+- **Tudo em `cx` (`detalhes/base.tsx`) é o vocabulário da aba**: `cartao` (`bg-atd-pilula`), `painel` (um degrau mais escuro, `bg-atd-pilula-2`),
+  `painelAlerta`/`painelOk` (`bg-urgente-bg`/`bg-concluido-bg`), `campo` (preenchido, `rounded-atd-balao`), `primario` (ouro `--acao` + texto escuro),
+  `secundario` (preenchido suave), `discreto`, `chip`, `etiqueta` (11px/600 caixa alta). Um bloco novo usa estes, não cria classe própria.
+- **Hierarquia por fundo, nunca por contorno ou faixa lateral**: sem `border-*` de cartão, sem `divide-*`, sem `rounded-[2px]`. A caixinha de
+  concluir e a bolinha do rádio mantêm contorno de 2 px em `--atd-campo` (indicador de estado: WCAG 1.4.11, >= 3:1). O aviso "Desfazer" é um balão
+  `bg-atd-hdr` sem faixa; a gaveta é uma folha arredondada no pé (`rounded-t-atd-flutuante`), sem divisórias. A **única sombra** da aba é a do aviso
+  (`shadow-atd-flutuante`), porque ele flutua sobre a rolagem.
+- **Erro de contraste que o teste pegou**: texto de dica em `--atd-cinza-terciario` sobre `bg-concluido-bg`/`bg-urgente-bg` (rgba compostos sobre o cartão)
+  mede 4,46-4,49:1. Por isso `cx.dica` usa `--atd-cinza-previa`, e o `terciario` só vai sobre cartão, painel ou tela lisos (título de seção, placeholder).
+- **Campos sem contorno**: o campo é distinguido por preenchimento (`pilula-2` sobre cartão), não por linha; a borda é o foco visível global. O contraste
+  do PREENCHIMENTO contra o cartão é ~1,1:1 (por desenho, como a pílula de busca da lista); o texto e o placeholder passam AA.
+- **Filhas de Mais** usam `VoltarParaMais` (44 px) + `TituloDeTela`. A tela Mais mantém o aviso honesto "a construir" (o teste de nota interna o exige).
+- Teste novo: `lib/testes/atendimentoAppVisualDetalhes.teste.tsx` (contraste dos pares novos em Dia e Noite, varredura dos arquivos migrados: sem canto de
+  2px/contorno/faixa/hex/divisória/`bg-sf*`, sombra só no aviso, alvos de 44 px, estrutura do bloco, do aviso, da gaveta, do índice e da tela Mais).
+
+**Não provado**: fluxo real com login e banco (a aba foi vista em Chromium 390x844 com dados de exemplo numa rota temporária, já removida), aparelho de
+verdade (safe area, teclado, PWA instalado), leitor de tela, e o realce do chip do índice durante a rolagem (lógica não mudou; só se viu parado).

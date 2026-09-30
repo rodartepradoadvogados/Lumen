@@ -107,7 +107,7 @@ export default function Triagem({ p, aoRecusar }: { p: PropsDosDetalhes; aoRecus
   return (
     <div className="space-y-4">
       {decisaoAberta && (
-        <div className="rounded-[2px] border-2 border-urgente bg-urgente-bg p-3" role="group" aria-label="Proposta de recusa da atendente">
+        <div className={cx.painelAlerta} role="group" aria-label="Proposta de recusa da atendente">
           <p className="flex items-start gap-2 text-corpo font-semibold text-tx">
             <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-urgente" />
             A atendente propôs recusar este caso. Quem decide é você.
@@ -139,7 +139,7 @@ export default function Triagem({ p, aoRecusar }: { p: PropsDosDetalhes; aoRecus
       )}
 
       {c.documentoAteLabel && (
-        <p className="flex items-start gap-2 rounded-[2px] border border-regua bg-sf-apoio p-3 text-corpo text-tx">
+        <p className={`flex items-start gap-2 text-corpo text-tx ${cx.painel}`}>
           <Clock size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-aviso" />
           <span>
             <strong>Esperando documento até {c.documentoAteLabel}.</strong> Isto não é recusa: o caso está guardado esperando o papel e continua na fila.
@@ -152,7 +152,7 @@ export default function Triagem({ p, aoRecusar }: { p: PropsDosDetalhes; aoRecus
           <p className={cx.etiqueta}>O que o cliente contou</p>
           {c.description && <span className={cx.chip}>{origem("relato")}</span>}
         </div>
-        <p className={`mt-1 whitespace-pre-wrap break-words text-corpo ${c.description ? "text-tx" : "text-tx-2"}`}>{c.description || "Sem relato ainda."}</p>
+        <p className={`mt-1 whitespace-pre-wrap break-words text-corpo ${c.description ? "text-tx" : "text-atd-previa"}`}>{c.description || "Sem relato ainda."}</p>
         <div className="mt-1 flex flex-wrap gap-2">
           {c.description && !p.triagem.carimbos.relato && (
             <button type="button" className={cx.secundario} disabled={pendente} onClick={() => confirmar({ campo: "relato" })}>
@@ -174,13 +174,13 @@ export default function Triagem({ p, aoRecusar }: { p: PropsDosDetalhes; aoRecus
 
       <div>
         <p className={`mb-1 ${cx.etiqueta}`}>Informações apuradas</p>
-        <ul className="divide-y divide-regua">
+        <ul className="space-y-1">
           {base.map((l) => (
             <li key={l.campo} className="py-2.5">
-              <p className="flex flex-wrap items-center gap-x-2 text-etiqueta text-tx-2">
+              <p className="flex flex-wrap items-center gap-x-2 text-etiqueta text-atd-previa">
                 {l.rotulo} {l.valor && <span className={cx.chip}>{origem(l.campo)}</span>}
               </p>
-              <p className={`break-words text-corpo font-medium ${l.valor ? "text-tx" : "text-tx-2"}`}>{l.valor || "Não informada"}</p>
+              <p className={`break-words text-corpo font-medium ${l.valor ? "text-tx" : "text-atd-previa"}`}>{l.valor || "Não informada"}</p>
               <div className="mt-1 flex flex-wrap gap-2">
                 {l.valor && !p.triagem.carimbos[l.campo] && (
                   <button type="button" className={cx.secundario} disabled={pendente} onClick={() => confirmar({ campo: l.campo })}>
@@ -202,7 +202,7 @@ export default function Triagem({ p, aoRecusar }: { p: PropsDosDetalhes; aoRecus
           ))}
           {p.triagem.fatos.map((f) => (
             <li key={f.id} className="py-2.5">
-              <p className="flex flex-wrap items-center gap-x-2 text-etiqueta text-tx-2">
+              <p className="flex flex-wrap items-center gap-x-2 text-etiqueta text-atd-previa">
                 {f.rotulo} <span className={cx.chip}>{rotuloDaOrigem(f.estado as EstadoDoCarimbo | "PESSOA", f.por)}</span>
               </p>
               <p className="whitespace-pre-wrap break-words text-corpo font-medium text-tx">{f.valor}</p>

@@ -9,9 +9,9 @@ import { LIMITE_DO_TEXTO_RAPIDO, LIMITE_DO_TITULO, ordenarRespostas, type Respos
 // confirmação escrita no próprio cartão. Erros do servidor aparecem no lugar (`role="alert"`). A lista local
 // acompanha o que o servidor devolveu; quem não pode mexer não vê Editar nem Excluir (e o servidor recusa de novo).
 
-const CAMPO = "min-h-11 w-full rounded-[2px] border border-atd-campo bg-sf px-3 py-2 text-corpo text-tx placeholder:text-tx-3 disabled:opacity-60";
-const PRIMARIO = "inline-flex min-h-11 items-center justify-center gap-2 rounded-[2px] bg-acao px-4 text-corpo font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-60";
-const SECUNDARIO = "inline-flex min-h-11 items-center justify-center gap-2 rounded-[2px] border border-regua-forte bg-sf px-4 text-corpo font-semibold text-tx hover:bg-sf-apoio disabled:opacity-60";
+const CAMPO = "mt-1 min-h-11 w-full rounded-atd-balao bg-atd-pilula-2 px-4 py-2 text-corpo text-tx placeholder:text-atd-terciario disabled:opacity-60";
+const PRIMARIO = "inline-flex min-h-11 items-center justify-center gap-2 rounded-atd-pilula bg-acao px-5 text-corpo font-semibold text-acao-tx hover:bg-acao-hover active:opacity-90 disabled:opacity-60";
+const SECUNDARIO = "inline-flex min-h-11 items-center justify-center gap-2 rounded-atd-pilula bg-atd-pilula-2 px-5 text-corpo font-semibold text-tx hover:bg-atd-linha-hover active:opacity-80 disabled:opacity-60";
 
 type Edicao = { id?: string; titulo: string; texto: string };
 
@@ -71,21 +71,21 @@ export default function ManterRespostasRapidas({ inicial }: { inicial: RespostaR
             e.preventDefault();
             void salvar();
           }}
-          className="space-y-2 rounded-[2px] border border-regua-forte bg-sf p-3"
+          className="space-y-3 rounded-atd-balao bg-atd-pilula p-4"
           aria-label={edicao.id ? "Editar resposta rápida" : "Nova resposta rápida"}
         >
           <div>
-            <label htmlFor="rr-titulo" className="block text-etiqueta font-semibold text-tx-2">
+            <label htmlFor="rr-titulo" className="block text-etiqueta font-semibold text-atd-previa">
               Título (só para achar a resposta)
             </label>
             <input id="rr-titulo" value={edicao.titulo} maxLength={LIMITE_DO_TITULO} onChange={(e) => setEdicao({ ...edicao, titulo: e.target.value })} className={CAMPO} autoFocus />
           </div>
           <div>
-            <label htmlFor="rr-texto" className="block text-etiqueta font-semibold text-tx-2">
+            <label htmlFor="rr-texto" className="block text-etiqueta font-semibold text-atd-previa">
               Texto que vai para o campo de mensagem
             </label>
             <textarea id="rr-texto" value={edicao.texto} maxLength={LIMITE_DO_TEXTO_RAPIDO} rows={5} onChange={(e) => setEdicao({ ...edicao, texto: e.target.value })} className={`${CAMPO} resize-y`} />
-            <p className="text-etiqueta text-tx-2">
+            <p className="text-etiqueta text-atd-terciario">
               {edicao.texto.length} de {LIMITE_DO_TEXTO_RAPIDO} caracteres
             </p>
           </div>
@@ -112,19 +112,19 @@ export default function ManterRespostasRapidas({ inicial }: { inicial: RespostaR
       )}
 
       {itens.length === 0 ? (
-        <p className="text-corpo text-tx-2">Nenhuma resposta rápida ainda. Crie a primeira: por exemplo, a mensagem de boas-vindas ou o pedido dos documentos.</p>
+        <p className="text-corpo text-atd-previa">Nenhuma resposta rápida ainda. Crie a primeira: por exemplo, a mensagem de boas-vindas ou o pedido dos documentos.</p>
       ) : (
         <ul className="space-y-2">
           {itens.map((i) => (
-            <li key={i.id} className="rounded-[2px] border border-regua bg-sf p-3">
+            <li key={i.id} className="rounded-atd-balao bg-atd-pilula p-4">
               <p className="text-corpo font-semibold text-tx">{i.titulo}</p>
-              <p className="mt-0.5 whitespace-pre-wrap break-words text-corpo text-tx-2 [overflow-wrap:anywhere]">{i.texto}</p>
+              <p className="mt-0.5 whitespace-pre-wrap break-words text-corpo text-atd-previa [overflow-wrap:anywhere]">{i.texto}</p>
               {i.podeEditar &&
                 (excluindo === i.id ? (
                   <div className="mt-2 space-y-2">
                     <p className="text-corpo font-medium text-tx">Excluir “{i.titulo}” para todo o escritório?</p>
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => void excluir(i.id)} disabled={ocupado} className="inline-flex min-h-11 items-center gap-2 rounded-[2px] border-2 border-urgente bg-sf px-4 text-corpo font-semibold text-urgente disabled:opacity-60">
+                      <button type="button" onClick={() => void excluir(i.id)} disabled={ocupado} className="inline-flex min-h-11 items-center gap-2 rounded-atd-pilula bg-urgente-bg px-5 text-corpo font-semibold text-urgente active:opacity-80 disabled:opacity-60">
                         <Trash2 size={15} aria-hidden="true" /> Excluir
                       </button>
                       <button type="button" onClick={() => setExcluindo(null)} disabled={ocupado} className={SECUNDARIO}>
