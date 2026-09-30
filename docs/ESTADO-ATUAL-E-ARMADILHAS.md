@@ -756,8 +756,7 @@ O que **não pode voltar atrás**:
   tem tom próprio: NADA de `opacity` para "esmaecer" a hora (opacidade derruba o contraste sem que o teste perceba). Os tokens antigos
   (`atd-bolha-*`, `atd-ardosia*`, `atd-chat-fundo`, `atd-borda-*`) continuam no CSS só porque telas não migradas (Detalhes) ainda os leem; o chat não usa mais nenhum.
 - **Balão**: `rounded-atd-balao` (14 px) com o canto do rabicho em 4 px (`rounded-bl-[4px]` recebido, `rounded-br-[4px]` enviado). Hora e ✓✓ ficam
-  DENTRO do balão (a hora flutua à direita da última linha do texto, como no WhatsApp). **O ✓✓ é cinza e significa "o WhatsApp aceitou o envio", nunca
-  "lida"** (não existe confirmação de leitura). A Ana leva o nome e o ícone em cima, não mais uma borda de ouro.
+  DENTRO do balão (a hora flutua à direita da última linha do texto, como no WhatsApp). **(O ✓✓ passou a mostrar o ciclo real: ver o item 30.)** A Ana leva o nome e o ícone em cima, não mais uma borda de ouro.
 - **Nota interna distinguível sem cor**: rótulo "Nota interna · só a equipe", cadeado, borda TRACEJADA de 1,5 px em ouro (`--atd-nota-borda`, 4,2:1 no Dia
   contra a tela), fundo `--atd-nota-bg`, autor e hora, e o texto para leitor de tela. O aviso "A Ana não respondeu" é uma pílula central com o rótulo
   "Aviso do sistema · só a equipe" e ícone de informação (o começo "A Ana não respondeu:" em destaque). O campo em modo nota fica tracejado e o botão de
@@ -843,6 +842,45 @@ prints (a rota temporária caía em "tela cheia"); `PendenciasEditor` e `Documen
 visual antigo (são compartilhados com o site); `error.tsx` e o Sem acesso só foram conferidos por código e contraste calculado (os prints da rota temporária
 saíram com tema errado por falta do script do tema); leitor de tela e aparelho de verdade; o `router.push("/m")` ao salvar uma nova conversa pelo app leva ao
 app mobile do site (comportamento antigo, não alterado aqui, merece decisão do dono).
+
+## 30. Entregue e lida no chat do aplicativo de Atendimento: o ✓✓ deixou de ser "o WhatsApp aceitou" (R2A, 30/09/2026)
+
+Antes, o ✓✓ só dizia que o WhatsApp aceitou o envio. Agora o chat mostra o ciclo real, para os DOIS provedores, a partir do retorno de status deles.
+O que **não pode voltar atrás**:
+
+- **Estados**: ✓ Enviada (o provedor aceitou) · ✓✓ Entregue (cinza) · ✓✓ Lida (azul `--atd-lida`, traço mais grosso) · Falhou ("Não enviada", o aviso de sempre).
+  Nunca só cor: o número de marcas, o traço da "lida", o `title` e o texto de leitor de tela ("Enviada", "Entregue", "Lida") dizem o estado. Na lista de conversas o
+  ícone da última mensagem enviada reflete o mesmo estado (`aria-label`). Mensagem sem retorno de status (todas as anteriores a esta versão) continua "Enviada".
+- **Schema aditivo** (`WhatsappMessage`): `entregueEm`, `lidaEm`, `falhaProvedor` (todos opcionais; `db push` puro). `status` continua `RECEIVED | SENT | FAILED`; o estado
+  mostrado sai de `entregaDaLinha` (`lib/entregaDaMensagem.ts`). Lida implica entregue.
+- **Só AVANÇA, e isso mora no `where` de cada `updateMany`** (`lib/entregaDaMensagemDb.ts`), não em "ler, decidir, gravar": evento repetido não acha linha, evento fora de ordem
+  ("lida" antes de "entregue") deixa as duas marcas, "entregue" depois de "lida" não recua, dois eventos simultâneos não se desfazem. "Falhou" só vale para quem ainda não
+  foi entregue nem lido; uma falha que chega depois é ruído; uma entrega que chega depois de uma falha do webhook a desfaz (chegou, então não falhou).
+- **Mensagem desconhecida, de ENTRADA ou de OUTRO escritório é ignorada sem erro e sem pista**: todo `updateMany` leva `officeId` e `direction: "OUT"`. Um recibo **não** sobe a
+  conversa na lista nem mexe em `ultimaAtividadeEm`/`waLastMessageAt`. O envio, a reserva idempotente (`PedidoDeEnvioWhatsapp`), `registrarMensagem` e a Ana **não conhecem**
+  esse ciclo (o teste varre esses arquivos).
+- **Meta** (`app/api/whatsapp/route.ts`): os `statuses` (sent/delivered/read/failed) são lidos SÓ depois da verificação de assinatura (`verifySignature`, fail-closed como o resto).
+  O escritório vem do `phone_number_id` (só configuração META com o módulo WhatsApp ligado). **A Meta só manda `statuses` se o campo `messages` do webhook estiver assinado**
+  (o mesmo que já entrega as mensagens) e o app estiver com o número em produção; nada a mudar no código para isso.
+- **Evolution** (`app/api/whatsapp/evolution/route.ts`): `messages.update` (`DELIVERY_ACK` = entregue; `READ` e `PLAYED` = lida; `ERROR` = falhou; `SERVER_ACK` e `PENDING` não avançam
+  nada; também aceita os números da Baileys e a forma antiga `key.id`/`update.status`). Recibo de mensagem do CLIENTE (`fromMe` falso) é descartado antes do banco. O ramo exige o
+  MESMO cabeçalho `x-lumen-evolution` e a mesma comparação em tempo constante (`segredoConfere`); sem segredo cadastrado, 401.
+- **A Evolution só manda `MESSAGES_UPDATE` se a instância assinar o evento.** `EVENTOS_DO_WEBHOOK` (`lib/whatsappEvolution.ts`) agora tem `MESSAGES_UPSERT` e `MESSAGES_UPDATE`, usado na
+  criação da instância E na reaplicação. **Instâncias criadas antes desta versão NÃO têm o evento**: `definirWebhook` (`POST /webhook/set/{instância}`) reaplica só o webhook, com o
+  mesmo segredo já guardado (nunca regerado: regerar derrubaria a instância), sem desconectar o celular nem gerar QR. Corre sozinho quando alguém abre "Ler o QR code" numa instância que
+  já existe (falha só é registrada e não impede o QR), e há o botão "Atualizar avisos de entrega e leitura" na conexão (`reaplicarWebhookEvolution`, só administrador).
+- **Atualização de 15 s**: `GET /api/atendimento/[id]/mensagens?depois=` devolve também `entregas` (id, entrega, falhou das últimas 80 mensagens de SAÍDA da conversa, já dentro do
+  recorte de dono e do escritório). O chat aplica com `aplicarEntregas`, que só avança e devolve o MESMO array se nada mudou: nada de `router.refresh()`, então rolagem, rascunho e
+  balões "enviando" ficam onde estão. Mensagem de saída mais antiga que as 80 últimas não é reconferida.
+- **Privacidade / LGPD (não muda a política)**: "Lida" revela ao escritório que o cliente abriu a mensagem (é o mesmo dado que o WhatsApp já mostra ao remetente; só passa a ser
+  guardado, com a hora, em `lidaEm`). Se o cliente desligou a confirmação de leitura no WhatsApp dele, o provedor **não manda** "lida" e a mensagem fica em "Entregue" para sempre:
+  isso não é defeito. "Lida" não prova que a PESSOA leu (outro aparelho, outra pessoa com o celular) e não deve ser usada como prova de ciência em peça ou cobrança.
+- Teste: `lib/testes/atendimentoAppEntrega.teste.tsx` (leitura dos dois provedores, ordem/repetição/alheia/desconhecida/avanço monotônico contra um provedor falso, assinatura
+  inválida e segredo ausente nas duas rotas, `entregas` no refresco, o balão e a lista, contraste AA de `--atd-lida` em Dia e Noite, evento e reaplicação da Evolution sem desconectar).
+
+**Não provado**: o payload REAL dos dois provedores em produção (os formatos vieram da documentação e da Baileys; a Evolution varia por versão: o leitor aceita as formas conhecidas,
+mas só uma mensagem de verdade confirma), o `POST /webhook/set` numa Evolution real (o corpo segue o mesmo formato v2 da criação; numa v1 o formato é plano e a reaplicação falharia
+com o erro da Evolution, sem afetar o resto), o campo `statuses` assinado na Meta, a "lida" com o cliente com confirmação de leitura desligada, aparelho e leitor de tela reais.
 
 
 ## 31. Aviso de mensagem nova (push), modo offline com sigilo e o retorno depois de salvar (R2B, 30/09/2026)

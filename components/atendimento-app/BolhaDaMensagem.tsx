@@ -3,13 +3,15 @@
 import { AlertTriangle, Check, CheckCheck, Clock, Ear, HelpCircle, Info, Lock, MoreVertical, Pin, RefreshCw, Trash2 } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
 import MidiaDaBolha from "@/components/atendimento-app/MidiaDaBolha";
+import { ROTULO_DA_ENTREGA, type EntregaDaMensagem } from "@/lib/entregaDaMensagem";
 import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 
 // O BALÃO (acabamento WhatsApp, etapa 2): raio de 14 px com o canto do rabicho em 4 px, hora e ✓✓ DENTRO do balão.
 // Recebida em `bg-atd-balao-in`; enviada por pessoa em `bg-atd-balao-out` (ouro suave); da Ana igual, com o nome
 // dela e o ícone em cima. Quem falou nunca depende de cor: o balão tem lado, e o leitor de tela ouve "Cliente"
 // ou "Escritório". MÍDIA: ver MidiaDaBolha. O ÁUDIO mostra o player e a transcrição, "para consulta da equipe".
-// O ✓✓ CINZA significa "o WhatsApp aceitou o envio", nunca "lida" (não existe confirmação de leitura).
+// O CICLO DO ✓ (R2A): ✓ enviada (o WhatsApp aceitou), ✓✓ entregue (cinza), ✓✓ lida (azul --atd-lida). Vem do retorno de status
+// do provedor (item 30 dos docs); sem retorno, fica "Enviada".
 //
 // OS ESTADOS DE ENVIO (mensagem que saiu deste aparelho e o servidor ainda não devolveu):
 //   enviando        relógio + "Enviando…"
@@ -23,6 +25,27 @@ import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 // TRACEJADA em ouro, fundo de ouro suave, cadeado e o rótulo "Nota interna · só a equipe" com autor e hora; o aviso
 // é uma pílula centralizada, com ícone de informação e "Aviso do sistema · só a equipe". Rótulo e ícone dizem o
 // que é; a cor só reforça.
+
+// O CICLO DE ENTREGA (R2A): ✓ Enviada · ✓✓ Entregue (cinza, o tom da hora) · ✓✓ Lida (azul `--atd-lida`, traço mais grosso). Nunca só
+// cor: o número de marcas (1 ou 2), o traço mais grosso da "lida", o `title` e o texto do leitor de tela ("Enviada", "Entregue",
+// "Lida") dizem o estado. "Lida" revela que o cliente leu (docs, item 30). Nota interna só tem "Salva".
+function MarcaDeEntrega({ ehNota, entrega }: { ehNota: boolean; entrega: EntregaDaMensagem }) {
+  if (ehNota) {
+    return (
+      <span className="inline-flex items-center" title="Salva">
+        <Check size={14} aria-hidden="true" />
+        <span className="sr-only">Salva</span>
+      </span>
+    );
+  }
+  const rotulo = ROTULO_DA_ENTREGA[entrega];
+  return (
+    <span className={`inline-flex items-center ${entrega === "lida" ? "text-atd-lida" : ""}`} title={rotulo} data-entrega={entrega}>
+      {entrega === "enviada" ? <Check size={15} aria-hidden="true" /> : <CheckCheck size={15} strokeWidth={entrega === "lida" ? 3 : 2} aria-hidden="true" />}
+      <span className="sr-only">{rotulo}</span>
+    </span>
+  );
+}
 
 export default function BolhaDaMensagem({
   m,
@@ -129,12 +152,7 @@ export default function BolhaDaMensagem({
         </span>
       )}
       <time dateTime={m.criadoEm}>{m.hora}</time>
-      {(m.enviada || local?.estado === "enviada") && (
-        <span className="inline-flex items-center" title={ehNota ? "Salva" : "Enviada"}>
-          {ehNota ? <Check size={14} aria-hidden="true" /> : <CheckCheck size={15} aria-hidden="true" />}
-          <span className="sr-only">{ehNota ? "Salva" : "Enviada"}</span>
-        </span>
-      )}
+      {(m.enviada || local?.estado === "enviada") && <MarcaDeEntrega ehNota={ehNota} entrega={m.enviada ? (m.entrega ?? "enviada") : "enviada"} />}
     </>
   );
   const classeDaMeta = `inline-flex items-center gap-1.5 text-app-meta leading-none tabular-nums ${sec}`;

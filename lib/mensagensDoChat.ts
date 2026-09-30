@@ -1,5 +1,6 @@
 import { diaDeBrasilia, horaDeBrasilia } from "@/lib/horaDeBrasilia";
 import { rotuloDoDia } from "@/lib/relogioDoAtendimento";
+import { entregaDaLinha, entregaMaisAvancada, type EntregaDaMensagem } from "@/lib/entregaDaMensagem";
 import { rotuloDeTranscricaoNaTela, type TranscricaoDaMensagem } from "@/lib/transcricaoDeAudio";
 
 // ============================================================================
@@ -74,6 +75,12 @@ export type MensagemDoChat = {
   /** "falhou" só em mensagem de saída que o WhatsApp recusou. */
   falhou: boolean;
   enviada: boolean;
+  /**
+   * O ciclo de entrega da mensagem de SAÍDA que o provedor aceitou (R2A): "enviada" (✓), "entregue" (✓✓), "lida" (✓✓ em
+   * destaque). Nulo em mensagem de entrada, nota, aviso e em mensagem que falhou. Só AVANÇA (lib/entregaDaMensagem.ts).
+   * Opcional: quem monta um MensagemDoChat de outro jeito não muda.
+   */
+  entrega?: EntregaDaMensagem | null;
   criadoEm: string; // ISO
   hora: string;
   /** Dia de Brasília ("2026-09-29") e o rótulo dele ("Hoje", "Ontem", "27/09"). */
@@ -104,6 +111,8 @@ export type LinhaDeMensagem = {
   body: string;
   status: string;
   createdAt: Date;
+  entregueEm?: Date | null;
+  lidaEm?: Date | null;
   clientMessageId?: string | null;
   midiaBytes?: number | null;
   midiaMime?: string | null;
@@ -122,6 +131,7 @@ export function prepararMensagem(m: LinhaDeMensagem, agora: Date): MensagemDoCha
     midia,
     falhou: m.direction === "OUT" && m.status === "FAILED",
     enviada: m.direction === "OUT" && m.status === "SENT",
+    entrega: entregaDaLinha(m),
     criadoEm: m.createdAt.toISOString(),
     hora: horaDeBrasilia(m.createdAt),
     dia: diaDeBrasilia(m.createdAt),
@@ -208,4 +218,31 @@ export function agruparMensagensPorDia(mensagens: MensagemDoChat[]): { dia: stri
     else grupos.push({ dia: m.dia, rotulo: m.rotuloDoDia, mensagens: [m] });
   }
   return grupos;
+}
+
+// ── MUDANÇA DE ESTADO DE MENSAGENS JÁ VISTAS (a atualização a cada 15 s) ────────────────────────────
+
+/** O estado de entrega de UMA mensagem de saída, como a rota de atualização o devolve. */
+export type EntregaDaLinha = { id: string; entrega: EntregaDaMensagem | null; falhou: boolean };
+
+/**
+ * Aplica ao que está na tela o estado de entrega que o servidor devolveu, sem mexer em mais nada. A ENTREGA só
+ * avança (`entregaMaisAvancada`): uma resposta atrasada não faz uma "lida" voltar a "entregue". A falha é a do
+ * servidor (uma falha do webhook some se a entrega depois chegou). Devolve o MESMO array quando nada mudou, para a
+ * tela não rerenderizar (nem a rolagem nem o rascunho são tocados de qualquer jeito: só o estado das mensagens).
+ */
+export function aplicarEntregas(atuais: MensagemDoChat[], entregas: EntregaDaLinha[]): MensagemDoChat[] {
+  if (entregas.length === 0) return atuais;
+  const porId = new Map(entregas.map((e) => [e.id, e]));
+  let mudou = false;
+  const novas = atuais.map((m) => {
+    const e = porId.get(m.id);
+    if (!e || m.direction !== "OUT" || m.tipo) return m;
+    const entrega = e.falhou ? null : entregaMaisAvancada(m.entrega, e.entrega ?? "enviada");
+    const enviada = !e.falhou;
+    if (m.falhou === e.falhou && m.enviada === enviada && (m.entrega ?? null) === entrega) return m;
+    mudou = true;
+    return { ...m, falhou: e.falhou, enviada, entrega };
+  });
+  return mudou ? novas : atuais;
 }

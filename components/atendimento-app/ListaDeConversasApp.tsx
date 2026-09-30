@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { AlertCircle, CheckCheck, Clock, FileText, Image as IconeDeImagem, MessageSquare, Mic, Pin, Plus, Video } from "lucide-react";
+import { AlertCircle, Check, CheckCheck, Clock, FileText, Image as IconeDeImagem, MessageSquare, Mic, Pin, Plus, Video } from "lucide-react";
 import { chipsDaLista, hrefDaListaApp, type FiltroDaLista, type LinhaPronta, type RecorteDaListaApp } from "@/lib/conversasDoApp";
 import type { ContagensPorFase } from "@/lib/listaDeAtendimentos";
+import { ROTULO_DA_ENTREGA, type EntregaDaMensagem } from "@/lib/entregaDaMensagem";
 import type { TipoDeMidia } from "@/lib/mensagensDoChat";
 import Avatar from "@/components/atendimento-app/ui/Avatar";
 import FiltroPilula from "@/components/atendimento-app/ui/FiltroPilula";
@@ -95,6 +96,13 @@ export default function ListaDeConversasApp({
   );
 }
 
+// O ícone da última mensagem enviada reflete o ciclo (R2A): ✓ Enviada · ✓✓ Entregue (cinza) · ✓✓ Lida (azul, traço mais grosso).
+function EntregaDaUltima({ entrega }: { entrega: EntregaDaMensagem }) {
+  const rotulo = ROTULO_DA_ENTREGA[entrega];
+  if (entrega === "enviada") return <Check size={17} aria-label={rotulo} data-entrega={entrega} className="shrink-0 text-atd-terciario" />;
+  return <CheckCheck size={17} strokeWidth={entrega === "lida" ? 3 : 2} aria-label={rotulo} data-entrega={entrega} className={`shrink-0 ${entrega === "lida" ? "text-atd-lida" : "text-atd-terciario"}`} />;
+}
+
 const ICONE_DA_MIDIA: Partial<Record<TipoDeMidia, typeof Mic>> = { imagem: IconeDeImagem, audio: Mic, video: Video, documento: FileText };
 
 function Linha({ l }: { l: LinhaPronta }) {
@@ -114,7 +122,7 @@ function Linha({ l }: { l: LinhaPronta }) {
         <span className="mt-0.5 flex items-center justify-between gap-2">
           <span className={`flex min-w-0 items-center gap-1.5 text-app-previa ${l.esperando ? "text-atd-tinta" : "text-atd-previa"}`}>
             {l.falhou && <AlertCircle size={16} aria-label="Não enviada" className="shrink-0 text-urgente" />}
-            {l.enviada && <CheckCheck size={17} aria-label="Enviada" className="shrink-0 text-atd-terciario" />}
+            {l.entrega && <EntregaDaUltima entrega={l.entrega} />}
             {Midia && <Midia size={17} aria-hidden="true" className="shrink-0" />}
             <span className="truncate">
               {l.prefixo}

@@ -102,6 +102,34 @@ async function pedir(
 // ── Instância ────────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Os eventos que o Lúmen assina. MESSAGES_UPSERT = mensagem que chega; MESSAGES_UPDATE = mudança de status de mensagem
+ * (entregue, lida, falhou: o ciclo do ✓✓ do aplicativo de Atendimento). Uma lista só, usada na criação E na reaplicação.
+ */
+export const EVENTOS_DO_WEBHOOK = ["MESSAGES_UPSERT", "MESSAGES_UPDATE"] as const;
+
+function corpoDoWebhook(webhook: { url: string; segredo: string }) {
+  return {
+    enabled: true,
+    url: webhook.url,
+    byEvents: false,
+    base64: false,
+    // O segredo viaja em cabeçalho próprio. É o que o Lúmen confere para saber que o pedido
+    // veio desta instância, e não de alguém que descobriu o endereço.
+    headers: { "x-lumen-evolution": webhook.segredo },
+    events: [...EVENTOS_DO_WEBHOOK],
+  };
+}
+
+/**
+ * REAPLICA a configuração do webhook numa instância que JÁ EXISTE (criada antes de o Lúmen assinar MESSAGES_UPDATE).
+ * Só troca o webhook: não desconecta o aparelho, não gera QR, não mexe na sessão. Idempotente (mesmo corpo, mesmo
+ * resultado) e usa o mesmo segredo já guardado.
+ */
+export async function definirWebhook(config: ConfigEvolution, webhook: { url: string; segredo: string }): Promise<void> {
+  await pedir(config, "POST", `/webhook/set/${encodeURIComponent(config.instancia)}`, { webhook: corpoDoWebhook(webhook) });
+}
+
+/**
  * Cria a instância JÁ com o webhook apontado para o Lúmen. Criar primeiro e configurar o webhook
  * depois é um convite a esquecer o segundo passo — e uma instância conectada sem webhook recebe
  * mensagens de cliente que não chegam a lugar nenhum.
@@ -120,16 +148,7 @@ export async function criarInstancia(
     // Não puxa o histórico inteiro do aparelho. Além de demorado, traria para dentro do CRM
     // conversas antigas que ninguém pediu para importar.
     syncFullHistory: false,
-    webhook: {
-      enabled: true,
-      url: webhook.url,
-      byEvents: false,
-      base64: false,
-      // O segredo viaja em cabeçalho próprio. É o que o Lúmen confere para saber que o pedido
-      // veio desta instância, e não de alguém que descobriu o endereço.
-      headers: { "x-lumen-evolution": webhook.segredo },
-      events: ["MESSAGES_UPSERT"],
-    },
+    webhook: corpoDoWebhook(webhook),
   });
 }
 

@@ -7,8 +7,10 @@ import {
   lerCursor,
   paginaDeMensagens,
   prepararMensagem,
+  type EntregaDaLinha,
   type MensagemDoChat,
 } from "@/lib/mensagensDoChat";
+import { entregaDaLinha } from "@/lib/entregaDaMensagem";
 import { prepararNota, type LinhaDeNota } from "@/lib/notaDaConversa";
 
 // O LADO DE BANCO DO CHAT. ATENÇÃO: esta função NÃO confere o dono da conversa — quem a chama já
@@ -78,4 +80,19 @@ export async function carregarMensagensDepois(attendanceId: string, officeId: st
   ]);
   const juntas = [...juntarDoMaisNovoAoMaisAntigo<LinhaDoChat>([...linhasDeMensagem.map((m) => ({ ...m, origem: "mensagem" as const })), ...linhasDeNota.map((n) => ({ ...n, origem: "nota" as const }))])].reverse();
   return juntas.slice(0, 200).map((m) => preparar(m, agora));
+}
+
+/**
+ * O estado de entrega das últimas mensagens de SAÍDA da conversa (as que o aparelho pode estar mostrando): é o que faz
+ * o ✓✓ virar "Entregue"/"Lida" numa mensagem que a tela JÁ TEM (o `?depois=` só traria mensagens novas). Leve: só id
+ * e estado. As mais antigas que as 80 últimas de saída não são reconferidas (o estado delas já assentou).
+ */
+export async function carregarEntregasRecentes(attendanceId: string, officeId: string): Promise<EntregaDaLinha[]> {
+  const linhas = await prisma.whatsappMessage.findMany({
+    where: { attendanceId, officeId, direction: "OUT" },
+    orderBy: ORDEM_DA_PAGINA,
+    take: 80,
+    select: { id: true, direction: true, status: true, entregueEm: true, lidaEm: true },
+  });
+  return linhas.map((l) => ({ id: l.id, entrega: entregaDaLinha(l), falhou: l.status === "FAILED" }));
 }
