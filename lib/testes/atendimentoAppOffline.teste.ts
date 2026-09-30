@@ -385,7 +385,7 @@ teste("FILA: recarregar a página com mensagens aguardando as mantém aguardando
 
 teste("FILA (balão): o texto 'Aguardando conexão' existe no balão e o rascunho continua só local", () => {
   const b = codigoDe(le("components/atendimento-app/BolhaDaMensagem.tsx"));
-  verdade(b.includes('local?.aguardando ? "Aguardando conexão" : "Enviando…"'), "o balão diz Aguardando conexão");
+  verdade(b.includes('local?.aguardando ? "Aguardando conexão" :'), "o balão diz Aguardando conexão");
   const c = codigoDe(le("components/atendimento-app/ChatDaConversa.tsx"));
   verdade(c.includes("registrarFalhaDeRede()") && c.includes("registrarRedeOk()"), "o chat alimenta a faixa");
   verdade(c.includes("useSemConexao()"), "e lê a mesma conexão");

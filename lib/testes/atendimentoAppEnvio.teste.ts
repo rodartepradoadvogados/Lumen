@@ -292,9 +292,10 @@ teste("as rotas velhas sem uso saíram (ana-responde gravava metadata que ningu�
   verdade(codigoDe(le("components/atendimento-app/BarraDoChat.tsx")).includes("definirAtendenteResponde") && codigoDe(le("components/atendimento-app/BarraDoChat.tsx")).includes("devolverAtendenteResponde"), "o interruptor usa as ações com recorte");
 });
 
-teste("o campo de mensagem: sem anexo e sem modelo (não faz o que o código não faz); 16 px; alvo de 44 px; safe-area", () => {
+teste("o campo de mensagem: sem modelo aprovado (fora de escopo); o clipe só aparece no modo ao cliente; 16 px; alvo de 44 px; safe-area", () => {
   const c = codigoDe(le("components/atendimento-app/CompositorDoChat.tsx"));
-  verdade(!/Paperclip|anexar|modelo aprovado/i.test(c), "promete o que não existe");
+  verdade(!/modelo aprovado|template/i.test(c), "promete o que não existe");
+  verdade(/!nota && aoEnviarMidia && <AnexarMidia/.test(c), "o clipe não pode aparecer na nota interna nem sem quem envie o arquivo");
   verdade(c.includes("env(safe-area-inset-bottom)"), "safe-area");
   verdade(c.includes("min-h-11") && c.includes("h-11"), "alvo de 44 px");
   verdade(c.includes("atd-campo-de-mensagem"), "fonte de 16 px");

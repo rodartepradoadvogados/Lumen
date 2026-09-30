@@ -11,7 +11,8 @@ import { FRASES_DA_MIDIA, LIMITE_DA_MIDIA_BYTES, cabecalhosDaMidia, idDeMensagem
 //      lido antes dela — nem a mensagem, nem o anexo.
 //   2. a MENSAGEM tem de ser DESTA conversa e DESTE escritório (id palpite, formato conferido antes de ir ao
 //      banco): outra conversa, outro escritório ou id inexistente = 404, o MESMO 404.
-//   3. só mídia RECEBIDA e guardada (foto, áudio, vídeo, documento). Figurinha não é guardada; texto não é mídia.
+//   3. só mídia guardada (foto, áudio, vídeo, documento): a RECEBIDA e a ENVIADA pelo aplicativo (R3), que só tem arquivo quando o envio
+//      gravou o `attachmentId` (a de saída NUNCA é procurada pelo nome, como a recebida antiga). Figurinha não é guardada; texto não é mídia.
 //   4. o ANEXO é procurado dentro da mesma conversa e do mesmo escritório; o arquivo só é baixado depois.
 //   5. limite de tamanho, tipo seguro, recorte de bytes.
 // Nenhuma frase de erro contém id, endereço do Drive ou o texto do erro do provedor.
@@ -61,7 +62,9 @@ export async function decidirRespostaDaMidia(
   if (!mensagem) return { status: 404, erro: FRASES_DA_MIDIA.naoEncontrado };
 
   const midia = lerMidia(mensagem.body);
-  if (!midia || midia.tipo === "figurinha" || mensagem.direction !== "IN") return { status: 404, erro: FRASES_DA_MIDIA.naoEncontrado };
+  if (!midia || midia.tipo === "figurinha") return { status: 404, erro: FRASES_DA_MIDIA.naoEncontrado };
+  // Mensagem de SAÍDA só tem arquivo se o envio gravou o vínculo; a busca pelo nome do arquivo é só para a mídia recebida antiga.
+  if (mensagem.direction !== "IN" && !(mensagem.direction === "OUT" && mensagem.attachmentId)) return { status: 404, erro: FRASES_DA_MIDIA.naoEncontrado };
   if (mensagem.midiaBytes != null && mensagem.midiaBytes > LIMITE_DA_MIDIA_BYTES) return { status: 413, erro: FRASES_DA_MIDIA.grandeDemais };
 
   const anexo = await portas.acharAnexo(mensagem, consulta);

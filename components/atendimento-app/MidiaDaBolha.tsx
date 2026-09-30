@@ -13,7 +13,8 @@ import { enderecoDaMidia, tamanhoLegivel, tipoLegivel } from "@/lib/midiaDoChat"
 //   DOCUMENTO  cartão com nome, tipo e tamanho e "Abrir" (outra aba, por baixo da mesma rota autenticada).
 //   FIGURINHA  cartão dizendo que não é guardada (o Lúmen não a baixa).
 // Todo estado tem TEXTO: carregando, erro (com "Tentar de novo") e indisponível. A cor nunca fala sozinha.
-// Só mídia RECEBIDA tem arquivo: a mensagem de saída mostra o rótulo, como antes.
+// TEM ARQUIVO (`recebida`) a mídia que o cliente mandou e a que o aplicativo enviou e guardou (R3, `doCliente` só troca as frases: "do cliente" x
+// "enviado"). A mensagem de saída SEM arquivo (o balão "enviando", ou a de antes da coluna) mostra o rótulo, como antes.
 
 // Acabamento WhatsApp (etapa 2): cartões preenchidos (sem contorno), botões em pílula, cantos de 11 px dentro do balão.
 const CARTAO = "flex items-center gap-2.5 rounded-[11px] bg-atd-pilula-2 px-2.5 py-2 text-corpo text-atd-tinta";
@@ -87,7 +88,7 @@ function tempo(seg: number): string {
 // O PLAYER DE ÁUDIO no acabamento do app: botão de play/pause em ouro (44 px), forma de onda com o progresso e o tempo.
 // O `<audio>` continua sem baixar nada (`preload="none"`) até o primeiro toque em ouvir. Acessível: botão nomeado que
 // diz "Ouvir/Pausar áudio", campo de posição (setas do teclado adiantam e voltam) com `aria-valuetext` e o tempo escrito.
-function PlayerDeAudio({ src, idDaMensagem, tamanho, aoFalhar }: { src: string; idDaMensagem: string; tamanho: string; aoFalhar: () => void }) {
+function PlayerDeAudio({ src, idDaMensagem, tamanho, aoFalhar, doCliente }: { src: string; idDaMensagem: string; tamanho: string; aoFalhar: () => void; doCliente: boolean }) {
   const audio = useRef<HTMLAudioElement>(null);
   const [tocando, setTocando] = useState(false);
   const [posicao, setPosicao] = useState(0);
@@ -123,7 +124,7 @@ function PlayerDeAudio({ src, idDaMensagem, tamanho, aoFalhar }: { src: string; 
       <button
         type="button"
         onClick={alternar}
-        aria-label={`${tocando ? "Pausar" : "Ouvir"} áudio do cliente${tamanho ? `, ${tamanho}` : ""}`}
+        aria-label={`${tocando ? "Pausar" : "Ouvir"} ${doCliente ? "áudio do cliente" : "áudio enviado"}${tamanho ? `, ${tamanho}` : ""}`}
         aria-pressed={tocando}
         className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-atd-ouro text-atd-ouro-tx"
       >
@@ -160,7 +161,7 @@ function PlayerDeAudio({ src, idDaMensagem, tamanho, aoFalhar }: { src: string; 
   );
 }
 
-export default function MidiaDaBolha({ idDaConversa, idDaMensagem, midia, recebida }: { idDaConversa: string; idDaMensagem: string; midia: MidiaDaMensagem; recebida: boolean }) {
+export default function MidiaDaBolha({ idDaConversa, idDaMensagem, midia, recebida, doCliente = true }: { idDaConversa: string; idDaMensagem: string; midia: MidiaDaMensagem; recebida: boolean; doCliente?: boolean }) {
   const [tentativa, setTentativa] = useState(0);
   const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando");
   const [ampliada, setAmpliada] = useState(false);
@@ -229,7 +230,7 @@ export default function MidiaDaBolha({ idDaConversa, idDaMensagem, midia, recebi
             <img
               ref={imagem}
               src={src}
-              alt={`Imagem enviada pelo cliente: ${descricao}`}
+              alt={`${doCliente ? "Imagem enviada pelo cliente" : "Imagem enviada"}: ${descricao}`}
               loading="lazy"
               decoding="async"
               onLoad={() => setEstado("pronto")}
@@ -238,7 +239,7 @@ export default function MidiaDaBolha({ idDaConversa, idDaMensagem, midia, recebi
             />
           </button>
         )}
-        {ampliada && <Ampliada src={src} alt={`Imagem enviada pelo cliente: ${descricao}`} aoFechar={() => setAmpliada(false)} />}
+        {ampliada && <Ampliada src={src} alt={`${doCliente ? "Imagem enviada pelo cliente" : "Imagem enviada"}: ${descricao}`} aoFechar={() => setAmpliada(false)} />}
       </div>
     );
   }
@@ -249,7 +250,7 @@ export default function MidiaDaBolha({ idDaConversa, idDaMensagem, midia, recebi
         {falhouOutro ? (
           <Falha texto="Áudio indisponível. Confira a internet ou se o arquivo ainda está no Drive." aoTentar={tentarDeNovo} />
         ) : (
-          <PlayerDeAudio key={tentativa} src={src} idDaMensagem={idDaMensagem} tamanho={tamanho} aoFalhar={() => setFalhouOutro(true)} />
+          <PlayerDeAudio key={tentativa} src={src} idDaMensagem={idDaMensagem} tamanho={tamanho} aoFalhar={() => setFalhouOutro(true)} doCliente={doCliente} />
         )}
       </div>
     );
@@ -268,7 +269,7 @@ export default function MidiaDaBolha({ idDaConversa, idDaMensagem, midia, recebi
         {falhouOutro ? (
           <Falha texto="Vídeo indisponível. Confira a internet ou se o arquivo ainda está no Drive." aoTentar={() => { setVideoPedido(true); tentarDeNovo(); }} />
         ) : videoPedido ? (
-          <video key={tentativa} controls playsInline autoPlay preload="metadata" src={src} onError={() => setFalhouOutro(true)} aria-label={`Vídeo do cliente${tamanho ? `, ${tamanho}` : ""}`} className="max-h-64 w-full rounded-[11px] bg-atd-tela" />
+          <video key={tentativa} controls playsInline autoPlay preload="metadata" src={src} onError={() => setFalhouOutro(true)} aria-label={`${doCliente ? "Vídeo do cliente" : "Vídeo enviado"}${tamanho ? `, ${tamanho}` : ""}`} className="max-h-64 w-full rounded-[11px] bg-atd-tela" />
         ) : (
           <button type="button" onClick={() => setVideoPedido(true)} className={BOTAO}>
             <Play size={16} aria-hidden="true" /> Carregar vídeo{tamanho ? ` (${tamanho})` : ""}

@@ -38,7 +38,7 @@ export type MidiaDaMensagem = {
   mime?: string | null;
 };
 
-const ROTULO_DO_TIPO: Record<TipoDeMidia, string> = {
+export const ROTULO_DO_TIPO: Record<TipoDeMidia, string> = {
   imagem: "Imagem",
   documento: "Documento",
   audio: "Áudio",
@@ -93,7 +93,7 @@ export type MensagemDoChat = {
    */
   clientMessageId: string | null;
   /** SÓ NA TELA: a mensagem que ainda não foi confirmada pelo servidor (balão "enviando", "falhou"...). */
-  envioLocal?: { estado: "enviando" | "enviada" | "falhou" | "sem-confirmacao"; erro: string | null; podeTentarDeNovo: boolean; /** true = ainda NÃO saiu do aparelho: espera a conexão ("Aguardando conexão") e sai sozinha ao voltar. */ aguardando?: boolean };
+  envioLocal?: { estado: "enviando" | "enviada" | "falhou" | "sem-confirmacao"; erro: string | null; podeTentarDeNovo: boolean; /** true = ainda NÃO saiu do aparelho: espera a conexão ("Aguardando conexão") e sai sozinha ao voltar. */ aguardando?: boolean; /** Arquivo subindo: 0 a 99 (mídia de saída, R3). */ progresso?: number };
   /**
    * AUSENTE = mensagem de WhatsApp (a de sempre). "nota" = nota interna escrita por uma pessoa; "sistema" =
    * aviso do Lúmen. Os dois vêm de `NotaDaConversa` (lib/notaDaConversa.ts), são só da equipe e nunca foram

@@ -1,7 +1,8 @@
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { enviarTexto as enviarTextoEvolution, FalhaDaEvolution, mesmoNumero, baixarMidiaEvolution } from "@/lib/whatsappEvolution";
+import { enviarTexto as enviarTextoEvolution, enviarMidia as enviarMidiaEvolution, FalhaDaEvolution, mesmoNumero, baixarMidiaEvolution, type MidiaParaEnviar } from "@/lib/whatsappEvolution";
+import { enviarMidiaPelaMeta } from "@/lib/whatsappMidiaMeta";
 import { casarCampanha } from "@/lib/campanhas";
 import { composePhoneWithDdi } from "@/lib/documentoEnvios";
 import { deveExplicarAoColega, FRASE_AO_COLEGA } from "@/lib/avisoDeLead";
@@ -163,6 +164,33 @@ export async function sendWhatsappText(officeId: string, toE164: string, body: s
     // Sem resposta da Meta: não se sabe se a mensagem saiu.
     return { ok: false, error: `Falha ao contatar a API do WhatsApp: ${message}`, incerto: true };
   }
+}
+
+/**
+ * Envia UM ARQUIVO (imagem, vídeo, áudio ou documento) ao cliente, pelo provedor do escritório (R3, mídia de saída). Mesmo contrato do
+ * texto: nunca lança; `incerto` quando a falha veio SEM resposta do provedor (o arquivo pode ter chegado). O conteúdo já foi conferido
+ * (tipo, tamanho, assinatura) por lib/envioDeMidiaDb.ts antes de chegar aqui; esta função não confere nada e NUNCA loga o arquivo.
+ */
+export async function sendWhatsappMedia(officeId: string, toE164: string, midia: MidiaParaEnviar): Promise<SendResult> {
+  const office = await prisma.office.findUnique({ where: { id: officeId }, select: { moduloWhatsapp: true } });
+  if (!office?.moduloWhatsapp) return { ok: false, error: "O módulo WhatsApp não está incluído no plano deste escritório." };
+  const config = await prisma.whatsappConfig.findUnique({ where: { officeId } });
+  if (!config) return { ok: false, error: "WhatsApp não configurado para este escritório." };
+
+  if (config.provider === "EVOLUTION") {
+    if (!config.baseUrl || !config.apiKey) return { ok: false, error: "A conexão da Evolution está incompleta (endereço ou chave)." };
+    try {
+      const waMessageId = await enviarMidiaEvolution({ baseUrl: config.baseUrl, apiKey: config.apiKey, instancia: config.phoneNumberId }, toE164, midia);
+      return { ok: true, waMessageId };
+    } catch (erro) {
+      return {
+        ok: false,
+        error: erro instanceof FalhaDaEvolution ? erro.motivo : "falha ao enviar pela Evolution",
+        incerto: erro instanceof FalhaDaEvolution ? erro.incerta : true,
+      };
+    }
+  }
+  return enviarMidiaPelaMeta({ phoneNumberId: config.phoneNumberId, accessToken: config.accessToken }, toE164, midia);
 }
 
 /** Extrai uma mensagem de erro legível do payload de erro da Graph API. */

@@ -2,6 +2,8 @@ import { diaDeBrasilia, horaDeBrasilia } from "@/lib/horaDeBrasilia";
 import { rotuloDoDia } from "@/lib/relogioDoAtendimento";
 import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 import type { EstadoDoEnvio } from "@/lib/envioDeMensagem";
+import { ROTULO_DO_TIPO } from "@/lib/mensagensDoChat";
+import type { TipoDeSaida } from "@/lib/midiaDeSaida";
 
 // ============================================================================
 // AS MENSAGENS QUE O APARELHO AINDA NÃO VIU CONFIRMADAS + O RASCUNHO, por conversa (sem React).
@@ -16,8 +18,12 @@ import type { EstadoDoEnvio } from "@/lib/envioDeMensagem";
 // sair. Nenhuma mensagem RECEBIDA do cliente é guardada aqui.
 // ============================================================================
 
+/** O que a tela sabe do ARQUIVO de um pendente de mídia (R3). O arquivo em si NUNCA vai para o sessionStorage: só estes metadados. */
+export type MidiaDoPendente = { tipo: TipoDeSaida; nome: string; mime: string; bytes: number };
+
 export type Pendente = {
   clientMessageId: string;
+  /** Texto da mensagem; num pendente de MÍDIA é a legenda (pode ser vazia). */
   texto: string;
   criadoEm: string; // ISO
   estado: EstadoDoEnvio;
@@ -32,6 +38,10 @@ export type Pendente = {
    * meio: "sem confirmação") NUNCA tem esta marca: essa só se repete por ação humana.
    */
   aguardando?: boolean;
+  /** Presente = este pendente é um ARQUIVO para o cliente (mídia de saída). O arquivo só existe na memória da tela. */
+  midia?: MidiaDoPendente;
+  /** 0 a 99 enquanto o arquivo sobe ao armazenamento temporário; ausente = não está subindo. Só na tela. */
+  progresso?: number;
 };
 
 const PRAZO_MS = 24 * 3_600_000;
@@ -41,8 +51,8 @@ const PREFIXO_DO_RASCUNHO = "atd-rascunho:";
 // prefixo do rascunho, então "Sair" apaga os dois.
 const PREFIXO_DO_RASCUNHO_DA_NOTA = PREFIXO_DO_RASCUNHO + "nota:";
 
-export function novoPendente(clientMessageId: string, texto: string, agora: Date, nota = false): Pendente {
-  return { clientMessageId, texto, criadoEm: agora.toISOString(), estado: "enviando", erro: null, podeTentarDeNovo: false, ...(nota ? { nota: true } : {}) };
+export function novoPendente(clientMessageId: string, texto: string, agora: Date, nota = false, midia?: MidiaDoPendente): Pendente {
+  return { clientMessageId, texto, criadoEm: agora.toISOString(), estado: "enviando", erro: null, podeTentarDeNovo: false, ...(nota ? { nota: true } : {}), ...(midia ? { midia } : {}) };
 }
 
 /** O pedido não sai agora: espera a conexão. Só vale para o que NUNCA foi enviado. */
@@ -79,7 +89,7 @@ export function pendenteComoMensagem(p: Pendente, agora: Date): MensagemDoChat {
     direction: "OUT",
     porAgente: false,
     texto: p.texto,
-    midia: null,
+    midia: p.midia ? { tipo: p.midia.tipo, rotulo: ROTULO_DO_TIPO[p.midia.tipo], nome: p.midia.nome, legenda: p.texto, bytes: p.midia.bytes, mime: p.midia.mime } : null,
     falhou: p.estado === "falhou",
     enviada: p.estado === "enviada",
     criadoEm: p.criadoEm,
@@ -88,7 +98,7 @@ export function pendenteComoMensagem(p: Pendente, agora: Date): MensagemDoChat {
     rotuloDoDia: rotuloDoDia(quando, agora),
     transcricao: null,
     clientMessageId: p.clientMessageId,
-    envioLocal: { estado: p.estado, erro: p.erro, podeTentarDeNovo: p.podeTentarDeNovo, ...(p.aguardando ? { aguardando: true } : {}) },
+    envioLocal: { estado: p.estado, erro: p.erro, podeTentarDeNovo: p.podeTentarDeNovo, ...(p.aguardando ? { aguardando: true } : {}), ...(p.progresso !== undefined ? { progresso: p.progresso } : {}) },
     ...(p.nota ? { tipo: "nota" as const, autor: null } : {}),
   };
 }
@@ -114,13 +124,22 @@ export function restaurarPendentes(bruto: unknown, agora: Date): Pendente[] {
     const t = new Date(p.criadoEm).getTime();
     if (Number.isNaN(t) || agora.getTime() - t > PRAZO_MS) continue;
     const nota = p.nota === true;
+    const midia = lerMidiaDoPendente(p.midia);
+    if (p.midia !== undefined && !midia) continue; // metadados de arquivo estragados: não inventa
     // Nota: salvar é idempotente (a chave é única), então um "enviando" que sobrou não vira "sem confirmação"
     // (que fala em "pode ter sido enviada"): vira "falhou", com "Tentar de novo" seguro.
     // "Aguardando conexão" que sobrou de uma página recarregada AINDA não saiu (a marca só existe para o que nunca foi
     // enviado): continua aguardando, e sai sozinha quando houver conexão. É a única "enviando" que não vira dúvida.
-    const aguardando = p.aguardando === true && p.estado === "enviando";
+    // MÍDIA: nunca "aguardando" (o arquivo só existe na memória da tela) e, depois de recarregar, nunca se repete sozinha nem por botão: o
+    // arquivo não está mais aqui. O que estava "enviando" vira dúvida (pode ter saído); o que falhou continua falho. Só descartar.
+    const aguardando = !midia && p.aguardando === true && p.estado === "enviando";
     const estado: EstadoDoEnvio = aguardando ? "enviando" : p.estado === "falhou" || p.estado === "enviada" ? p.estado : nota ? "falhou" : "sem-confirmacao";
     if (estado === "enviada") continue; // já foi confirmada; o servidor a devolve
+    if (midia) {
+      const base = estado === "sem-confirmacao" ? "Pode ter sido enviado: confira a conversa antes de repetir." : typeof p.erro === "string" && p.erro ? p.erro : "Não foi enviado.";
+      saida.push({ clientMessageId: p.clientMessageId, texto: p.texto, criadoEm: p.criadoEm, estado, erro: `${base} O arquivo não está mais neste aparelho: para enviar de novo, escolha-o outra vez.`, podeTentarDeNovo: false, midia });
+      continue;
+    }
     saida.push({
       ...(nota ? { nota: true } : {}),
       ...(aguardando ? { aguardando: true } : {}),
@@ -133,6 +152,18 @@ export function restaurarPendentes(bruto: unknown, agora: Date): Pendente[] {
     });
   }
   return saida;
+}
+
+const TIPOS_DE_MIDIA_DO_PENDENTE: string[] = ["imagem", "video", "audio", "documento"];
+
+function lerMidiaDoPendente(bruto: unknown): MidiaDoPendente | null {
+  if (!bruto || typeof bruto !== "object") return null;
+  const m = bruto as Record<string, unknown>;
+  if (typeof m.tipo !== "string" || !TIPOS_DE_MIDIA_DO_PENDENTE.includes(m.tipo)) return null;
+  if (typeof m.nome !== "string" || !m.nome || m.nome.length > 300) return null;
+  if (typeof m.mime !== "string" || m.mime.length > 120) return null;
+  if (typeof m.bytes !== "number" || !Number.isFinite(m.bytes) || m.bytes < 0) return null;
+  return { tipo: m.tipo as TipoDeSaida, nome: m.nome, mime: m.mime, bytes: m.bytes };
 }
 
 // ── sessionStorage (sempre em try/catch: modo privado, cota e política do navegador podem falhar) ──
