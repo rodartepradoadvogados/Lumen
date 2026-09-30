@@ -29,9 +29,18 @@ type SpeechRecognitionLike = {
 
 type StagedAttachment = { key: string; file: File; name: string; docType: string };
 
-const inputClass =
+const INPUT_DO_SITE =
   "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx";
-const labelClass = "text-corpo font-medium text-tx-2";
+const LABEL_DO_SITE = "text-corpo font-medium text-tx-2";
+
+// Visual do APLICATIVO DE ATENDIMENTO (acabamento WhatsApp): campos preenchidos em pílula, sem contorno;
+// botão primário em ouro; erro em cartão. O site (/m) não passa `variante` e segue igual.
+const APP = {
+  input:
+    "w-full mt-1.5 min-h-11 rounded-atd-pilula bg-atd-pilula px-4 py-2 text-corpo text-tx placeholder:text-atd-terciario",
+  label: "block px-1 text-app-meta font-semibold text-atd-previa",
+  secao: "text-app-meta font-semibold uppercase tracking-wide text-atd-previa mb-2 px-1",
+};
 
 function toDatetimeLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -49,10 +58,17 @@ function toDatetimeLocal(d: Date): string {
 export default function MobileNewAttendanceForm({
   users,
   driveConnected,
+  variante,
 }: {
   users: { id: string; name: string }[];
   driveConnected: boolean;
+  /** "app" = acabamento do aplicativo de Atendimento. Sem ela, o visual de sempre (site /m). */
+  variante?: "app";
 }) {
+  const ehApp = variante === "app";
+  const inputClass = ehApp ? APP.input : INPUT_DO_SITE;
+  const labelClass = ehApp ? APP.label : LABEL_DO_SITE;
+  const secaoClass = ehApp ? APP.secao : "text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2";
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [progressText, setProgressText] = useState("");
@@ -228,7 +244,7 @@ export default function MobileNewAttendanceForm({
   }
 
   return (
-    <form action={handleSubmit} className="space-y-3">
+    <form action={handleSubmit} className={ehApp ? "space-y-4" : "space-y-3"}>
       <div>
         <label className={labelClass} htmlFor="attendance-client-name">Nome do contato</label>
         <input id="attendance-client-name" name="clientName" required className={inputClass} placeholder="Nome completo" />
@@ -236,21 +252,25 @@ export default function MobileNewAttendanceForm({
 
       <div>
         <label className={labelClass} id="attendance-phone-label">Telefone</label>
-        <div role="group" aria-labelledby="attendance-phone-label">
-          <PhoneInput name="contactPhone" className={inputClass} />
+        <div role="group" aria-labelledby="attendance-phone-label" className={ehApp ? "mt-1.5" : undefined}>
+          <PhoneInput
+            name="contactPhone"
+            className={ehApp ? `${inputClass} !mt-0` : inputClass}
+            classeDoPais={ehApp ? "flex min-h-11 items-center gap-1 whitespace-nowrap rounded-atd-pilula bg-atd-pilula px-4 text-corpo text-tx" : undefined}
+          />
         </div>
       </div>
 
       <div>
         <label className={labelClass} htmlFor="attendance-subject">Assunto</label>
-        <div className="mt-1 flex gap-2">
+        <div className={ehApp ? "mt-1.5 flex gap-2" : "mt-1 flex gap-2"}>
           <input
             id="attendance-subject"
             name="subject"
             required
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="flex-1 min-w-0 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx"
+            className={ehApp ? `${APP.input} flex-1 min-w-0 !mt-0` : "flex-1 min-w-0 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx"}
             placeholder="Do que se trata"
           />
           {speechSupported && (
@@ -258,9 +278,13 @@ export default function MobileNewAttendanceForm({
               type="button"
               onClick={toggleDictation}
               aria-label={listening ? "Parar ditado" : "Ditar assunto por voz"}
-              className={`shrink-0 w-11 flex items-center justify-center border transition-colors ${
-                listening ? "bg-urgente text-rotulo border-urgente animate-pulse" : "border-regua text-tx-2 hover:bg-sf-apoio"
-              }`}
+              className={
+                ehApp
+                  ? `flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${listening ? "animate-pulse bg-urgente text-rotulo" : "bg-atd-pilula text-atd-previa hover:bg-atd-pilula-2"}`
+                  : `shrink-0 w-11 flex items-center justify-center border transition-colors ${
+                      listening ? "bg-urgente text-rotulo border-urgente animate-pulse" : "border-regua text-tx-2 hover:bg-sf-apoio"
+                    }`
+              }
             >
               <Mic size={17} />
             </button>
@@ -268,27 +292,51 @@ export default function MobileNewAttendanceForm({
         </div>
       </div>
 
-      {error && <p role="alert" className="text-corpo font-semibold text-urgente">{error}</p>}
+      {error && (
+        <p
+          role="alert"
+          className={ehApp ? "flex items-start gap-2 rounded-atd-balao bg-urgente-bg px-4 py-3 text-corpo font-semibold text-urgente" : "text-corpo font-semibold text-urgente"}
+        >
+          {ehApp && <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0" />}
+          {error}
+        </p>
+      )}
 
       {loading && progressText && (
-        <p className="text-corpo font-semibold text-marca-tx">{progressText}</p>
+        <p role="status" className={ehApp ? "px-1 text-corpo font-semibold text-atd-texto-ouro" : "text-corpo font-semibold text-marca-tx"}>{progressText}</p>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full h-[52px] flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm transition-colors disabled:opacity-50"
+        className={
+          ehApp
+            ? "flex h-[52px] w-full items-center justify-center gap-2 rounded-atd-pilula bg-atd-ouro text-corpo font-bold text-atd-ouro-tx transition-transform active:scale-[0.98] disabled:opacity-50"
+            : "w-full h-[52px] flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm transition-colors disabled:opacity-50"
+        }
       >
         <Send size={15} /> {loading ? "Salvando..." : createdAttendanceId ? "Reenviar anexos" : "Salvar atendimento"}
       </button>
 
-      <ButtonSecondary type="button" onClick={() => setShowMore((v) => !v)} className="w-full justify-center">
-        {showMore ? <Minus size={15} /> : <Plus size={15} />}
-        {showMore ? "Menos detalhes" : "Mais detalhes (honorário, pendências, anexos)"}
-      </ButtonSecondary>
+      {ehApp ? (
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          aria-expanded={showMore}
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-atd-pilula bg-atd-pilula px-4 text-corpo font-semibold text-tx hover:bg-atd-pilula-2"
+        >
+          {showMore ? <Minus size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
+          {showMore ? "Menos detalhes" : "Mais detalhes (honorário, pendências, anexos)"}
+        </button>
+      ) : (
+        <ButtonSecondary type="button" onClick={() => setShowMore((v) => !v)} className="w-full justify-center">
+          {showMore ? <Minus size={15} /> : <Plus size={15} />}
+          {showMore ? "Menos detalhes" : "Mais detalhes (honorário, pendências, anexos)"}
+        </ButtonSecondary>
+      )}
 
       {uploadWarnings.length > 0 && (
-        <div className="flex items-start gap-2 text-corpo text-aviso bg-aviso-bg border border-linha-aviso rounded-[2px] px-3 py-2">
+        <div className={ehApp ? "flex items-start gap-2 rounded-atd-balao bg-aviso-bg px-4 py-3 text-corpo text-aviso" : "flex items-start gap-2 text-corpo text-aviso bg-aviso-bg border border-linha-aviso rounded-[2px] px-3 py-2"}>
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
@@ -298,7 +346,7 @@ export default function MobileNewAttendanceForm({
       )}
 
       {showMore && (
-      <div className="space-y-3 border-t border-regua pt-3">
+      <div className={ehApp ? "space-y-3 pt-2" : "space-y-3 border-t border-regua pt-3"}>
       <div>
         <label className={labelClass} htmlFor="attendance-email">E-mail</label>
         <input id="attendance-email" name="clientEmail" type="email" className={inputClass} placeholder="cliente@exemplo.com" />
@@ -344,19 +392,22 @@ export default function MobileNewAttendanceForm({
         />
       </div>
 
-      <div className="border-t border-regua pt-3">
-        <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">Honorário pretendido</p>
-        <div className="flex gap-1.5 mb-2">
+      <div className={ehApp ? "pt-2" : "border-t border-regua pt-3"}>
+        <p className={secaoClass}>Honorário pretendido</p>
+        <div className={ehApp ? "mb-2 flex flex-wrap gap-2" : "flex gap-1.5 mb-2"}>
           {(["DINHEIRO", "PERCENTUAL", "AMBOS"] as const).map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => setFeeMode(m)}
-              className={`text-corpo font-semibold px-2.5 py-1.5 border transition-colorsinline-flex items-center min-h-[44px]${
-                feeMode === m
-                  ? "bg-acao text-acao-tx border-acao"
-                  : "bg-sf text-tx-2 border-regua"
-              }`}
+              aria-pressed={feeMode === m}
+              className={
+                ehApp
+                  ? `inline-flex min-h-11 items-center rounded-atd-pilula px-4 text-corpo font-semibold transition-colors ${feeMode === m ? "bg-atd-ouro-suave text-atd-texto-ouro" : "bg-atd-pilula text-atd-previa"}`
+                  : `text-corpo font-semibold px-2.5 py-1.5 border transition-colorsinline-flex items-center min-h-[44px]${
+                      feeMode === m ? "bg-acao text-acao-tx border-acao" : "bg-sf text-tx-2 border-regua"
+                    }`
+              }
             >
               {m === "DINHEIRO" ? "Dinheiro" : m === "PERCENTUAL" ? "Percentual" : "Ambos"}
             </button>
@@ -398,8 +449,8 @@ export default function MobileNewAttendanceForm({
         </div>
       </div>
 
-      <div className="border-t border-regua pt-3">
-        <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">Pendências</p>
+      <div className={ehApp ? "pt-2" : "border-t border-regua pt-3"}>
+        <p className={secaoClass}>Pendências</p>
         {/* P2-2 do roteiro de adequação: as 14 caixas de checklist (Solicitar + Enviar ao lead)
             não podem aparecer expandidas por padrão, mesmo dentro do painel "Mais detalhes" — só
             abrem atrás deste toggle explícito. */}
@@ -409,15 +460,15 @@ export default function MobileNewAttendanceForm({
           <button
             type="button"
             onClick={() => setShowPendencias(true)}
-            className="flex items-center gap-1.5 text-corpo font-semibold text-marca-tx"
+            className={ehApp ? "inline-flex min-h-11 items-center gap-1.5 px-1 text-corpo font-semibold text-atd-texto-ouro" : "flex items-center gap-1.5 text-corpo font-semibold text-marca-tx"}
           >
             <Plus size={15} /> Adicionar pendência
           </button>
         )}
       </div>
 
-      <div className="border-t border-regua pt-3">
-        <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</p>
+      <div className={ehApp ? "pt-2" : "border-t border-regua pt-3"}>
+        <p className={secaoClass}>Anexos</p>
 
         {!driveConnected ? (
           <p className="text-corpo text-aviso bg-aviso-bg border border-linha-aviso rounded-[2px] px-2.5 py-1.5">
@@ -438,11 +489,13 @@ export default function MobileNewAttendanceForm({
                 if (e.dataTransfer.files?.length) stageFiles(e.dataTransfer.files);
               }}
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
-                dragOver
-                  ? "border-marca-tx bg-acao-bg"
-                  : "border-regua hover:border-marca-tx hover:bg-sf-apoio"
-              }`}
+              className={
+                ehApp
+                  ? `flex min-h-[88px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-atd-balao p-4 transition-colors ${dragOver ? "bg-atd-ouro-suave" : "bg-atd-pilula hover:bg-atd-pilula-2"}`
+                  : `flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
+                      dragOver ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx hover:bg-sf-apoio"
+                    }`
+              }
             >
               <UploadCloud size={18} className="text-tx-2" />
               <p className="text-corpo text-tx-2 text-center">
@@ -465,7 +518,7 @@ export default function MobileNewAttendanceForm({
                 {stagedAttachments.map((att) => (
                   <div
                     key={att.key}
-                    className="flex items-center gap-2 p-2.5 bg-sf-apoio border border-regua"
+                    className={ehApp ? "flex items-center gap-2 rounded-atd-balao bg-atd-pilula p-2.5" : "flex items-center gap-2 p-2.5 bg-sf-apoio border border-regua"}
                   >
                     <span className="flex-1 min-w-0 text-corpo font-medium text-tx truncate" title={att.name}>
                       {att.name}
@@ -480,9 +533,10 @@ export default function MobileNewAttendanceForm({
                     <button
                       type="button"
                       onClick={() => setStagedAttachments((prev) => prev.filter((a) => a.key !== att.key))}
-                      className="shrink-0 text-tx-2 hover:text-atencao"
+                      aria-label={`Remover ${att.name}`}
+                      className={ehApp ? "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-atd-previa hover:text-tx" : "shrink-0 text-tx-2 hover:text-atencao"}
                     >
-                      <X size={16} />
+                      <X size={16} aria-hidden="true" />
                     </button>
                   </div>
                 ))}
