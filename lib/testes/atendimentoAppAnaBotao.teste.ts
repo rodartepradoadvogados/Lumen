@@ -198,15 +198,15 @@ teste("toda tela que hospeda 'Responder à última pergunta' tem maxDuration >= 
 
 // ── 3) O BOTÃO NO APLICATIVO ────────────────────────────────────────────────────────────────────
 
-teste("APP: 'Responder última mensagem' reusa responderUltimaPergunta, só com a última do cliente, 44 px, carregando e erro", () => {
+teste("APP: 'Responder à última mensagem' (pop-up) reusa responderUltimaPergunta, só com a última do cliente, carregando e erro", () => {
   const b = codigoDe(le("components/atendimento-app/BarraDoChat.tsx"));
   verdade(b.includes("responderUltimaPergunta(idDaConversa)"), "usa a ação com recorte (a mesma do site)");
-  verdade(/podeResponderUltima = barra\.controle === "interruptor" && estado\.ultimaDirecao === "IN"/.test(b), "só quando a última é do cliente e a Ana pode falar");
-  verdade(b.includes("Responder última mensagem"), "o texto do botão");
-  verdade(/min-h-11[^"]*w-full|w-full[^"]*min-h-11/.test(b.slice(b.indexOf("Responder última mensagem") - 700, b.indexOf("Responder última mensagem"))), "alvo de 44 px");
-  verdade(b.includes("está respondendo…") && b.includes("aria-busy={respondendo}") && b.includes("disabled={respondendo}"), "estado de carregando");
-  verdade(/role="alert"[\s\S]{0,80}\{erroDaResposta\}/.test(b), "erro visível e anunciado");
-  verdade(b.includes("setErroDaResposta(r.error)"), "o motivo devolvido pela ação vai para a tela");
+  const l = codigoDe(le("lib/anaNoTopo.ts"));
+  verdade(/podeResponderUltima: e\.ultimaDirecao === "IN"/.test(l) && /return e\.ultimaDirecao === "IN"/.test(l), "só quando a última é do cliente (e a Ana pode falar: ligada/desligada, nunca pausada)");
+  verdade(!b.includes("Responder última mensagem"), "o botão avulso saiu da tela");
+  verdade(b.includes("está respondendo…") && b.includes("ocupado={respondendo}"), "estado de carregando");
+  verdade(/erro=\{erroDaResposta\}/.test(b) && b.includes("setErroDaResposta(r.error)"), "o motivo devolvido pela ação vai para a tela (role=alert no pop-up)");
+  verdade(codigoDe(le("components/atendimento-app/DialogoDaAna.tsx")).includes('role="alert"'), "erro anunciado");
   verdade(b.includes("aoResponder?.()"), "avisa a conversa para buscar a resposta na hora");
   verdade(codigoDe(le("components/atendimento-app/ChatDaConversa.tsx")).includes("aoResponder={() => void buscarNovas()}"), "a conversa busca as mensagens ao terminar");
   const acao = le("lib/actions/attendance.ts");
@@ -226,8 +226,8 @@ teste("INTERRUPTOR: role=switch, aria-checked, estado em texto, 44 px, radius 2,
   const site = codigoDe(le("components/AtendenteIaControle.tsx"));
   verdade(site.includes("<InterruptorDaAna") && !site.includes('type="checkbox"'), "o site usa o interruptor, não a caixinha");
   const app = codigoDe(le("components/atendimento-app/BarraDoChat.tsx"));
-  verdade(app.includes("<InterruptorDaAna") && !app.includes('role="switch"'), "o app usa o mesmo componente");
-  verdade(app.includes('bordaDesligada="border-atd-campo"') && app.includes('bordaLigada="border-atd-ouro-texto"'), "tokens de borda do app");
+  verdade(!app.includes('role="switch"') && app.includes('aria-haspopup="dialog"'), "o app (33) usa a pílula que abre pop-up, não o interruptor; o do site não muda");
+  verdade(app.includes("border-atd-campo") && app.includes("border-atd-ouro-texto"), "tokens de borda do app");
   verdade(site.includes('bordaDesligada="border-tx-3"'), "token de borda do site");
 });
 

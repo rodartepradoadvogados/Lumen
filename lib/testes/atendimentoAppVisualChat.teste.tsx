@@ -85,7 +85,10 @@ const PARES: [string, string, string][] = [
   ["atd-cinza-previa", "atd-ouro-suave", "apoio da faixa da janela fechada"],
   ["atd-cinza-terciario", "atd-tela", "guia inativa, hora do separador"],
   ["atd-tinta", "atd-tela", "guia ativa e nome"],
-  ["atd-ouro-tx", "atd-ouro", "play e envio"],
+  ["atd-ouro-tx", "atd-ouro", "play e envio; pílula 'Ana: Ligada' e o 'Sim' dos pop-ups da Ana"],
+  ["atd-tinta", "atd-pilula-bg", "pílula 'Ana: Desligada/pausada'"],
+  ["atd-tinta", "atd-pilula-bg-2", "botão 'Não' dos pop-ups da Ana"],
+  ["atd-cinza-previa", "atd-tela", "texto do pop-up da Ana (devolver)"],
 ];
 for (const tema of ["dia", "noite"] as const) {
   teste(`CONTRASTE AA (>= 4,5:1) em ${tema === "dia" ? "Dia" : "Noite"}: todo texto do chat sobre o seu fundo`, () => {
@@ -93,6 +96,10 @@ for (const tema of ["dia", "noite"] as const) {
       const c = contraste(hex(tema, tx), hex(tema, bg));
       verdade(c >= 4.5, `${o}: --${tx} sobre --${bg} mede ${c.toFixed(2)}:1 em ${tema}`);
     }
+  });
+  teste(`CONTRASTE de borda em ${tema === "dia" ? "Dia" : "Noite"}: a borda da pílula da Ana (>= 3:1 contra a tela)`, () => {
+    verdade(contraste(hex(tema, "atd-campo"), hex(tema, "atd-tela")) >= 3, "pílula desligada/pausada");
+    verdade(contraste(hex(tema, "atd-ouro-texto"), hex(tema, "atd-tela")) >= 3, "pílula ligada");
   });
   teste(`CONTRASTE de borda em ${tema === "dia" ? "Dia" : "Noite"}: a borda tracejada da nota >= 3:1 contra a tela e contra o fundo da nota`, () => {
     verdade(contraste(hex(tema, "atd-nota-borda"), hex(tema, "atd-tela")) >= 3, "borda contra a tela");
@@ -231,16 +238,17 @@ teste("GUIAS: continuam tablist com setas/Home/End e só a aberta no Tab; sublin
   verdade(g.includes("min-h-11") && g.includes("font-semibold") && g.includes("data-oculta-com-teclado"), "44 px, peso da ativa, recolhe com o teclado");
 });
 
-teste("BARRA DA ANA: discreta (sem faixa, sem borda), só ganha fundo quando é grave; interruptor em pílula com 44 px e borda de 2 px; título fica para o leitor de tela", () => {
+teste("PÍLULA DA ANA (33): fora da barra antiga, no espaço da linha das abas fora do tablist; 44 px, borda de 2 px, texto do estado; o interruptor em pílula do componente compartilhado segue válido", () => {
   const b = C("BarraDoChat.tsx");
-  verdade(!/border-b\b|bg-sf-apoio|bg-urgente-bg text-urgente" : "bg-/.test(b), "faixa antiga");
-  verdade(b.includes('grave ? "bg-urgente-bg text-urgente" : "text-atd-previa"') && b.includes("rounded-atd-balao"), "fundo só quando grave");
-  verdade(b.includes("pilula") && b.includes("data-oculta-com-teclado") && b.includes("data-barra-do-chat"), "interruptor em pílula; recolhe com o teclado");
+  verdade(!/data-barra-do-chat|Ao enviar, você assume|Responder última mensagem/.test(b), "a barra e o botão avulso saíram");
+  verdade(b.includes("createPortal") && b.includes("[data-slot-da-ana]"), "a pílula é desenhada no espaço da linha das abas");
+  verdade(b.includes("min-h-11") && b.includes("border-2") && b.includes("rounded-atd-pilula") && b.includes('aria-haspopup="dialog"') && b.includes("aria-expanded"), "44 px, borda de 2 px, abre diálogo");
+  const g = C("GuiasDaConversa.tsx");
+  verdade(/\}\)\}\s*<\/div>\s*(\{\/\*[\s\S]*?\*\/\}\s*)?<div data-slot-da-ana/.test(g), "o espaço da pílula fica depois de fechar o tablist (as abas seguem intactas)");
   const i = renderToStaticMarkup(<InterruptorDaAna ligado nome="Ana" aoAlternar={() => {}} bordaLigada="border-atd-ouro-texto" bordaDesligada="border-atd-campo" pilula />);
   verdade(i.includes("rounded-atd-pilula") && i.includes("min-h-11") && i.includes("border-2") && i.includes('role="switch"') && i.includes('aria-checked="true"') && i.includes("Ana responde:"), i);
   const site = renderToStaticMarkup(<InterruptorDaAna ligado={false} nome="Ana" aoAlternar={() => {}} bordaLigada="border-tx" bordaDesligada="border-tx-3" />);
   verdade(site.includes("rounded-[2px]") && !site.includes("rounded-atd-pilula"), "o interruptor do SITE segue com canto de 2 px");
-  verdade(/min-h-11[^"]*w-full/.test(b.slice(b.indexOf("Responder última mensagem") - 700, b.indexOf("Responder última mensagem"))), "responder última: 44 px");
 });
 
 teste("FIXADA: pílula 'Fixada' + trecho de uma linha, alvo de 44 px para ir à mensagem e para desafixar; autor no leitor de tela", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CornerUpLeft, Pin, PinOff, X } from "lucide-react";
+import { Bot, CornerUpLeft, Pin, PinOff, X } from "lucide-react";
 import { desafixarMensagem, fixarMensagem } from "@/lib/actions/mensagemFixada";
 import { trechoDaMensagem, type FixadaDoChat } from "@/lib/mensagemFixada";
 import type { MensagemDoChat } from "@/lib/mensagensDoChat";
@@ -23,6 +23,7 @@ export default function AcoesDaMensagem({
   autor,
   fixadaAgora,
   aoResponder,
+  respostaDaAna,
   aoMudarFixada,
   aoFechar,
 }: {
@@ -31,6 +32,8 @@ export default function AcoesDaMensagem({
   autor: string;
   fixadaAgora: boolean;
   aoResponder: (m: MensagemDoChat) => void;
+  /** Só na ÚLTIMA mensagem do cliente, com a Ana ligada e o cliente esperando: o caminho "Responder agora" (abre o pop-up de confirmação). */
+  respostaDaAna?: { nome: string; aoPedir: () => void };
   aoMudarFixada: (f: FixadaDoChat | null) => void;
   aoFechar: () => void;
 }) {
@@ -95,6 +98,15 @@ export default function AcoesDaMensagem({
               <span className="block text-app-meta font-normal text-atd-previa">A citação aparece só para você. O cliente não a vê.</span>
             </span>
           </button>
+          {respostaDaAna && (
+            <button type="button" data-responder-agora="" onClick={() => { respostaDaAna.aoPedir(); aoFechar(); }} className={BOTAO}>
+              <Bot size={16} aria-hidden="true" className="shrink-0" />
+              <span>
+                Pedir à {respostaDaAna.nome} que responda agora
+                <span className="block text-app-meta font-normal text-atd-previa">Ela responde ao que o cliente escreveu. Você confirma antes.</span>
+              </span>
+            </button>
+          )}
           <button type="button" onClick={alternarFixada} disabled={ocupado} className={BOTAO}>
             {fixadaAgora ? <PinOff size={16} aria-hidden="true" className="shrink-0" /> : <Pin size={16} aria-hidden="true" className="shrink-0" />}
             <span>

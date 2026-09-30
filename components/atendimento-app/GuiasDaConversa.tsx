@@ -9,7 +9,8 @@ import { guiaDaConversa } from "@/lib/navegacaoDoAtendimentoApp";
 // como `tablist`: setas, Home e End trocam de guia, só a guia aberta entra na ordem do Tab, e `aria-controls`
 // aponta para o painel (`PainelDaConversa`, no layout). Acabamento WhatsApp: guias sutis, alinhadas à esquerda, e a
 // aberta leva um sublinhado de 2 px em ouro (a cor nunca fala sozinha: `aria-selected`, o peso e a cor da letra também
-// mudam). Alvo de 44 px.
+// mudam). Alvo de 44 px. À direita da linha, FORA do tablist, fica o espaço da pílula da Ana (`data-slot-da-ana`, preenchido
+// pela BarraDoChat só na guia Chat).
 export default function GuiasDaConversa({ idDaConversa }: { idDaConversa: string }) {
   const pathname = usePathname() || "";
   const router = useRouter();
@@ -29,7 +30,8 @@ export default function GuiasDaConversa({ idDaConversa }: { idDaConversa: string
   }
 
   return (
-    <div role="tablist" aria-label="Seções da conversa" data-oculta-com-teclado="" className="flex gap-1 border-b border-atd-barra-borda px-3">
+    <div data-linha-das-guias="" data-oculta-com-teclado="" className="flex items-stretch justify-between gap-2 border-b border-atd-barra-borda px-3">
+    <div role="tablist" aria-label="Seções da conversa" className="flex min-w-0 gap-1">
       {guias.map((g, i) => {
         const acesa = aberta === g.chave;
         return (
@@ -54,6 +56,9 @@ export default function GuiasDaConversa({ idDaConversa }: { idDaConversa: string
           </Link>
         );
       })}
+    </div>
+    {/* A pílula "Ana: Ligada/Desligada" (BarraDoChat) é desenhada aqui por portal: na linha das guias, FORA do tablist. */}
+    <div data-slot-da-ana="" className="flex shrink-0 items-center py-0.5" />
     </div>
   );
 }
