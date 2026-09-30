@@ -82,6 +82,9 @@ export async function logout(destino?: unknown) {
   const viewer = await getCurrentUser();
   if (viewer) {
     await prisma.pushSubscription.deleteMany({ where: { userId: viewer.id } });
+    // O aviso de mensagem nova do aplicativo de Atendimento tem tabela própria (lib/pushDoAtendimento.ts) e o mesmo
+    // motivo: aparelho compartilhado não pode continuar recebendo avisos de quem saiu.
+    await prisma.atendimentoPushInscricao.deleteMany({ where: { userId: viewer.id } });
   }
   // O cookie de sessão é sempre gravado com path "/" (ver login() acima). `delete(name)` sem
   // opções usa como path padrão o diretório da própria URL da Server Action — que só coincide

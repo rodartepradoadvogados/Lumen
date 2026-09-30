@@ -93,7 +93,7 @@ export type MensagemDoChat = {
    */
   clientMessageId: string | null;
   /** SÓ NA TELA: a mensagem que ainda não foi confirmada pelo servidor (balão "enviando", "falhou"...). */
-  envioLocal?: { estado: "enviando" | "enviada" | "falhou" | "sem-confirmacao"; erro: string | null; podeTentarDeNovo: boolean };
+  envioLocal?: { estado: "enviando" | "enviada" | "falhou" | "sem-confirmacao"; erro: string | null; podeTentarDeNovo: boolean; /** true = ainda NÃO saiu do aparelho: espera a conexão ("Aguardando conexão") e sai sozinha ao voltar. */ aguardando?: boolean };
   /**
    * AUSENTE = mensagem de WhatsApp (a de sempre). "nota" = nota interna escrita por uma pessoa; "sistema" =
    * aviso do Lúmen. Os dois vêm de `NotaDaConversa` (lib/notaDaConversa.ts), são só da equipe e nunca foram

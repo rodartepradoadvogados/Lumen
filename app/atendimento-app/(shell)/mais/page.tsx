@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { exigirAcessoAoAtendimentoNaTela } from "@/lib/guardaDoAtendimento";
 import { TituloDeTela } from "@/components/atendimento-app/ui";
-import { User, Users, Palette, LogOut, ExternalLink, Zap, BellOff, ChevronRight } from "lucide-react";
+import AvisosDeMensagemNova from "@/components/atendimento-app/AvisosDeMensagemNova";
+import { User, Users, Palette, LogOut, ExternalLink, Zap, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -40,18 +41,7 @@ export default async function MaisAppPage() {
           <Linha href="/" icone={<ExternalLink size={18} />} titulo="Abrir site completo" apoio="Ir para o Lúmen desktop" />
         </nav>
 
-        <div className="rounded-atd-balao bg-atd-pilula p-4" data-avisos-de-mensagem-nova="">
-          <div className="flex items-start gap-3">
-            <BellOff size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-atd-terciario" />
-            <div className="min-w-0">
-              <p className="text-corpo font-semibold text-tx">Avisos de mensagem nova · a construir</p>
-              <p className="mt-1 text-app-previa text-atd-previa">
-                Com o aplicativo aberto, o número de mensagens novas aparece no título da aba e no ícone do aplicativo enquanto você está em outra tela.
-                Com o aplicativo fechado o aviso ainda não existe: confira as Conversas.
-              </p>
-            </div>
-          </div>
-        </div>
+        <AvisosDeMensagemNova />
 
         <div className="rounded-atd-balao bg-urgente-bg p-1.5">
           <Linha href="/atendimento-app/sair" icone={<LogOut size={18} />} titulo="Sair do Atendimento" apoio="Encerrar sessão neste dispositivo" perigo />

@@ -530,10 +530,10 @@ teste("O GANCHO do aviso: só com a aba fora de vista, título + selo do app em 
   verdade(c.includes("deveBuscarAgora(visivel"), "a busca em segundo plano é a de 1 min");
 });
 
-teste("HONESTIDADE: a tela Mais diz que o aviso com o app FECHADO ainda não existe ('a construir'); nada promete push", () => {
+teste("HONESTIDADE: a tela Mais tem o cartão de avisos com estado real (R2B); a permissão só é pedida no toque, nunca ao abrir", () => {
   const m = codigoDe(le("app/atendimento-app/(shell)/mais/page.tsx"));
-  verdade(m.includes("Avisos de mensagem nova · a construir") && m.includes("Com o aplicativo fechado o aviso ainda não existe"), "diz o que falta");
-  verdade(!/Notification\.requestPermission|pushManager|subscribe\(/.test(codigoDe(le("components/atendimento-app/useAvisoDeMensagemNova.ts")) + m), "não pede permissão nem inscreve push");
+  verdade(m.includes("<AvisosDeMensagemNova />") && !m.includes("a construir"), "o cartão real substitui o 'a construir'");
+  verdade(!/Notification\.requestPermission|pushManager|subscribe\(/.test(codigoDe(le("components/atendimento-app/useAvisoDeMensagemNova.ts")) + m), "nem a tela nem o aviso em segundo plano pedem permissão ou inscrevem push");
 });
 
 resumo("Atendimento app — nota interna, aviso da Ana e aviso de mensagem nova");

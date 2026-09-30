@@ -14,7 +14,9 @@ import { useAvisoDeMensagemNova } from "@/components/atendimento-app/useAvisoDeM
 import { deveBuscarAgora, novasDoCliente } from "@/lib/avisoDeMensagemNova";
 import { novaChaveDeMensagem, resultadoDoPedido } from "@/lib/envioDeMensagem";
 import { resultadoDaNota } from "@/lib/notaDaConversa";
-import { gravarPendentesNoAparelho, lerPendentesDoAparelho, novoPendente, pendenteComoMensagem, semOsJaConfirmados, type Pendente } from "@/lib/filaDoChat";
+import { comoAguardandoConexao, decidirSaida, gravarPendentesNoAparelho, lerPendentesDoAparelho, novoPendente, pendenteComoMensagem, pendentesParaReenviarAoVoltar, semOsJaConfirmados, type Pendente } from "@/lib/filaDoChat";
+import { registrarFalhaDeRede, registrarRedeOk } from "@/lib/conexaoDoApp";
+import { useSemConexao } from "@/components/atendimento-app/useConexaoDoApp";
 
 // O CHAT (Onda A: leitura; Onda B-1: ENVIO). Abre JÁ ROLADO NO FIM (RolarParaOFim: abre na última mensagem,
 // acompanha as novas e, se a pessoa está lendo mais acima, avisa "↓ N novas" em vez de arrancá-la de
@@ -29,6 +31,11 @@ import { gravarPendentesNoAparelho, lerPendentesDoAparelho, novoPendente, penden
 // sem confirmação). O POST leva uma chave por mensagem; tentar de novo REUSA a chave, e o servidor nunca
 // duplica no WhatsApp (lib/envioDeMensagemDb.ts). Um tempo esgotado ou rede caída é "sem confirmação",
 // nunca "não enviada": não se sabe se saiu.
+//
+// SEM CONEXÃO (R2B): tocar em enviar SEM rede não chama o servidor: o balão fica "Aguardando conexão" (guardado só
+// em sessionStorage, como toda a fila) e SAI SOZINHO quando a conexão volta, com a MESMA chave — o servidor nunca
+// duplica. Só sai sozinho o que NUNCA saiu (`aguardando`); o que saiu e ficou "sem confirmação" continua exigindo a
+// ação de uma pessoa (lib/filaDoChat.ts, `pendentesParaReenviarAoVoltar`).
 //
 // LEITOR DE TELA: a lista é `role="log"` SEM aria-live (senão leria tudo a cada atualização); uma região
 // `role="status"` à parte anuncia o que mudou (mensagem nova, estado do envio).
@@ -86,8 +93,11 @@ export default function ChatDaConversa({
   const buscando = useRef(false);
   const conteudo = useRef<HTMLDivElement>(null);
   const pertoDoFim = useRef(true);
-  const vivo = useRef({ todas, pendentes, estado });
-  vivo.current = { todas, pendentes, estado };
+  const semConexao = useSemConexao();
+  const vivo = useRef({ todas, pendentes, estado, semConexao });
+  vivo.current = { todas, pendentes, estado, semConexao };
+  // As chaves que já saíram por causa da volta da conexão: o mesmo pedido não parte duas vezes.
+  const reenviando = useRef(new Set<string>());
 
   // As mensagens do aparelho voltam depois da hidratação (guardadas por conversa em sessionStorage).
   // `restaurado` impede que a gravação do estado inicial (vazio) apague o que estava guardado antes de ele
@@ -168,7 +178,14 @@ export default function ChatDaConversa({
     ultimaBusca.current = Date.now();
     try {
       const depois = cursorDaMaisNova(vivo.current.todas) ?? CURSOR_DO_INICIO;
-      const resp = await fetch(`/api/atendimento/${encodeURIComponent(idDaConversa)}/mensagens?depois=${encodeURIComponent(depois)}`, { cache: "no-store" });
+      let resp: Response;
+      try {
+        resp = await fetch(`/api/atendimento/${encodeURIComponent(idDaConversa)}/mensagens?depois=${encodeURIComponent(depois)}`, { cache: "no-store" });
+      } catch {
+        registrarFalhaDeRede();
+        return;
+      }
+      registrarRedeOk();
       if (!resp.ok) return;
       const dados = (await resp.json()) as { mensagens: MensagemDoChat[]; estado: EstadoDoChat; entregas?: EntregaDaLinha[] };
       setAgora(new Date());
@@ -231,7 +248,20 @@ export default function ChatDaConversa({
     async (p: Pendente, confirmouReenvio: boolean) => {
       const ehNota = p.nota === true;
       const eraRetentativaIncerta = p.estado === "sem-confirmacao";
-      atualizarPendente(p.clientMessageId, { estado: "enviando", erro: null, podeTentarDeNovo: false });
+      // SEM CONEXÃO: o pedido nem sai. O que nunca saiu espera ("Aguardando conexão") e parte sozinho ao voltar; o que
+      // já tinha saído sem resposta NÃO é marcado para reenvio automático — a pessoa repete quando houver conexão.
+      const saida = decidirSaida(p, vivo.current.semConexao || (typeof navigator !== "undefined" && navigator.onLine === false));
+      if (saida === "aguardar") {
+        setPendentes((atuais) => atuais.map((x) => (x.clientMessageId === p.clientMessageId ? comoAguardandoConexao(x) : x)));
+        anunciar(ehNota ? "Sem conexão. A nota é salva quando a internet voltar." : "Sem conexão. A mensagem sai sozinha quando a internet voltar.");
+        return;
+      }
+      if (saida === "avisar") {
+        atualizarPendente(p.clientMessageId, { erro: "Sem conexão agora. Quando a internet voltar, toque em Tentar de novo.", podeTentarDeNovo: true });
+        anunciar("Sem conexão. Tente de novo quando a internet voltar.");
+        return;
+      }
+      atualizarPendente(p.clientMessageId, { estado: "enviando", erro: null, podeTentarDeNovo: false, aguardando: false });
       anunciar(ehNota ? "Salvando nota…" : "Enviando mensagem…");
       let status: number | null = null;
       let corpo: { codigo?: string; erro?: string; mensagem?: MensagemDoChat | null } | null = null;
@@ -249,9 +279,11 @@ export default function ChatDaConversa({
         corpo = await resp.json().catch(() => null);
       } catch {
         status = null; // rede caiu ou tempo esgotado: NÃO se sabe se saiu
+        registrarFalhaDeRede();
       } finally {
         window.clearTimeout(limite);
       }
+      if (status !== null) registrarRedeOk();
       const r = ehNota ? resultadoDaNota(status, corpo) : resultadoDoPedido(status, corpo);
       if (r.estado === "enviada") {
         if (corpo?.mensagem) {
@@ -285,6 +317,16 @@ export default function ChatDaConversa({
     },
     [disparar],
   );
+
+  // A CONEXÃO VOLTOU (ou a tela acabou de abrir com mensagens aguardando): sai o que estava esperando, uma vez cada.
+  useEffect(() => {
+    if (!restaurado || semConexao || (typeof navigator !== "undefined" && navigator.onLine === false)) return;
+    for (const p of pendentesParaReenviarAoVoltar(vivo.current.pendentes, false)) {
+      if (reenviando.current.has(p.clientMessageId)) continue;
+      reenviando.current.add(p.clientMessageId);
+      void disparar(p, false).finally(() => reenviando.current.delete(p.clientMessageId));
+    }
+  }, [restaurado, semConexao, pendentes, disparar]);
 
   const tentarDeNovo = useCallback(
     (chave: string) => {
