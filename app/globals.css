@@ -358,6 +358,8 @@
   --atd-balao-out-sec: #5f5027;
   --atd-nota-bg: #fdf8ea;
   --atd-nota-borda: #a07415;
+  /* "Lida" (✓✓ em destaque): azul >= 4,5:1 sobre o balão enviado, a tela e a pílula. Nunca é a única pista (traço mais grosso + texto). */
+  --atd-lida: #0b57c4;
   /* Raios: pílula, balão, etiqueta, botão flutuante. */
   --atd-raio-pilula: 9999px;
   --atd-raio-balao: 14px;
@@ -421,6 +423,7 @@
   --atd-balao-out-sec: #d2c6a0;
   --atd-nota-bg: #211f1e;
   --atd-nota-borda: #d4a83a;
+  --atd-lida: #6cb6ff;
 
   /* Retematizar superfícies para o modo escuro do Atendimento */
   --sf-fundo: var(--atd-tela);

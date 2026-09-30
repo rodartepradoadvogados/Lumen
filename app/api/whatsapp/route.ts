@@ -4,6 +4,8 @@ import { atendenteResponde } from "@/lib/atendenteResponde";
 import { confirmarRecebimentoDeAudio } from "@/lib/confirmacaoDeAudio";
 import { dispararTranscricaoAssincrona } from "@/lib/transcricaoAssincrona";
 import { dispararAvisoFigurinha } from "@/lib/avisoFigurinha";
+import { lerStatusesDaMeta } from "@/lib/entregaDaMensagem";
+import { processarStatusesDaMeta } from "@/lib/entregaDaMensagemDb";
 
 export const dynamic = "force-dynamic";
 // O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido — isto
@@ -42,8 +44,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const payload = JSON.parse(rawBody);
+    // STATUS DE ENTREGA (sent/delivered/read/failed) das mensagens que o escritório enviou: só ATUALIZA a
+    // mensagem (avança, nunca recua) — não passa pela ingestão nem pela Ana. Vem DEPOIS da assinatura acima.
+    const statuses = lerStatusesDaMeta(payload);
+    if (statuses.length > 0) await processarStatusesDaMeta(statuses);
     const incoming = parseIncoming(payload);
-    // Sem mensagem de texto processável (ex.: status de entrega) → apenas ack.
+    // Sem mensagem de texto processável (ex.: só status) → apenas ack.
     if (incoming) {
       const attendanceId = await ingestIncomingWhatsapp(incoming);
       if (attendanceId) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { atendimentoDaRota } from "@/lib/guardaDoAtendimento";
-import { carregarMensagensDepois, carregarPaginaDoChat } from "@/lib/mensagensDoChatDb";
+import { carregarEntregasRecentes, carregarMensagensDepois, carregarPaginaDoChat } from "@/lib/mensagensDoChatDb";
 import { lerCursor } from "@/lib/mensagensDoChat";
 import { despacharPedidoDoChat } from "@/lib/pedidoDoChatDb";
 import { lerEstadoDoChat } from "@/lib/estadoDoChatDb";
@@ -29,11 +29,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (depois !== null) {
     if (!lerCursor(depois)) return NextResponse.json({ error: "Cursor inválido" }, { status: 400 });
     const agora = new Date();
-    const [mensagens, estado] = await Promise.all([
+    // `entregas`: o estado (✓ / ✓✓ / lida / falhou) das mensagens de saída que a tela JÁ TEM, que podem ter mudado.
+    const [mensagens, estado, entregas] = await Promise.all([
       carregarMensagensDepois(attendance.id, viewer.officeId, depois, { agora }),
       lerEstadoDoChat(attendance, viewer.officeId, agora),
+      carregarEntregasRecentes(attendance.id, viewer.officeId),
     ]);
-    return NextResponse.json({ mensagens, estado }, { headers: SEM_CACHE });
+    return NextResponse.json({ mensagens, estado, entregas }, { headers: SEM_CACHE });
   }
 
   const antes = req.nextUrl.searchParams.get("antes");

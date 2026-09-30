@@ -200,6 +200,7 @@ const config: Config = {
           "balao-out-sec": "var(--atd-balao-out-sec)",
           nota: "var(--atd-nota-bg)",
           "nota-borda": "var(--atd-nota-borda)",
+          lida: "var(--atd-lida)",
         },
         gaveta: {
           DEFAULT: "var(--gaveta)",

@@ -1,3 +1,4 @@
+import { entregaDaLinha, type EntregaDaMensagem } from "@/lib/entregaDaMensagem";
 import { stageLabels, stageOptions, faseDoLead } from "@/lib/funil";
 import { previaDaMensagem, prefixoDaPrevia, tempoRelativo, type ContagensPorFase } from "@/lib/listaDeAtendimentos";
 import { nomeDaLinha, rotuloDaEspera } from "@/lib/rotulosDaEspera";
@@ -79,7 +80,7 @@ export type LinhaDaListaApp = {
   agenteResponde: boolean;
   agenteSilenciadoEm: Date | null;
   responsible: { name: string } | null;
-  whatsappMessages: { direction: string; body: string; porAgente: boolean; createdAt: Date; status?: string }[];
+  whatsappMessages: { direction: string; body: string; porAgente: boolean; createdAt: Date; status?: string; entregueEm?: Date | null; lidaEm?: Date | null }[];
   /** A mensagem fixada do atendimento (`MensagemFixada`, uma por atendimento), se houver. Só o id importa aqui. */
   mensagemFixada?: { id: string } | null;
 };
@@ -110,6 +111,8 @@ export type LinhaPronta = {
   midia: TipoDeMidia | null;
   /** A última mensagem é nossa (pessoa ou Ana) e o WhatsApp a aceitou: mostra "✓✓" (enviada; NÃO diz "lida"). */
   enviada: boolean;
+  /** O ciclo de entrega da última mensagem, quando é nossa e o provedor a aceitou (R2A): ✓ / ✓✓ / ✓✓ em destaque. */
+  entrega: EntregaDaMensagem | null;
   /** A última mensagem nossa foi recusada pelo WhatsApp. */
   falhou: boolean;
   /** A Ana está respondendo esta conversa (selinho "Ana"). */
@@ -155,6 +158,7 @@ export function montarLinha(a: LinhaDaListaApp, agora: Date, nomeDoAtendente: st
     esperando,
     midia: ultima ? lerMidia(ultima.body)?.tipo ?? null : null,
     enviada: ultima?.direction === "OUT" && ultima.status !== "FAILED",
+    entrega: ultima?.direction === "OUT" && ultima.status !== "FAILED" ? (entregaDaLinha({ direction: "OUT", status: "SENT", entregueEm: ultima.entregueEm, lidaEm: ultima.lidaEm }) ?? "enviada") : null,
     falhou: ultima?.direction === "OUT" && ultima.status === "FAILED",
     anaAtende: a.agenteResponde && !a.agenteSilenciadoEm,
     fixada: Boolean(a.mensagemFixada),

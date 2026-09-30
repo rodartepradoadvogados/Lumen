@@ -95,7 +95,7 @@ export default async function ConversasAppPage({ searchParams }: { searchParams:
       responsible: { select: { name: true } },
       // O alfinete da linha: 1 consulta por chave única (attendanceId @unique), só o id.
       mensagemFixada: { select: { id: true } },
-      whatsappMessages: { orderBy: { createdAt: "desc" }, take: 1, select: { direction: true, body: true, porAgente: true, createdAt: true, status: true } },
+      whatsappMessages: { orderBy: { createdAt: "desc" }, take: 1, select: { direction: true, body: true, porAgente: true, createdAt: true, status: true, entregueEm: true, lidaEm: true } },
     },
     orderBy: ORDEM_POR_ATIVIDADE,
     take: LIMITE_DA_LISTA,

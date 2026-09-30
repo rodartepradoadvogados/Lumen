@@ -7,6 +7,8 @@ import { atendenteResponde } from "@/lib/atendenteResponde";
 import { confirmarRecebimentoDeAudio } from "@/lib/confirmacaoDeAudio";
 import { dispararTranscricaoAssincrona } from "@/lib/transcricaoAssincrona";
 import { dispararAvisoFigurinha } from "@/lib/avisoFigurinha";
+import { ehAtualizacaoDaEvolution, lerAtualizacoesDaEvolution } from "@/lib/entregaDaMensagem";
+import { aplicarEventosDeEntrega } from "@/lib/entregaDaMensagemDb";
 
 export const dynamic = "force-dynamic";
 // O agente pode levar dezenas de segundos, e a resposta sai dentro deste mesmo pedido — isto
@@ -29,6 +31,12 @@ export const maxDuration = 120;
 // — e, com o agente ligado, de fazer o escritório RESPONDER a esse lead falso.
 // ============================================================================
 
+function segredoConfere(recebido: string, esperado: string): boolean {
+  const a = Buffer.from(recebido);
+  const b = Buffer.from(esperado);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 export async function POST(req: NextRequest) {
   const segredoRecebido = req.headers.get("x-lumen-evolution") || "";
   if (!segredoRecebido) {
@@ -37,11 +45,36 @@ export async function POST(req: NextRequest) {
 
   const bruto = await req.text();
 
+  let corpoLido: unknown;
   let entrada: ReturnType<typeof parseEntradaEvolution> = null;
   try {
-    entrada = parseEntradaEvolution(JSON.parse(bruto));
+    corpoLido = JSON.parse(bruto);
+    entrada = parseEntradaEvolution(corpoLido);
   } catch {
     // Corpo ilegível: nada a processar. Ack para a Evolution não reenviar em laço.
+    return Response.json({ received: true }, { status: 200 });
+  }
+
+  // ATUALIZAÇÃO DE STATUS (MESSAGES_UPDATE: entregue / lida / falhou) das mensagens que o escritório enviou. Só
+  // ATUALIZA a mensagem (avança, nunca recua); não cria atendimento nem aciona a Ana. Exige o MESMO segredo da
+  // instância, conferido abaixo. Sem nenhum status nosso no evento (recibo de mensagem do cliente, por exemplo),
+  // ack sem consulta ao banco.
+  if (!entrada && ehAtualizacaoDaEvolution(corpoLido)) {
+    const eventos = lerAtualizacoesDaEvolution(corpoLido);
+    const instancia = eventos[0]?.phoneNumberId;
+    if (eventos.length === 0 || !instancia) return Response.json({ received: true }, { status: 200 });
+    const cfg = await prisma.whatsappConfig.findUnique({
+      where: { phoneNumberId: instancia },
+      select: { officeId: true, webhookSecret: true, provider: true },
+    });
+    if (!cfg || cfg.provider !== "EVOLUTION" || !cfg.webhookSecret || !segredoConfere(segredoRecebido, cfg.webhookSecret)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    try {
+      await aplicarEventosDeEntrega(cfg.officeId, eventos.filter((e) => e.phoneNumberId === instancia));
+    } catch (e) {
+      console.error("[whatsapp evolution] erro ao aplicar status de mensagem:", e);
+    }
     return Response.json({ received: true }, { status: 200 });
   }
 
@@ -63,9 +96,7 @@ export async function POST(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const a = Buffer.from(segredoRecebido);
-  const b = Buffer.from(config.webhookSecret);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+  if (!segredoConfere(segredoRecebido, config.webhookSecret)) {
     return new Response("Unauthorized", { status: 401 });
   }
 

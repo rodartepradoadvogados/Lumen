@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getOfficeModules } from "@/lib/officeModules";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { getAppUrl } from "@/lib/appUrl";
-import { criarInstancia, conectar, estadoDaInstancia, desconectar, FalhaDaEvolution } from "@/lib/whatsappEvolution";
+import { criarInstancia, definirWebhook, conectar, estadoDaInstancia, desconectar, FalhaDaEvolution } from "@/lib/whatsappEvolution";
 import { nomeDaInstancia, urlDoQr, lerEstado, type EstadoDaConexao } from "@/lib/qrDaEvolution";
 import { mensagemDeErro } from "@/lib/mensagemDeErro";
 
@@ -136,6 +136,13 @@ export async function pedirQrEvolution(): Promise<ResultadoDoQr> {
       // "Já em uso" é o caminho normal de toda reconexão — só não pode engolir outra coisa.
       const motivo = erro instanceof FalhaDaEvolution ? erro.motivo : mensagemDeErro(erro);
       if (!/already|in use|exists/i.test(motivo)) throw erro;
+      // A instância JÁ EXISTIA (pode ter sido criada antes de assinarmos MESSAGES_UPDATE): reaplica o webhook. Só
+      // troca o webhook, não desconecta nada, e uma falha aqui NÃO impede o QR (o ✓✓ ficaria em "Enviada").
+      try {
+        await definirWebhook(cfg, { url: `${getAppUrl()}/api/whatsapp/evolution`, segredo: cfg.segredo });
+      } catch (e) {
+        console.error("[whatsapp evolution] não reaplicou o webhook ao reconectar:", e instanceof FalhaDaEvolution ? e.motivo : e);
+      }
     }
 
     const estado = lerEstado(await estadoDaInstancia(cfg));
@@ -143,6 +150,26 @@ export async function pedirQrEvolution(): Promise<ResultadoDoQr> {
 
     const { qrcode } = await conectar(cfg);
     return { qr: urlDoQr(qrcode), estado: lerEstado(await estadoDaInstancia(cfg)) };
+  } catch (erro) {
+    return { erro: erro instanceof FalhaDaEvolution ? erro.motivo : "Não foi possível falar com o servidor Evolution." };
+  }
+}
+
+/**
+ * REAPLICA o webhook da instância (assina também MESSAGES_UPDATE, o que faz o ✓✓ virar Entregue/Lida) SEM desconectar o
+ * celular e SEM gerar QR. É o caminho para uma instância que já estava conectada quando o Lúmen passou a assinar esse
+ * evento. Só administrador; o segredo já guardado é reaproveitado (nunca regerado: regerar derrubaria a instância).
+ */
+export async function reaplicarWebhookEvolution(): Promise<{ erro?: string }> {
+  const quem = await exigirAdministrador();
+  if (quem.erro) return { erro: quem.erro };
+
+  const cfg = await configuracaoDaEvolution(quem.officeId);
+  if (!cfg) return { erro: "O servidor Evolution não está configurado." };
+
+  try {
+    await definirWebhook(cfg, { url: `${getAppUrl()}/api/whatsapp/evolution`, segredo: cfg.segredo });
+    return {};
   } catch (erro) {
     return { erro: erro instanceof FalhaDaEvolution ? erro.motivo : "Não foi possível falar com o servidor Evolution." };
   }

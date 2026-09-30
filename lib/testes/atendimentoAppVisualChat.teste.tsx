@@ -128,11 +128,11 @@ teste("BALÃO: raio de 14 px (rounded-atd-balao), recebido em balao-in com o can
   verdade(!/atd-bolha-|atd-ardosia|atd-borda-(in|out)|atd-chat-fundo/.test(fonte), "token antigo do chat no balão");
 });
 
-teste("BALÃO: a hora fica DENTRO do balão (junto do texto) e o ✓✓ da enviada é cinza, com texto para leitor de tela ('Enviada'), sem prometer 'lida'", () => {
+teste("BALÃO: a hora fica DENTRO do balão (junto do texto) e a marca da enviada sem retorno de status é ✓ cinza, com texto para leitor de tela ('Enviada'), sem prometer 'lida' (o ciclo entregue/lida está em atendimentoAppEntrega)", () => {
   const html = bolha({ direction: "OUT", enviada: true, texto: "Confirmado" });
   const ini = html.indexOf("Confirmado");
   verdade(ini > 0 && html.indexOf("17:52") > ini && html.indexOf("</p>", ini) > html.indexOf("17:52"), "a hora tem de estar no mesmo parágrafo do texto");
-  verdade(html.includes("lucide-check-check") && html.includes(">Enviada<"), "✓✓ e 'Enviada'");
+  verdade(html.includes('lucide-check"') && !html.includes("lucide-check-check") && html.includes(">Enviada<"), "✓ e 'Enviada'");
   verdade(html.includes("text-atd-balao-out-sec") && !/text-(blue|sky|cyan)/.test(html), "cinza, não azul (não existe 'lida')");
   verdade(!/>\s*lidas?\s*</i.test(html) && !/aria-label="[^"]*\blida\b/i.test(html), "não fala em 'lida'");
 });
