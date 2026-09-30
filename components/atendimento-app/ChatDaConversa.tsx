@@ -8,7 +8,7 @@ import CompositorDoChat from "@/components/atendimento-app/CompositorDoChat";
 import AcoesDaMensagem from "@/components/atendimento-app/AcoesDaMensagem";
 import FixadaDoChatTopo from "@/components/atendimento-app/FixadaDoChat";
 import { trechoDaMensagem } from "@/lib/mensagemFixada";
-import { agruparMensagensPorDia, cursorDaMaisNova, mesclarMensagens, type MensagemDoChat } from "@/lib/mensagensDoChat";
+import { agruparMensagensPorDia, aplicarEntregas, cursorDaMaisNova, mesclarMensagens, type EntregaDaLinha, type MensagemDoChat } from "@/lib/mensagensDoChat";
 import type { EstadoDoChat } from "@/lib/estadoDoChat";
 import { useAvisoDeMensagemNova } from "@/components/atendimento-app/useAvisoDeMensagemNova";
 import { deveBuscarAgora, novasDoCliente } from "@/lib/avisoDeMensagemNova";
@@ -170,9 +170,12 @@ export default function ChatDaConversa({
       const depois = cursorDaMaisNova(vivo.current.todas) ?? CURSOR_DO_INICIO;
       const resp = await fetch(`/api/atendimento/${encodeURIComponent(idDaConversa)}/mensagens?depois=${encodeURIComponent(depois)}`, { cache: "no-store" });
       if (!resp.ok) return;
-      const dados = (await resp.json()) as { mensagens: MensagemDoChat[]; estado: EstadoDoChat };
+      const dados = (await resp.json()) as { mensagens: MensagemDoChat[]; estado: EstadoDoChat; entregas?: EntregaDaLinha[] };
       setAgora(new Date());
       setEstado(dados.estado);
+      // Mensagens JÁ vistas mudam de estado (✓✓ Entregue / Lida / falhou): só isso muda, e só se mudou. A rolagem, o
+      // rascunho e os balões "enviando" não são tocados.
+      if (dados.entregas && dados.entregas.length > 0) setTodas((atuais) => aplicarEntregas(atuais, dados.entregas ?? []));
       if (dados.mensagens.length > 0) {
         setTodas((atuais) => mesclarMensagens(atuais, dados.mensagens));
         setPendentes((atuais) => semOsJaConfirmados(atuais, dados.mensagens));

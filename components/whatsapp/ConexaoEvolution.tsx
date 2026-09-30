@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QrCode, RefreshCw, Loader2 } from "lucide-react";
-import { salvarServidorEvolution, pedirQrEvolution, estadoEvolution, desconectarEvolution } from "@/lib/actions/whatsappEvolution";
+import { salvarServidorEvolution, pedirQrEvolution, estadoEvolution, desconectarEvolution, reaplicarWebhookEvolution } from "@/lib/actions/whatsappEvolution";
 import { TEXTO_DO_ESTADO, type EstadoDaConexao } from "@/lib/qrDaEvolution";
 
 // ============================================================================
@@ -114,6 +114,21 @@ export default function ConexaoEvolution({
     return () => clearInterval(t);
   }, [qr, estado, desistiu, router]);
 
+  // Reaplica o webhook (assina também as atualizações de status: entregue/lida) sem desconectar o celular nem gerar QR.
+  const [reaplicado, setReaplicado] = useState(false);
+  async function reaplicarAvisos() {
+    setErro(null);
+    setReaplicado(false);
+    setSalvando(true);
+    const r = await reaplicarWebhookEvolution();
+    setSalvando(false);
+    if (r.erro) {
+      setErro(r.erro);
+      return;
+    }
+    setReaplicado(true);
+  }
+
   async function desconectarAparelho() {
     if (!confirm("Desligar o celular desta conexão? As conversas já registradas não são apagadas, e o endereço do servidor continua salvo.")) return;
     setErro(null);
@@ -188,6 +203,14 @@ export default function ConexaoEvolution({
                 {TEXTO_DO_ESTADO[estado]}
               </span>
             )}
+            <button
+              type="button"
+              onClick={reaplicarAvisos}
+              disabled={salvando}
+              className="text-sm font-semibold text-tx-2 hover:underline disabled:opacity-50"
+            >
+              Atualizar avisos de entrega e leitura
+            </button>
             {estado === "conectado" && (
               <button
                 type="button"
@@ -199,6 +222,12 @@ export default function ConexaoEvolution({
               </button>
             )}
           </div>
+
+          {reaplicado && (
+            <p role="status" className="flex items-center gap-2 border-l-[3px] border-concluido text-concluido bg-sf-apoio px-2.5 py-1.5 text-etiqueta">
+              Avisos de entrega e leitura atualizados. O celular continua conectado.
+            </p>
+          )}
 
           {qr && (
             <div className="flex items-start gap-4 flex-wrap">
