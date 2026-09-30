@@ -13,18 +13,25 @@ import { ChevronDown, X } from "lucide-react";
 // ── classes dos controles (mapas estáticos: o Tailwind só gera o que lê escrito) ────────────────────────
 export const cx = {
   campo:
-    "min-h-11 w-full rounded-[2px] border border-atd-campo bg-sf px-3 py-2 text-capa-corpo text-tx placeholder:text-tx-3 disabled:opacity-60",
+    "min-h-11 w-full rounded-atd-balao bg-atd-pilula-2 px-4 py-2 text-capa-corpo text-tx placeholder:text-atd-terciario disabled:opacity-60",
   primario:
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-[2px] bg-acao px-4 text-corpo font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-60",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-atd-pilula bg-acao px-5 text-corpo font-semibold text-acao-tx hover:bg-acao-hover active:opacity-90 disabled:opacity-60",
   secundario:
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-[2px] border border-regua-forte bg-sf px-4 text-corpo font-semibold text-tx hover:bg-sf-apoio disabled:opacity-60",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-atd-pilula bg-atd-pilula-2 px-5 text-corpo font-semibold text-tx hover:bg-atd-linha-hover active:opacity-80 disabled:opacity-60",
   discreto:
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-[2px] px-3 text-corpo font-semibold text-tx-2 hover:bg-sf-apoio hover:text-tx disabled:opacity-60",
-  rotulo: "block text-etiqueta font-semibold text-tx-2",
-  dica: "text-etiqueta text-tx-2",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-atd-pilula px-3 text-corpo font-semibold text-atd-previa hover:bg-atd-linha-hover hover:text-tx active:opacity-80 disabled:opacity-60",
+  rotulo: "block text-etiqueta font-semibold text-atd-previa",
+  dica: "text-etiqueta text-atd-previa",
   erro: "text-corpo font-medium text-urgente",
-  etiqueta: "text-etiqueta font-bold uppercase tracking-wider text-tx-2",
-  chip: "inline-flex items-center rounded-[2px] border border-regua bg-sf-apoio px-2 py-0.5 text-etiqueta font-semibold text-tx-2",
+  etiqueta: "text-app-tag font-semibold uppercase tracking-wider text-atd-terciario",
+  chip: "inline-flex items-center rounded-atd-pilula bg-atd-pilula-2 px-2.5 py-0.5 text-etiqueta font-semibold text-atd-previa",
+  /** Cartão preenchido, sem contorno: a hierarquia vem do fundo (--atd-pilula-bg), não de linha. */
+  cartao: "rounded-atd-balao bg-atd-pilula",
+  /** Painel dentro de um cartão: um degrau mais escuro que o cartão. */
+  painel: "rounded-atd-balao bg-atd-pilula-2 p-3",
+  /** Painéis com significado, em fundo suave (sem faixa lateral nem contorno). */
+  painelAlerta: "rounded-atd-balao bg-urgente-bg p-3",
+  painelOk: "rounded-atd-balao bg-concluido-bg p-3",
 } as const;
 
 // ── avisos ──────────────────────────────────────────────────────────────────
@@ -86,7 +93,7 @@ export function ProvedorDeAvisos({ children }: { children: ReactNode }) {
         {aviso && (
           <div
             key={aviso.id}
-            className="pointer-events-auto flex w-full max-w-md items-center gap-1 rounded-[2px] border-2 border-atd-hdr-linha bg-atd-hdr py-1 pl-4 pr-1 text-corpo text-atd-hdr-tx shadow-pop"
+            className="pointer-events-auto flex w-full max-w-md items-center gap-1 rounded-atd-balao bg-atd-hdr py-1 pl-4 pr-1 text-corpo text-atd-hdr-tx shadow-atd-flutuante"
             onMouseEnter={() => (pausado.current = true)}
             onMouseLeave={() => (pausado.current = false)}
             onFocus={() => (pausado.current = true)}
@@ -105,7 +112,7 @@ export function ProvedorDeAvisos({ children }: { children: ReactNode }) {
                   setAviso(null);
                   await f?.();
                 }}
-                className="inline-flex min-h-11 shrink-0 items-center px-3 font-bold text-atd-hdr-foco hover:underline"
+                className="inline-flex min-h-11 shrink-0 items-center rounded-atd-pilula px-3 font-bold text-atd-hdr-foco hover:underline"
               >
                 Desfazer
               </button>
@@ -114,7 +121,7 @@ export function ProvedorDeAvisos({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => setAviso(null)}
               aria-label="Fechar o aviso"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-atd-hdr-tx2 hover:text-atd-hdr-tx"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-atd-hdr-tx2 hover:text-atd-hdr-tx"
             >
               <X size={18} aria-hidden="true" />
             </button>
@@ -238,20 +245,20 @@ export function Gaveta({
       onClick={(e) => {
         if (e.target === ref.current) aoFechar();
       }}
-      className="fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[92dvh] w-full max-w-md overflow-hidden border-t-2 border-regua-forte bg-sf-fundo p-0 text-tx shadow-pop backdrop:bg-grafite-900/60 open:flex open:flex-col"
+      className="fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[92dvh] w-full max-w-md overflow-hidden rounded-t-atd-flutuante bg-atd-tela p-0 text-tx backdrop:bg-grafite-900/60 open:flex open:flex-col"
     >
       {aberta && (
         <>
-          <div className="flex shrink-0 items-center gap-1 border-b border-regua bg-sf py-1.5 pl-4 pr-1.5">
+          <div className="flex shrink-0 items-center gap-1 pb-1 pl-5 pr-2 pt-2">
             <h2 id={idTitulo} ref={tituloRef} tabIndex={-1} className="min-w-0 flex-1 text-destaque font-bold text-tx outline-none">
               {titulo}
             </h2>
-            <button type="button" onClick={aoFechar} aria-label="Fechar" className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-tx-2 hover:text-tx">
+            <button type="button" onClick={aoFechar} aria-label="Fechar" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-atd-pilula text-atd-previa hover:text-tx">
               <X size={20} aria-hidden="true" />
             </button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">{children}</div>
-          {rodape && <div className="flex shrink-0 flex-wrap gap-2 border-t border-regua bg-sf px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">{rodape}</div>}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 pt-2">{children}</div>
+          {rodape && <div className="flex shrink-0 flex-wrap gap-2 bg-atd-tela px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">{rodape}</div>}
         </>
       )}
     </dialog>
@@ -276,21 +283,21 @@ export function BlocoRecolhivel({
   children: ReactNode;
 }) {
   return (
-    <section id={`bloco-${chave}`} aria-labelledby={`titulo-${chave}`} className="mx-3 mt-3 scroll-mt-32 rounded-[2px] border border-regua bg-sf" data-bloco={chave}>
+    <section id={`bloco-${chave}`} aria-labelledby={`titulo-${chave}`} className="mx-4 mt-3 scroll-mt-32 rounded-atd-balao bg-atd-pilula" data-bloco={chave}>
       <h3 id={`titulo-${chave}`}>
         <button
           type="button"
           aria-expanded={aberto}
           aria-controls={`corpo-${chave}`}
           onClick={() => aoAlternar(!aberto)}
-          className="flex min-h-[52px] w-full items-center gap-2 px-3 text-left"
+          className="flex min-h-[52px] w-full items-center gap-2 rounded-atd-balao px-4 text-left"
         >
-          <span className="min-w-0 flex-1 text-etiqueta font-bold uppercase tracking-wider text-tx-2">{titulo}</span>
-          {meta && <span className="shrink-0 text-etiqueta font-semibold tabular-nums text-tx-2">{meta}</span>}
-          <ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-tx-2 transition-transform ${aberto ? "rotate-180" : ""}`} />
+          <span className={`min-w-0 flex-1 ${cx.etiqueta}`}>{titulo}</span>
+          {meta && <span className="shrink-0 text-etiqueta font-semibold tabular-nums text-atd-previa">{meta}</span>}
+          <ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-atd-terciario transition-transform ${aberto ? "rotate-180" : ""}`} />
         </button>
       </h3>
-      <div id={`corpo-${chave}`} hidden={!aberto} className="border-t border-regua px-3 pb-3 pt-3">
+      <div id={`corpo-${chave}`} hidden={!aberto} className="px-4 pb-4 pt-1">
         {aberto ? children : null}
       </div>
     </section>
@@ -323,5 +330,5 @@ export function Campo({ rotulo, dica, erro, children, className = "" }: { rotulo
 
 /** Lista vazia com uma frase que diz o que fazer, e não só "nada aqui". */
 export function Vazio({ children }: { children: ReactNode }) {
-  return <p className="py-1 text-corpo text-tx-2">{children}</p>;
+  return <p className="py-1 text-corpo text-atd-previa">{children}</p>;
 }

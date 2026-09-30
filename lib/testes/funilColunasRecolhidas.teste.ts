@@ -66,7 +66,13 @@ teste("as três telas do funil usam as colunas recolhíveis (nenhuma volta a abr
   const site = codigoDe(le("app/(app)/atendimento/funil/page.tsx"));
   verdade(site.includes("<QuadroDoFunil"), "a página do site usa o quadro da Central (recolhível, com Aguardando)");
   const app = codigoDe(le("app/atendimento-app/(shell)/funil/page.tsx"));
-  verdade(app.includes("<ColunasRecolhiveis") && app.includes("<ColunaRecolhivel"), "o funil do aplicativo usa as colunas recolhíveis");
+  verdade(app.includes("<ColunasDoFunilApp") && app.includes("<ColunaDoFunilApp"), "o funil do aplicativo usa as colunas recolhíveis (versão do app, acabamento WhatsApp)");
+  // A versão do app é só visual: a REGRA (tudo recolhido, localStorage em try/catch) é o mesmo gancho do site.
+  const colApp = codigoDe(le("components/atendimento-app/ColunasDoFunilApp.tsx"));
+  verdade(colApp.includes('useColunasRecolhidas("app", estagios)'), "mesma regra e mesma chave de armazenamento do app");
+  verdade(colApp.includes("aria-expanded={aberta}") && colApp.includes("aria-controls={idDoCorpo}") && colApp.includes("hidden={!aberta}"), "acordeão acessível, corpo recolhido some");
+  verdade(colApp.includes("min-h-12") && colApp.includes("min-h-11"), "cabeçalho da coluna (48 px) e 'todas' (44 px) são alvos de toque");
+  verdade(colApp.includes("Expandir todas") && colApp.includes("Recolher todas"), "os dois textos do botão");
   verdade(!app.includes('<h3 className="font-semibold text-sm text-tx">'), "o funil do aplicativo: cabeçalho fixo antigo");
   const q = codigoDe(le("components/atendimento/QuadroDoFunil.tsx"));
   verdade(q.includes('useColunasRecolhidas("central", stageOptions)'), "o quadro da Central");

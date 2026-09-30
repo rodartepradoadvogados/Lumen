@@ -8,8 +8,8 @@ import { limparRastrosDoAparelho } from "@/lib/filaDoChat";
 export default function FormularioDeSair({ action }: { action: () => void | Promise<void> }) {
   return (
     <form action={action} onSubmit={() => limparRastrosDoAparelho()}>
-      <button type="submit" className="w-full h-11 flex items-center justify-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm">
-        <LogOut size={16} /> Sair
+      <button type="submit" className="flex min-h-11 w-full items-center justify-center gap-2 rounded-atd-pilula bg-acao text-corpo font-bold text-acao-tx hover:bg-acao-hover active:opacity-90">
+        <LogOut size={16} aria-hidden="true" /> Sair
       </button>
     </form>
   );

@@ -792,3 +792,54 @@ O que **não pode voltar atrás**:
 **Não provado**: aparelho real (safe area, teclado virtual, PWA instalado, áudio no iPhone com Range), leitor de tela de verdade, a hora flutuante em textos muito longos
 com palavras sem espaço, a barra de estado "Ana responde" com o relógio de 15 min correndo nos últimos cinco minutos (só o código e o contraste), o fluxo com login e
 banco reais (as capturas foram de uma página temporária com mensagens de exemplo e mídia interceptada, já removida), e o Safari/Firefox (só Chromium).
+
+## 28. A aba Detalhes e a tela Mais no acabamento WhatsApp: só o visual mudou (etapa 3, 30/09/2026)
+
+Continuação do item 26 (exceção deliberada, só dentro de `/atendimento-app`). Migrados: a aba Detalhes (`components/atendimento-app/detalhes/*`:
+Contato, Triagem, Pendências, Processo, Dados, Anexos, Tarefas, Anotações, Encerrar, índice, `base.tsx`), a tela Mais e suas filhas (Perfil, Equipe,
+Tema, Respostas rápidas, Sair), `ManterRespostasRapidas` e `FormularioDeSair`. **Nenhuma regra mudou**: ações (`atendimentoDaAcao`), recorte de acesso,
+conversão em processo, idempotência, Desfazer e validações são as mesmas e continuam provadas nas suítes antigas. O que **não pode voltar atrás**:
+
+- **Tudo em `cx` (`detalhes/base.tsx`) é o vocabulário da aba**: `cartao` (`bg-atd-pilula`), `painel` (um degrau mais escuro, `bg-atd-pilula-2`),
+  `painelAlerta`/`painelOk` (`bg-urgente-bg`/`bg-concluido-bg`), `campo` (preenchido, `rounded-atd-balao`), `primario` (ouro `--acao` + texto escuro),
+  `secundario` (preenchido suave), `discreto`, `chip`, `etiqueta` (11px/600 caixa alta). Um bloco novo usa estes, não cria classe própria.
+- **Hierarquia por fundo, nunca por contorno ou faixa lateral**: sem `border-*` de cartão, sem `divide-*`, sem `rounded-[2px]`. A caixinha de
+  concluir e a bolinha do rádio mantêm contorno de 2 px em `--atd-campo` (indicador de estado: WCAG 1.4.11, >= 3:1). O aviso "Desfazer" é um balão
+  `bg-atd-hdr` sem faixa; a gaveta é uma folha arredondada no pé (`rounded-t-atd-flutuante`), sem divisórias. A **única sombra** da aba é a do aviso
+  (`shadow-atd-flutuante`), porque ele flutua sobre a rolagem.
+- **Erro de contraste que o teste pegou**: texto de dica em `--atd-cinza-terciario` sobre `bg-concluido-bg`/`bg-urgente-bg` (rgba compostos sobre o cartão)
+  mede 4,46-4,49:1. Por isso `cx.dica` usa `--atd-cinza-previa`, e o `terciario` só vai sobre cartão, painel ou tela lisos (título de seção, placeholder).
+- **Campos sem contorno**: o campo é distinguido por preenchimento (`pilula-2` sobre cartão), não por linha; a borda é o foco visível global. O contraste
+  do PREENCHIMENTO contra o cartão é ~1,1:1 (por desenho, como a pílula de busca da lista); o texto e o placeholder passam AA.
+- **Filhas de Mais** usam `VoltarParaMais` (44 px) + `TituloDeTela`. A tela Mais mantém o aviso honesto "a construir" (o teste de nota interna o exige).
+- Teste novo: `lib/testes/atendimentoAppVisualDetalhes.teste.tsx` (contraste dos pares novos em Dia e Noite, varredura dos arquivos migrados: sem canto de
+  2px/contorno/faixa/hex/divisória/`bg-sf*`, sombra só no aviso, alvos de 44 px, estrutura do bloco, do aviso, da gaveta, do índice e da tela Mais).
+
+**Não provado**: fluxo real com login e banco (a aba foi vista em Chromium 390x844 com dados de exemplo numa rota temporária, já removida), aparelho de
+verdade (safe area, teclado, PWA instalado), leitor de tela, e o realce do chip do índice durante a rolagem (lógica não mudou; só se viu parado).
+
+## 29. Funil, Triagem, Nova conversa e telas de estado no acabamento WhatsApp (etapa 4, 30/09/2026)
+
+Só VISUAL; nenhuma regra mudou (recorte de acesso, nível total x próprios, ações). O que **não pode voltar atrás**:
+
+- **O funil do app tem colunas PRÓPRIAS** (`components/atendimento-app/ColunasDoFunilApp.tsx`), mas a REGRA de recolher é a mesma do site
+  (`useColunasRecolhidas("app", ...)`, `lib/colunasDoFunil.ts`): tudo recolhido por padrão, escolha em `localStorage` (`rp-funil-abertas-app`, em
+  try/catch), primeiro desenho sempre recolhido. `ColunasRecolhiveis`/`QuadroDoFunil` (site e Central) NÃO importam nada do app: o teste
+  `atendimentoAppVisual` proíbe `components/atendimento-app/ui` fora do app, por isso o visual novo não foi enfiado no componente compartilhado.
+- **Cartão de lead** (`LeadDoFunil`) e **linha da triagem** (`LinhaDaTriagem`) são componentes do app (avatar, selinhos, sem contorno). O seletor de fase
+  (`EstagioDoLeadSelect`, só usado pelo app) fica FORA do link e agora MOSTRA o erro (`role="alert"`) quando a ação recusa ou falha, em vez de só voltar ao
+  valor anterior. Regras preservadas: "Perdido" não aparece como destino (motivo da perda), follow-up atrasado só fora de Fechado/Perdido.
+- **Triagem**: o botão "Novo" do topo saiu (o botão flutuante da casca já existe nessa tela); busca é formulário GET (funciona sem JavaScript).
+  A classe `atd-row` (que empilha filhos no celular, `globals.css`) NÃO deve ser usada em linha com avatar: quebra o layout.
+- **Nova conversa**: `MobileNewAttendanceForm` ganhou `variante="app"` (o site `/m` não passa e fica idêntico); `PhoneInput` ganhou `classeDoPais` (opcional).
+  Dois pequenos ganhos de acessibilidade valem também no site: `aria-pressed` nos botões de modo de honorário e `aria-label` no "remover anexo".
+- **Estados**: `error.tsx`, `SemAcessoAConversa`, "Sem acesso ao Atendimento" (layout) e o NOVO `(shell)/not-found.tsx` ("Tela indisponível": é o que quem só vê os
+  próprios atendimentos lê ao abrir o Funil por endereço; a página continua chamando `notFound()` ANTES de consultar).
+- Testes: `atendimentoAppFunilTriagemNova.teste.tsx` (acesso intacto, cartões, colunas, triagem, formulário, estados, contraste AA em Dia e Noite,
+  higiene sem hex/sombra, site intacto); `funilColunasRecolhidas` aponta agora para as colunas do app.
+
+**Não provado**: banco e login reais (Chromium foi com dados de exemplo em rota temporária, já removida); a barra inferior e o botão flutuante NÃO apareceram nos
+prints (a rota temporária caía em "tela cheia"); `PendenciasEditor` e `DocumentTypeSelect` (dentro de "Mais detalhes") e a lista de países do telefone ainda têm o
+visual antigo (são compartilhados com o site); `error.tsx` e o Sem acesso só foram conferidos por código e contraste calculado (os prints da rota temporária
+saíram com tema errado por falta do script do tema); leitor de tela e aparelho de verdade; o `router.push("/m")` ao salvar uma nova conversa pelo app leva ao
+app mobile do site (comportamento antigo, não alterado aqui, merece decisão do dono).

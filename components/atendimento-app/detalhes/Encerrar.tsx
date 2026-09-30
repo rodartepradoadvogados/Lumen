@@ -96,10 +96,10 @@ export default function Encerrar({ p, pedido, aoConsumirPedido }: { p: PropsDosD
   return (
     <div className="space-y-4">
       {p.recusa && (
-        <div className="rounded-[2px] border border-regua-forte bg-sf-apoio p-3" data-recusa="">
+        <div className={cx.painel} data-recusa="">
           <p className={cx.etiqueta}>Lead recusado</p>
           <p className="mt-1 break-words text-corpo font-semibold text-tx">{p.recusa.motivoTexto}</p>
-          <p className="mt-0.5 text-corpo text-tx-2">
+          <p className="mt-0.5 text-corpo text-atd-previa">
             {situacaoDaRecusa({
               estado: p.recusa.estado,
               enviadaEm: p.recusa.enviadaEm ? new Date(p.recusa.enviadaEm) : null,
@@ -109,7 +109,7 @@ export default function Encerrar({ p, pedido, aoConsumirPedido }: { p: PropsDosD
             {p.recusa.aberturas > 1 ? ` · ${p.recusa.aberturas} aberturas` : ""}
             {p.recusa.porAgente ? " · recusado pelo atendente" : p.recusa.recusadaPor ? ` · por ${p.recusa.recusadaPor}` : ""}
           </p>
-          {p.recusa.observacao && <p className="mt-1 whitespace-pre-wrap break-words text-corpo italic text-tx-2">{p.recusa.observacao}</p>}
+          {p.recusa.observacao && <p className="mt-1 whitespace-pre-wrap break-words text-corpo italic text-atd-previa">{p.recusa.observacao}</p>}
 
           {p.recusa.estado === "EM_ANALISE" && (
             <div className="mt-3 space-y-2">
@@ -164,7 +164,7 @@ export default function Encerrar({ p, pedido, aoConsumirPedido }: { p: PropsDosD
       {!p.recusa && c.status === "CONVERTIDO" && <p className={cx.dica}>Este atendimento já virou processo ou caso; não há o que recusar.</p>}
 
       {arquivado && !p.recusa ? (
-        <div className="rounded-[2px] border border-regua bg-sf-apoio p-3">
+        <div className={cx.painel}>
           <p className="text-corpo font-semibold text-tx">Esta conversa está arquivada.</p>
           <p className={`mt-0.5 ${cx.dica}`}>Ela está em Triagem, no filtro “Arquivado”. Nada foi apagado.</p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -269,7 +269,7 @@ export default function Encerrar({ p, pedido, aoConsumirPedido }: { p: PropsDosD
       >
         {passo === 1 && (
           <div className="space-y-3">
-            <p className="text-corpo text-tx-2">A recusa fica como prova de que o escritório não assumiu o caso: tem data, autor e motivo. Por isso é um ato à parte, e não só mover o funil para “Perdido”.</p>
+            <p className="text-corpo text-atd-previa">A recusa fica como prova de que o escritório não assumiu o caso: tem data, autor e motivo. Por isso é um ato à parte, e não só mover o funil para “Perdido”.</p>
             <Campo rotulo="Motivo" erro={erro}>
               {({ id, descricao }) => (
                 <select id={id} aria-describedby={descricao} className={cx.campo} value={motivoId} onChange={(e) => setMotivoId(e.target.value)}>
@@ -305,7 +305,7 @@ export default function Encerrar({ p, pedido, aoConsumirPedido }: { p: PropsDosD
               <li>{p.veTudo ? "Você poderá desfazer a recusa." : "Só a recepção ou um sócio administrador desfaz a recusa depois."}</li>
             </ul>
             <p className={cx.etiqueta}>Carta (prévia)</p>
-            <div className="rounded-[2px] border border-regua bg-sf p-3 text-corpo text-tx-2" data-carta-previa="">
+            <div className="rounded-atd-balao bg-atd-pilula p-3 text-corpo text-atd-previa" data-carta-previa="">
               <p className="font-semibold text-tx">{carta.titulo}</p>
               {carta.paragrafos.map((t) => (
                 <p key={t} className="mt-2">

@@ -126,7 +126,7 @@ export default function Dados({ p }: { p: PropsDosDetalhes }) {
       <dl className="grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)] gap-x-3 gap-y-2 text-corpo">
         {linhas.map(([k, v]) => (
           <div key={k} className="contents">
-            <dt className="text-tx-2">{k}</dt>
+            <dt className="text-atd-previa">{k}</dt>
             <dd className="min-w-0 break-words font-medium text-tx">{v}</dd>
           </div>
         ))}
@@ -260,13 +260,13 @@ export default function Dados({ p }: { p: PropsDosDetalhes }) {
                   role="radio"
                   aria-checked={fase.stage === s}
                   onClick={() => setFase({ ...fase, stage: s })}
-                  className={`flex min-h-11 w-full items-center gap-3 rounded-[2px] border px-3 text-left text-corpo ${fase.stage === s ? "border-acao bg-acao-bg font-bold text-tx" : "border-regua bg-sf text-tx"}`}
+                  className={`flex min-h-11 w-full items-center gap-3 rounded-atd-pilula px-4 text-left text-corpo text-tx ${fase.stage === s ? "bg-atd-ouro-suave font-bold" : "bg-atd-pilula"}`}
                 >
                   <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${fase.stage === s ? "border-atd-ouro-texto" : "border-atd-campo"}`}>
                     {fase.stage === s && <span className="h-2.5 w-2.5 rounded-full bg-atd-ouro-texto" />}
                   </span>
                   {stageLabels[s]}
-                  {s === c.stage && <span className="text-etiqueta text-tx-2">(atual)</span>}
+                  {s === c.stage && <span className="text-etiqueta text-atd-previa">(atual)</span>}
                 </button>
               ))}
             </div>
