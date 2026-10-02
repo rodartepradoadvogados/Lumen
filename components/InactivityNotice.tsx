@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { AlarmClock } from "lucide-react";
 import { resumeAfterInactivity } from "@/lib/actions/timesheet";
 import { logout } from "@/lib/actions/auth";
+import { encerrarAssistenteLocal } from "@/lib/assistenteSessaoCliente";
 
 // 15 minutos sem nenhuma interação (mouse, teclado, toque ou scroll) não faz mais logout —
 // só mostra um aviso bloqueante. O timesheet (components/TimesheetTimer.tsx) é avisado via
@@ -70,7 +71,15 @@ export default function InactivityNotice({ sairPara }: { sairPara?: string } = {
           <p className="text-sm text-tx-2">Deseja continuar de onde parou ou sair do sistema?</p>
         </div>
         <div className="flex gap-2">
-          <form action={sairPara ? logout.bind(null, sairPara) : logout} className="flex-1">
+          <form
+            action={async () => {
+              // Sair do sistema perde o chat desta aba — o mesmo esquecer do X (02/10/2026).
+              encerrarAssistenteLocal();
+              if (sairPara) await logout(sairPara);
+              else await logout();
+            }}
+            className="flex-1"
+          >
             <button
               type="submit"
               disabled={isPending}

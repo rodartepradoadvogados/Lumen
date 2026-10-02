@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { LogOut } from "lucide-react";
 import { logout } from "@/lib/actions/auth";
+import { encerrarAssistenteLocal } from "@/lib/assistenteSessaoCliente";
 import { PWA_APPS } from "@/lib/pwaApps";
 
 // Deriva a inscrição de push do NAVEGADOR antes de submeter o logout — logout() já apaga a
@@ -24,6 +25,10 @@ export default function MobileLogoutButton() {
       } catch {
         // Best-effort — mesmo se o unsubscribe do navegador falhar, o logout não pode travar.
       }
+      // Logout perde o chat da Antonella nesta aba (pedido do dono em 02/10/2026) — o mesmo
+      // esquecer do X do widget. Best-effort junto com o unsubscribe: falhar storage não pode
+      // bloquear sair.
+      encerrarAssistenteLocal();
       await logout(PWA_APPS.mobile.entrar);
     });
   }
