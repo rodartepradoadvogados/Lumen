@@ -456,9 +456,7 @@ export default function PublicationsTriage({
       );
       setMarc(new Set());
       showUndo({
-        message: `${res.marcadas.length} ${res.marcadas.length === 1 ? "marcada" : "marcadas"} como ${res.marcadas.length === 1 ? "vista" : "vistas"}.${
-          res.excluidas.length ? ` ${res.excluidas.length} ${res.excluidas.length === 1 ? "cita" : "citam"} prazo e ficaram sem marca.` : ""
-        } Continuam em A tratar.`,
+        message: `${res.marcadas.length} ${res.marcadas.length === 1 ? "marcada" : "marcadas"} como ${res.marcadas.length === 1 ? "vista" : "vistas"}. Continuam em A tratar.`,
         durationMs: UNDO_MS,
         onUndo: async () => {
           await markPublicationsUnread(desfazer);
@@ -821,11 +819,6 @@ export default function PublicationsTriage({
               Limpar seleção <kbd className="ml-1 opacity-80">Esc</kbd>
             </button>
           </div>
-          {marcados.some(citaPrazo) && (
-            <p className="text-xs opacity-90">
-              {marcados.filter(citaPrazo).length} {marcados.filter(citaPrazo).length === 1 ? "cita prazo e não será marcada" : "citam prazo e não serão marcadas"} como vista{marcados.filter(citaPrazo).length === 1 ? "" : "s"}.
-            </p>
-          )}
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy} onClick={() => void vistasLote(marcados)} aria-keyshortcuts="L" className="flex-1 min-h-11 px-3 text-sm font-semibold border border-current inline-flex items-center justify-center gap-1.5 disabled:opacity-50">
               <Eye size={15} aria-hidden="true" /> Marcar vistas
