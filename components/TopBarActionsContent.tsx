@@ -6,7 +6,6 @@ import NewEntityMenu from "@/components/NewEntityMenu";
 import TimesheetTimer from "@/components/TimesheetTimer";
 import TeamMonitorPanel from "@/components/TeamMonitorPanel";
 import { logout } from "@/lib/actions/auth";
-import { encerrarAssistenteLocal } from "@/lib/assistenteSessaoCliente";
 import type { CurrentUser } from "@/lib/currentUser";
 
 // Miolo do cluster de ações da TopBar (Peticionar/Novo/Timesheet/Painel Mestre/Alertas/avatar) —
@@ -78,11 +77,7 @@ export default function TopBarActionsContent({
             role={user.role}
             photoUrl={user.photoUrl ? `/api/perfil/foto/${user.id}` : null}
             isAdmin={user.isAdmin}
-            logoutAction={() => {
-              // Menu "Sair" perde o chat desta aba — o mesmo esquecer do X da Antonella.
-              encerrarAssistenteLocal();
-              return logout();
-            }}
+            logoutAction={logout}
           />
         ) : (
           <div className="flex items-center gap-2">

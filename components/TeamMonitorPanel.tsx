@@ -9,6 +9,7 @@ import { fetchNotices, type SerializedNotice } from "@/lib/actions/notices";
 import PortalThemeToggle from "@/components/PortalThemeToggle";
 import NoticesPanel from "@/components/NoticesPanel";
 import type { TeamSummary, DayHistory } from "@/lib/timesheet";
+import { encerrarAssistenteLocal } from "@/lib/assistenteSessaoCliente";
 import { horaDeBrasilia, dataDeBrasilia } from "@/lib/horaDeBrasilia";
 
 // Rótulo de bloco dentro do menu (DESIGN-SYSTEM.md §5): 9,5px caixa alta, tracking .11em, --tx-2.
@@ -217,7 +218,9 @@ export default function TeamMonitorPanel({
               Sem problema deixar o menu aberto por um instante: logout() redireciona a página
               inteira, o que já desmonta tudo sozinho. */}
           <div className={clsx("p-1.5", isAdmin && "border-b border-regua")}>
-            <form action={logoutAction}>
+            {/* Sair perde o chat desta aba (o mesmo esquecer do X da Antonella). Feito aqui, no cliente: a
+                server action `logoutAction` chega da TopBar como referência e não pode ser um closure. */}
+            <form action={logoutAction} onSubmit={() => encerrarAssistenteLocal()}>
               <button
                 type="submit"
                 className="w-full flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium text-atencao hover:bg-grave-bg"
