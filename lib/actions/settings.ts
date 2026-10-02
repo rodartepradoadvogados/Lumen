@@ -637,6 +637,23 @@ export async function toggleBankAccountActive(id: string): Promise<{ error?: str
   return {};
 }
 
+export async function deleteBankAccount(id: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  const account = await prisma.bankAccount.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!account) return { error: "Conta bancária não encontrada." };
+  // Conta com baixa lançada é histórico financeiro real: não some, só pode ser desativada.
+  const usos = await prisma.financePayment.count({ where: { bankAccountId: id, officeId: viewer.officeId } });
+  if (usos > 0) {
+    return { error: `Não é possível excluir: há ${usos} pagamento(s) lançado(s) nesta conta. Use Desativar para tirá-la das listas.` };
+  }
+  await prisma.bankAccount.delete({ where: { id } });
+  revalidatePath("/configuracoes");
+  revalidatePath("/financeiro/despesas");
+  revalidatePath("/financeiro/receitas");
+  return {};
+}
+
 export async function deleteCostCenter(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada." };

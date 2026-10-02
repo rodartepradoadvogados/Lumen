@@ -349,7 +349,9 @@ async function markPayablePaidInterno(id: string, paidAmount: number, paidDate: 
     const soma = pagos._sum.amount ?? 0;
     const saldo = valorLiquido(payable.amount, payable.discount, payable.surcharge) - soma;
     if (saldo <= 0.005) throw new Error("Este lançamento já foi quitado (baixa duplicada recusada).");
-    if (paidAmount > saldo + 0.005) throw new Error(`Valor informado (R$ ${paidAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) é maior que o saldo em aberto (R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}). Ajuste o valor para o saldo.`);
+    // Pagar a mais que o saldo é decisão de gestão do escritório (juros, multa, ajuste): o sistema
+    // permite, e o saldo simplesmente fica negativo. Só o lançamento JÁ quitado continua recusado,
+    // para barrar a baixa em dobro (duplo clique, duas abas).
 
     await tx.financePayment.create({
       data: {
@@ -390,7 +392,9 @@ async function markReceivablePaidInterno(id: string, paidAmount: number, paidDat
     const soma = pagos._sum.amount ?? 0;
     const saldo = valorLiquido(receivable.amount, receivable.discount, receivable.surcharge) - soma;
     if (saldo <= 0.005) throw new Error("Este lançamento já foi quitado (baixa duplicada recusada).");
-    if (paidAmount > saldo + 0.005) throw new Error(`Valor informado (R$ ${paidAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) é maior que o saldo em aberto (R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}). Ajuste o valor para o saldo.`);
+    // Pagar a mais que o saldo é decisão de gestão do escritório (juros, multa, ajuste): o sistema
+    // permite, e o saldo simplesmente fica negativo. Só o lançamento JÁ quitado continua recusado,
+    // para barrar a baixa em dobro (duplo clique, duas abas).
 
     await tx.financePayment.create({
       data: {
