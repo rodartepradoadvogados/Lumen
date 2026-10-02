@@ -546,7 +546,16 @@ export async function createCostCenterQuick(name: string): Promise<{ id: string;
 export async function createBankAccountQuick(name: string): Promise<{ id: string; name: string; error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { id: "", name: "", error: "Sessão expirada." };
-  const bankAccount = await prisma.bankAccount.create({ data: { officeId: viewer.officeId, name } });
+  const nome = name.trim();
+  if (!nome) return { id: "", name: "", error: "Informe o nome da conta." };
+  // Conta com este nome já existe (inclusive inativa)? Devolve a existente em vez de estourar na
+  // unicidade: antes, quem "cadastrava" uma conta que já estava lá via a tela falhar.
+  const existente = await prisma.bankAccount.findFirst({ where: { officeId: viewer.officeId, name: { equals: nome, mode: "insensitive" } } });
+  const bankAccount = existente
+    ? existente.active
+      ? existente
+      : await prisma.bankAccount.update({ where: { id: existente.id }, data: { active: true } })
+    : await prisma.bankAccount.create({ data: { officeId: viewer.officeId, name: nome } });
   revalidatePath("/configuracoes");
   revalidatePath("/financeiro/despesas");
   revalidatePath("/financeiro/receitas");

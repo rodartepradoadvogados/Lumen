@@ -297,6 +297,26 @@ export async function syncReceivableStatus(id: string, officeId: string, db: Db 
 // FinancePayment — o valor pago em dobro ia direto para Livro Caixa/DRE/Fluxo de Caixa (que somam
 // FinancePayment, não o campo legado paidAmount). Com o lock, a segunda chamada só roda depois
 // que a primeira commitou, vê o saldo já zerado e é recusada.
+// Dados reais para o card de baixa aberto a partir de um alerta (AlertRow): saldo em aberto e contas
+// bancárias ativas. O alerta só carrega um valor (às vezes o líquido cheio, às vezes o saldo) e não
+// as contas — antes a lista vinha vazia e o valor sugerido podia passar do saldo, e a baixa era
+// recusada no servidor.
+export async function getSettleContext(kind: "payable" | "receivable", id: string): Promise<{ liquido: number; alreadyPaid: number; bankAccounts: { id: string; name: string }[] }> {
+  const officeId = await requireFinanceOfficeId();
+  const [bankAccounts, item] = await Promise.all([
+    prisma.bankAccount.findMany({ where: { officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    kind === "payable"
+      ? prisma.payable.findFirst({ where: { id, officeId }, select: { amount: true, discount: true, surcharge: true } })
+      : prisma.receivable.findFirst({ where: { id, officeId }, select: { amount: true, discount: true, surcharge: true } }),
+  ]);
+  if (!item) throw new Error("Lançamento não encontrado.");
+  const pagos = await prisma.financePayment.aggregate({
+    where: kind === "payable" ? { payableId: id } : { receivableId: id },
+    _sum: { amount: true },
+  });
+  return { liquido: valorLiquido(item.amount, item.discount, item.surcharge), alreadyPaid: pagos._sum.amount ?? 0, bankAccounts };
+}
+
 export async function markPayablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);

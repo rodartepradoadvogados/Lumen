@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import SettleModal from "@/components/SettleModal";
 import TaskDetailModal from "@/components/TaskDetailModal";
 import { acknowledgeDelegation } from "@/lib/actions/tasks";
+import { getSettleContext } from "@/lib/actions/financeiro";
 import type { AlertItem } from "@/lib/alerts";
 
 // Roteamento por tipo ao clicar num alerta, compartilhado entre a Central de Alertas
@@ -25,24 +26,39 @@ export default function AlertRow({
 }) {
   const router = useRouter();
   const [modal, setModal] = useState<"settle" | "task" | null>(null);
+  const [settleCtx, setSettleCtx] = useState<Awaited<ReturnType<typeof getSettleContext>> | null>(null);
+  const [settleErro, setSettleErro] = useState("");
 
   if ((alert.entityKind === "PAYABLE" || alert.entityKind === "RECEIVABLE") && alert.entityId) {
     return (
       <>
-        <button type="button" onClick={() => setModal("settle")} className={className}>
+        <button
+          type="button"
+          onClick={() => {
+            const entityId = alert.entityId!;
+            const kind = alert.entityKind === "PAYABLE" ? "payable" : "receivable";
+            setSettleCtx(null);
+            setSettleErro("");
+            setModal("settle");
+            getSettleContext(kind, entityId).then(setSettleCtx).catch((e) => setSettleErro(e instanceof Error ? e.message : "Não foi possível abrir a baixa."));
+          }}
+          className={className}
+        >
           {children}
         </button>
-        {modal === "settle" && (
+        {modal === "settle" && settleErro && (
+          <div role="alert" className="fixed bottom-5 right-5 z-[200] w-72 bg-grafite-800 text-white px-4 py-3 text-sm" onClick={() => setModal(null)}>
+            {settleErro}
+          </div>
+        )}
+        {modal === "settle" && settleCtx && (
           <SettleModal
             id={alert.entityId}
             kind={alert.entityKind === "PAYABLE" ? "payable" : "receivable"}
-            // alert.amount já vem como SALDO EM ABERTO (Fase 3 — ver lib/alerts.ts), não o valor
-            // cheio: passar liquido=saldo e alreadyPaid=0 aqui reproduz exatamente esse saldo como
-            // valor sugerido, sem precisar buscar de novo o histórico de pagamentos só para este
-            // atalho. bankAccounts vazio: quem precisar de uma conta cadastra na hora (quick-add).
-            liquido={alert.amount ?? 0}
-            alreadyPaid={0}
-            bankAccounts={[]}
+            // Valores reais do servidor (saldo em aberto + contas ativas), não o que o alerta traz.
+            liquido={settleCtx.liquido}
+            alreadyPaid={settleCtx.alreadyPaid}
+            bankAccounts={settleCtx.bankAccounts}
             onClose={() => setModal(null)}
           />
         )}
