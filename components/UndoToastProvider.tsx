@@ -5,12 +5,12 @@ import { Undo2 } from "lucide-react";
 
 const UNDO_TOAST_DURATION_MS = 5000;
 
-type UndoToast = { id: number; message: string; onUndo: () => void | Promise<void>; durationMs: number };
+type UndoToast = { id: number; message: string; onUndo?: () => void | Promise<void>; durationMs: number };
 type UndoToastContextValue = {
   // durationMs é opcional (default 5s, o mesmo de sempre) — só a triagem de Publicações
   // (components/PublicationsTriage.tsx) passa 4s, pra bater com o ritmo mais rápido de triar
   // várias publicações em sequência pelo teclado.
-  showUndo: (opts: { message: string; onUndo: () => void | Promise<void>; durationMs?: number }) => void;
+  showUndo: (opts: { message: string; onUndo?: () => void | Promise<void>; durationMs?: number }) => void;
   // Desfaz o toast em exibição (atalho U / Ctrl+Z da triagem de publicações). false se não há.
   undoLast: () => boolean;
 };
@@ -25,7 +25,7 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
   const idRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showUndo = useCallback((opts: { message: string; onUndo: () => void | Promise<void>; durationMs?: number }) => {
+  const showUndo = useCallback((opts: { message: string; onUndo?: () => void | Promise<void>; durationMs?: number }) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     const id = ++idRef.current;
     const durationMs = opts.durationMs ?? UNDO_TOAST_DURATION_MS;
@@ -37,7 +37,7 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
   toastRef.current = toast;
   const undoLast = useCallback(() => {
     const t = toastRef.current;
-    if (!t) return false;
+    if (!t || !t.onUndo) return false;
     if (timerRef.current) clearTimeout(timerRef.current);
     setToast(null);
     void t.onUndo();
@@ -46,7 +46,7 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
 
   async function handleUndo() {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (toast) await toast.onUndo();
+    if (toast?.onUndo) await toast.onUndo();
     setToast(null);
   }
 
@@ -61,12 +61,12 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
         <div className="fixed bottom-5 right-5 z-[200] w-72 bg-grafite-800 text-white shadow-pop overflow-hidden animate-fade-in">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <span className="text-sm">{toast.message}</span>
-            <button
+            {toast.onUndo && <button
               onClick={handleUndo}
               className="flex items-center gap-1 min-h-11 px-2 text-sm font-semibold text-rail-marca hover:opacity-80 shrink-0"
             >
               <Undo2 size={14} /> Desfazer
-            </button>
+            </button>}
           </div>
           <div
             key={toast.id}

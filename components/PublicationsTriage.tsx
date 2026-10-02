@@ -444,6 +444,8 @@ export default function PublicationsTriage({
     const novas = grupos.filter((g) => !g.allRead);
     if (novas.length === 0) {
       setLive("Já estavam marcadas como vistas.");
+      // Visível, não só no leitor de tela: sem isto o clique parece não fazer nada.
+      showUndo({ message: "Já estavam marcadas como vistas. Continuam em A tratar até o prazo ser registrado ou serem arquivadas.", durationMs: UNDO_MS });
       return;
     }
     setBusy(true);
