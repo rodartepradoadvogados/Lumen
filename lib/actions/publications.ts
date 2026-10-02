@@ -7,7 +7,6 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
 import { delegateTask, acknowledgeDelegation } from "@/lib/actions/tasks";
 import { collectPublicationGroupIds } from "@/lib/publicationResolution";
-import { extrairMelhorDoGrupo } from "@/lib/prazoExtraido";
 
 // Usado pelo AppBadgeSync (badge no ícone do PWA instalado, via Badging API) para saber se o
 // número mudou desde a última checagem, sem precisar recarregar a página inteira.
