@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Power, X } from "lucide-react";
-import { createBankAccount, updateBankAccount, toggleBankAccountActive } from "@/lib/actions/settings";
+import { Pencil, Power, Trash2, X } from "lucide-react";
+import { createBankAccount, updateBankAccount, toggleBankAccountActive, deleteBankAccount } from "@/lib/actions/settings";
 import { Badge, formatCurrency } from "@/components/ui";
 import MoneyInput from "@/components/MoneyInput";
 
@@ -111,6 +111,16 @@ function BankAccountRow({ account }: { account: BankAccount }) {
     });
   }
 
+  function handleDelete() {
+    if (!window.confirm(`Excluir a conta "${account.name}"? Isto não pode ser desfeito.`)) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteBankAccount(account.id);
+      if (result.error) setError(result.error);
+      router.refresh();
+    });
+  }
+
   if (editing) {
     return (
       <form action={handleSave} className="px-5 py-3 space-y-2 bg-sf-apoio">
@@ -151,6 +161,15 @@ function BankAccountRow({ account }: { account: BankAccount }) {
           className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 rounded-md"
         >
           <Power size={14} />
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={pending}
+          data-tip="Excluir"
+          aria-label="Excluir conta"
+          className="p-1.5 text-tx-3 hover:text-urgente hover:bg-urgente-bg transition-colors disabled:opacity-40 rounded-md"
+        >
+          <Trash2 size={14} />
         </button>
       </div>
       {error && (

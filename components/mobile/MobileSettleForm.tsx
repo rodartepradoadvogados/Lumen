@@ -105,9 +105,13 @@ export default function MobileSettleForm({
           const paymentMethod = String(formData.get("paymentMethod") || "");
           const bankAccountId = String(formData.get("bankAccountId") || "");
           try {
-            await (kind === "payable"
+            const baixa = await (kind === "payable"
               ? markPayablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined)
               : markReceivablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined));
+            if (baixa.error) {
+              setError(baixa.error);
+              return;
+            }
             setOpen(false);
             router.refresh();
           } catch (err) {

@@ -297,6 +297,22 @@ export async function syncReceivableStatus(id: string, officeId: string, db: Db 
 // FinancePayment — o valor pago em dobro ia direto para Livro Caixa/DRE/Fluxo de Caixa (que somam
 // FinancePayment, não o campo legado paidAmount). Com o lock, a segunda chamada só roda depois
 // que a primeira commitou, vê o saldo já zerado e é recusada.
+// Em produção o Next troca a mensagem de qualquer Error lançado numa server action por um texto
+// genérico ("An error occurred in the Server Components render..."), e a pessoa nunca descobre que
+// o valor passou do saldo. Erros de regra de negócio voltam como resultado; redirecionamentos do
+// Next e erros internos (Prisma) continuam sendo lançados.
+async function devolverErroDeNegocio(fn: () => Promise<unknown>): Promise<{ error?: string }> {
+  try {
+    await fn();
+    return {};
+  } catch (err) {
+    const digest = (err as { digest?: unknown } | null)?.digest;
+    if (typeof digest === "string" && digest.startsWith("NEXT_")) throw err;
+    if (err instanceof Error && !/prisma|invocation|\n/i.test(err.message)) return { error: err.message };
+    throw err;
+  }
+}
+
 // Dados reais para o card de baixa aberto a partir de um alerta (AlertRow): saldo em aberto e contas
 // bancárias ativas. O alerta só carrega um valor (às vezes o líquido cheio, às vezes o saldo) e não
 // as contas — antes a lista vinha vazia e o valor sugerido podia passar do saldo, e a baixa era
@@ -317,7 +333,11 @@ export async function getSettleContext(kind: "payable" | "receivable", id: strin
   return { liquido: valorLiquido(item.amount, item.discount, item.surcharge), alreadyPaid: pagos._sum.amount ?? 0, bankAccounts };
 }
 
-export async function markPayablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
+export async function markPayablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string): Promise<{ error?: string }> {
+  return devolverErroDeNegocio(() => markPayablePaidInterno(id, paidAmount, paidDate, receiptNumber, paymentMethod, bankAccountId));
+}
+
+async function markPayablePaidInterno(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
 
@@ -329,7 +349,9 @@ export async function markPayablePaid(id: string, paidAmount: number, paidDate: 
     const soma = pagos._sum.amount ?? 0;
     const saldo = valorLiquido(payable.amount, payable.discount, payable.surcharge) - soma;
     if (saldo <= 0.005) throw new Error("Este lançamento já foi quitado (baixa duplicada recusada).");
-    if (paidAmount > saldo + 0.005) throw new Error(`Valor informado (${paidAmount.toFixed(2)}) é maior que o saldo em aberto (${saldo.toFixed(2)}).`);
+    // Pagar a mais que o saldo é decisão de gestão do escritório (juros, multa, ajuste): o sistema
+    // permite, e o saldo simplesmente fica negativo. Só o lançamento JÁ quitado continua recusado,
+    // para barrar a baixa em dobro (duplo clique, duas abas).
 
     await tx.financePayment.create({
       data: {
@@ -350,7 +372,11 @@ export async function markPayablePaid(id: string, paidAmount: number, paidDate: 
   revalidateCase(caseId);
 }
 
-export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
+export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string): Promise<{ error?: string }> {
+  return devolverErroDeNegocio(() => markReceivablePaidInterno(id, paidAmount, paidDate, receiptNumber, paymentMethod, bankAccountId));
+}
+
+async function markReceivablePaidInterno(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
 
@@ -366,7 +392,9 @@ export async function markReceivablePaid(id: string, paidAmount: number, paidDat
     const soma = pagos._sum.amount ?? 0;
     const saldo = valorLiquido(receivable.amount, receivable.discount, receivable.surcharge) - soma;
     if (saldo <= 0.005) throw new Error("Este lançamento já foi quitado (baixa duplicada recusada).");
-    if (paidAmount > saldo + 0.005) throw new Error(`Valor informado (${paidAmount.toFixed(2)}) é maior que o saldo em aberto (${saldo.toFixed(2)}).`);
+    // Pagar a mais que o saldo é decisão de gestão do escritório (juros, multa, ajuste): o sistema
+    // permite, e o saldo simplesmente fica negativo. Só o lançamento JÁ quitado continua recusado,
+    // para barrar a baixa em dobro (duplo clique, duas abas).
 
     await tx.financePayment.create({
       data: {
