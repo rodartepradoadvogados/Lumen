@@ -82,9 +82,13 @@ export default function SettleModal({
             const paymentMethod = String(formData.get("paymentMethod") || "");
             const bankAccountId = String(formData.get("bankAccountId") || "");
             try {
-              await (kind === "payable"
+              const baixa = await (kind === "payable"
                 ? markPayablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined)
                 : markReceivablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined));
+              if (baixa.error) {
+                setError(baixa.error);
+                return;
+              }
               if (receiptFile) {
                 const uploadResult = await uploadFinanceReceipt(kind === "payable" ? "PAYABLE" : "RECEIVABLE", id, receiptFile);
                 if (uploadResult.error) {
