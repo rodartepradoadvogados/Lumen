@@ -391,27 +391,15 @@ export async function markPublicationsReadBatch(
 ): Promise<{ marcadas: string[][]; excluidas: string[][] }> {
   const user = await getCurrentUser();
   if (!user || groups.length === 0) return { marcadas: [], excluidas: [] };
-  const allIds = groups.flat();
   const pubs = await prisma.publication.findMany({
-    where: { id: { in: allIds }, officeId: user.officeId },
-    select: { id: true, kind: true, content: true, publishedAt: true },
+    where: { id: { in: groups.flat() }, officeId: user.officeId },
+    select: { id: true },
   });
-  const byId = new Map(pubs.map((p) => [p.id, p]));
-  const holidays = await prisma.holiday.findMany({ where: { officeId: user.officeId }, select: { date: true } });
-  const extras = holidays.map((h) => ({ date: h.date.toISOString().slice(0, 10) }));
+  const validos = new Set(pubs.map((p) => p.id));
 
-  const marcadas: string[][] = [];
-  const excluidas: string[][] = [];
-  for (const g of groups) {
-    const itens = g.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
-    if (itens.length === 0) continue;
-    const e = extrairMelhorDoGrupo(
-      itens.map((p) => ({ id: p.id, kind: p.kind, publishedAt: p.publishedAt, content: decodificarEntidadesHtml(p.content) })),
-      extras
-    );
-    const citaPrazo = e.tipo !== "NENHUM" || Boolean(e.mencionaPrazo);
-    (citaPrazo ? excluidas : marcadas).push(itens.map((p) => p.id));
-  }
+  // "Vista" não resolve nada: o grupo continua em A tratar até alguém registrar o prazo ou arquivar.
+  // Por isso vale para todos os selecionados, citem prazo ou não (igual à ação de uma só publicação).
+  const marcadas = groups.map((g) => g.filter((id) => validos.has(id))).filter((g) => g.length > 0);
   const ids = marcadas.flat();
   if (ids.length > 0) {
     await prisma.publicationRead.createMany({ data: ids.map((id) => ({ publicationId: id, userId: user.id })), skipDuplicates: true });
@@ -419,7 +407,7 @@ export async function markPublicationsReadBatch(
     revalidatePath("/alertas");
     revalidatePath("/painel");
   }
-  return { marcadas, excluidas };
+  return { marcadas, excluidas: [] };
 }
 
 export type PublicationSnapshot = { id: string; assignedToId: string | null; triageStatus: string; deadlineGenerated: boolean };
