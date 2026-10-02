@@ -230,9 +230,21 @@ async function executarConsultarProcessos(input: ToolInput, officeId: string): P
 
     // Prisma não faz "contains" case-insensitive em coluna String[] (Case.materias) — busca um
     // lote maior de candidatos (só client/status, indexáveis) e filtra por matéria em memória.
+    const busca = str(input, "busca");
+    const ci = (v: string) => ({ contains: v, mode: "insensitive" as const });
+    // O vínculo com o cliente existe em quatro lugares (Case.client, litisconsórcio em CaseClient,
+    // o título "Cliente x Parte Adversa" e a parte cadastrada): olhar só o primeiro faz o processo
+    // "não existir" para a Antonella quando o clientId do espelho está vazio.
     const filtro = {
       officeId,
-      client: cliente ? { name: { contains: cliente, mode: "insensitive" as const } } : undefined,
+      AND: [
+        ...(cliente
+          ? [{ OR: [{ client: { name: ci(cliente) } }, { clients: { some: { client: { name: ci(cliente) } } } }, { title: ci(cliente) }] }]
+          : []),
+        ...(busca
+          ? [{ OR: [{ title: ci(busca) }, { processNumber: ci(busca) }, { client: { name: ci(busca) } }, { clients: { some: { client: { name: ci(busca) } } } }, { parties: { some: { name: ci(busca) } } }, { opposingPartyName: ci(busca) }] }]
+          : []),
+      ],
       status: status || undefined,
     };
 
@@ -1458,6 +1470,7 @@ export const assistantTools: AssistantTool[] = [
         type: "object",
         properties: {
           cliente: { type: "string", description: "Nome (ou parte do nome) do cliente vinculado ao processo." },
+          busca: { type: "string", description: "Texto livre: parte do título (\"Fulano x Beltrano\"), número do processo ou nome de qualquer parte. Use quando o usuário citar o processo por referência." },
           area: { type: "string", description: "Área do direito (ex: Cível, Trabalhista, Família, Tributário)." },
           status: { type: "string", description: "Status do processo: ATIVO, SUSPENSO, ENCERRADO ou ARQUIVADO." },
         },
