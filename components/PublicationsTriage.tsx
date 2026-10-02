@@ -415,7 +415,7 @@ export default function PublicationsTriage({
     try {
       await markPublicationsRead(novos);
       showUndo({
-        message: "Marcada como vista. Continua em A tratar.",
+        message: "Marcada como vista. Saiu da sua fila; continua para as outras pessoas.",
         durationMs: UNDO_MS,
         onUndo: async () => {
           await markPublicationsUnread(novos);
@@ -445,7 +445,7 @@ export default function PublicationsTriage({
     if (novas.length === 0) {
       setLive("Já estavam marcadas como vistas.");
       // Visível, não só no leitor de tela: sem isto o clique parece não fazer nada.
-      showUndo({ message: "Já estavam marcadas como vistas. Continuam em A tratar até o prazo ser registrado ou serem arquivadas.", durationMs: UNDO_MS });
+      showUndo({ message: "Já estavam marcadas como vistas.", durationMs: UNDO_MS });
       return;
     }
     setBusy(true);
@@ -458,7 +458,7 @@ export default function PublicationsTriage({
       );
       setMarc(new Set());
       showUndo({
-        message: `${res.marcadas.length} ${res.marcadas.length === 1 ? "marcada" : "marcadas"} como ${res.marcadas.length === 1 ? "vista" : "vistas"}. Continuam em A tratar.`,
+        message: `${res.marcadas.length} ${res.marcadas.length === 1 ? "marcada" : "marcadas"} como ${res.marcadas.length === 1 ? "vista" : "vistas"}. Saíram da sua fila; continuam para as outras pessoas.`,
         durationMs: UNDO_MS,
         onUndo: async () => {
           await markPublicationsUnread(desfazer);
@@ -1441,7 +1441,7 @@ function Painel({
                 disabled={busy || group.allRead}
                 onClick={onVista}
                 aria-keyshortcuts="L"
-                title="Marca só para você; a publicação continua em A tratar para o escritório"
+                title="Tira da sua fila; a publicação continua em A tratar para as outras pessoas"
                 className={secundario}
               >
                 <Eye size={15} aria-hidden="true" /> {group.allRead ? "Vista" : "Marcar vista"}

@@ -131,7 +131,7 @@ export default async function PublicacoesPage({
   });
 
   // ---- opções dos filtros de pessoa (dos DADOS, nunca nomes no código) e contagens ----
-  const abertas = todos.filter((g) => g.primary.triageStatus !== "TRATADA");
+  const abertas = todos.filter((g) => g.primary.triageStatus !== "TRATADA" && !g.allRead);
   const citadoCount = new Map<string, number>();
   const respCount = new Map<string, number>();
   let semResponsavel = 0;

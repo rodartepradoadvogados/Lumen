@@ -1,16 +1,17 @@
 import { teste, igual, resumo } from "./executar";
 import { matchesPublicationChip, parsePublicationChip } from "../publicationChips";
 
-// A fila de /publicacoes é o STATUS do escritório, não a leitura de cada pessoa: publicação vista e
-// nunca tratada tem que continuar em "A tratar" (antes sumia de todas as abas).
+// A fila de /publicacoes é o STATUS do escritório menos o que a própria pessoa já marcou como vista:
+// vista sai da fila de quem marcou e continua para as outras pessoas.
 const g = (over: Partial<{ allRead: boolean; assignedToId: string | null; case: unknown; triageStatus: string }> = {}) => ({
   allRead: false,
   primary: { assignedToId: null as string | null, case: { id: "c" } as unknown, triageStatus: "PENDENTE", ...over },
 });
 
-teste("A tratar = status diferente de TRATADA, vista ou não", () => {
+teste("A tratar = status diferente de TRATADA e ainda não vista por mim", () => {
   igual(matchesPublicationChip(g({ triageStatus: "PENDENTE" }), "a-tratar", "u1"), true);
-  igual(matchesPublicationChip({ ...g({ triageStatus: "EM_ANALISE" }), allRead: true }, "a-tratar", "u1"), true);
+  igual(matchesPublicationChip({ ...g({ triageStatus: "EM_ANALISE" }), allRead: true }, "a-tratar", "u1"), false);
+  igual(matchesPublicationChip({ ...g({ triageStatus: "EM_ANALISE", assignedToId: "u1" }), allRead: true }, "minhas", "u1"), false);
   igual(matchesPublicationChip(g({ triageStatus: "TRATADA" }), "a-tratar", "u1"), false);
 });
 
