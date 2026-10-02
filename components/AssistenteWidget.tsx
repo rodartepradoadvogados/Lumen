@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { renderizarMarkdownSimples } from "@/lib/markdownSimples";
-import { X, Send, Database } from "lucide-react";
+import { X, Send, Database, Minus } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
 import clsx from "clsx";
 import { useAnotacoesOptional } from "@/components/anotacoes/AnotacoesContext";
+import { CHAVE_SESSAO, CHAVE_ABERTURA, encerrarAssistenteLocal } from "@/lib/assistenteSessaoCliente";
 
 type ChatMessage = {
   role: "user" | "assistant" | "error";
@@ -26,7 +27,21 @@ type ChatMessage = {
 // O id fica no `sessionStorage`, não no `localStorage`: é o escopo certo para "a conversa desta
 // aba". Em `localStorage`, duas abas abertas no mesmo navegador escreveriam na mesma conversa, e
 // as respostas apareceriam trocadas entre elas.
-const CHAVE_SESSAO = "lumen:assistente:sessao";
+//
+// OS DOIS GESTOS DE SAÍDA, desde 02/10/2026, são SEMÂNTICAS DIFERENTES (pedido do dono):
+//   · MINIMIZAR (botão "−") esconde a janela e NÃO toca na conversa — reabrir continua de onde
+//     estava, e um F5 com a caixa aberta a reabre aberta (`CHAVE_ABERTURA`);
+//   · FECHAR (X) apaga o id desta aba (`encerrarAssistenteLocal`): a próxima abertura é conversa
+//     nova. O histórico no banco do escritório não some — some a JANELA, que é o que "perder o
+//     chat" quer dizer para quem está na tela. Logout em qualquer ponto chama o mesmo esquecer.
+const saudacaoInicial = (userName: string): ChatMessage[] => [
+  // Mesma saudação do celular, palavra por palavra: é o mesmo agente, e duas saudações
+  // diferentes fazem parecer que são dois.
+  {
+    role: "assistant",
+    text: `Olá, ${userName.split(" ")[0]}. Posso consultar processos, publicações, agenda, atendimentos, clientes e — se você tiver acesso — o financeiro.`,
+  },
+];
 
 // ============================================================================
 // O TAMANHO DA CAIXA, ARRASTÁVEL.
@@ -70,16 +85,31 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
   const arrasto = useRef<{ x: number; y: number; largura: number; altura: number } | null>(null);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [mensagens, setMensagens] = useState<ChatMessage[]>([
-    // Mesma saudação do celular, palavra por palavra: é o mesmo agente, e duas saudações
-    // diferentes fazem parecer que são dois.
-    {
-      role: "assistant",
-      text: `Olá, ${userName.split(" ")[0]}. Posso consultar processos, publicações, agenda, atendimentos, clientes e — se você tiver acesso — o financeiro.`,
-    },
-  ]);
+  const [mensagens, setMensagens] = useState<ChatMessage[]>(() => saudacaoInicial(userName));
   const [sessaoId, setSessaoId] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Abrir/minimizar é gesto PERSISTENTE desta aba: com a caixa aberta, um F5 a reabre aberta;
+  // minimizada, reabre fechada. Quem esvazia a chave é o X (fechar de verdade) e o logout.
+  function definirAberta(valor: boolean) {
+    setOpen(valor);
+    try {
+      if (valor) window.sessionStorage.setItem(CHAVE_ABERTURA, "1");
+      else window.sessionStorage.removeItem(CHAVE_ABERTURA);
+    } catch {
+      // Sem storage, a janela abre e fecha só nesta tela.
+    }
+  }
+
+  // O X da janela: perde o chat desta aba (id e mensagens) e fecha. O servidor mantém o
+  // histórico para o escritório; a janela recomeça do zero na próxima abertura.
+  function fecharEPerder() {
+    encerrarAssistenteLocal();
+    setSessaoId("");
+    setMensagens(saudacaoInicial(userName));
+    setInput("");
+    setOpen(false);
+  }
 
   // Painel global "Anotações" (faixa retrátil na borda direita, ver AnotacoesContext.tsx) ocupa
   // a mesma coluna direita onde este widget fica fixo — sem este ajuste, o botão/janela do
@@ -93,12 +123,17 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
   // Retoma a conversa desta aba, se houver. Acessor protegido: em aba anônima ou com dados do
   // site bloqueados ele lança, e aí o widget simplesmente começa uma conversa nova.
   useEffect(() => {
+    // A janela estava aberta quando a aba recarregou? Reabre aberta (F5/pós-update nunca
+    // fecham a janela por decisão alheia ao usuário — pedido do dono em 02/10/2026).
+    let abertaAntes = false;
     let guardado = "";
     try {
+      abertaAntes = window.sessionStorage.getItem(CHAVE_ABERTURA) === "1";
       guardado = window.sessionStorage.getItem(CHAVE_SESSAO) ?? "";
     } catch {
       return;
     }
+    if (abertaAntes) setOpen(true);
     if (!guardado) return;
     setSessaoId(guardado);
     fetch(`/api/assistente/sessoes/${guardado}`)
@@ -248,10 +283,12 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
     <>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => definirAberta(!open)}
         // Botão só de ícone: sem nome acessível ele é anunciado como "botão" e ninguém que use
         // leitor de tela descobre o que ele abre. O `data-tip` é só visual.
-        aria-label={open ? "Fechar a Antonella" : "Abrir a Antonella"}
+        // Com a caixa aberta o ícone é "−" (o gesto é MINIMIZAR — nada se perde); quem some o
+        // chat é o X dentro da janela, nunca o botão flutuante.
+        aria-label={open ? "Minimizar a Antonella" : "Abrir a Antonella"}
         aria-expanded={open}
         data-tip="Antonella"
         style={{ right: rightOffsetPx }}
@@ -259,7 +296,7 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
         // (LumenMark), não um botão de ação comum — ver DESIGN-SYSTEM.md §15.
         className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-grafite-800 text-white shadow-pop flex items-center justify-center hover:bg-grafite-700 transition-[right,background-color] duration-200"
       >
-        {open ? <X size={22} /> : <IconeAgente size={26} acento="var(--rail-marca)" />}
+        {open ? <Minus size={22} /> : <IconeAgente size={26} acento="var(--rail-marca)" />}
       </button>
 
       {open && (
@@ -310,14 +347,30 @@ export default function AssistenteWidget({ userName }: { userName: string }) {
               <IconeAgente size={20} acento="var(--rail-marca)" />
               <span className="font-medium text-sm">Antonella</span>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Fechar"
-              className="p-1 rounded hover:bg-white/10 transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* Os dois gestos de saída, separados por design (02/10/2026):
+                  "−" esconde e CONSERVA a conversa; o X fecha e PERDE o chat desta aba.
+                  Nunca trocar um pelo outro: quem quer só sair da tela não pode perder
+                  dez turnos de consulta por causa de um ícone ambíguo. */}
+              <button
+                type="button"
+                onClick={() => definirAberta(false)}
+                aria-label="Minimizar (a conversa continua quando reabrir)"
+                title="Minimizar — a conversa continua quando você reabrir"
+                className="p-1 rounded hover:bg-white/10 transition-colors"
+              >
+                <Minus size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={fecharEPerder}
+                aria-label="Fechar e começar uma nova conversa"
+                title="Fechar — esta conversa recomeça do zero na próxima abertura"
+                className="p-1 rounded hover:bg-white/10 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-3 space-y-3 bg-sf-apoio">

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getPlatformMember } from "@/lib/platformMember";
-import { logout } from "@/lib/actions/auth";
+import FormSairEsquecendoAntonella from "@/components/FormSairEsquecendoAntonella";
 import TelaSessao from "@/components/site/TelaSessao";
 
 // Tela mostrada só a quem tem sessão de escritório E acesso de plataforma (dono — Jairo/Rodrigo
@@ -33,14 +33,7 @@ export default async function EscolherPage() {
       // logout abaixo — "voltar ao site" deixaria a pessoa logada num limbo.
       saida={false}
       rodape={
-        <form action={logout}>
-          <button
-            type="submit"
-            className="text-etiqueta font-semibold text-tx-3 hover:text-urgente transition-colors duration-100 ease-out"
-          >
-            Sair
-          </button>
-        </form>
+        <FormSairEsquecendoAntonella classNameBotao="text-etiqueta font-semibold text-tx-3 hover:text-urgente transition-colors duration-100 ease-out" />
       }
     >
       <div className="grid gap-3">

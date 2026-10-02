@@ -39,6 +39,28 @@ teste("a Antonella sabe que lista truncada não prova ausência", () => {
   verdade(p.includes("NUNCA conclua que algo não existe"), "faltou a regra da amostra");
 });
 
+teste("a resposta da Antonella é única, completa, e sabe a hora de Brasília", () => {
+  // Pedido do dono em 02/10/2026 depois do "114" sem suspensos nem arquivados.
+  const p = montarPerguntaInterna(INTERNA);
+  verdade(p.includes("HORA DE BRASÍLIA:"), "a hora tem que viajar com a pergunta — nem o Claude da reserva, nem o Hermes, têm o relógio do usuário");
+  verdade(p.includes("uma única resposta completa"), "faltou a regra da resposta única e completa");
+  verdade(p.includes("ativos, suspensos, encerrados e arquivados"), "contagem de processos vem POR STATUS, não só o recorte da primeira consulta");
+});
+
+teste("a Antonella desambigua processo por referência com lista numerada", () => {
+  const p = montarPerguntaInterna(INTERNA);
+  verdade(p.includes("Encontrei N processos semelhantes"), "faltou o roteiro de referência ambígua (\"Pneulândia x Damião\")");
+  verdade(p.includes("Qual você deseja consultar"), "a pergunta de escolha tem que estar escrita");
+});
+
+teste("as recusas da Antonella saem com caminho, palavra por palavra", () => {
+  const p = montarPerguntaInterna(INTERNA);
+  verdade(p.includes("Não encontrei seu acesso ao módulo"), "recusa de acesso sem caminho é porta sem maçaneta");
+  verdade(p.includes("alterar suas credenciais no Lúmen do Escritório Rodarte Prado Advogados"), "a frase tem que nomear o escritório da pergunta");
+  verdade(p.includes("não possui o módulo"), "módulo não contratado tem frase própria (chamado à Lúmen)");
+  verdade(p.includes("NUNCA invente cliques"), "caminho de navegação fora do mapa não pode virar chute");
+});
+
 teste("a pergunta do usuário entra por último, separada das regras", () => {
   const p = montarPerguntaInterna(INTERNA);
   verdade(p.trimEnd().endsWith("cabe agravo disso?"), "a pergunta tem que ser a última coisa");
