@@ -28,13 +28,31 @@ Projetos-Obsidian/
 
 ## Regras
 
-- **Um dono por arquivo.** Neste projeto você escreve em `01_Lumen/Sistema/`.
-  Não escreve em `Hermes/` nem em pastas de outros projetos.
+- **Um dono por arquivo.** Neste projeto você escreve em `01_Lumen/Sistema/` e `01_Lumen/Peticionamento/`.
+  Não escreve em `Hermes/`, em `hermes_para_claude/`, em `06_Publicacao/` (do bot de marketing) nem em pastas de outros projetos.
 - **Enriquecimento em duas camadas.** Todo aprendizado vira (a) uma nota datada no
   cofre e (b) a regra generalizável correspondente. Aprendizado não fica só na conversa.
-- **Nunca commitar segredos** — tokens, chaves e `.env` ficam fora do repositório.
+- **Nunca commitar segredos** — nenhum valor real de chave, senha, token ou string de conexão entra no repositório
+  (código, `.env`, `.env.example`, seed, docs) nem no cofre. Segredos vivem nas variáveis de ambiente do provedor de deploy
+  e no gerenciador de senhas da equipe; arquivos de exemplo trazem só o NOME da variável, vazio.
 - **Conflitos `*.sync-conflict-*`:** nunca resolver sozinho. Avisar o Jairo.
-- **LGPD:** sem CPF, dados de saúde ou dados de cliente no cofre.
+- **LGPD:** sem CPF, dados de saúde, dados de cliente, tokens ou senhas no cofre.
+- **O Drive é a fonte das mídias.** O cofre guarda notas e caminhos, não os arquivos pesados.
 - **Aprovação é do Jairo.** Nenhuma nota substitui um `status: aprovado` dele.
+
+## Regras específicas do projeto
+
+- Antes de alterar código, variável de ambiente ou painel externo, leia `CLAUDE.md` e `docs/ESTADO-ATUAL-E-ARMADILHAS.md`. Eles prevalecem em tudo que é técnico.
+- Nunca escreva endereço absoluto no código: use `getAppUrl()` (`lib/appUrl.ts`).
+- `GoogleCredential.lastSyncAt` é a marca d'água da busca no Gmail, não telemetria.
+- Mudou o que o sistema faz com dados do Gmail/Drive ou provedor de IA? Atualize `app/privacidade/page.tsx` no mesmo PR.
+- Integração externa nova (webhook, callback, cron) nasce fail-closed: recusa quando o segredo de verificação não está configurado.
+- `dangerouslySetInnerHTML` novo exige justificativa e `eslint-disable-next-line react/no-danger` com o motivo.
+
+## Fim de sessão e comunicação
+
+1. Grave nota datada no caminho da tabela acima; se surgiu regra generalizável, registre-a junto.
+2. Para falar com o Hermes: `02_RodartePrado/90_Comunicacao/claude_para_hermes/AAAA-MM-DD_HHMM_assunto.md`.
+3. **Sessão na nuvem não alcança o cofre** (ele fica no computador do Jairo e na VPS). Nesse caso, entregue o texto da nota ao Jairo na resposta final para ele gravar; não declare a nota como gravada.
 
 Mapa completo e territórios de todos os agentes: `00_AGENTES.md` na raiz do cofre.
