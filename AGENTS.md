@@ -1,46 +1,58 @@
-# AGENTS.md — Lúmen (sistema jurídico)
+# AGENTS.md — Lúmen — software de gestão jurídica multi-tenant
 
-## Cofre compartilhado (Obsidian)
+Este repositório alimenta o projeto **`01_Lumen`** do cofre Obsidian compartilhado
+do escritório **Rodarte Prado Advogados**.
 
-O cofre "Projetos-Obsidian" (`C:\Users\jairo\Projetos-Obsidian\`, sincronizado com a VPS pelo
-Syncthing) é a memória comum entre Claude Code, Hermes (bots de Telegram) e o Jairo.
-**Ao iniciar a sessão, leia `00_AGENTS.md`** na raiz do cofre (mapa-mestre).
+## O cofre é a memória comum
 
-Este projeto alimenta: **`01_Lumen/Sistema/`**
+O cofre `Projetos-Obsidian` fica no computador do Jairo e é sincronizado com a VPS
+pelo Syncthing. É compartilhado entre o **Claude Code**, os **bots do Hermes** e o Jairo.
 
-| Para quê | Onde |
-|---|---|
-| Sessões de desenvolvimento | `01_Lumen/Sistema/` |
-| Decisões de arquitetura | `01_Lumen/Sistema/ (nota com prefixo `ADR_`)` |
+```
+Projetos-Obsidian/
+├── 00_AGENTES.md      ← mapa-mestre. LEIA ao iniciar cada sessão.
+├── 01_Lumen/          ← software de gestão jurídica
+├── 02_RodartePrado/   ← escritório: marketing e site
+├── 03_Gabarito/       ← portal orquestrador
+├── 04_CowData/        ← software de pecuária leiteira
+└── Hermes/            ← sistema do Hermes. NUNCA escreva aqui.
+```
+
+## Onde registrar o que você faz
+
+| O que | Caminho no cofre |
+|-------|------------------|
+| Sessão de desenvolvimento | `01_Lumen/Sistema/Sessoes/AAAA-MM-DD_assunto.md` |
+| Decisão de arquitetura | `01_Lumen/Sistema/Arquitetura/` |
 | Peticionamento | `01_Lumen/Peticionamento/` |
 
-## Regras do cofre (valem para este projeto)
+## Regras
 
-- **Um dono por arquivo.** Só escreve quem é dono; os demais apenas leem.
-- **Nunca escreva em `Hermes/`** (sistema do Hermes) nem em `hermes_para_claude/`.
-- **Enriquecimento em duas camadas:** todo aprendizado vira (a) nota datada na pasta do projeto e
-  (b) a regra generalizável correspondente. Aprendizado não fica só na conversa.
-- **Conflitos do Syncthing (`*.sync-conflict-*`):** nunca resolver sozinho; avisar o Jairo.
-- **LGPD:** sem CPF, dados de saúde, tokens ou senhas no cofre.
-- **O Drive é a fonte das mídias.** O cofre guarda notas e caminhos, não os arquivos.
+- **Um dono por arquivo.** Neste projeto você escreve em `01_Lumen/Sistema/` e `01_Lumen/Peticionamento/`.
+  Não escreve em `Hermes/`, em `hermes_para_claude/`, em `06_Publicacao/` (do bot de marketing) nem em pastas de outros projetos.
+- **Enriquecimento em duas camadas.** Todo aprendizado vira (a) uma nota datada no
+  cofre e (b) a regra generalizável correspondente. Aprendizado não fica só na conversa.
+- **Nunca commitar segredos** — nenhum valor real de chave, senha, token ou string de conexão entra no repositório
+  (código, `.env`, `.env.example`, seed, docs) nem no cofre. Segredos vivem nas variáveis de ambiente do provedor de deploy
+  e no gerenciador de senhas da equipe; arquivos de exemplo trazem só o NOME da variável, vazio.
+- **Conflitos `*.sync-conflict-*`:** nunca resolver sozinho. Avisar o Jairo.
+- **LGPD:** sem CPF, dados de saúde, dados de cliente, tokens ou senhas no cofre.
+- **O Drive é a fonte das mídias.** O cofre guarda notas e caminhos, não os arquivos pesados.
 - **Aprovação é do Jairo.** Nenhuma nota substitui um `status: aprovado` dele.
-- A pasta `RodartePrado/` foi renomeada para `02_RodartePrado/` (07/10/2026). Use sempre o nome novo.
-
-## Ao final de cada sessão
-
-1. Grave nota datada (`AAAA-MM-DD_assunto.md`) em `01_Lumen/Sistema/`.
-2. Se surgiu regra generalizável, registre-a junto (e, se for decisão de arquitetura, em `01_Lumen/Sistema/ (prefixo `ADR_`)`).
-3. Se precisar do Hermes, deixe mensagem em
-   `02_RodartePrado/90_Comunicacao/claude_para_hermes/AAAA-MM-DD_HHMM_assunto.md`.
-
-## Segredos — proibido commitar
-
-Nenhum valor real de chave, senha, token ou string de conexão entra no repositório (código,
-`.env.example`, seed, docs) nem no cofre. Segredos vivem nas variáveis de ambiente do provedor de
-deploy e no gerenciador de senhas da equipe. Arquivos de exemplo só trazem o NOME da variável, vazio.
 
 ## Regras específicas do projeto
 
-- Escrita do Claude neste projeto: `01_Lumen/Sistema/` e `01_Lumen/Peticionamento/`.
-- **Leia `CLAUDE.md` e `docs/ESTADO-ATUAL-E-ARMADILHAS.md`** antes de alterar código, variável de ambiente ou painel externo; eles prevalecem em tudo que é técnico (merge automático de PR, fail-closed em webhooks, `getAppUrl()`, `lastSyncAt`, política de privacidade).
-- Dados de clientes/processos (CPF, saúde) nunca vão para o cofre — apenas notas técnicas.
+- Antes de alterar código, variável de ambiente ou painel externo, leia `CLAUDE.md` e `docs/ESTADO-ATUAL-E-ARMADILHAS.md`. Eles prevalecem em tudo que é técnico.
+- Nunca escreva endereço absoluto no código: use `getAppUrl()` (`lib/appUrl.ts`).
+- `GoogleCredential.lastSyncAt` é a marca d'água da busca no Gmail, não telemetria.
+- Mudou o que o sistema faz com dados do Gmail/Drive ou provedor de IA? Atualize `app/privacidade/page.tsx` no mesmo PR.
+- Integração externa nova (webhook, callback, cron) nasce fail-closed: recusa quando o segredo de verificação não está configurado.
+- `dangerouslySetInnerHTML` novo exige justificativa e `eslint-disable-next-line react/no-danger` com o motivo.
+
+## Fim de sessão e comunicação
+
+1. Grave nota datada no caminho da tabela acima; se surgiu regra generalizável, registre-a junto.
+2. Para falar com o Hermes: `02_RodartePrado/90_Comunicacao/claude_para_hermes/AAAA-MM-DD_HHMM_assunto.md`.
+3. **Sessão na nuvem não alcança o cofre** (ele fica no computador do Jairo e na VPS). Nesse caso, entregue o texto da nota ao Jairo na resposta final para ele gravar; não declare a nota como gravada.
+
+Mapa completo e territórios de todos os agentes: `00_AGENTES.md` na raiz do cofre.
