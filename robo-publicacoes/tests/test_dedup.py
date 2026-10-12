@@ -4,7 +4,7 @@ andamento nao gera duplicatas no banco."""
 from __future__ import annotations
 
 from src import discovery, pipeline
-from src.datajud import AndamentoNormalizado
+from src.datajud import AndamentoNormalizado, ConsultaDatajud
 from src.db import Andamento, ProcessoMonitorado, Publicacao
 from src.djen import PublicacaoNormalizada
 from sqlalchemy import select
@@ -35,7 +35,7 @@ def _andamento_fake() -> AndamentoNormalizado:
 def test_publicacao_nao_duplica_ao_reprocessar_mesmo_id(monkeypatch, test_settings, session_factory):
     fake_item = _publicacao_fake()
     monkeypatch.setattr(pipeline.djen, "buscar_publicacoes", lambda *a, **k: [fake_item])
-    monkeypatch.setattr(pipeline.datajud, "buscar_andamentos", lambda *a, **k: [])
+    monkeypatch.setattr(pipeline.datajud, "consultar_andamentos", lambda *a, **k: ConsultaDatajud(ok=True, andamentos=[]))
 
     pipeline.executar_ciclo(test_settings, session_factory)
     pipeline.executar_ciclo(test_settings, session_factory)
@@ -53,7 +53,7 @@ def test_publicacao_nao_duplica_ao_reprocessar_mesmo_id(monkeypatch, test_settin
 def test_andamento_nao_duplica_ao_reprocessar_mesmo_movimento(monkeypatch, test_settings, session_factory):
     fake_mov = _andamento_fake()
     monkeypatch.setattr(pipeline.djen, "buscar_publicacoes", lambda *a, **k: [])
-    monkeypatch.setattr(pipeline.datajud, "buscar_andamentos", lambda *a, **k: [fake_mov])
+    monkeypatch.setattr(pipeline.datajud, "consultar_andamentos", lambda *a, **k: ConsultaDatajud(ok=True, andamentos=[fake_mov]))
 
     session = session_factory()
     try:

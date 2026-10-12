@@ -17,7 +17,7 @@ e duplicado e nenhuma notificacao repetida e enviada para o mesmo dado.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import List
 
 from sqlalchemy import select
@@ -40,6 +40,16 @@ FONTE_DOU_INLABS = "dou_inlabs"  # minusculo, mesma convencao adotada para o pnc
 # site roda 1x/dia (vercel.json) — 3 dias da folga suficiente pra cobrir um atraso pontual do
 # cron sem perder licitacao, sem crescer demais o volume de paginas consultadas por ciclo.
 PNCP_DIAS_RETROATIVOS = 3
+
+# Teto da janela de recuperacao do DJEN. Se o robo ficar parado alguns dias (o ultimo buraco foi de 19),
+# a janela do ciclo cresce sozinha para cobrir o periodo sem captura — sem isso, a janela fixa de
+# JANELA_DIAS (5) deixava para sempre de fora tudo o que saiu durante a parada. A deduplicacao por
+# id_comunicacao torna seguro repetir dias ja capturados.
+JANELA_MAXIMA_DIAS = 60
+# Folga somada aos dias desde o ultimo sucesso (cobre fuso e atraso de disponibilizacao do CNJ).
+JANELA_FOLGA_DIAS = 2
+# Falha de uma fonte so conta como "ciclo falho" quando atinge esta fracao das consultas.
+FRACAO_FALHA_TOLERADA = 0.5
 
 
 @dataclass
@@ -74,13 +84,44 @@ def _duas_falhas_seguidas(session, fonte: str) -> bool:
     return all(not log.sucesso for log in ultimas)
 
 
+def _janela_efetiva_dias(session, settings: Settings, agora: datetime | None = None) -> int:
+    """Dias para tras que o DJEN deve consultar neste ciclo.
+
+    Normalmente `settings.janela_dias`. Se a ultima execucao BEM-SUCEDIDA do DJEN foi ha mais
+    tempo do que a janela cobre, estica a janela ate la (mais folga), limitada a
+    JANELA_MAXIMA_DIAS. Nunca encolhe abaixo da janela configurada.
+    """
+    ultimo = session.scalar(
+        select(ExecucaoLog.executado_em)
+        .where(ExecucaoLog.fonte == FONTE_DJEN, ExecucaoLog.sucesso.is_(True))
+        .order_by(ExecucaoLog.executado_em.desc())
+        .limit(1)
+    )
+    if ultimo is None:
+        return settings.janela_dias
+    agora = agora or datetime.now(timezone.utc)
+    if ultimo.tzinfo is None:
+        ultimo = ultimo.replace(tzinfo=timezone.utc)
+    dias_parado = (agora - ultimo).days + JANELA_FOLGA_DIAS
+    janela = max(settings.janela_dias, min(dias_parado, JANELA_MAXIMA_DIAS))
+    if janela > settings.janela_dias:
+        logger.warning(
+            "Ultima captura bem-sucedida do DJEN foi em %s: janela esticada de %d para %d dia(s) "
+            "para recuperar o periodo sem captura.",
+            ultimo.isoformat(),
+            settings.janela_dias,
+            janela,
+        )
+    return janela
+
+
 def _capturar_publicacoes_djen(session, settings: Settings) -> List[Publicacao]:
     """Busca publicacoes de todas as OABs configuradas e persiste as novas.
 
     Retorna a lista de instancias Publicacao recem-criadas neste ciclo.
     """
     hoje = date.today()
-    data_inicio = (hoje - timedelta(days=settings.janela_dias)).isoformat()
+    data_inicio = (hoje - timedelta(days=_janela_efetiva_dias(session, settings))).isoformat()
     data_fim = hoje.isoformat()
 
     novas: List[Publicacao] = []
@@ -139,12 +180,12 @@ def _capturar_andamentos_datajud(session, settings: Settings) -> List[Andamento]
     if not processos:
         return novos
 
-    sucesso_geral = True
+    falhas = 0
     detalhes: List[str] = []
 
     for processo in processos:
         try:
-            movimentos = datajud.buscar_andamentos(
+            consulta = datajud.consultar_andamentos(
                 processo.numero_processo, settings.datajud_api_key
             )
         except Exception as exc:  # pragma: no cover - protecao extra
@@ -152,9 +193,15 @@ def _capturar_andamentos_datajud(session, settings: Settings) -> List[Andamento]
                 "Falha inesperada ao consultar Datajud para o processo %s",
                 processo.numero_processo,
             )
-            sucesso_geral = False
+            falhas += 1
             detalhes.append(f"{processo.numero_processo}: {exc}")
             continue
+
+        if not consulta.ok:
+            falhas += 1
+            detalhes.append(f"{processo.numero_processo}: {consulta.motivo}")
+            continue
+        movimentos = consulta.andamentos
 
         for mov in movimentos:
             ja_existe = session.scalar(
@@ -177,11 +224,18 @@ def _capturar_andamentos_datajud(session, settings: Settings) -> List[Andamento]
             session.add(novo)
             novos.append(novo)
 
+    # Uma consulta que falha (sem chave, 403, rede) nao e "0 andamentos novos": e falha. O ciclo
+    # so conta como sucesso se menos da metade das consultas falhou — assim um tribunal fora do
+    # ar nao acende o alerta, mas um bloqueio geral (o caso que ficou 19 dias mudo) acende.
+    sucesso_geral = falhas < max(1, int(len(processos) * FRACAO_FALHA_TOLERADA))
     detalhe_txt = (
-        f"{len(processos)} processo(s) consultado(s), {len(novos)} andamento(s) novo(s)."
+        f"{len(processos)} processo(s) consultado(s), {len(novos)} andamento(s) novo(s), "
+        f"{falhas} consulta(s) com falha."
     )
     if detalhes:
-        detalhe_txt += " Falhas: " + "; ".join(detalhes)
+        detalhe_txt += " Falhas: " + "; ".join(detalhes[:20])
+        if len(detalhes) > 20:
+            detalhe_txt += f" (+{len(detalhes) - 20})"
 
     _registrar_execucao(session, FONTE_DATAJUD, sucesso=sucesso_geral, detalhe=detalhe_txt)
     return novos

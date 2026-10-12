@@ -364,6 +364,25 @@ python scripts/export_historico.py --formato csv \
 
 ---
 
+## Deploy: de onde sai o codigo e o que ja deu errado
+
+- **O servico `lumen-robo-publicacoes` no Railway nao estava ligado a nenhum repositorio** (sem repo, sem
+  branch, sem diretorio raiz): era um upload antigo. Codigo corrigido aqui nao chegava la sozinho. Ligue o
+  servico a `rodartepradoadvogados/Lumen`, branch `main`, **Root Directory `robo-publicacoes`**, para que
+  cada merge atualize o robo.
+- **`DATABASE_URL` pode vir escrita de qualquer jeito** (`postgres://`, `postgresql://`,
+  `postgresql+psycopg://`): `src/dburl.py` reescreve para o driver instalado. Antes, uma URL pedindo o
+  driver `psycopg` derrubava o robo com `ModuleNotFoundError: No module named 'psycopg'`, e ele ficou 19
+  dias sem capturar DJEN nem DataJud.
+- **Janela de recuperacao automatica:** o DJEN consulta `JANELA_DIAS` (padrao 5) ou, se a ultima execucao
+  bem-sucedida foi mais antiga que isso, os dias necessarios para cobrir o buraco (ate 60). Nao e preciso
+  mexer na variavel apos uma parada.
+- **Falha honesta do DataJud:** consulta sem chave, bloqueada (403) ou sem resposta conta como falha; o ciclo so
+  e "sucesso" se menos da metade das consultas falhou, e duas falhas seguidas disparam o alerta por e-mail.
+- Variavel `INLABS_USERNAME` (nao `INLABS_USERNAM`): o nome na Railway estava truncado, o que desligava o DOU.
+
+---
+
 ## Deploy no Railway (passo a passo)
 
 1. **Criar o projeto**: no Railway, "New Project" > "Deploy from GitHub

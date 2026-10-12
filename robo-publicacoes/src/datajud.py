@@ -170,26 +170,35 @@ def _extrair_movimentos(source: Dict[str, Any]) -> List[Dict[str, Any]]:
     return []
 
 
-def buscar_andamentos(
-    numero_processo: str, api_key: Optional[str]
-) -> List[AndamentoNormalizado]:
-    """Consulta o Datajud pelos andamentos de um processo.
+@dataclass
+class ConsultaDatajud:
+    """Resultado de UMA consulta ao Datajud, separando "nao ha nada" de "nao consegui consultar".
 
-    Retorna lista vazia (nunca levanta excecao) quando: a chave de API nao
-    esta configurada, o alias do tribunal nao pode ser determinado, ou a
-    requisicao falha (rede, 403, etc — ja tratado/logado por http_client).
+    `ok=False` so quando a consulta de fato falhou (sem chave, bloqueio 403, rede, resposta
+    invalida). Processo de tribunal sem alias conhecido NAO e falha: e uma lacuna de cobertura,
+    registrada em `motivo` mas com ok=True. Sem essa distincao, a execucao inteira aparecia como
+    sucesso com "0 andamentos novos" mesmo com todas as consultas falhando, e o alerta de duas
+    falhas seguidas nunca disparava.
     """
+
+    ok: bool
+    andamentos: List["AndamentoNormalizado"]
+    motivo: Optional[str] = None
+
+
+def consultar_andamentos(numero_processo: str, api_key: Optional[str]) -> ConsultaDatajud:
+    """Consulta o Datajud pelos andamentos de um processo, dizendo se a consulta funcionou."""
     if not api_key:
         logger.warning(
             "DATAJUD_API_KEY nao configurada; pulando consulta de andamentos "
             "para o processo %s.",
             numero_processo,
         )
-        return []
+        return ConsultaDatajud(ok=False, andamentos=[], motivo="DATAJUD_API_KEY ausente")
 
     alias = alias_do_tribunal(numero_processo)
     if alias is None:
-        return []
+        return ConsultaDatajud(ok=True, andamentos=[], motivo="tribunal sem alias no Datajud")
 
     url = f"{BASE_URL}/api_publica_{alias}/_search"
     numero_sem_mascara = _apenas_digitos(numero_processo)
@@ -201,7 +210,7 @@ def buscar_andamentos(
 
     payload = request_json("POST", url, json_body=body, headers=headers)
     if payload is None:
-        return []
+        return ConsultaDatajud(ok=False, andamentos=[], motivo=f"sem resposta util do Datajud ({alias})")
 
     hits = payload.get("hits", {}).get("hits", []) if isinstance(payload, dict) else []
     resultados: List[AndamentoNormalizado] = []
@@ -237,4 +246,14 @@ def buscar_andamentos(
         numero_processo,
         alias,
     )
-    return resultados
+    return ConsultaDatajud(ok=True, andamentos=resultados)
+
+
+def buscar_andamentos(
+    numero_processo: str, api_key: Optional[str]
+) -> List[AndamentoNormalizado]:
+    """Compatibilidade: so a lista de andamentos (vazia em qualquer falha).
+
+    O pipeline usa `consultar_andamentos`, que distingue falha de "nada novo".
+    """
+    return consultar_andamentos(numero_processo, api_key).andamentos
