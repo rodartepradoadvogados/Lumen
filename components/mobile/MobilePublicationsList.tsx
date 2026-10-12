@@ -17,6 +17,7 @@ type Pub = {
   clientName?: string | null;
   processNumberRaw: string | null;
   assignedToId?: string | null;
+  tipoAto?: "AVISO_INTIMACAO" | "INTIMACAO" | "MOVIMENTACAO";
 };
 
 // Borda à esquerda por fonte (source do item principal do grupo) — mesmo mapeamento usado no
