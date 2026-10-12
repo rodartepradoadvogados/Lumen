@@ -3,15 +3,17 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { listAuditEvents, exportarTrilha, type AuditEventRow } from "@/lib/actions/privacidade";
+import { ROTULO_DA_ACAO } from "@/lib/rotulosAuditoriaPublicacoes";
 import { Download } from "lucide-react";
 import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 
-type Aba = "REVELACAO" | "EXPORTACAO" | "EXCLUSAO" | "SUPORTE";
+type Aba = "REVELACAO" | "EXPORTACAO" | "EXCLUSAO" | "PUBLICACAO" | "SUPORTE";
 
 const ABAS: { key: Aba; label: string }[] = [
   { key: "REVELACAO", label: "Revelações" },
   { key: "EXPORTACAO", label: "Exportações" },
   { key: "EXCLUSAO", label: "Exclusões" },
+  { key: "PUBLICACAO", label: "Publicações (equipe)" },
   { key: "SUPORTE", label: "Suporte" },
 ];
 
@@ -20,7 +22,14 @@ const KIND_LABEL: Record<string, string> = {
   EXPORTACAO: "exportou a trilha",
   EXCLUSAO: "executou uma exclusão",
   ANONIMIZACAO: "executou uma anonimização",
+  PUBLICACAO: "agiu numa publicação",
 };
+
+// Linha de uma ação sobre publicação: "<pessoa> <o que fez>", com o motivo logo abaixo.
+function rotuloDaLinha(row: AuditEventRow): string {
+  if (row.kind === "PUBLICACAO" && row.field) return ROTULO_DA_ACAO[row.field as keyof typeof ROTULO_DA_ACAO] ?? row.field;
+  return KIND_LABEL[row.kind] ?? row.kind;
+}
 
 function contexto(row: AuditEventRow): string | null {
   const partes: string[] = [];
@@ -34,8 +43,9 @@ function contexto(row: AuditEventRow): string | null {
 // app/(app)/configuracoes/acessos (já existente, com política de acesso, sessão ativa, fila de
 // aprovação e histórico completo de 90 dias) — só resume e linka pra lá, pra não manter duas
 // fontes de verdade da mesma trilha (AccessAuditLog) em lugares diferentes.
-export default function TrilhaAuditoria() {
+export default function TrilhaAuditoria({ isAdmin = false }: { isAdmin?: boolean }) {
   const [aba, setAba] = useState<Aba>("REVELACAO");
+  const [pessoa, setPessoa] = useState("");
   const [rows, setRows] = useState<AuditEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, startExport] = useTransition();
@@ -72,11 +82,14 @@ export default function TrilhaAuditoria() {
     <div className="border-l border-regua md:pl-6">
       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="flex gap-1 flex-wrap">
-          {ABAS.map((a) => (
+          {ABAS.filter((a) => a.key !== "PUBLICACAO" || isAdmin).map((a) => (
             <button
               key={a.key}
               type="button"
-              onClick={() => setAba(a.key)}
+              onClick={() => {
+                setAba(a.key);
+                setPessoa("");
+              }}
               className={`text-xs font-semibold px-3 py-1.5 transition-colors ${
                 aba === a.key ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 hover:bg-regua"
               }`}
@@ -97,6 +110,20 @@ export default function TrilhaAuditoria() {
         )}
       </div>
 
+      {aba === "PUBLICACAO" && rows.length > 0 && (
+        <label className="flex items-center gap-2 text-xs text-tx-2 mb-2">
+          Pessoa
+          <select value={pessoa} onChange={(e) => setPessoa(e.target.value)} className="border border-regua-forte bg-sf min-h-8 px-2 text-xs text-tx">
+            <option value="">toda a equipe</option>
+            {Array.from(new Map(rows.map((r) => [r.actorId, r.actorName])).entries()).map(([id, nome]) => (
+              <option key={id} value={id}>
+                {nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
       {aba === "SUPORTE" ? (
         <div className="py-6 text-sm text-tx-2 space-y-2">
           <p>Acessos do suporte da Lúmen ao seu escritório — política, sessão ativa e histórico completo (90 dias).</p>
@@ -110,11 +137,11 @@ export default function TrilhaAuditoria() {
         <p className="py-6 text-sm text-tx-3">Nada por aqui ainda.</p>
       ) : (
         <div className="divide-y divide-regua">
-          {rows.map((r) => (
+          {rows.filter((r) => !pessoa || r.actorId === pessoa).map((r) => (
             <div key={r.id} className="py-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-destaque font-extrabold text-tx">
-                  {r.actorName} <span className="font-medium text-tx-2">{KIND_LABEL[r.kind] ?? r.kind}</span>
+                  {r.actorName} <span className="font-medium text-tx-2">{rotuloDaLinha(r)}</span>
                 </p>
                 {contexto(r) && <p className="text-corpo text-tx-2 mt-0.5">{contexto(r)}</p>}
               </div>

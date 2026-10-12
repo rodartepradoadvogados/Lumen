@@ -17,32 +17,10 @@
 // o identificador usado em todo o produto), o tipo de ação, o motivo e os ids.
 
 import { prisma } from "@/lib/prisma";
+import type { AcaoDePublicacao } from "@/lib/rotulosAuditoriaPublicacoes";
 
 export const KIND_AUDITORIA_PUBLICACAO = "PUBLICACAO";
 
-const ROTULOS = {
-  VISTA: "marcou como vista (só para ela/ele)",
-  VISTA_DESFEITA: "desfez o visto",
-  VISTA_EM_LOTE: "marcou várias como vistas",
-  TRATAR_PRAZO: "registrou um prazo",
-  TRATAR_TAREFA: "criou uma tarefa",
-  DELEGAR: "delegou para outra pessoa",
-  ATRIBUIR: "atribuiu responsável",
-  CONCLUIR_PARA_TODOS: "concluiu para todos",
-  DESCARTAR: "descartou",
-  VINCULAR: "vinculou a um processo",
-  BLOQUEAR_PROCESSO: "bloqueou o processo",
-  DESBLOQUEAR_PROCESSO: "desbloqueou o processo",
-  DESFAZER: "desfez a última ação",
-  PROMOVER: "promoveu da quarentena para a fila",
-  DESCARTAR_QUARENTENA: "descartou da quarentena",
-  BLOQUEAR_REMETENTE: "bloqueou o remetente",
-  PERMITIR_REMETENTE: "permitiu o remetente",
-  REABRIR: "reabriu",
-} as const;
-
-export type AcaoDePublicacao = keyof typeof ROTULOS;
-export const ROTULO_DA_ACAO: Record<AcaoDePublicacao, string> = ROTULOS;
 
 export async function registrarAtividadePublicacao(p: {
   officeId: string;

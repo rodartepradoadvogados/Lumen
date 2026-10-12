@@ -2412,6 +2412,26 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
   }
 }
 
+/* Gaveta do processo (visão rápida, /publicacoes): desliza pela direita sobre o detalhe, 180ms. No
+   celular sobe de baixo (folha). Sem movimento quando a pessoa pediu movimento reduzido. */
+.pub-gaveta {
+  animation: pub-gaveta-entra 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes pub-gaveta-entra {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@media (max-width: 767px) {
+  .pub-gaveta { animation-name: pub-gaveta-sobe; }
+  @keyframes pub-gaveta-sobe {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-gaveta { animation: none !important; }
+}
+
 /* ============================================================================
    CAPA (homepage pública) — redesenho de 29/09/2026.
    Peças que o Tailwind não expressa bem em uma linha: a largura da faixa, a aba chanfrada da guia
