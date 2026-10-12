@@ -192,7 +192,7 @@ export default async function MobileCaseDetail({
       : vazio<Prisma.AnotacaoGetPayload<true>>(),
     naAba("publicacoes")
       ? prisma.publication.findMany({
-          where: { caseId: params.id, officeId: viewer.officeId },
+          where: { caseId: params.id, officeId: viewer.officeId, estado: "ATIVA" },
           include: { reads: { where: { userId: viewer.id }, select: { userId: true } } },
           orderBy: { publishedAt: "desc" },
           take: 15,

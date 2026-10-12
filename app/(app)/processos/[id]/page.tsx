@@ -124,6 +124,7 @@ export default async function CaseDetailPage({
         include: { payments: true, reimbursementReceivable: { select: { id: true, amount: true, status: true } } },
       },
       publications: {
+        where: { estado: "ATIVA" },
         include: { client: true, reads: { where: { userId: viewer.id }, select: { id: true } } },
         orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       },

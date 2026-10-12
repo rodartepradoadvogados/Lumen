@@ -63,7 +63,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
       select: { stage: true },
     }),
     prisma.publication.findMany({
-      where: { officeId: viewer.officeId, publishedAt: { gte: start, lt: end } },
+      where: { officeId: viewer.officeId, estado: "ATIVA", publishedAt: { gte: start, lt: end } },
       select: { triageStatus: true },
     }),
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { materias: true } }),

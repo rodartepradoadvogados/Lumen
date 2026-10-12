@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import type { PublicationGroup } from "@/lib/publicationGrouping";
+import { limiteParaAbrirOAviso } from "@/lib/classificarAto";
 
 type Pub = {
   id: string;
@@ -40,6 +41,7 @@ type Pub = {
   clientName?: string | null;
   processNumberRaw: string | null;
   assignedToId?: string | null;
+  tipoAto?: "AVISO_INTIMACAO" | "INTIMACAO" | "MOVIMENTACAO";
 };
 
 const actionButtons = [
@@ -107,12 +109,19 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
         <Badge color="slate">{dataDeBrasilia(pub.publishedAt)}</Badge>
         {/* Indicador de agrupamento: mesmo processo capturado por mais de uma fonte (DJEN,
             Datajud, e-mail do Jusbrasil...) — clicar no card já expande e mostra todas. */}
+        {pub.tipoAto === "AVISO_INTIMACAO" && <Badge color="gold">Aviso de intimação</Badge>}
         {hasMultiple && (
           <Badge color="bordo" className="inline-flex items-center gap-1">
             <Layers size={11} /> +{group.items.length - 1} outra{group.items.length - 1 > 1 ? "s" : ""} fonte{group.items.length - 1 > 1 ? "s" : ""}
           </Badge>
         )}
       </div>
+
+      {pub.tipoAto === "AVISO_INTIMACAO" && (
+        <p className="text-sm text-tx mb-1">
+          O prazo só aparece depois de abrir o aviso no tribunal. Abra até {limiteParaAbrirOAviso(pub.publishedAt).split("-").reverse().join("/")} (estimativa, confirme no tribunal).
+        </p>
+      )}
 
       {pub.caseId && pub.caseTitle && (
         <Link href={`/m/processos/${pub.caseId}`} className="text-corpo font-medium text-marca-tx block mb-1">
