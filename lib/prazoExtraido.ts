@@ -317,7 +317,7 @@ export function extrairMelhorDoGrupo(
   return melhor ?? { tipo: "NENHUM", confianca: 0, notas: [] };
 }
 
-export type FaixaPrazo = "venc" | "hoje" | "d3" | "d15" | "dep" | "sem" | "cien";
+export type FaixaPrazo = "venc" | "hoje" | "aviso" | "d3" | "d15" | "dep" | "sem" | "cien";
 
 export type SituacaoPrazo = {
   // Dias úteis de hoje até a data (negativo = atraso). null quando não há data.
@@ -325,6 +325,9 @@ export type SituacaoPrazo = {
   faixa: FaixaPrazo;
   // true quando a data vem de extração de confiança baixa: a tela diz "possível", nunca afirma.
   aConfirmar: boolean;
+  // Só na faixa "aviso": AAAA-MM-DD do último dia para abrir o aviso no sistema do tribunal. É
+  // ESTIMATIVA (lib/classificarAto.ts), nunca o prazo do ato.
+  limite?: string;
 };
 
 // "Vencido" só sai de uma data extraída do próprio texto (fato do texto + data de publicação) e a
@@ -335,8 +338,12 @@ export function situacaoPrazo(
   extracao: PrazoExtraido,
   kind: string,
   hojeKey: string,
-  feriadosExtras: { date: string }[] = []
+  feriadosExtras: { date: string }[] = [],
+  // Aviso de intimação (lib/classificarAto.ts): nunca é "só ciência" e nunca tem prazo do ato no
+  // texto. `limite` é o último dia estimado para abrir o aviso no sistema do tribunal.
+  aviso?: { limite: string }
 ): SituacaoPrazo {
+  if (aviso) return { du: null, faixa: "aviso", aConfirmar: false, limite: aviso.limite };
   if (!extracao.data || (extracao.tipo !== "PRAZO" && extracao.tipo !== "EVENTO")) {
     const ciencia = extracao.tipo === "NENHUM" && kind === "ANDAMENTO" && !extracao.mencionaPrazo;
     return { du: null, faixa: ciencia ? "cien" : "sem", aConfirmar: false };
@@ -355,7 +362,11 @@ export function situacaoPrazo(
 
 // Ordem das faixas na fila por urgência: o que já venceu primeiro, "sem prazo identificado" antes de
 // "só ciência" (o primeiro pode esconder um prazo real).
-export const ORDEM_FAIXA: Record<FaixaPrazo, number> = { venc: 0, hoje: 1, d3: 2, d15: 3, dep: 4, sem: 5, cien: 6 };
+// "aviso" vem logo depois de "hoje": o prazo do ato é desconhecido e só corre depois que alguém abre o
+// aviso, então não pode ficar escondido atrás de prazos já conhecidos de 3 e 15 dias.
+export const ORDEM_FAIXA: Record<FaixaPrazo, number> = { venc: 0, hoje: 1, aviso: 2, d3: 3, d15: 4, dep: 5, sem: 6, cien: 7 };
+// Posição de quem já tem prazo registrado: vai para o fim da fila.
+export const ORDEM_REGISTRADO = 8;
 
 // Idade em dias úteis desde a publicação: FATO (não depende da extração).
 export function idadeEmDiasUteis(publicadaEm: string | Date, hojeKey: string, feriadosExtras: { date: string }[] = []): number {

@@ -7,6 +7,9 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
 import { delegateTask, acknowledgeDelegation } from "@/lib/actions/tasks";
 import { collectPublicationGroupIds } from "@/lib/publicationResolution";
+import { registrarAtividadePublicacao } from "@/lib/auditoriaPublicacoes";
+import { SELECT_SNAPSHOT } from "@/lib/publicationSnapshot";
+import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
 
 // Usado pelo AppBadgeSync (badge no ícone do PWA instalado, via Badging API) para saber se o
 // número mudou desde a última checagem, sem precisar recarregar a página inteira.
@@ -14,7 +17,7 @@ export async function getUnreadPublicationsCount(): Promise<number> {
   const user = await getCurrentUser();
   if (!user) return 0;
   return prisma.publication.count({
-    where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
+    where: { ...publicacoesDaFilaWhere(user.officeId), triageStatus: { not: "TRATADA" }, reads: { none: { userId: user.id } } },
   });
 }
 
@@ -41,6 +44,7 @@ export async function markPublicationsRead(ids: string[]) {
     data: pubs.map((p) => ({ publicationId: p.id, userId: user.id })),
     skipDuplicates: true,
   });
+  await registrarAtividadePublicacao({ officeId: user.officeId, actorId: user.id, acao: "VISTA", publicationIds: pubs.map((p) => p.id), reason: "Marcou como vista: sai só da fila dela/dele" });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
@@ -50,6 +54,7 @@ export async function markPublicationsUnread(ids: string[]) {
   const user = await getCurrentUser();
   if (!user || ids.length === 0) return;
   await prisma.publicationRead.deleteMany({ where: { publicationId: { in: ids }, userId: user.id } });
+  await registrarAtividadePublicacao({ officeId: user.officeId, actorId: user.id, acao: "VISTA_DESFEITA", publicationIds: ids, reason: "Desfez o visto" });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
@@ -59,7 +64,7 @@ export async function markAllPublicationsRead() {
   const user = await getCurrentUser();
   if (!user) return { count: 0 };
   const unread = await prisma.publication.findMany({
-    where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
+    where: { ...publicacoesDaFilaWhere(user.officeId), reads: { none: { userId: user.id } } },
     select: { id: true },
   });
   if (unread.length === 0) return { count: 0 };
@@ -67,6 +72,7 @@ export async function markAllPublicationsRead() {
     data: unread.map((p) => ({ publicationId: p.id, userId: user.id })),
     skipDuplicates: true,
   });
+  await registrarAtividadePublicacao({ officeId: user.officeId, actorId: user.id, acao: "VISTA_EM_LOTE", publicationIds: unread.map((p) => p.id), reason: `Marcou todas como vistas (${result.count})` });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
@@ -87,6 +93,7 @@ export async function markAllPublicationsReadForCase(caseId: string) {
     data: unread.map((p) => ({ publicationId: p.id, userId: user.id })),
     skipDuplicates: true,
   });
+  await registrarAtividadePublicacao({ officeId: user.officeId, actorId: user.id, acao: "VISTA_EM_LOTE", publicationIds: unread.map((p) => p.id), reason: `Marcou as publicações do processo como vistas (${result.count})`, meta: { caseId } });
   revalidatePath(`/processos/${caseId}`);
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
@@ -107,6 +114,7 @@ export async function setPublicationTriageStatus(id: string, status: string) {
   const user = await getCurrentUser();
   if (!user) return;
   await prisma.publication.updateMany({ where: { id, officeId: user.officeId }, data: { triageStatus: status } });
+  await registrarAtividadePublicacao({ officeId: user.officeId, actorId: user.id, acao: status === "TRATADA" ? "CONCLUIR_PARA_TODOS" : "REABRIR", publicationIds: [id], reason: `Mudou o status para ${status}`, meta: { status } });
   revalidatePath("/publicacoes");
 }
 
@@ -137,7 +145,7 @@ export async function getPendingPublicationsForDistribution(): Promise<{
   });
 
   const pending = await prisma.publication.findMany({
-    where: { triageStatus: "PENDENTE", assignedToId: null, officeId: viewer.officeId },
+    where: { ...publicacoesDaFilaWhere(viewer.officeId), triageStatus: "PENDENTE", assignedToId: null },
     include: { case: true, client: true },
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
   });
@@ -297,6 +305,7 @@ export async function linkPublicationToCase(publicationId: string, caseId: strin
   const ids = await collectPublicationGroupIds(publicationId, user.officeId);
   if (ids.length === 0) return;
   await prisma.publication.updateMany({ where: { id: { in: ids }, officeId: user.officeId }, data: { caseId } });
+  await registrarAtividadePublicacao({ officeId: user.officeId, actorId: user.id, acao: "VINCULAR", publicationIds: ids, reason: "Vinculou a um processo cadastrado", meta: { caseId } });
   revalidatePath("/publicacoes");
   revalidatePath("/m/publicacoes");
   revalidatePath("/alertas");
@@ -358,6 +367,7 @@ export async function blockProcessNumber(publicationId: string): Promise<{ error
     });
   }
 
+  await registrarAtividadePublicacao({ officeId: user.officeId, actorId: user.id, acao: "BLOQUEAR_PROCESSO", publicationIds: [publicationId, ...idsDoProcesso], reason: `Bloqueou o processo ${pub.processNumberRaw} só para ela/ele`, meta: { processo: pub.processNumberRaw, escopo: "USUARIO" } });
   revalidatePath("/publicacoes");
   revalidatePath("/m/publicacoes");
   revalidatePath("/alertas");
@@ -372,7 +382,9 @@ export async function unblockProcessNumber(id: string): Promise<{ error?: string
   // Só quem bloqueou pode reverter — bloqueio é pessoal, não do escritório.
   const existing = await prisma.blockedProcessNumber.findFirst({ where: { id, userId: user.id }, select: { id: true } });
   if (!existing) return { error: "Bloqueio não encontrado." };
+  const bloqueado = await prisma.blockedProcessNumber.findUnique({ where: { id }, select: { displayNumber: true } });
   await prisma.blockedProcessNumber.delete({ where: { id } });
+  await registrarAtividadePublicacao({ officeId: user.officeId, actorId: user.id, acao: "DESBLOQUEAR_PROCESSO", publicationIds: [], reason: `Desbloqueou o processo ${bloqueado?.displayNumber ?? ""}`.trim(), meta: { processo: bloqueado?.displayNumber ?? null, escopo: "USUARIO" } });
   revalidatePath("/configuracoes");
   return {};
 }
@@ -402,6 +414,7 @@ export async function markPublicationsReadBatch(
   const ids = marcadas.flat();
   if (ids.length > 0) {
     await prisma.publicationRead.createMany({ data: ids.map((id) => ({ publicationId: id, userId: user.id })), skipDuplicates: true });
+    await registrarAtividadePublicacao({ officeId: user.officeId, actorId: user.id, acao: "VISTA_EM_LOTE", publicationIds: ids, reason: `Marcou ${marcadas.length} como vistas em lote` });
     revalidatePath("/publicacoes");
     revalidatePath("/alertas");
     revalidatePath("/painel");
@@ -409,7 +422,20 @@ export async function markPublicationsReadBatch(
   return { marcadas, excluidas: [] };
 }
 
-export type PublicationSnapshot = { id: string; assignedToId: string | null; triageStatus: string; deadlineGenerated: boolean };
+export type PublicationSnapshot = {
+  id: string;
+  assignedToId: string | null;
+  triageStatus: string;
+  deadlineGenerated: boolean;
+  // Presentes nos snapshots tirados NO SERVIDOR pelas ações de Concluir/Descartar (a tela só envia os
+  // quatro primeiros campos). Quando presentes, o desfazer restaura também o desfecho e o estado.
+  estado?: string;
+  motivoEstado?: string | null;
+  desfecho?: string | null;
+  desfechoPorId?: string | null;
+  desfechoEm?: string | null;
+};
+
 
 // Atribuir em lote: define o responsável do grupo e, se ainda PENDENTE, passa a EM_ANALISE. Não cria
 // tarefa nem prazo (o prazo continua sendo de quem decide até alguém registrá-lo). Devolve o estado
@@ -423,14 +449,16 @@ export async function assignPublicationsBatch(
   const alvo = await prisma.user.findFirst({ where: { id: userId, officeId: viewer.officeId, active: true }, select: { id: true } });
   if (!alvo) return { error: "Responsável não encontrado." };
   const ids = groups.flat();
-  const before = await prisma.publication.findMany({
+  const beforeRows = await prisma.publication.findMany({
     where: { id: { in: ids }, officeId: viewer.officeId },
-    select: { id: true, assignedToId: true, triageStatus: true, deadlineGenerated: true },
+    select: SELECT_SNAPSHOT,
   });
+  const before: PublicationSnapshot[] = beforeRows.map((r) => ({ ...r, desfechoEm: r.desfechoEm ? r.desfechoEm.toISOString() : null }));
   const okIds = before.map((b) => b.id);
   if (okIds.length === 0) return { before: [] };
   await prisma.publication.updateMany({ where: { id: { in: okIds } }, data: { assignedToId: userId } });
   await prisma.publication.updateMany({ where: { id: { in: okIds }, triageStatus: "PENDENTE" }, data: { triageStatus: "EM_ANALISE" } });
+  await registrarAtividadePublicacao({ officeId: viewer.officeId, actorId: viewer.id, acao: "ATRIBUIR", publicationIds: okIds, reason: `Atribuiu ${groups.length} publicação(ões) a ${userId === viewer.id ? "si mesmo(a)" : "outra pessoa"}`, meta: { responsavelId: userId } });
   revalidatePath("/publicacoes");
   revalidatePath("/painel");
   return { before };
@@ -443,9 +471,16 @@ export async function restorePublicationSnapshots(before: PublicationSnapshot[])
   for (const b of before) {
     await prisma.publication.updateMany({
       where: { id: b.id, officeId: viewer.officeId },
-      data: { assignedToId: b.assignedToId, triageStatus: b.triageStatus, deadlineGenerated: b.deadlineGenerated },
+      data: {
+        assignedToId: b.assignedToId,
+        triageStatus: b.triageStatus,
+        deadlineGenerated: b.deadlineGenerated,
+        ...(b.desfecho !== undefined ? { desfecho: b.desfecho, desfechoPorId: b.desfechoPorId ?? null, desfechoEm: b.desfechoEm ? new Date(b.desfechoEm) : null } : {}),
+        ...(b.estado ? { estado: b.estado, motivoEstado: b.motivoEstado ?? null } : {}),
+      },
     });
   }
+  await registrarAtividadePublicacao({ officeId: viewer.officeId, actorId: viewer.id, acao: "DESFAZER", publicationIds: before.map((b) => b.id), reason: "Desfez a última ação sobre estas publicações" });
   revalidatePath("/publicacoes");
   revalidatePath("/painel");
 }
@@ -459,6 +494,9 @@ export async function undoPublicationDeadlines(taskIds: string[], before: Public
     await prisma.task.updateMany({ where: { id: { in: taskIds }, officeId: viewer.officeId }, data: { status: "CANCELADO" } });
   }
   await restorePublicationSnapshots(before);
+  if (taskIds.length > 0) {
+    await registrarAtividadePublicacao({ officeId: viewer.officeId, actorId: viewer.id, acao: "DESFAZER", publicationIds: before.map((b) => b.id), reason: `Desfez o prazo/tarefa registrado (${taskIds.length} compromisso(s) cancelado(s))`, meta: { taskIds } });
+  }
   revalidatePath("/agenda");
   revalidatePath("/m/agenda");
   revalidatePath("/kanban");
@@ -468,8 +506,9 @@ export async function undoPublicationDeadlines(taskIds: string[], before: Public
 export async function getPublicationSnapshots(ids: string[]): Promise<PublicationSnapshot[]> {
   const viewer = await getCurrentUser();
   if (!viewer || ids.length === 0) return [];
-  return prisma.publication.findMany({
+  const rows = await prisma.publication.findMany({
     where: { id: { in: ids }, officeId: viewer.officeId },
-    select: { id: true, assignedToId: true, triageStatus: true, deadlineGenerated: true },
+    select: SELECT_SNAPSHOT,
   });
+  return rows.map((r) => ({ ...r, desfechoEm: r.desfechoEm ? r.desfechoEm.toISOString() : null }));
 }

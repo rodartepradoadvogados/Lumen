@@ -11,6 +11,7 @@ import { resolvePublicationGroupForOffice } from "@/lib/publicationResolution";
 import { sanitizeRichTextHtml } from "@/lib/richText";
 import { effectiveCaseClients, effectiveCaseParties, joinCaseNames } from "@/lib/caseParties";
 import { podeVerAtendimentos, whereDoAtendimento } from "@/lib/acessoAtendimento";
+import { registrarAtividadePublicacao } from "@/lib/auditoriaPublicacoes";
 
 async function assertTaskRelationsInOffice(
   data: { caseId?: string; attendanceId?: string; responsibleId?: string; columnId?: string },
@@ -266,6 +267,17 @@ export async function delegateTask(data: {
     // lib/publicationResolution.ts para a regra e para o motivo de ela valer só neste caminho
     // (marcar como lida continua sendo pessoal, porque significa "não é comigo").
     await resolvePublicationGroupForOffice(data.publicationId, viewer.officeId);
+    // Trilha de auditoria da triagem (lib/auditoriaPublicacoes.ts): quem registrou o quê, e se foi
+    // para outra pessoa (delegar) ou para si.
+    const paraOutros = responsibleIds.some((id) => id !== viewer.id);
+    await registrarAtividadePublicacao({
+      officeId: viewer.officeId,
+      actorId: viewer.id,
+      acao: paraOutros ? "DELEGAR" : data.type === "PRAZO" ? "TRATAR_PRAZO" : "TRATAR_TAREFA",
+      publicationIds: [data.publicationId],
+      reason: `${data.type === "PRAZO" ? "Registrou prazo" : "Criou tarefa"} para ${data.dueDate}${paraOutros ? ", delegado a outra pessoa" : ""}`,
+      meta: { tipo: data.type, vencimento: data.dueDate, responsaveis: responsibleIds, taskIds, caseId: data.caseId ?? null },
+    });
     revalidatePath("/publicacoes");
     revalidatePath("/m/publicacoes");
     revalidatePath("/m");

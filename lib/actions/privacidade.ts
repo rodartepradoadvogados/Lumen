@@ -8,8 +8,11 @@ import { FUSO_DO_ESCRITORIO } from "@/lib/horaDeBrasilia";
 // Documento 07 (Fase 4 — Privacidade e LGPD): trilha de auditoria (AuditEvent, ver PR19/lib/
 // actions/mask.ts) e pedido do titular (DataSubjectRequest, LGPD art. 18).
 
+export type AbaDaTrilha = "REVELACAO" | "EXPORTACAO" | "EXCLUSAO" | "PUBLICACAO";
+
 export type AuditEventRow = {
   id: string;
+  actorId: string;
   kind: string;
   entityType: string | null;
   entityId: string | null;
@@ -22,23 +25,28 @@ export type AuditEventRow = {
 // "Exclusões" da trilha (documento 07) agrupa os dois desfechos que de fato apagam/rescrevem
 // dado pessoal — exclusão e anonimização — sob um rótulo só, mesmo padrão da lista de abas do
 // documento (que não separa "Anonimizações" numa 5ª aba).
-const KIND_GROUPS: Record<"REVELACAO" | "EXPORTACAO" | "EXCLUSAO", string[]> = {
+const KIND_GROUPS: Record<AbaDaTrilha, string[]> = {
   REVELACAO: ["REVELACAO"],
   EXPORTACAO: ["EXPORTACAO"],
   EXCLUSAO: ["EXCLUSAO", "ANONIMIZACAO"],
+  // Atividade da equipe na triagem de publicações (lib/auditoriaPublicacoes.ts). Só o administrador vê:
+  // é o painel de quem monitora a equipe.
+  PUBLICACAO: ["PUBLICACAO"],
 };
 
-export async function listAuditEvents(aba: "REVELACAO" | "EXPORTACAO" | "EXCLUSAO"): Promise<AuditEventRow[]> {
+export async function listAuditEvents(aba: AbaDaTrilha): Promise<AuditEventRow[]> {
   const viewer = await getCurrentUser();
   if (!viewer) return [];
+  if (aba === "PUBLICACAO" && !viewer.isAdmin) return [];
   const rows = await prisma.auditEvent.findMany({
     where: { officeId: viewer.officeId, kind: { in: KIND_GROUPS[aba] } },
     orderBy: { createdAt: "desc" },
-    take: 200,
+    take: aba === "PUBLICACAO" ? 500 : 200,
     include: { actor: { select: { name: true } } },
   });
   return rows.map((r) => ({
     id: r.id,
+    actorId: r.actorId,
     kind: r.kind,
     entityType: r.entityType,
     entityId: r.entityId,
@@ -56,7 +64,7 @@ function csvEscape(v: string): string {
 // Gera o CSV da aba pedida E grava a própria exportação na trilha (documento 07: "a exportação
 // da trilha entra na própria trilha") — nesta ordem: consulta primeiro, grava o evento depois,
 // pra o evento de exportação não aparecer no CSV que ele mesmo gerou.
-export async function exportarTrilha(aba: "REVELACAO" | "EXPORTACAO" | "EXCLUSAO", abaLabel: string): Promise<{ error?: string; csv?: string }> {
+export async function exportarTrilha(aba: AbaDaTrilha, abaLabel: string): Promise<{ error?: string; csv?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
 

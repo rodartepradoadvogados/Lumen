@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import TabLink from "@/components/TabLink";
@@ -9,7 +9,6 @@ import {
   markPublicationsRead,
   markPublicationsUnread,
   markPublicationsReadBatch,
-  setPublicationTriageStatus,
   assignPublicationsBatch,
   restorePublicationSnapshots,
   undoPublicationDeadlines,
@@ -21,6 +20,11 @@ import {
   type PublicationSnapshot,
 } from "@/lib/actions/publications";
 import { delegateTask } from "@/lib/actions/tasks";
+import { concluirParaTodos, descartarPublicacao, desfazerDescarte } from "@/lib/actions/publicacoesFila";
+import { ROTULO_DO_DESFECHO, type DesfechoDeConclusao, type MotivoDeDescarte } from "@/lib/desfechosDePublicacao";
+import { chaveDoProcesso } from "@/lib/processKey";
+import ConcluirMenu, { type OpcoesDeDescarte } from "@/components/ConcluirMenu";
+import ProcessoGaveta from "@/components/ProcessoGaveta";
 import DelegateTaskForm, { type DelegateTaskInitial } from "@/components/DelegateTaskForm";
 import ModalShell from "@/components/ModalShell";
 import PainelDividido from "@/components/PainelDividido";
@@ -34,7 +38,6 @@ import {
   CalendarClock,
   FilePlus2,
   UserPlus,
-  Archive,
   Search,
   Ban,
   Eye,
@@ -50,6 +53,7 @@ import {
 import type { PublicationGroup } from "@/lib/publicationGrouping";
 import { matchesPublicationChip, type PublicationChipKey } from "@/lib/publicationChips";
 import type { FaixaPrazo, PrazoExtraido, SituacaoPrazo } from "@/lib/prazoExtraido";
+import type { TipoAto } from "@/lib/classificarAto";
 import { rotuloPrazo, CONFIANCA_TXT, type TomPrazo } from "@/lib/prazoRotulo";
 
 export type TriagePub = {
@@ -68,6 +72,8 @@ export type TriagePub = {
   taskCount?: number;
   assignedToId: string | null;
   triageStatus: string;
+  // O que o item É (lib/classificarAto.ts): aviso de intimação do Projudi nunca é "só ciência".
+  tipoAto: TipoAto;
 };
 
 export type TriageGroup = PublicationGroup<TriagePub> & {
@@ -78,6 +84,10 @@ export type TriageGroup = PublicationGroup<TriagePub> & {
   idadeDu: number;
   // Já existe tarefa/prazo criado a partir desta publicação.
   registrado: boolean;
+  tipoAto: TipoAto;
+  // Avisos abertos do MESMO processo (Projudi manda um por intimação, sem dizer qual): quantos e
+  // em que dias. null quando é um aviso só, ou quando o item não é aviso.
+  pilha: { total: number; datas: string[] } | null;
 };
 
 type UserLite = { id: string; name: string };
@@ -93,6 +103,7 @@ const IDADE_DESTAQUE_DU = 10;
 const BANDAS: { k: FaixaPrazo | "reg"; titulo: string; tom: "venc" | "hoje" | "neutro" }[] = [
   { k: "venc", titulo: "Vencidos", tom: "venc" },
   { k: "hoje", titulo: "Vencem hoje", tom: "hoje" },
+  { k: "aviso", titulo: "Aviso de intimação: abrir no tribunal", tom: "hoje" },
   { k: "d3", titulo: "Até 3 dias úteis", tom: "hoje" },
   { k: "d15", titulo: "Até 15 dias úteis", tom: "neutro" },
   { k: "dep", titulo: "Depois de 15 dias úteis", tom: "neutro" },
@@ -150,6 +161,10 @@ function duTxt(n: number): string {
 function partesDe(g: TriageGroup): string {
   const p = g.primary;
   if (p.case) return p.case.title;
+  // O aviso do Projudi é endereçado ao ADVOGADO ("Sr(a). <nome>"), então o nome que casa com um
+  // cliente cadastrado é o do próprio destinatário: 144 publicações viraram "Cliente compatível:
+  // <o advogado>". Num aviso o cliente nunca é pista.
+  if (g.tipoAto === "AVISO_INTIMACAO") return p.processNumberRaw ? `Aviso de intimação · processo ${p.processNumberRaw}` : "Aviso de intimação";
   if (p.client) return `Cliente compatível: ${p.client.name}`;
   return p.processNumberRaw ? `Sem processo vinculado · ${p.processNumberRaw}` : "Sem processo vinculado";
 }
@@ -241,13 +256,15 @@ export default function PublicationsTriage({
   const [busy, setBusy] = useState(false);
   const [narrow, setNarrow] = useState(false);
   const [detalhe, setDetalhe] = useState(false);
-  const [maisMobile, setMaisMobile] = useState(false);
   const [maisFila, setMaisFila] = useState(false);
   const [dialogo, setDialogo] = useState<Dialogo>(null);
   const [live, setLive] = useState("");
   const [taskModal, setTaskModal] = useState<{ groupKey: string; type: string; before: PublicationSnapshot[] } | null>(null);
   const [linkModal, setLinkModal] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [concluirAberto, setConcluirAberto] = useState(false);
+  // Gaveta do processo (visão rápida sobre o detalhe): aberta por O ou pelo título; Esc fecha.
+  const [gavetaAberta, setGavetaAberta] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const primeiraRender = useRef(true);
 
@@ -370,27 +387,91 @@ export default function PublicationsTriage({
     g.items.map((i) => ({ id: i.id, assignedToId: i.assignedToId, triageStatus: i.triageStatus, deadlineGenerated: i.deadlineGenerated }));
 
   // ---- ações sobre UMA publicação ----
-  function pedirArquivar() {
-    if (!selected || busy) return;
-    if (citaPrazoSemRegistro(selected)) setConfirmArchive(true);
-    else void arquivar();
+
+  // Avisos de intimação ABERTOS do mesmo processo (a pilha do Projudi), fora o grupo atual.
+  function gruposDaPilha(g: TriageGroup): TriageGroup[] {
+    if (g.tipoAto !== "AVISO_INTIMACAO") return [];
+    const chave = chaveDoProcesso(g.primary.processNumberRaw);
+    if (!chave) return [];
+    return items.filter((o) => o.key !== g.key && o.tipoAto === "AVISO_INTIMACAO" && o.primary.triageStatus !== "TRATADA" && chaveDoProcesso(o.primary.processNumberRaw) === chave);
   }
 
-  async function arquivar() {
+  // Atalho A e o botão "Só ciência" antigo: conclui como só ciência. Aviso de intimação NÃO tem só
+  // ciência (o e-mail só avisa que há intimação a abrir): abre o menu Concluir, que oferece a saída certa.
+  function pedirSoCiencia() {
+    if (!selected || busy) return;
+    if (selected.tipoAto === "AVISO_INTIMACAO") {
+      setConcluirAberto(true);
+      setLive("Aviso de intimação não tem só ciência. Escolha como concluir.");
+      return;
+    }
+    if (citaPrazoSemRegistro(selected)) setConfirmArchive(true);
+    else void concluir("SO_CIENCIA", false);
+  }
+
+  // Concluir PARA TODOS, com motivo. Espera o servidor (que recusa o que não pode, ex.: só ciência em
+  // aviso de intimação) antes de tirar a linha, para a tela nunca mostrar como concluído o que não foi.
+  async function concluir(desfecho: DesfechoDeConclusao, incluirPilha: boolean) {
     if (!selected || busy) return;
     const g = selected;
-    const antes = snapshotDe(g).filter((s) => s.id === g.primary.id);
-    const ids = g.items.map((i) => i.id);
-    const eramNovas = g.items.filter((i) => !i.read).map((i) => i.id);
+    const pilha = incluirPilha ? gruposDaPilha(g) : [];
+    const todos = [g, ...pilha];
+    const eramNovas = todos.flatMap((x) => x.items.filter((i) => !i.read).map((i) => i.id));
     setBusy(true);
-    sairDaFila(g.key, "Só ciência registrada", { triageStatus: "TRATADA" }, true);
     try {
-      await Promise.all([setPublicationTriageStatus(g.primary.id, "TRATADA"), markPublicationsRead(ids)]);
+      const r = await concluirParaTodos(g.primary.id, desfecho, pilha.flatMap((x) => x.items.map((i) => i.id)));
+      if (r.error || !r.antes) {
+        setLive(r.error ?? "Não foi possível concluir.");
+        showUndo({ message: r.error ?? "Não foi possível concluir.", durationMs: UNDO_MS });
+        return;
+      }
+      const antes = r.antes;
+      const texto = `Concluída para todos: ${ROTULO_DO_DESFECHO[desfecho]}`;
+      sairDaFila(g.key, texto, { triageStatus: "TRATADA" }, true);
+      for (const o of pilha) patchGrupo(o.key, { triageStatus: "TRATADA" }, true);
       showUndo({
-        message: `Só ciência registrada. ${Math.max(0, navegaveis.length - 1)} na fila.`,
+        message: `${texto}${pilha.length ? ` (+${pilha.length} ${pilha.length === 1 ? "aviso" : "avisos"} do mesmo processo)` : ""}. ${Math.max(0, navegaveis.length - 1 - pilha.length)} na fila.`,
         durationMs: UNDO_MS,
         onUndo: async () => {
           await restorePublicationSnapshots(antes);
+          await markPublicationsUnread(eramNovas);
+          router.refresh();
+        },
+      });
+    } finally {
+      setBusy(false);
+      router.refresh();
+    }
+  }
+
+  // Descartar ("não é publicação" / "não é do escritório"), com bloqueio opcional do processo e do
+  // remetente. Desfazer restaura os itens e remove o bloqueio que o descarte criou.
+  async function descartar(motivo: MotivoDeDescarte, opcoes: OpcoesDeDescarte) {
+    if (!selected || busy) return;
+    const g = selected;
+    const eramNovas = g.items.filter((i) => !i.read).map((i) => i.id);
+    setBusy(true);
+    try {
+      const r = await descartarPublicacao(g.primary.id, motivo, opcoes);
+      if (r.error || !r.antes) {
+        setLive(r.error ?? "Não foi possível descartar.");
+        showUndo({ message: r.error ?? "Não foi possível descartar.", durationMs: UNDO_MS });
+        return;
+      }
+      const antes = r.antes;
+      const desfazer = r.desfazer ?? {};
+      const texto = `Descartada: ${ROTULO_DO_DESFECHO[motivo]}`;
+      sairDaFila(g.key, texto, { triageStatus: "TRATADA" }, true);
+      const extras = [
+        desfazer.officeBlockId ? "Processo bloqueado para o escritório." : desfazer.userBlockedId ? "Processo bloqueado só para você." : "",
+        desfazer.regraId ? "Remetente bloqueado." : "",
+        r.aviso ?? "",
+      ].filter(Boolean);
+      showUndo({
+        message: `${texto}.${extras.length ? ` ${extras.join(" ")}` : ""}`,
+        durationMs: UNDO_MS,
+        onUndo: async () => {
+          await desfazerDescarte(antes, desfazer);
           await markPublicationsUnread(eramNovas);
           router.refresh();
         },
@@ -577,7 +658,7 @@ export default function PublicationsTriage({
   }
 
   // ---- teclado ----
-  const algumDialogo = Boolean(dialogo || taskModal || linkModal || confirmArchive);
+  const algumDialogo = Boolean(dialogo || taskModal || linkModal || confirmArchive || concluirAberto);
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (algumDialogo) return; // Esc dos diálogos é tratado por eles
@@ -599,7 +680,11 @@ export default function PublicationsTriage({
       const emBotaoQualquer = (tag === "button" || tag === "a" || tag === "summary") && !el?.hasAttribute("data-row-main");
       const k = e.key;
       if (k === "Escape") {
-        if (marc.size > 0) {
+        if (gavetaAberta) {
+          e.preventDefault();
+          setGavetaAberta(false);
+          focarLinha(selectedKey, true);
+        } else if (marc.size > 0) {
           e.preventDefault();
           setMarc(new Set());
         } else if (narrow && detalhe) {
@@ -642,7 +727,13 @@ export default function PublicationsTriage({
         abrirVinculo();
       } else if ((k === "a" || k === "A") && marc.size === 0) {
         e.preventDefault();
-        pedirArquivar();
+        pedirSoCiencia();
+      } else if ((k === "o" || k === "O") && marc.size === 0) {
+        e.preventDefault();
+        setGavetaAberta((v) => !v);
+      } else if ((k === "c" || k === "C") && marc.size === 0) {
+        e.preventDefault();
+        setConcluirAberto(true);
       } else if (k === "l" || k === "L") {
         e.preventDefault();
         void marcarVista();
@@ -651,7 +742,7 @@ export default function PublicationsTriage({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, algumDialogo, navegaveis, marc, narrow, detalhe, busy]);
+  }, [selected, algumDialogo, navegaveis, marc, narrow, detalhe, busy, gavetaAberta]);
 
   const taskGroup = taskModal ? items.find((g) => g.key === taskModal.groupKey) ?? null : null;
   const taskInitial: DelegateTaskInitial | undefined =
@@ -659,15 +750,20 @@ export default function PublicationsTriage({
       ? {
           publicationId: taskGroup.primary.id,
           type: taskModal.type,
-          title: taskGroup.primary.content.slice(0, 50),
+          title:
+            taskGroup.tipoAto === "AVISO_INTIMACAO"
+              ? `Abrir a intimação no tribunal${taskGroup.primary.processNumberRaw ? ` — ${taskGroup.primary.processNumberRaw}` : ""}`.slice(0, 80)
+              : taskGroup.primary.content.slice(0, 50),
           referTo: taskGroup.primary.case ? "PROCESSO" : "OUTROS",
           selectedLink: taskGroup.primary.case ? { id: taskGroup.primary.case.id, label: taskGroup.primary.case.title } : undefined,
           responsibleIds: taskGroup.primary.assignedToId ? [taskGroup.primary.assignedToId] : undefined,
           // O prazo NÃO é preenchido: só sugerido (botão "Usar sugestão" no formulário).
           dueSuggestion:
-            taskModal.type === "PRAZO" && taskGroup.prazo.tipo === "PRAZO" && taskGroup.prazo.data
-              ? { date: taskGroup.prazo.data, basis: basisDoPrazo(taskGroup.prazo) }
-              : undefined,
+            taskGroup.tipoAto === "AVISO_INTIMACAO" && taskGroup.situacao.limite
+              ? { date: taskGroup.situacao.limite, basis: "Estimativa: 10 dias corridos do aviso mais antigo (Lei 11.419/2006, art. 5º, §3º). Confirme no sistema do tribunal." }
+              : taskModal.type === "PRAZO" && taskGroup.prazo.tipo === "PRAZO" && taskGroup.prazo.data
+                ? { date: taskGroup.prazo.data, basis: basisDoPrazo(taskGroup.prazo) }
+                : undefined,
         }
       : undefined;
 
@@ -845,19 +941,34 @@ export default function PublicationsTriage({
       busy={busy}
       narrow={narrow}
       posicao={idxSel >= 0 ? { i: idxSel + 1, total: navegaveis.length } : null}
-      maisAberto={maisMobile}
-      onMais={() => setMaisMobile((v) => !v)}
       onVoltar={() => {
         setDetalhe(false);
         focarLinha(selectedKey, true);
       }}
       detalheAberto={detalhe}
       onProxima={() => mover(1)}
-      onRegistrar={() => abrirTarefa("PRAZO")}
-      onDelegar={() => abrirTarefa("TAREFA")}
+      onTratar={() => abrirTarefa(selected.tipoAto === "AVISO_INTIMACAO" ? "TAREFA" : "PRAZO")}
       onVincular={abrirVinculo}
-      onSoCiencia={pedirArquivar}
-      onVista={() => void marcarVista()}
+      gavetaAberta={gavetaAberta}
+      onGaveta={() => setGavetaAberta((v) => !v)}
+      gaveta={gavetaAberta ? <ProcessoGaveta group={selected} narrow={narrow} onFechar={() => { setGavetaAberta(false); focarLinha(selectedKey, true); }} onVincular={abrirVinculo} /> : null}
+      concluir={
+        <ConcluirMenu
+          aberto={concluirAberto}
+          onAbrir={() => setConcluirAberto(true)}
+          onFechar={() => setConcluirAberto(false)}
+          ehAviso={selected.tipoAto === "AVISO_INTIMACAO"}
+          temCaso={Boolean(selected.primary.case)}
+          temRemetente={selected.items.some((i) => !["DJEN", "DATAJUD", "DOU", "PNCP", "MANUAL"].includes(i.source))}
+          pilhaExtra={gruposDaPilha(selected).length}
+          jaVisto={selected.allRead}
+          busy={busy}
+          onVisto={() => void marcarVista()}
+          onConcluir={(d, pilha) => void concluir(d, pilha)}
+          onDescartar={(m, o) => void descartar(m, o)}
+          classeBotao="min-h-11 max-md:min-h-12 inline-flex items-center justify-center gap-1.5 px-3 text-sm font-semibold text-tx-2 hover:text-tx hover:bg-sf-apoio border border-regua-forte disabled:opacity-50"
+        />
+      }
     />
   ) : (
     <div className="flex-1 grid place-items-center p-6 text-center text-sm text-tx-2">
@@ -947,7 +1058,7 @@ export default function PublicationsTriage({
                 type="button"
                 onClick={() => {
                   setConfirmArchive(false);
-                  void arquivar();
+                  void concluir("SO_CIENCIA", false);
                 }}
                 className="min-h-11 px-4 py-2 text-sm font-semibold text-tx-2 hover:bg-sf-apoio"
               >
@@ -1032,7 +1143,7 @@ export default function PublicationsTriage({
                   Marcar <b>{marcaveis}</b> de {navegaveis.length} como vistas.
                   {citam.length > 0 && <> {citam.length} {citam.length === 1 ? "cita prazo e fica" : "citam prazo e ficam"} sem marca, para você ler antes.</>}
                 </p>
-                <p className="text-xs text-tx-2">Vista é uma marca só sua e não tira nada de A tratar. Dá para desfazer por 10 segundos.</p>
+                <p className="text-xs text-tx-2">Visto é uma marca só sua: sai só da sua fila e continua em A tratar para as outras pessoas. Dá para desfazer por 10 segundos.</p>
                 <div className="flex gap-2 justify-end flex-wrap">
                   <button type="button" onClick={() => setDialogo(null)} className="min-h-11 px-4 py-2 text-sm font-semibold text-tx-2 hover:bg-sf-apoio">
                     Cancelar
@@ -1060,11 +1171,13 @@ export default function PublicationsTriage({
           <dl className="p-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
             {[
               ["J / K", "próxima e anterior"],
-              ["Enter ou P", "registrar prazo"],
-              ["D", "delegar (com seleção: atribuir)"],
+              ["Enter ou P", "tratar (registrar prazo ou criar tarefa)"],
+              ["D", "tratar e delegar a outra pessoa (com seleção: atribuir)"],
               ["V", "vincular a processo"],
-              ["A", "só ciência"],
-              ["L", "marcar como vista"],
+              ["C", "concluir: visto só para mim, concluir para todos ou descartar"],
+              ["O", "ver o processo numa gaveta, sem sair da fila (Esc fecha)"],
+              ["A", "concluir como só ciência (aviso de intimação abre o menu Concluir)"],
+              ["L", "visto, só para mim: sai da sua fila"],
               ["X", "selecionar a linha (Shift + clique: intervalo)"],
               ["U ou Ctrl+Z", "desfazer a última ação"],
               ["Esc", "limpar seleção"],
@@ -1166,6 +1279,7 @@ function LinhaFila({
             publicada {dataDeBrasilia(pub.publishedAt).slice(0, 5)} ({g.idadeDu === 0 ? "hoje" : `há ${duTxt(g.idadeDu)}`})
           </span>
           {g.items.length > 1 && <span>+{g.items.length - 1} {g.items.length === 2 ? "fonte" : "fontes"}</span>}
+          {g.pilha && <span className="px-1.5 border border-linha-aviso bg-aviso-bg text-risco-hoje-tx">{g.pilha.total} avisos deste processo</span>}
           <span className="inline-flex items-center gap-1">
             <span aria-hidden="true" className={clsx("h-5 w-5 grid place-items-center rounded-full border", responsavel ? "border-regua-forte bg-sf-apoio" : "border-dashed border-regua-forte")}>
               <span className="text-xs font-semibold leading-none text-tx">{responsavel ? responsavel.ini : "?"}</span>
@@ -1217,7 +1331,26 @@ function BlocoPrazo({ group }: { group: TriageGroup }) {
         <Icone size={20} aria-hidden="true" />
         {r.texto}
       </p>
-      {p.tipo === "PRAZO" && p.data ? (
+      {group.tipoAto === "AVISO_INTIMACAO" ? (
+        <div className="text-sm text-tx space-y-1.5">
+          <p>
+            <span className="font-semibold">Este e-mail é só o aviso de que há uma intimação/citação esperando na caixa de entrada do sistema do tribunal.</span> Ele não traz o ato nem o prazo, e diz que não tem valor legal. O prazo para responder só é conhecido depois de abrir a intimação no tribunal.
+          </p>
+          {group.situacao.limite && (
+            <p>
+              <span className="font-semibold">Abrir até {formatCalendarDate(group.situacao.limite)}</span>{" "}
+              <span className="text-tx-2">
+                (estimativa: 10 dias corridos do aviso mais antigo; sem consulta, a intimação pode ser considerada realizada ao fim desse prazo, Lei 11.419/2006, art. 5º, §3º. Confirme no sistema do tribunal.)
+              </span>
+            </p>
+          )}
+          {group.pilha && (
+            <p className="text-tx-2">
+              {group.pilha.total} avisos abertos deste processo: {group.pilha.datas.map((d) => dm(d)).join(", ")}. A data acima parte do mais antigo.
+            </p>
+          )}
+        </div>
+      ) : p.tipo === "PRAZO" && p.data ? (
         <p className="text-sm text-tx">
           <span className="font-semibold">Prazo citado no texto: {p.dias} dias {p.corridos ? "corridos" : "úteis"}</span> → <strong>{formatCalendarDate(p.data)}</strong>{" "}
           <span className="text-tx-2">(sugestão do sistema, confira na íntegra)</span>
@@ -1271,15 +1404,14 @@ function Painel({
   narrow,
   detalheAberto,
   posicao,
-  maisAberto,
-  onMais,
   onVoltar,
   onProxima,
-  onRegistrar,
-  onDelegar,
+  onTratar,
   onVincular,
-  onSoCiencia,
-  onVista,
+  concluir,
+  gavetaAberta,
+  onGaveta,
+  gaveta,
 }: {
   group: TriageGroup;
   nomeDe: (id: string | null) => string;
@@ -1288,15 +1420,17 @@ function Painel({
   narrow: boolean;
   detalheAberto: boolean;
   posicao: { i: number; total: number } | null;
-  maisAberto: boolean;
-  onMais: () => void;
   onVoltar: () => void;
   onProxima: () => void;
-  onRegistrar: () => void;
-  onDelegar: () => void;
+  onTratar: () => void;
   onVincular: () => void;
-  onSoCiencia: () => void;
-  onVista: () => void;
+  // Menu "Concluir" (components/ConcluirMenu.tsx), montado pelo pai porque as ações vivem lá.
+  concluir: ReactNode;
+  gavetaAberta: boolean;
+  onGaveta: () => void;
+  // Gaveta do processo, já montada pelo pai (ou null). Fica DENTRO da área de leitura, acima da barra
+  // Tratar/Concluir, que ela não cobre.
+  gaveta: ReactNode;
 }) {
   const pub = group.primary;
   const aberta = pub.triageStatus !== "TRATADA";
@@ -1321,6 +1455,7 @@ function Painel({
           </button>
         </div>
       )}
+      <div className="relative flex-1 min-h-0 flex flex-col">
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-4 md:px-6 py-5">
         <p className="text-xs font-semibold text-tx-2">
           {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"} · {pub.source}
@@ -1328,17 +1463,23 @@ function Painel({
           {pub.lawyerTag ? ` · advogado citado: ${pub.lawyerTag}` : ""}
         </p>
         <h2 className="text-2xl font-bold text-tx mt-1 break-words">
-          {pub.case ? (
-            <TabLink href={`/processos/${pub.case.id}`} label={pub.case.title} className="hover:text-marca-tx transition-colors">
-              {pub.case.title}
-            </TabLink>
-          ) : (
-            partesDe(group)
-          )}
+          {/* O título abre a gaveta do processo (visão rápida, sem sair da fila). A página inteira do
+              processo continua a um clique, em "Abrir completo". */}
+          <button type="button" onClick={onGaveta} aria-expanded={gavetaAberta} aria-keyshortcuts="O" title="Ver o processo (O)" className="text-left hover:text-marca-tx transition-colors">
+            {partesDe(group)}
+          </button>
         </h2>
         <div className="flex items-center gap-3 mt-2 flex-wrap">
           {pub.case?.processNumber && <ProcessNumberChip processNumber={pub.case.processNumber} />}
           {!pub.case && pub.processNumberRaw && <span className="text-sm font-medium tabular-nums">{pub.processNumberRaw}</span>}
+          <button type="button" onClick={onGaveta} aria-expanded={gavetaAberta} aria-keyshortcuts="O" className="min-h-11 md:min-h-9 inline-flex items-center gap-1.5 px-3 text-sm font-semibold border border-regua-forte text-tx hover:bg-sf-apoio">
+            Ver processo <kbd className="max-xl:hidden text-xs border border-current px-1 opacity-70">O</kbd>
+          </button>
+          {pub.case && (
+            <TabLink href={`/processos/${pub.case.id}`} label={pub.case.title} className="min-h-11 md:min-h-9 inline-flex items-center px-1 text-sm font-semibold text-marca-tx underline underline-offset-2">
+              Abrir completo
+            </TabLink>
+          )}
           <CopyButton text={pub.content} label="Copiar conteúdo" />
           <PeticionarButton compact caseId={pub.case?.id} />
         </div>
@@ -1411,54 +1552,28 @@ function Painel({
           </div>
         </dl>
       </div>
+      {gaveta}
+      </div>
 
-      <div role="group" aria-label="Decidir esta publicação" className="shrink-0 border-t-2 border-regua-forte bg-sf px-4 md:px-6 py-3 max-md:pr-20 flex items-center gap-2 flex-wrap relative">
+      <div role="group" aria-label="Decidir esta publicação" className="shrink-0 border-t-2 border-regua-forte bg-sf px-4 md:px-6 py-3 flex items-center gap-2 flex-wrap relative">
         {aberta ? (
           <>
             <button
               type="button"
               disabled={busy}
-              onClick={onRegistrar}
+              onClick={onTratar}
               aria-keyshortcuts="P"
-              className="min-h-11 max-md:flex-1 max-md:min-h-12 inline-flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4"
+              className="min-h-11 max-md:min-h-12 inline-flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4"
             >
-              <CalendarClock size={15} aria-hidden="true" /> Registrar prazo <kbd className="max-xl:hidden text-xs border border-current px-1 opacity-80">P</kbd>
+              <CalendarClock size={15} aria-hidden="true" /> Tratar <kbd className="max-xl:hidden text-xs border border-current px-1 opacity-80">P</kbd>
             </button>
-            <div className="contents max-md:hidden">
-              <button type="button" disabled={busy} onClick={onDelegar} aria-keyshortcuts="D" className={secundario}>
-                <UserPlus size={15} aria-hidden="true" /> Delegar <kbd className="max-xl:hidden text-xs border border-current px-1 opacity-70">D</kbd>
+            {concluir}
+            {!pub.case && (
+              <button type="button" disabled={busy} onClick={onVincular} aria-keyshortcuts="V" className={secundario}>
+                <FilePlus2 size={15} aria-hidden="true" /> Vincular <kbd className="max-xl:hidden text-xs border border-current px-1 opacity-70">V</kbd>
               </button>
-              {!pub.case && (
-                <button type="button" disabled={busy} onClick={onVincular} aria-keyshortcuts="V" className={secundario}>
-                  <FilePlus2 size={15} aria-hidden="true" /> Vincular <kbd className="max-xl:hidden text-xs border border-current px-1 opacity-70">V</kbd>
-                </button>
-              )}
-              <button type="button" disabled={busy} onClick={onSoCiencia} aria-keyshortcuts="A" className={secundario}>
-                <Archive size={15} aria-hidden="true" /> Só ciência <kbd className="max-xl:hidden text-xs border border-current px-1 opacity-70">A</kbd>
-              </button>
-              <button
-                type="button"
-                disabled={busy || group.allRead}
-                onClick={onVista}
-                aria-keyshortcuts="L"
-                title="Tira da sua fila; a publicação continua em A tratar para as outras pessoas"
-                className={secundario}
-              >
-                <Eye size={15} aria-hidden="true" /> {group.allRead ? "Vista" : "Marcar vista"}
-              </button>
-            </div>
-            <button type="button" onClick={onMais} aria-expanded={maisAberto} className="md:hidden min-h-12 px-4 inline-flex items-center gap-1.5 text-sm font-semibold border border-regua-forte">
-              <MoreHorizontal size={18} aria-hidden="true" /> Mais
-            </button>
-            {maisAberto && (
-              <div className="md:hidden absolute bottom-full left-3 right-3 mb-1 bg-sf border border-regua-forte shadow-pop p-1 grid gap-1 z-10">
-                <button type="button" onClick={onDelegar} className="min-h-12 text-left px-3 text-sm font-semibold hover:bg-sf-apoio inline-flex items-center gap-2"><UserPlus size={16} aria-hidden="true" /> Delegar</button>
-                {!pub.case && <button type="button" onClick={onVincular} className="min-h-12 text-left px-3 text-sm font-semibold hover:bg-sf-apoio inline-flex items-center gap-2"><FilePlus2 size={16} aria-hidden="true" /> Vincular a processo</button>}
-                <button type="button" onClick={onSoCiencia} className="min-h-12 text-left px-3 text-sm font-semibold hover:bg-sf-apoio inline-flex items-center gap-2"><Archive size={16} aria-hidden="true" /> Só ciência</button>
-                {!group.allRead && <button type="button" onClick={onVista} className="min-h-12 text-left px-3 text-sm font-semibold hover:bg-sf-apoio inline-flex items-center gap-2"><Eye size={16} aria-hidden="true" /> Marcar vista</button>}
-              </div>
             )}
-            <span className="ml-auto text-xs text-tx-2 max-xl:hidden">J/K navega · X seleciona · U desfaz · ? atalhos</span>
+            <span className="ml-auto text-xs text-tx-2 max-xl:hidden">J/K navega · L visto · X seleciona · U desfaz · ? atalhos</span>
           </>
         ) : (
           <span className="text-sm text-tx-2">Publicação tratada.</span>

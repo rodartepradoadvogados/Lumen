@@ -55,6 +55,12 @@ export function rotuloPrazo(input: {
     case "d15":
     case "dep":
       return { texto: `Vence em ${diasUteisTxt(du ?? 0)}`, detalhe: `${quando}${conferir ? ", confira" : ""}`, tom: "neutro" };
+    case "aviso":
+      return {
+        texto: "Aviso de intimação",
+        detalhe: situacao.limite ? `abrir no tribunal até ${dataBr(situacao.limite).slice(0, 5)}` : "abrir no tribunal",
+        tom: "hoje",
+      };
     case "cien":
       return { texto: "Só ciência", detalhe: "sem prazo no texto", tom: "neutro" };
     default:

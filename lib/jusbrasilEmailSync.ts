@@ -4,6 +4,16 @@ import { simpleParser } from "mailparser";
 import { prisma } from "@/lib/prisma";
 import { getOAuthClient } from "@/lib/googleDrive";
 import { enqueueNotification } from "@/lib/notificationOutbox";
+import {
+  carregarContextoDoEscritorio,
+  decidirComContexto,
+  estaBloqueado,
+  TAMANHO_MAXIMO_DA_QUARENTENA,
+  type ContextoDoEscritorio,
+} from "@/lib/emailCapturaDb";
+import { enderecoDoRemetente } from "@/lib/emailCaptura";
+import { casarClientePorNome } from "@/lib/clienteNoTexto";
+import { ehAvisoDeIntimacao } from "@/lib/classificarAto";
 
 export type SyncResult = {
   accountsScanned: number;
@@ -12,6 +22,10 @@ export type SyncResult = {
   createdPublicacoes: number;
   createdAndamentos: number;
   skipped: number;
+  // Captura de e-mail com critério (lib/emailCaptura.ts): recusados não gravam nada; quarentena grava
+  // fora da fila, na aba "Possível publicação".
+  recusados?: number;
+  quarentena?: number;
   errors: string[];
 };
 
@@ -27,6 +41,8 @@ export const RELEVANT_SENDERS = ["publicacoes-diarios@jusbrasil.com.br", "andame
 // dentro de processMessage) — melhor um registro bruto capturado do que a publicação passar
 // batido.
 export const BROAD_SUBJECT_KEYWORDS = [
+  "projudi",
+  "processo nº",
   "publicação",
   "publicacao",
   "intimação",
@@ -120,13 +136,13 @@ export async function findCaseIdByProcessNumber(processNumberRaw: string | null,
 }
 
 export async function findClientIdByName(content: string, officeId: string): Promise<string | null> {
-  const clients = await prisma.client.findMany({ where: { officeId }, select: { id: true, name: true } });
-  const normalized = content.toLowerCase();
-  for (const client of clients) {
-    const name = client.name.trim().toLowerCase();
-    if (name.length >= 5 && normalized.includes(name)) return client.id;
-  }
-  return null;
+  const [clients, equipe] = await Promise.all([
+    prisma.client.findMany({ where: { officeId }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: { officeId, active: true }, select: { name: true } }),
+  ]);
+  // Regras em lib/clienteNoTexto.ts: palavras inteiras, 2+ palavras, e nunca o nome de alguém da
+  // equipe (o destinatário "Sr(a). <advogado>" não é a parte).
+  return casarClientePorNome(content, clients, equipe.map((u) => u.name));
 }
 
 // Cada escritório conecta sua própria conta Google para o Jusbrasil (GoogleCredential.officeId)
@@ -193,7 +209,8 @@ async function processMessage(
   accountEmail: string,
   officeId: string,
   result: SyncResult,
-  isKnownJusbrasilSender: boolean
+  isKnownJusbrasilSender: boolean,
+  contextoDe: (officeId: string) => Promise<ContextoDoEscritorio>
 ) {
   const raw = await gmail.users.messages.get({ userId: "me", id: messageId, format: "raw" });
   if (!raw.data.raw) return;
@@ -208,6 +225,54 @@ async function processMessage(
   const source = isKnownJusbrasilSender ? "JUSBRASIL_EMAIL" : detectCourtSystemSource(senderAddress);
 
   const defaultKind = /publica[cç][aã]o/i.test(subject) || senderAddress.includes("publicacoes-diarios") ? "PUBLICACAO" : "ANDAMENTO";
+
+  // ---- CRITÉRIO DE CAPTURA (lib/emailCaptura.ts) ----
+  // Só vale para quem NÃO é remetente conhecido do Jusbrasil (esses têm layout próprio, abaixo). Antes,
+  // qualquer e-mail com "publicação"/"despacho" no assunto virava publicação; agora o que decide é o
+  // número de processo e o remetente: ACEITAR entra na fila, QUARENTENA fica na aba "Possível
+  // publicação" (sem prazo, selo nem alerta), RECUSAR não grava nada.
+  let estado = "ATIVA";
+  let motivoEstado: string | null = null;
+  let numeroDecidido: string | null = null;
+  if (!isKnownJusbrasilSender) {
+    const ctx = await contextoDe(officeId);
+    const h = parsed.headers;
+    const cabecalho = (nome: string) => {
+      const v = h?.get(nome);
+      return v == null ? null : String(v);
+    };
+    const decisao = decidirComContexto(
+      {
+        from: enderecoDoRemetente(senderAddress),
+        fromName: parsed.from?.value?.[0]?.name ?? null,
+        subject,
+        text: bodyText,
+        cabecalhos: {
+          lumen: cabecalho("x-lumen-notificacao") !== null,
+          autoSubmitted: cabecalho("auto-submitted"),
+          precedence: cabecalho("precedence"),
+          listUnsubscribe: cabecalho("list-unsubscribe") !== null,
+        },
+      },
+      ctx
+    );
+    if (decisao.acao === "RECUSAR") {
+      result.recusados = (result.recusados ?? 0) + 1;
+      return;
+    }
+    numeroDecidido = decisao.numero;
+    if (decisao.acao === "QUARENTENA") {
+      estado = "QUARENTENA";
+      motivoEstado = decisao.motivo;
+    } else if (decisao.origemNaoReconhecida) {
+      motivoEstado = "Origem não reconhecida: confira o remetente";
+    }
+    if (estaBloqueado(ctx, numeroDecidido)) {
+      estado = "DESCARTADA";
+      motivoEstado = "Processo bloqueado pelo escritório";
+    }
+  }
+
   let entries: ExtractedEntry[] = [];
   if (senderAddress.includes("publicacoes-diarios")) {
     entries = extractPublicacoes(bodyText);
@@ -216,9 +281,10 @@ async function processMessage(
   }
   // Captura ampla (fonte fora do Jusbrasil): sem layout conhecido pra quebrar em blocos —
   // um único registro com o corpo inteiro do e-mail (ou o assunto, se o corpo vier vazio) e
-  // o número de processo que a regex genérica conseguir achar.
+  // o número de processo que o critério acima já encontrou.
   if (entries.length === 0) {
-    entries = [{ processNumber: extractProcessNumber(bodyText), content: bodyText.slice(0, 3000) || subject, kind: defaultKind }];
+    const corpo = estado === "QUARENTENA" ? bodyText.slice(0, TAMANHO_MAXIMO_DA_QUARENTENA) : bodyText.slice(0, 3000);
+    entries = [{ processNumber: numeroDecidido ?? extractProcessNumber(bodyText), content: corpo || subject, kind: defaultKind }];
   }
 
   for (const [idx, entry] of entries.entries()) {
@@ -249,7 +315,9 @@ async function processMessage(
     }
 
     const caseId = await findCaseIdByProcessNumber(entry.processNumber, officeId);
-    const clientId = caseId ? null : await findClientIdByName(entry.content, officeId);
+    // Aviso de intimação é endereçado ao ADVOGADO: o nome que ele traz nunca é o de um cliente.
+    const ehAviso = ehAvisoDeIntimacao({ source, content: entry.content, emailSubject: subject });
+    const clientId = caseId || ehAviso || estado !== "ATIVA" ? null : await findClientIdByName(entry.content, officeId);
 
     await prisma.publication.create({
       data: {
@@ -265,8 +333,18 @@ async function processMessage(
         clientId,
         lawyerTag: detectLawyerTag(entry.content),
         caseId,
+        estado,
+        motivoEstado,
+        remetente: enderecoDoRemetente(senderAddress) || null,
       },
     });
+    // Só o que entrou na FILA conta como "novo" (notificação, resultado): quarentena e descartada
+    // não geram aviso nenhum.
+    if (estado === "QUARENTENA") {
+      result.quarentena = (result.quarentena ?? 0) + 1;
+      continue;
+    }
+    if (estado !== "ATIVA") continue;
     result.created++;
     if (entry.kind === "PUBLICACAO") result.createdPublicacoes++;
     else result.createdAndamentos++;
@@ -283,8 +361,22 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
   }
 
   const senderQuery = RELEVANT_SENDERS.map((s) => `from:${s}`).join(" OR ");
-  const broadSubjectQuery = BROAD_SUBJECT_KEYWORDS.map((k) => `subject:"${k}"`).join(" OR ");
+  // Pré-filtro: termos no ASSUNTO, mais qualquer coisa vinda de domínio .jus.br ou que cite o
+  // Projudi. Só limita quantas mensagens são lidas; quem decide é lib/emailCaptura.ts.
+  const broadTermsQuery = [...BROAD_SUBJECT_KEYWORDS.map((k) => `subject:"${k}"`), "from:jus.br", "projudi"].join(" OR ");
   const excludeKnownSenders = RELEVANT_SENDERS.map((s) => `-from:${s}`).join(" ");
+
+  // Contexto por escritório (regras de remetente, processos cadastrados, bloqueados), carregado uma
+  // vez por varredura e só quando alguma mensagem não-Jusbrasil o pede.
+  const contextos = new Map<string, Promise<ContextoDoEscritorio>>();
+  const contextoDe = (id: string) => {
+    let c = contextos.get(id);
+    if (!c) {
+      c = carregarContextoDoEscritorio(id);
+      contextos.set(id, c);
+    }
+    return c;
+  };
 
   for (const account of clients) {
     const { gmail, accountEmail, officeId, credentialId } = account;
@@ -299,7 +391,12 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
       // (assunto com termos de comunicação processual, qualquer remetente — exceto os já
       // cobertos pela primeira, pra não processar a mesma mensagem duas vezes).
       const knownQuery = `(${senderQuery}) after:${afterEpochSeconds}`;
-      const broadQuery = `(${broadSubjectQuery}) ${excludeKnownSenders} after:${afterEpochSeconds}`;
+      // A busca ampla deixa promoções/redes sociais de fora. É só o PRÉ-FILTRO que limita quantas
+      // mensagens são lidas: quem decide se vira publicação é o critério por número de processo e
+      // remetente (lib/emailCaptura.ts), mensagem a mensagem. Mensagem recusada não grava nada e volta
+      // na sobreposição de 2 dias da próxima varredura: é de propósito (barato, e uma regra nova de
+      // remetente passa a valer sozinha).
+      const broadQuery = `(${broadTermsQuery}) ${excludeKnownSenders} -in:sent -category:promotions -category:social after:${afterEpochSeconds}`;
 
       async function listAllIds(q: string): Promise<string[]> {
         const ids: string[] = [];
@@ -322,7 +419,7 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
       for (const { id: messageId, known } of messageIds) {
         result.found++;
         try {
-          await processMessage(gmail, messageId, accountEmail, officeId, result, known);
+          await processMessage(gmail, messageId, accountEmail, officeId, result, known, contextoDe);
         } catch (e) {
           const message = e instanceof Error ? e.message : "erro desconhecido";
           result.errors.push(`[${accountEmail}] Mensagem ${messageId}: ${message}`);

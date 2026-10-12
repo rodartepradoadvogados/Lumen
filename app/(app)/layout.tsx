@@ -23,6 +23,7 @@ import { PORTAL_THEME_INIT_SCRIPT } from "@/lib/portalTheme";
 import PortalThemeSync from "@/components/PortalThemeSync";
 import { podeVerAtendimentos, veTodoOAtendimento, recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
 import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
+import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
@@ -61,7 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const veTodoAtendimento = veTodoOAtendimento(user);
   const [unreadPublicationsRaw, totalAlerts, agendaBadgeCount, modules, blockedSet] = await Promise.all([
     prisma.publication.findMany({
-      where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
+      where: { ...publicacoesDaFilaWhere(user.officeId), triageStatus: { not: "TRATADA" }, reads: { none: { userId: user.id } } },
       select: { id: true, processNumberRaw: true, publishedAt: true },
     }),
     // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas

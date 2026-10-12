@@ -7,6 +7,7 @@ import MobilePublicationsList from "@/components/mobile/MobilePublicationsList";
 import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
+import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function MobilePublicacoes() {
     // mostrar o histórico completo ao expandir. O "take" é só uma rede de segurança bem folgada,
     // não um corte de exibição (esse corte acontece depois, sobre a lista já agrupada).
     prisma.publication.findMany({
-      where: { officeId: viewer.officeId },
+      where: publicacoesDaFilaWhere(viewer.officeId),
       include: { case: true, client: true, reads: { where: { userId: viewer.id }, select: { userId: true } } },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: 3000,

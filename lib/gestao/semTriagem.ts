@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { DIA_MS, hojeCalendario } from "@/lib/gestao/dias";
 import { diaDeBrasilia } from "@/lib/horaDeBrasilia";
+import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
 
 // "SEM TRIAGEM", DEFINIDO UMA VEZ. A fila de Publicações mostrava 46 e Relatórios mostrava 42
 // "pendente" — duas leituras do mesmo conceito. Aqui: publicação com `triageStatus === "PENDENTE"`,
@@ -18,6 +19,6 @@ export function resumirSemTriagem(publicadas: { publishedAt: Date }[], hoje: Dat
 }
 
 export async function publicacoesSemTriagem(officeId: string, agora: Date = new Date()): Promise<ResumoSemTriagem> {
-  const pendentes = await prisma.publication.findMany({ where: { officeId, triageStatus: "PENDENTE" }, select: { publishedAt: true } });
+  const pendentes = await prisma.publication.findMany({ where: { ...publicacoesDaFilaWhere(officeId), triageStatus: "PENDENTE" }, select: { publishedAt: true } });
   return resumirSemTriagem(pendentes, hojeCalendario(agora));
 }

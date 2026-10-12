@@ -13,30 +13,71 @@ import { findPublicationIdsByProcessNumber } from "@/lib/processNumberSearch";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { groupPublicationsByProcess, saoPauloDayKey } from "@/lib/publicationGrouping";
 import { matchesPublicationChip, parsePublicationChip, type PublicationChipKey } from "@/lib/publicationChips";
-import { extrairMelhorDoGrupo, situacaoPrazo, idadeEmDiasUteis, ORDEM_FAIXA } from "@/lib/prazoExtraido";
+import { extrairMelhorDoGrupo, situacaoPrazo, idadeEmDiasUteis, ORDEM_FAIXA, ORDEM_REGISTRADO, type PrazoExtraido } from "@/lib/prazoExtraido";
+import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
+import { tipoDoAto, limiteParaAbrirOAviso } from "@/lib/classificarAto";
+import { chaveDoProcesso } from "@/lib/processKey";
+import { avaliarFonte, avisoDeCapturaParada, type SaudeDaFonte } from "@/lib/saudeDasFontes";
+import SaudeDasFontes from "@/components/SaudeDasFontes";
+import QuarentenaLista, { type ItemDeQuarentena } from "@/components/QuarentenaLista";
 import { Search, TriangleAlert, X } from "lucide-react";
 import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
 
 export const dynamic = "force-dynamic";
+
+// Rede de segurança da consulta (não é corte de exibição). Com o DataJud fora da fila
+// (lib/publicacoesVisiveis.ts) o escritório inteiro tem centenas de itens, não milhares; este teto
+// só existe para um dia em que isso deixe de ser verdade, e a tela AVISA quando ele corta.
+const LIMITE_DA_CONSULTA = 2500;
 
 // Corte de segurança sobre os grupos JÁ FILTRADOS pelo chip ativo: nenhuma tela deste produto
 // renderiza uma lista sem teto. O corte vem DEPOIS da ordenação por urgência (o mais urgente nunca
 // fica de fora) e a tela avisa "Mostrando N de M".
 const MAX_GROUPS_RENDERED = 150;
 
-function formatHora(d: Date | null | undefined): string {
-  if (!d) return "—";
-  return horaDeBrasilia(d);
-}
-
-const PRAZOS = ["venc", "hoje", "d3", "d10", "sem"] as const;
+const PRAZOS = ["venc", "conf", "hoje", "d3", "d10", "aviso", "sem"] as const;
 type PrazoFiltro = (typeof PRAZOS)[number];
 const PRAZO_ROTULO: Record<PrazoFiltro, string> = {
   venc: "vencidos",
+  conf: "a confirmar",
   hoje: "vence hoje",
   d3: "até 3 dias úteis",
   d10: "até 10 dias úteis",
+  aviso: "aviso de intimação",
   sem: "não identificado",
+};
+
+// UMA definição por filtro de urgência, usada pelo número do quadro E pela lista que ele abre. Antes
+// o contador e a lista tinham regras diferentes ("vencidos" contava só confiança média/alta mas a lista
+// trazia também as "a confirmar"; "até 3 dias" contava só PRAZO mas a lista incluía audiências): o
+// número clicado não era o tamanho da lista.
+function passaNoPrazo(g: TriageGroup, f: PrazoFiltro): boolean {
+  if (g.registrado) return false;
+  const s = g.situacao;
+  switch (f) {
+    case "venc":
+      return s.faixa === "venc" && !s.aConfirmar;
+    case "conf":
+      return s.faixa === "venc" && s.aConfirmar;
+    case "hoje":
+      return s.faixa === "hoje";
+    case "d3":
+      return s.faixa !== "aviso" && s.du !== null && s.du >= 0 && s.du <= 3;
+    case "d10":
+      return s.faixa !== "aviso" && s.du !== null && s.du >= 0 && s.du <= 10;
+    case "aviso":
+      return s.faixa === "aviso";
+    default:
+      return s.faixa === "sem" || s.faixa === "cien";
+  }
+}
+
+// Prazo "do ato" que um aviso de intimação NÃO tem: o texto é só "há intimação na sua caixa de
+// entrada". Nunca se extrai prazo dele (o "10 dias" que o Projudi possa citar é da consulta).
+const SEM_PRAZO_DO_ATO: PrazoExtraido = {
+  tipo: "NENHUM",
+  confianca: 0,
+  notas: ["Aviso de intimação: o prazo do ato só é conhecido depois de abrir a intimação no sistema do tribunal."],
 };
 
 export default async function PublicacoesPage({
@@ -57,13 +98,14 @@ export default async function PublicacoesPage({
   // quadro do dia e as opções dos filtros de pessoa. Mesmo conjunto para tudo é o que impede a
   // contradição de contadores ("46 contra 73") que a tela tinha. Os filtros são aplicados depois,
   // em memória, sobre os grupos (o corte de 3000 linhas já existia).
-  const [publicationsRaw, users, blockedSet, holidaysRaw, ultimoRunDjen, ultimoRunDatajud, matchingProcessNumberIds] = await Promise.all([
+  const [publicationsRaw, users, blockedSet, holidaysRaw, ultimoSucessoDjen, ultimoSucessoDatajud, ultimaFalhaDjen, ultimaFalhaDatajud, ultimosItensPorFonte, credenciaisEmail, quarentenaCount, matchingProcessNumberIds] = await Promise.all([
     prisma.publication.findMany({
-      where: { officeId: viewer.officeId },
+      where: publicacoesDaFilaWhere(viewer.officeId),
       select: {
         id: true,
         kind: true,
         source: true,
+        emailSubject: true,
         content: true,
         publishedAt: true,
         deadlineGenerated: true,
@@ -77,16 +119,45 @@ export default async function PublicacoesPage({
         reads: { where: { userId: viewer.id }, select: { userId: true } },
       },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-      take: 3000,
+      take: LIMITE_DA_CONSULTA,
     }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     getBlockedProcessNumberSet(viewer.id),
     prisma.holiday.findMany({ where: { officeId: viewer.officeId }, select: { date: true } }),
-    prisma.integrationRun.findFirst({ where: { officeId: viewer.officeId, integration: "DJEN" }, orderBy: { startedAt: "desc" }, select: { startedAt: true } }),
-    prisma.integrationRun.findFirst({ where: { officeId: viewer.officeId, integration: "DATAJUD" }, orderBy: { startedAt: "desc" }, select: { startedAt: true } }),
+    // Saúde das fontes (lib/saudeDasFontes.ts): o último ciclo BEM-SUCEDIDO que o ROBÔ registrou, não
+    // o batimento que o site grava a cada cron. Medido em 12/10/2026: 19 dias de robô parado e o
+    // cabeçalho dizendo "DJEN 14:00".
+    prisma.roboExecucaoLog.findFirst({ where: { fonte: "DJEN", sucesso: true }, orderBy: { executadoEm: "desc" }, select: { executadoEm: true } }),
+    prisma.roboExecucaoLog.findFirst({ where: { fonte: "DATAJUD", sucesso: true }, orderBy: { executadoEm: "desc" }, select: { executadoEm: true } }),
+    prisma.roboExecucaoLog.findFirst({ where: { fonte: "DJEN" }, orderBy: { executadoEm: "desc" }, select: { sucesso: true, detalhe: true } }),
+    prisma.roboExecucaoLog.findFirst({ where: { fonte: "DATAJUD" }, orderBy: { executadoEm: "desc" }, select: { sucesso: true, detalhe: true } }),
+    prisma.publication.groupBy({ by: ["source"], where: { officeId: viewer.officeId, source: { in: ["DJEN", "DATAJUD", "JUSBRASIL_EMAIL", "PROJUDI"] } }, _max: { createdAt: true } }),
+    prisma.googleCredential.findMany({ where: { officeId: viewer.officeId, syncJusbrasil: true }, select: { lastSyncAt: true, lastSyncError: true } }),
+    // Quarentena (e-mail sem número de processo válido ou de remetente desconhecido): fora de todo
+    // contador; só o número da aba "Possível publicação".
+    prisma.publication.count({ where: { officeId: viewer.officeId, estado: "QUARENTENA" } }),
     // Busca por nº de processo ignora máscara (hífen, ponto, barra...) — ver lib/processNumberSearch.ts.
     q ? findPublicationIdsByProcessNumber(q, { officeId: viewer.officeId }) : Promise.resolve([] as string[]),
   ]);
+  const emQuarentena = searchParams.aba === "quarentena";
+  const itensQuarentena: ItemDeQuarentena[] = emQuarentena
+    ? (
+        await prisma.publication.findMany({
+          where: { officeId: viewer.officeId, estado: "QUARENTENA" },
+          orderBy: { createdAt: "asc" },
+          take: 200,
+          select: { id: true, emailSubject: true, remetente: true, motivoEstado: true, content: true, processNumberRaw: true, createdAt: true },
+        })
+      ).map((q) => ({
+        id: q.id,
+        assunto: q.emailSubject,
+        remetente: q.remetente,
+        motivo: q.motivoEstado,
+        trecho: decodificarEntidadesHtml(q.content).slice(0, 1000),
+        processo: q.processNumberRaw,
+        chegouEm: q.createdAt.toISOString(),
+      }))
+    : [];
   const publications = publicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet));
 
   const taskCounts = await prisma.task.groupBy({
@@ -101,6 +172,7 @@ export default async function PublicacoesPage({
     kind: p.kind,
     source: p.source,
     content: decodificarEntidadesHtml(p.content),
+    tipoAto: tipoDoAto({ source: p.source, kind: p.kind, content: p.content, emailSubject: p.emailSubject }),
     publishedAt: p.publishedAt.toISOString(),
     read: p.reads.length > 0,
     deadlineGenerated: p.deadlineGenerated,
@@ -119,14 +191,43 @@ export default async function PublicacoesPage({
 
   const feriadosExtras = holidaysRaw.map((h) => ({ date: h.date.toISOString().slice(0, 10) }));
   const hojeKey = saoPauloDayKey(new Date());
+
+  // PILHA DO AVISO: o Projudi manda um aviso por e-mail a cada intimação e não diz a qual ato ele se
+  // refere. Vários avisos abertos do MESMO processo (medido: 24 processos com 2 a 5) viram uma pilha
+  // — a data limite parte do aviso MAIS ANTIGO e a tela diz quantos são. Nada é fundido: cada aviso
+  // segue sendo um item, porque dois avisos em dias diferentes podem ser duas intimações.
+  const pilhasDeAviso = new Map<string, { datas: string[]; maisAntigo: string }>();
+  for (const g of allGroups) {
+    if (g.primary.triageStatus === "TRATADA" || !g.items.some((i) => i.tipoAto === "AVISO_INTIMACAO")) continue;
+    const chave = chaveDoProcesso(g.primary.processNumberRaw);
+    if (!chave) continue;
+    const dia = saoPauloDayKey(g.primary.publishedAt);
+    const atual = pilhasDeAviso.get(chave) ?? { datas: [], maisAntigo: g.primary.publishedAt };
+    atual.datas.push(dia);
+    if (g.primary.publishedAt < atual.maisAntigo) atual.maisAntigo = g.primary.publishedAt;
+    pilhasDeAviso.set(chave, atual);
+  }
+
   const todos: TriageGroup[] = allGroups.map((g) => {
-    const prazo = extrairMelhorDoGrupo(g.items, feriadosExtras);
+    const ehAviso = g.items.some((i) => i.tipoAto === "AVISO_INTIMACAO");
+    const chave = chaveDoProcesso(g.primary.processNumberRaw);
+    const pilha = ehAviso && chave ? pilhasDeAviso.get(chave) : undefined;
+    const prazo = ehAviso ? SEM_PRAZO_DO_ATO : extrairMelhorDoGrupo(g.items, feriadosExtras);
+    const maisAntigoDoGrupo = g.items.reduce((m, i) => (i.publishedAt < m ? i.publishedAt : m), g.items[0].publishedAt);
     return {
       ...g,
       prazo,
-      situacao: situacaoPrazo(prazo, g.primary.kind, hojeKey, feriadosExtras),
+      situacao: situacaoPrazo(
+        prazo,
+        g.primary.kind,
+        hojeKey,
+        feriadosExtras,
+        ehAviso ? { limite: limiteParaAbrirOAviso(pilha?.maisAntigo ?? maisAntigoDoGrupo) } : undefined
+      ),
       idadeDu: idadeEmDiasUteis(g.primary.publishedAt, hojeKey, feriadosExtras),
       registrado: g.items.some((i) => i.deadlineGenerated || (i.taskCount ?? 0) > 0),
+      tipoAto: ehAviso ? ("AVISO_INTIMACAO" as const) : g.primary.tipoAto,
+      pilha: ehAviso && pilha && pilha.datas.length > 1 ? { total: pilha.datas.length, datas: pilha.datas.slice().sort() } : null,
     };
   });
 
@@ -161,28 +262,19 @@ export default async function PublicacoesPage({
   // ---- filtros em memória (sobre grupos) ----
   const qNorm = q.toLowerCase();
   const idsPorNumero = new Set(matchingProcessNumberIds);
-  const passaFiltros = (g: TriageGroup): boolean => {
+  const passaFiltrosSemPrazo = (g: TriageGroup): boolean => {
     if (kind && g.primary.kind !== kind) return false;
     if (adv && (g.primary.lawyerTag ?? "").trim().toLowerCase() !== adv.toLowerCase()) return false;
     if (resp === "none" ? g.primary.assignedToId !== null : resp && g.primary.assignedToId !== resp) return false;
     if (q && !g.items.some((i) => idsPorNumero.has(i.id) || i.content.toLowerCase().includes(qNorm) || i.source.toLowerCase().includes(qNorm))) return false;
-    if (prazoFiltro) {
-      const s = g.situacao;
-      const ok =
-        prazoFiltro === "venc" ? s.faixa === "venc" :
-        prazoFiltro === "hoje" ? s.faixa === "hoje" :
-        prazoFiltro === "d3" ? s.du !== null && s.du >= 0 && s.du <= 3 :
-        prazoFiltro === "d10" ? s.du !== null && s.du >= 0 && s.du <= 10 :
-        s.faixa === "sem" || s.faixa === "cien";
-      if (!ok || g.registrado) return false;
-    }
     return true;
   };
+  const passaFiltros = (g: TriageGroup): boolean => passaFiltrosSemPrazo(g) && (!prazoFiltro || passaNoPrazo(g, prazoFiltro));
 
   // FILA POR URGÊNCIA (padrão): vencido, hoje, até 3 dias úteis, até 15, depois, prazo não
   // identificado, só ciência; dentro da faixa o vencimento mais próximo primeiro e, no empate, a
   // publicação mais antiga. Quem já tem prazo registrado vai para o fim. Ordena ANTES de cortar.
-  const rank = (g: TriageGroup) => (g.registrado ? 7 : ORDEM_FAIXA[g.situacao.faixa]);
+  const rank = (g: TriageGroup) => (g.registrado ? ORDEM_REGISTRADO : ORDEM_FAIXA[g.situacao.faixa]);
   const ordenados =
     ordem === "recentes"
       ? todos
@@ -213,12 +305,21 @@ export default async function PublicacoesPage({
     if (!g.registrado && g.situacao.faixa === "venc") carga[id].vencidas++;
   }
 
-  // Quadro do dia: mesmo conjunto e mesma função da fila. "Vencidos" só com confiança média/alta;
-  // os de confiança baixa aparecem à parte ("a confirmar"), para o número que assusta ser verdadeiro.
+  // QUADRO DO DIA: cada número é o tamanho EXATO da lista que o clique abre. Os números são
+  // "facetados": contam dentro da aba ativa e dos filtros de pessoa, busca e tipo, e só variam o
+  // filtro de urgência (passaNoPrazo, a mesma função da lista). "Vencidos" só com confiança média ou
+  // alta; os de confiança baixa aparecem à parte ("a confirmar"), para o número que assusta ser
+  // verdadeiro.
+  const baseDoQuadro = ordenados.filter((g) => matchesPublicationChip(g, activeChip, viewer.id) && passaFiltrosSemPrazo(g));
+  const contaQuadro = (f: PrazoFiltro) => baseDoQuadro.filter((g) => passaNoPrazo(g, f)).length;
+  const qVenc = contaQuadro("venc");
+  const qConf = contaQuadro("conf");
+  const qAte3 = contaQuadro("d3");
+  const qAviso = contaQuadro("aviso");
+  const qTodos = baseDoQuadro.length;
+  // Vencidos da fila inteira, para as mensagens de "nada encontrado" abaixo.
   const abertasSemRegistro = abertas.filter((g) => !g.registrado);
   const vencidos = abertasSemRegistro.filter((g) => g.situacao.faixa === "venc" && !g.situacao.aConfirmar).length;
-  const aConfirmar = abertasSemRegistro.filter((g) => g.situacao.faixa === "venc" && g.situacao.aConfirmar).length;
-  const ate3 = abertasSemRegistro.filter((g) => g.situacao.du !== null && g.situacao.du >= 0 && g.situacao.du <= 3 && g.prazo.tipo === "PRAZO").length;
   const maisAntiga = abertas.reduce((m, g) => Math.max(m, g.idadeDu), 0);
   const semRespAbertas = abertas.filter((g) => !g.primary.assignedToId).length;
 
@@ -251,6 +352,45 @@ export default async function PublicacoesPage({
 
   const agora = horaDeBrasilia(new Date());
 
+  // SAÚDE DAS FONTES: o que foi medido (último ciclo bem-sucedido do robô; última varredura sem erro
+  // do e-mail), com o último item que de fato entrou. Ver lib/saudeDasFontes.ts.
+  const agoraData = new Date();
+  const ultimoItem = (src: string) => ultimosItensPorFonte.find((x) => x.source === src)?._max.createdAt ?? null;
+  const ultimoEmailOk = credenciaisEmail.reduce<Date | null>((m, c) => (c.lastSyncAt && (!m || c.lastSyncAt > m) ? c.lastSyncAt : m), null);
+  const erroDoEmail = credenciaisEmail.find((c) => c.lastSyncError)?.lastSyncError ?? null;
+  const emailUltimoItem = [ultimoItem("JUSBRASIL_EMAIL"), ultimoItem("PROJUDI")].reduce<Date | null>((m, d) => (d && (!m || d > m) ? d : m), null);
+  const saude: SaudeDaFonte[] = [
+    avaliarFonte({
+      chave: "DJEN",
+      ultimoSucesso: ultimoSucessoDjen?.executadoEm ?? null,
+      ultimoItemNovo: ultimoItem("DJEN"),
+      agora: agoraData,
+      feriados: feriadosExtras,
+      erro: ultimaFalhaDjen && !ultimaFalhaDjen.sucesso ? (ultimaFalhaDjen.detalhe ?? "o último ciclo falhou").slice(0, 160) : null,
+    }),
+    avaliarFonte({
+      chave: "DATAJUD",
+      ultimoSucesso: ultimoSucessoDatajud?.executadoEm ?? null,
+      ultimoItemNovo: ultimoItem("DATAJUD"),
+      agora: agoraData,
+      feriados: feriadosExtras,
+      erro: ultimaFalhaDatajud && !ultimaFalhaDatajud.sucesso ? (ultimaFalhaDatajud.detalhe ?? "o último ciclo falhou").slice(0, 160) : null,
+    }),
+    ...(credenciaisEmail.length > 0
+      ? [
+          avaliarFonte({
+            chave: "EMAIL",
+            ultimoSucesso: ultimoEmailOk,
+            ultimoItemNovo: emailUltimoItem,
+            agora: agoraData,
+            feriados: feriadosExtras,
+            erro: erroDoEmail,
+            falhaPersistente: Boolean(erroDoEmail),
+          }),
+        ]
+      : []),
+  ];
+  const avisoCaptura = avisoDeCapturaParada(saude);
   return (
     <div className="pub-scope tela tela-alta">
       <a
@@ -262,50 +402,72 @@ export default async function PublicacoesPage({
       <header className="shrink-0 border-b-2 border-regua-forte px-4 md:px-6 pt-4">
         <div className="flex items-center gap-x-4 gap-y-2 flex-wrap mb-2">
           <h1 className="text-autuacao font-extrabold text-tx max-md:flex-1">Publicações</h1>
-          {/* Quadro do dia: cada número filtra a fila. Vencido só com confiança média/alta. */}
-          <nav aria-label="Quadro do dia" className="flex items-center gap-1 flex-wrap flex-1 min-w-0 max-md:order-3 max-md:basis-full max-md:flex-nowrap max-md:overflow-x-auto">
-            <Link href={qs({ ...semFiltros, aba: undefined, prazo: "venc" })} className="min-h-11 md:min-h-9 px-2.5 inline-flex items-center gap-1.5 text-sm text-tx-2 hover:bg-sf-apoio whitespace-nowrap">
-              <b className={vencidos > 0 ? "text-risco-vencido-tx" : "text-tx"}>{vencidos}</b> vencidos
-            </Link>
-            {aConfirmar > 0 && (
-              <Link href={qs({ ...semFiltros, aba: undefined, prazo: "venc" })} className="min-h-11 md:min-h-9 px-2.5 inline-flex items-center gap-1.5 text-sm text-tx-2 hover:bg-sf-apoio whitespace-nowrap">
-                <b className="text-risco-hoje-tx">{aConfirmar}</b> a confirmar
-              </Link>
-            )}
-            <Link href={qs({ ...semFiltros, aba: undefined, prazo: "d3" })} className="min-h-11 md:min-h-9 px-2.5 inline-flex items-center gap-1.5 text-sm text-tx-2 hover:bg-sf-apoio whitespace-nowrap">
-              <b className={ate3 > 0 ? "text-risco-hoje-tx" : "text-tx"}>{ate3}</b> vencem em até 3 dias úteis
-            </Link>
-            <Link href={qs({ ...semFiltros, aba: undefined })} className="min-h-11 md:min-h-9 px-2.5 inline-flex items-center gap-1.5 text-sm text-tx-2 hover:bg-sf-apoio whitespace-nowrap">
-              <b className="text-tx">{aTratarCount}</b> a tratar
-            </Link>
+          {/* Quadro do dia: cada botão filtra a fila e o número é o tamanho exato da lista que ele abre.
+              Alternância: o botão ativo fica sublinhado e marcado (aria-current); clicar nele de novo tira
+              o filtro. Nunca zera a aba escolhida. "Todos" volta ao recorte sem filtro de urgência. */}
+          <nav aria-label="Quadro do dia: filtros de urgência" className="flex items-center gap-0.5 flex-wrap flex-1 min-w-0 max-md:order-3 max-md:basis-full max-md:flex-nowrap max-md:overflow-x-auto">
+            {(
+              [
+                { f: undefined, rotulo: "Todos", n: qTodos, tom: "text-tx" },
+                { f: "venc" as const, rotulo: "Vencidos", n: qVenc, tom: qVenc > 0 ? "text-risco-vencido-tx" : "text-tx" },
+                { f: "conf" as const, rotulo: "A confirmar", n: qConf, tom: qConf > 0 ? "text-risco-hoje-tx" : "text-tx" },
+                { f: "d3" as const, rotulo: "Vencem em até 3 dias úteis", n: qAte3, tom: qAte3 > 0 ? "text-risco-hoje-tx" : "text-tx" },
+                { f: "aviso" as const, rotulo: "Avisos de intimação", n: qAviso, tom: qAviso > 0 ? "text-risco-hoje-tx" : "text-tx" },
+              ]
+            )
+              .filter((b) => b.f !== "aviso" || b.n > 0 || prazoFiltro === "aviso")
+              .map((b) => {
+                const ativo = (prazoFiltro ?? undefined) === b.f;
+                return (
+                  <Link
+                    key={b.rotulo}
+                    href={qs({ prazo: ativo ? undefined : b.f })}
+                    aria-current={ativo ? "true" : undefined}
+                    aria-label={`${b.rotulo}: ${b.n}${ativo ? ", filtro ativo" : ""}`}
+                    className={`min-h-11 md:min-h-9 px-2.5 inline-flex items-center gap-1.5 text-sm whitespace-nowrap border-b-[3px] transition-colors hover:bg-sf-apoio ${
+                      ativo ? "border-tx text-tx font-bold bg-sf-apoio" : "border-transparent text-tx-2"
+                    }`}
+                  >
+                    <b className={b.tom}>{b.n}</b> {b.rotulo}
+                  </Link>
+                );
+              })}
             <span className="px-2 text-sm text-tx-2 whitespace-nowrap">
               mais antiga: <b className="text-tx">{maisAntiga} {maisAntiga === 1 ? "dia útil" : "dias úteis"}</b>
             </span>
           </nav>
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-tx-2 text-right leading-tight max-md:hidden">
-              DJEN {formatHora(ultimoRunDjen?.startedAt)}
-              <br />
-              DataJud {formatHora(ultimoRunDatajud?.startedAt)}
-            </span>
             <SyncPublicationsButton />
             {viewer.isAdmin && semRespAbertas > 0 && <DistributePublicationsButton count={semRespAbertas} />}
           </div>
         </div>
+
+        <SaudeDasFontes fontes={saude} aviso={avisoCaptura} />
 
         <nav aria-label="Filas de publicações" className="flex overflow-x-auto scrollbar-thin -mx-4 px-4 md:mx-0 md:px-0">
           {chips.map((chip) => (
             <Link
               key={chip.key}
               href={qs({ aba: chip.key === "a-tratar" ? undefined : chip.key })}
-              aria-current={activeChip === chip.key ? "true" : undefined}
+              aria-current={!emQuarentena && activeChip === chip.key ? "true" : undefined}
               className={`min-h-11 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold border-b-[3px] transition-colors ${
-                activeChip === chip.key ? "text-tx border-marca-tx" : "text-tx-2 border-transparent hover:bg-sf-apoio"
+                !emQuarentena && activeChip === chip.key ? "text-tx border-marca-tx" : "text-tx-2 border-transparent hover:bg-sf-apoio"
               }`}
             >
               {chip.label} <span className="font-medium text-tx-3">{chip.count}</span>
             </Link>
           ))}
+          {(quarentenaCount > 0 || emQuarentena) && (
+            <Link
+              href="/publicacoes?aba=quarentena"
+              aria-current={emQuarentena ? "true" : undefined}
+              className={`ml-auto min-h-11 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold border-b-[3px] transition-colors ${
+                emQuarentena ? "text-tx border-marca-tx" : "text-risco-hoje-tx border-transparent hover:bg-sf-apoio"
+              }`}
+            >
+              Possível publicação <span className="font-medium text-tx-3">{quarentenaCount}</span>
+            </Link>
+          )}
         </nav>
 
         <form className="pub-filtros flex gap-2 py-2.5 flex-wrap items-center">
@@ -378,7 +540,9 @@ export default async function PublicacoesPage({
         )}
       </header>
 
-      {groups.length === 0 ? (
+      {emQuarentena ? (
+        <QuarentenaLista itens={itensQuarentena} />
+      ) : groups.length === 0 ? (
         <div className="p-6" role="status" id="fila-publicacoes" tabIndex={-1}>
           {temFiltro ? (
             // Busca ou filtro sem resultado NUNCA é "tudo triado": o escritório pode ter dezenas de

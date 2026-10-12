@@ -8,6 +8,12 @@ import { escapeHtml } from "@/lib/htmlEscape";
 import { describeMentionLocation, mentionCommentInclude } from "@/lib/mentions";
 import { getAppUrl } from "@/lib/appUrl";
 
+// Todo e-mail que o PRÓPRIO Lúmen envia leva este cabeçalho. A varredura de e-mail
+// (lib/emailCaptura.ts) recusa mensagens com ele: sem isso, o aviso "Novas publicações" que o Lúmen
+// manda para a caixa de um advogado era lido pela captura ampla, virava publicação, gerava novo
+// aviso... (13 casos medidos em 12/10/2026).
+export const SISTEMA_HEADERS = { "X-Lumen-Notificacao": "1", "Auto-Submitted": "auto-generated" } as const;
+
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
@@ -92,7 +98,7 @@ async function sendCriticalEmailCascade(officeId: string, to: string, subject: s
   const transporter = getTransporter();
   if (transporter) {
     try {
-      await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject, html });
+      await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject, html, headers: SISTEMA_HEADERS });
       return { sent: true };
     } catch (e) {
       attempts.push(`SMTP: ${e instanceof Error ? e.message : "erro desconhecido"}`);
@@ -181,7 +187,7 @@ export async function buildDailyAgendaHtml(officeId: string, officeName: string)
     // "Capturadas hoje": usa createdAt (quando entrou no site via e-mail/robô), não publishedAt
     // (que pode ser retroativo à data real da publicação no diário oficial).
     prisma.publication.findMany({
-      where: { officeId, createdAt: { gte: startOfDay(now), lte: endOfDay(now) } },
+      where: { officeId, estado: "ATIVA", createdAt: { gte: startOfDay(now), lte: endOfDay(now) } },
       include: { case: true },
       orderBy: [{ createdAt: "desc" }],
     }),
@@ -304,6 +310,7 @@ export async function sendDailyAgendaEmail(officeId?: string): Promise<{ sent: b
     const html = await buildDailyAgendaHtml(office.id, office.name);
     try {
       await transporter.sendMail({
+        headers: SISTEMA_HEADERS,
         from: `"${office.name}" <${process.env.EMAIL_USER}>`,
         to,
         subject: `Agenda do dia — ${new Date().toLocaleDateString("pt-BR")}`,
@@ -327,7 +334,7 @@ export async function sendSimpleEmail(to: string, subject: string, html: string)
   const transporter = getTransporter();
   if (!transporter) return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
   try {
-    await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject, html });
+    await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject, html, headers: SISTEMA_HEADERS });
     return { sent: true };
   } catch (e) {
     return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };

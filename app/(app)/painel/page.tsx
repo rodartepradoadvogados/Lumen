@@ -24,6 +24,7 @@ import DayQueueRow, { type DayQueueItem } from "@/components/DayQueueRow";
 import Regua from "@/components/Regua";
 import { veTodoOAtendimento, recorteDosAlertasDeAtendimento } from "@/lib/acessoAtendimento";
 import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
+import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export default async function DashboardPage() {
       ? prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
     prisma.publication.findMany({
-      where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } },
+      where: { ...publicacoesDaFilaWhere(viewer.officeId), triageStatus: { not: "TRATADA" }, reads: { none: { userId: viewer.id } } },
       select: {
         id: true,
         source: true,

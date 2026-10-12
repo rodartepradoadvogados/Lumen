@@ -7,6 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { converterHtmlParaTextoSimples } from "@/lib/htmlEntities";
 import { enqueueNotification } from "@/lib/notificationOutbox";
 import { detectarTribunalPorNumeroCNJ } from "@/lib/cnjTribunal";
+import { chaveDoProcesso } from "@/lib/processKey";
+import { parseDataOuFallback } from "@/lib/dataDaPublicacao";
+import { avaliarFonte, mensagemDaFonte } from "@/lib/saudeDasFontes";
 
 // Prefere o tribunal derivado do próprio número CNJ (confiável, mesmo algoritmo usado em
 // robo-publicacoes/src/datajud.py) ao texto livre que o robô eventualmente traz do
@@ -154,16 +157,6 @@ function resolverOffice(
   return { caseId: null, officeId: null };
 }
 
-// dataDisponibilizacao/dataMovimentacao vêm como string livre do robô — tenta parsear
-// como data válida; se não der, cai pra dataCaptura (quando o robô salvou o registro).
-function parseDataOuFallback(raw: string | null | undefined, fallback: Date): Date {
-  if (raw) {
-    const parsed = new Date(raw);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-  return fallback;
-}
-
 // Alimenta o robô Python (tabela processos_monitorados/RoboProcessoMonitorado) com os
 // números de processo já cadastrados nos Casos do site — assim o Datajud (que já
 // funciona, ao contrário do DJEN, hoje bloqueado por IP) passa a acompanhar andamentos
@@ -221,6 +214,20 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
   // nenhum (ver resolverOffice). Com os índices vazios, todo item simplesmente fica não roteado
   // e permanece na fila — que é o comportamento correto, não um erro de configuração.
   const indices = await carregarIndicesDeRoteamento();
+  // Processos que o ESCRITÓRIO inteiro bloqueou ("Não é do escritório"): a publicação nova do mesmo
+  // número entra DESCARTADA, sem fila, sem selo, sem alerta. Reversível em Configurações.
+  const bloqueadosPorEscritorio = new Map<string, Set<string>>();
+  for (const b of await prisma.officeBlockedProcess.findMany({ select: { officeId: true, processKey: true } })) {
+    const set = bloqueadosPorEscritorio.get(b.officeId) ?? new Set<string>();
+    set.add(b.processKey);
+    bloqueadosPorEscritorio.set(b.officeId, set);
+  }
+  const estadoDoItem = (officeId: string, numero: string | null | undefined) => {
+    const chave = chaveDoProcesso(numero);
+    return chave && bloqueadosPorEscritorio.get(officeId)?.has(chave)
+      ? { estado: "DESCARTADA", motivoEstado: "Processo bloqueado pelo escritório" }
+      : { estado: "ATIVA", motivoEstado: null };
+  };
 
   try {
     result.processosMonitoradosCriados = await seedProcessosMonitoradosFromCases();
@@ -241,7 +248,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
   // inteira — com `teor` sendo o HTML bruto da página de detalhe do DJEN — de uma vez em
   // memória); o que sobrar continua com statusLido=false e volta no próximo ciclo, comportamento
   // já preparado pelo desenho atual (só marca lido depois de garantir a criação, ver abaixo).
-  const publicacoesPendentes = await prisma.roboPublicacao.findMany({ where: { statusLido: false }, take: 500 });
+  const publicacoesPendentes = await prisma.roboPublicacao.findMany({ where: { statusLido: false }, orderBy: { dataCaptura: "desc" }, take: 500 });
   // Uma consulta em lote no lugar de um findUnique por item dentro do laço — elimina 1 ida ao
   // banco por publicação pendente. idComunicacao é @id de RoboPublicacao, então emailMessageId
   // (derivado dele) nunca colide entre duas linhas deste mesmo lote.
@@ -278,10 +285,11 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
               tribunalDetectado: tribunalDetectadoPara(pub.numeroProcesso, pub.tribunal),
               caseId,
               lawyerTag,
+              ...estadoDoItem(officeId, pub.numeroProcesso),
             },
           });
           result.publicacoesCriadas++;
-          contar(officeId, "publicacoes");
+          if (estadoDoItem(officeId, pub.numeroProcesso).estado === "ATIVA") contar(officeId, "publicacoes");
           if (!caseId) result.semCasoVinculado++;
         } else {
           // Não roteado: nenhum Case e nenhuma OAB conhecida apontam para um escritório. NÃO cria
@@ -303,7 +311,25 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     }
   }
 
-  const andamentosPendentes = await prisma.roboAndamento.findMany({ where: { statusLido: false }, take: 500 });
+  // SÓ andamento ROTEÁVEL entra no lote. Antes: `findMany({ statusLido: false, take: 500 })` sem
+  // ordem. Andamento de processo sem Case cadastrado (o DJEN descobre processos sozinho e o
+  // Datajud devolve o histórico inteiro de cada um) nunca roteia e nunca é marcado como lido; volta
+  // no lote em todo ciclo, e quando passam de 500 eles ocupam o lote inteiro: os andamentos novos de
+  // processos cadastrados nunca mais entravam. Foi assim que o site parou de ingerir DataJud em
+  // 25/08 (6.432 pendentes em 12/10) enquanto o robô seguia capturando. A seleção por número
+  // normalizado (só dígitos) deixa os inroteáveis de fora sem apagar nada: continuam pendentes no
+  // robô e entram sozinhos no dia em que o processo for cadastrado.
+  const numerosRoteaveis = Array.from(indices.casoPorProcesso.keys());
+  const idsRoteaveis = numerosRoteaveis.length
+    ? await prisma.$queryRaw<{ id: number }[]>`
+        SELECT id FROM andamentos
+        WHERE status_lido = false AND regexp_replace(numero_processo, '\D', '', 'g') = ANY(${numerosRoteaveis})
+        ORDER BY data_captura DESC
+        LIMIT 500`
+    : [];
+  const andamentosPendentes = idsRoteaveis.length
+    ? await prisma.roboAndamento.findMany({ where: { id: { in: idsRoteaveis.map((r) => r.id) } }, orderBy: { dataCaptura: "desc" } })
+    : [];
   const emailMessageIdsAnd = andamentosPendentes.map((a) => `datajud-${a.numeroProcesso}-${a.dataMovimentacao}-${a.codigoMovimento}`);
   const existentesAnd = new Set(
     (await prisma.publication.findMany({ where: { emailMessageId: { in: emailMessageIdsAnd } }, select: { emailMessageId: true } })).map((p) => p.emailMessageId)
@@ -332,10 +358,11 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
               processNumberRaw: and.numeroProcesso,
               tribunalDetectado: tribunalDetectadoPara(and.numeroProcesso, and.tribunal),
               caseId,
+              ...estadoDoItem(officeId, and.numeroProcesso),
             },
           });
           result.andamentosCriados++;
-          contar(officeId, "andamentos");
+          if (estadoDoItem(officeId, and.numeroProcesso).estado === "ATIVA") contar(officeId, "andamentos");
           if (!caseId) result.semCasoVinculado++;
         } else {
           // Mesma regra da publicação acima: sem escritório identificado, fica na fila.
@@ -408,13 +435,38 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
   try {
     const officesAtivos = await prisma.office.findMany({ where: { status: "ATIVA" }, select: { id: true } });
     if (officesAtivos.length > 0) {
+      // O status NÃO é mais "OK" por decreto. Vem do que o ROBÔ registrou em execucao_log: o último
+      // ciclo bem-sucedido de cada fonte. Sem isso, 19 dias de robô parado ficaram 19 dias como OK.
+      const agora = new Date();
+      const saude = {} as Record<"DJEN" | "DATAJUD", ReturnType<typeof avaliarFonte>>;
+      for (const fonte of ["DJEN", "DATAJUD"] as const) {
+        const [ultimoOk, ultimo] = await Promise.all([
+          prisma.roboExecucaoLog.findFirst({ where: { fonte, sucesso: true }, orderBy: { executadoEm: "desc" }, select: { executadoEm: true } }),
+          prisma.roboExecucaoLog.findFirst({ where: { fonte }, orderBy: { executadoEm: "desc" }, select: { sucesso: true, detalhe: true } }),
+        ]);
+        saude[fonte] = avaliarFonte({
+          chave: fonte,
+          ultimoSucesso: ultimoOk?.executadoEm ?? null,
+          ultimoItemNovo: null,
+          agora,
+          erro: ultimo && !ultimo.sucesso ? (ultimo.detalhe ?? "último ciclo falhou").slice(0, 200) : null,
+        });
+      }
       await prisma.integrationRun.createMany({
         data: officesAtivos.flatMap(({ id: officeId }) => {
           const contagem = porOffice.get(officeId);
-          return [
-            { officeId, integration: "DJEN", status: "OK" as const, itemCount: contagem?.publicacoes ?? 0 },
-            { officeId, integration: "DATAJUD", status: "OK" as const, itemCount: contagem?.andamentos ?? 0 },
-          ];
+          const linha = (fonte: "DJEN" | "DATAJUD", itemCount: number) => ({
+            officeId,
+            integration: fonte,
+            status: saude[fonte].parada ? ("ERRO" as const) : result.naoRoteados > 0 && fonte === "DATAJUD" ? ("AVISO" as const) : ("OK" as const),
+            itemCount,
+            message: saude[fonte].parada
+              ? mensagemDaFonte(saude[fonte])
+              : result.naoRoteados > 0 && fonte === "DATAJUD"
+                ? `${result.naoRoteados} item(ns) sem escritório identificado aguardam cadastro do processo.`
+                : null,
+          });
+          return [linha("DJEN", contagem?.publicacoes ?? 0), linha("DATAJUD", contagem?.andamentos ?? 0)];
         }),
       });
     }

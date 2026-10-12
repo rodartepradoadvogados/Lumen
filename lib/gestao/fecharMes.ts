@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
 
 // "FECHAR O MÊS" — três contagens simples do que costuma ficar para trás na virada. Sem dado novo:
 // cada número é uma consulta direta, e cada linha aponta para a tela onde se resolve.
@@ -23,7 +24,7 @@ export function montarFechamento(c: { publicacoesSemTriagem: number; tarefasSemR
 
 export async function fecharOMes(officeId: string, verFinanceiro: boolean) {
   const [semTriagem, semResponsavel, recSem, pagSem] = await Promise.all([
-    prisma.publication.count({ where: { officeId, triageStatus: "PENDENTE" } }),
+    prisma.publication.count({ where: { ...publicacoesDaFilaWhere(officeId), triageStatus: "PENDENTE" } }),
     prisma.task.count({ where: { officeId, status: { in: ["PENDENTE", "EM_ANDAMENTO"] }, responsibleId: null } }),
     verFinanceiro ? prisma.receivable.count({ where: { officeId, categoryId: null, status: { notIn: ["CANCELADO", "A_APURAR"] } } }) : Promise.resolve(null),
     verFinanceiro ? prisma.payable.count({ where: { officeId, categoryId: null, status: { not: "CANCELADO" } } }) : Promise.resolve(null),

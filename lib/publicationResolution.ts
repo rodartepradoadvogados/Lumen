@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { normalizarNumeroProcesso } from "@/lib/roboBridge";
+import { chaveDoProcesso } from "@/lib/processKey";
 import { saoPauloDayKey, saoPauloDayRangeUtc } from "@/lib/publicationGrouping";
 
 // "Assumir responsabilidade" por uma publicação/andamento — a única forma de baixar um card da
@@ -100,7 +100,7 @@ async function collectGroupIds(
   pub: { id: string; processNumberRaw: string | null; publishedAt: Date },
   officeId: string
 ): Promise<string[]> {
-  const normalized = normalizarNumeroProcesso(pub.processNumberRaw);
+  const normalized = chaveDoProcesso(pub.processNumberRaw);
   // Sem número de processo reconhecível não há como afirmar que duas publicações são o mesmo ato
   // — na listagem elas também viram grupos de um item só. Baixa só ela mesma.
   if (!normalized) return [pub.id];
@@ -119,7 +119,7 @@ async function collectGroupIds(
   const ids = sameDay
     .filter(
       (p) =>
-        normalizarNumeroProcesso(p.processNumberRaw) === normalized &&
+        chaveDoProcesso(p.processNumberRaw) === normalized &&
         // Cinto e suspensório: o recorte por intervalo já garante o mesmo dia, mas comparar a
         // chave de dia formatada mantém esta função respondendo pela MESMA regra que a listagem
         // usa, mesmo que o intervalo mude algum dia.

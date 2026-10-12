@@ -57,7 +57,7 @@ export default async function PrivacidadePage() {
           <PedidoTitularPanel requests={pedidos} isAdmin={viewer.isAdmin} />
         </div>
 
-        <TrilhaAuditoria />
+        <TrilhaAuditoria isAdmin={viewer.isAdmin} />
       </div>
     </div>
   );

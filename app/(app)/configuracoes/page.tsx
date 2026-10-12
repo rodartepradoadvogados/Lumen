@@ -27,6 +27,7 @@ import BlogPublishedManager from "@/components/BlogPublishedManager";
 import BlogScheduledManager from "@/components/BlogScheduledManager";
 import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersManager";
+import BloqueiosDoEscritorio from "@/components/BloqueiosDoEscritorio";
 import BankAccountsManager from "@/components/BankAccountsManager";
 import HolidaysManager from "@/components/HolidaysManager";
 import InstallAppButton from "@/components/InstallAppButton";
@@ -601,6 +602,16 @@ export default async function ConfiguracoesPage({
           subtitle='Processos que você optou por deixar de acompanhar (botão "Bloquear" em Publicações/Andamentos, disponível só para processos ainda não cadastrados) — some só da sua fila, os demais advogados do escritório continuam recebendo normalmente, até você reverter o bloqueio aqui'
         />
         <BlockedProcessNumbersManager items={blockedProcessNumbers} />
+      </Card>
+      )}
+
+      {secao === "aplicativo" && (
+      <Card>
+        <CardHeader
+          title="Bloqueios do escritório (publicações)"
+          subtitle='Processos marcados como "Não é do escritório" com bloqueio para todos, e remetentes de e-mail bloqueados ou permitidos na triagem. Valem para o escritório inteiro; reverter aqui devolve o processo ou o remetente à captura.'
+        />
+        <BloqueiosDoEscritorio officeId={viewer.officeId} isAdmin={Boolean(viewer.isAdmin)} />
       </Card>
       )}
 
