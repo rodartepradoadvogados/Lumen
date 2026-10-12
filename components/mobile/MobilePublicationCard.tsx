@@ -6,7 +6,11 @@ import Link from "next/link";
 import {
   markPublicationsRead,
   markPublicationsUnread,
+  restorePublicationSnapshots,
 } from "@/lib/actions/publications";
+import { concluirParaTodos, descartarPublicacao, desfazerDescarte } from "@/lib/actions/publicacoesFila";
+import MobileConcluirSheet from "@/components/mobile/MobileConcluirSheet";
+import { ROTULO_DO_DESFECHO, type DesfechoDeConclusao, type MotivoDeDescarte } from "@/lib/desfechosDePublicacao";
 import { Badge } from "@/components/ui";
 import { dataDeBrasilia } from "@/lib/horaDeBrasilia";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
@@ -16,13 +20,8 @@ import { useUndoToast } from "@/components/UndoToastProvider";
 import {
   Check,
   CalendarClock,
-  Gavel,
-  Stethoscope,
-  CalendarPlus,
-  ListTodo,
   ChevronDown,
   Layers,
-  UserPlus,
   X,
 } from "lucide-react";
 import type { PublicationGroup } from "@/lib/publicationGrouping";
@@ -44,13 +43,6 @@ type Pub = {
   tipoAto?: "AVISO_INTIMACAO" | "INTIMACAO" | "MOVIMENTACAO";
 };
 
-const actionButtons = [
-  { type: "PRAZO", label: "Gerar Prazo", icon: CalendarClock },
-  { type: "TAREFA", label: "Gerar Atividade", icon: ListTodo },
-  { type: "AUDIENCIA", label: "Marcar Audiência", icon: Gavel },
-  { type: "PERICIA", label: "Marcar Perícia", icon: Stethoscope },
-  { type: "EVENTO", label: "Gerar Evento", icon: CalendarPlus },
-];
 
 // Mesmo critério do desktop (components/PublicationRow.tsx): recebe o GRUPO inteiro (uma ou mais
 // publicações do mesmo processo — ver lib/publicationGrouping.ts). O card mostra o item
@@ -63,13 +55,16 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
   const hasMultiple = group.items.length > 1;
 
   const [open, setOpen] = useState(false);
-  const [agendaOpen, setAgendaOpen] = useState(false);
+  const [concluirOpen, setConcluirOpen] = useState(false);
   const [delegateOpen, setDelegateOpen] = useState(false);
   // "Gerar Prazo"/"Marcar Audiência"/etc. no menu Agenda pré-selecionam o tipo e abrem o MESMO
   // formulário de Delegar (não um form solto) — antes, essas ações criavam uma Task sem
   // responsável (órfã), diferente de "Delegar", que sempre atribui a alguém. Unificado num
   // fluxo só: default TAREFA quando aberto pelo botão "Delegar" puro.
-  const [delegateType, setDelegateType] = useState("TAREFA");
+  const ehAviso = pub.tipoAto === "AVISO_INTIMACAO";
+  // Tratar = registrar prazo + delegar, o mesmo formulário (o tipo se troca dentro dele). Aviso de
+  // intimação ainda não tem prazo: abre como tarefa ("abrir no tribunal").
+  const [delegateType, setDelegateType] = useState(ehAviso ? "TAREFA" : "PRAZO");
   const [pending, startTransition] = useTransition();
   const [leaving, setLeaving] = useState(false);
   const { showUndo } = useUndoToast();
@@ -91,6 +86,56 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
         });
       });
     }, 1500);
+  }
+
+  // Conclusão para o escritório inteiro e descarte: mesmas ações do servidor do site, com desfazer.
+  function concluirTodos(desfecho: DesfechoDeConclusao) {
+    const eramNovas = group.items.filter((i) => !i.read).map((i) => i.id);
+    startTransition(async () => {
+      const r = await concluirParaTodos(pub.id, desfecho);
+      setConcluirOpen(false);
+      if (r.error || !r.antes) {
+        showUndo({ message: r.error ?? "Não foi possível concluir." });
+        return;
+      }
+      const antes = r.antes;
+      setLeaving(true);
+      router.refresh();
+      showUndo({
+        message: `Concluída para todos: ${ROTULO_DO_DESFECHO[desfecho]}.`,
+        onUndo: async () => {
+          await restorePublicationSnapshots(antes);
+          await markPublicationsUnread(eramNovas);
+          setLeaving(false);
+          router.refresh();
+        },
+      });
+    });
+  }
+
+  function descartar(motivo: MotivoDeDescarte, opcoes: { bloquearProcesso: "ESCRITORIO" | "USUARIO" | null }) {
+    const eramNovas = group.items.filter((i) => !i.read).map((i) => i.id);
+    startTransition(async () => {
+      const r = await descartarPublicacao(pub.id, motivo, opcoes);
+      setConcluirOpen(false);
+      if (r.error || !r.antes) {
+        showUndo({ message: r.error ?? "Não foi possível descartar." });
+        return;
+      }
+      const antes = r.antes;
+      const desfazer = r.desfazer ?? {};
+      setLeaving(true);
+      router.refresh();
+      showUndo({
+        message: `Descartada: ${ROTULO_DO_DESFECHO[motivo]}.${desfazer.officeBlockId ? " Processo bloqueado para o escritório." : desfazer.userBlockedId ? " Processo bloqueado só para você." : ""}`,
+        onUndo: async () => {
+          await desfazerDescarte(antes, desfazer);
+          await markPublicationsUnread(eramNovas);
+          setLeaving(false);
+          router.refresh();
+        },
+      });
+    });
   }
 
   return (
@@ -183,13 +228,27 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
           )}
 
           <div className="flex items-center gap-2 flex-wrap">
+            {users.length > 0 && (
+              <button
+                type="button"
+                disabled={pending || leaving}
+                onClick={() => {
+                  setDelegateType(ehAviso ? "TAREFA" : "PRAZO");
+                  setDelegateOpen(true);
+                }}
+                className="inline-flex items-center gap-1 text-corpo font-semibold text-acao-tx px-4 py-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 min-h-[44px]"
+              >
+                <CalendarClock size={13} /> Tratar
+              </button>
+            )}
             <button
               type="button"
               disabled={pending || leaving}
-              onClick={markRead}
+              onClick={() => setConcluirOpen(true)}
+              aria-haspopup="dialog"
               className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2 px-3 py-1.5 bg-sf-apoio hover:bg-regua disabled:opacity-50 min-h-[44px]"
             >
-              <Check size={13} /> {pending || leaving ? "Marcando..." : "Marcar como lida"}
+              <Check size={13} /> {pending || leaving ? "Concluindo..." : "Concluir"} <ChevronDown size={12} />
             </button>
 
             {pub.caseId && (
@@ -214,55 +273,24 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
               />
             )}
 
-            {/* Mesma guarda do botão "Delegar" abaixo — os atalhos do Agenda abrem o mesmo modal de
-                Delegar (ver comentário no topo do arquivo), que exige responsável no passo 1; sem
-                nenhum `users`, o formulário fica preso ali sem chance de avançar. Defesa em
-                profundidade: o chamador de verdade já passa `users` (ver app/m/processos/[id]/page.tsx
-                e app/m/publicacoes/page.tsx), isto só evita repetir o mesmo esquecimento no futuro. */}
-            {users.length > 0 && (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setAgendaOpen((o) => !o)}
-                className="inline-flex items-center gap-1 text-corpo font-semibold text-marca-tx px-3 py-1.5 bg-marca-bg min-h-[44px]"
-              >
-                <CalendarClock size={13} /> Agenda <ChevronDown size={12} />
-              </button>
-              {agendaOpen && (
-                <div className="absolute left-0 top-full mt-1 w-48 bg-sf border border-regua shadow-pop z-20 overflow-hidden">
-                  {actionButtons.map((a) => (
-                    <button
-                      key={a.type}
-                      type="button"
-                      onClick={() => {
-                        setAgendaOpen(false);
-                        setDelegateType(a.type);
-                        setDelegateOpen(true);
-                      }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-corpo text-tx hover:bg-sf-apoio"
-                    >
-                      <a.icon size={13} /> {a.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            )}
-
-            {users.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDelegateType("TAREFA");
-                  setDelegateOpen(true);
-                }}
-                className="inline-flex items-center gap-1 text-corpo font-semibold text-marca-tx px-3 py-1.5 bg-marca-bg min-h-[44px]"
-              >
-                <UserPlus size={13} /> Delegar
-              </button>
-            )}
           </div>
         </div>
+      )}
+
+      {concluirOpen && (
+        <MobileConcluirSheet
+          ehAviso={ehAviso}
+          temCaso={Boolean(pub.caseId)}
+          jaVisto={group.allRead}
+          busy={pending}
+          onFechar={() => setConcluirOpen(false)}
+          onVisto={() => {
+            setConcluirOpen(false);
+            markRead();
+          }}
+          onConcluir={concluirTodos}
+          onDescartar={descartar}
+        />
       )}
 
       {delegateOpen && (

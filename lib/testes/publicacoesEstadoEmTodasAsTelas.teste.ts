@@ -30,4 +30,17 @@ teste("MOBILE: o cartão avisa que aviso de intimação não traz prazo", () => 
   verdade(cartao.includes("AVISO_INTIMACAO") && cartao.includes("limiteParaAbrirOAviso"), "cartão sem aviso de intimação");
 });
 
+teste("MOBILE: o cartão conclui e descarta pelas mesmas ações do servidor do site, com desfazer", () => {
+  const cartao = le("components", "mobile", "MobilePublicationCard.tsx");
+  verdade(cartao.includes("concluirParaTodos") && cartao.includes("descartarPublicacao"), "cartão sem as ações do servidor");
+  verdade(cartao.includes("desfazerDescarte") && cartao.includes("restorePublicationSnapshots"), "cartão sem desfazer");
+  verdade(cartao.includes("Tratar") && cartao.includes("MobileConcluirSheet"), "cartão sem Tratar/Concluir");
+});
+
+teste("MOBILE: aviso de intimação não oferece 'só ciência' no painel Concluir", () => {
+  const painel = le("components", "mobile", "MobileConcluirSheet.tsx");
+  verdade(painel.includes('["TRATADO_NO_TRIBUNAL", "Já abri no tribunal e tratei"'), "aviso sem a saída 'já abri no tribunal'");
+  verdade(painel.includes("ehAviso ? \"TRATADO_NO_TRIBUNAL\" : \"SO_CIENCIA\""), "padrão do aviso deve ser TRATADO_NO_TRIBUNAL");
+});
+
 resumo("Publicações: estado ATIVA em todas as telas, inclusive /m");
