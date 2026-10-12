@@ -29,7 +29,7 @@ export default async function ModoReuniaoPage({ params }: { params: { id: string
       responsible: true,
       tasks: { where: { status: { not: "CANCELADO" } }, include: { completedBy: true }, orderBy: { dueDate: "asc" } },
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
-      publications: { orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }] },
+      publications: { where: { estado: "ATIVA" }, orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }] },
       protocoloLotes: { orderBy: { createdAt: "desc" } },
     },
   });

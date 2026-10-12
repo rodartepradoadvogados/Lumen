@@ -309,8 +309,9 @@ volta a quebrar se for desfeito:
 ### 13b. Publicações: a fila é o STATUS do escritório, e a saída da fila tem regras de tempo
 
 - **A fila padrão é "A tratar" = `triageStatus` diferente de TRATADA** (`lib/publicationChips.ts`).
-  "Vista" (`PublicationRead`) é marca pessoal e NÃO tira nada da fila. Antes a fila era "Não triadas"
-  (= não lida por mim) e uma publicação vista e nunca tratada sumia de todas as abas. Os links antigos
+  **Atualizado em 12/10/2026 (ver §35):** "Visto, só para mim" (`PublicationRead`) tira a publicação só da
+  fila de quem marcou e continua para as outras pessoas; sair da fila do escritório inteiro é
+  **Concluir para todos** (desfecho gravado) ou **Descartar**. Os links antigos
   (`?aba=nao-triadas`, `?aba=arquivadas`) continuam funcionando.
 - **Criar compromisso a partir de uma publicação a marca como TRATADA** (`resolvePublicationGroupForOffice`),
   senão ela ficaria em "A tratar" para sempre.
@@ -1025,3 +1026,23 @@ O chat do aplicativo de Atendimento passou a ENVIAR arquivo (imagem, vídeo, áu
 - Testes: `lib/testes/atendimentoAppMidiaSaida.teste.tsx` (lista, conteúdo, provedores contra servidores falsos em 127.0.0.1, ordem da rota, tabela de decisão, fila, balão, compositor). **Prova com banco de verdade (6 pedidos simultâneos = 1 envio, falha, incerto, janela, recorte):** `scripts/provaMidiaDeSaidaComBanco.ts` contra um Postgres LOCAL (recusa qualquer outro endereço; não roda em `npm run testar`).
 
 **Não provado:** envio a uma Evolution ou a uma Meta reais (formatos pela documentação; numa Evolution v1 o corpo é outro e seria recusado; o `encoding: true` do áudio exige ffmpeg na Evolution), o upload real ao Vercel Blob (token, progresso, multipart) e o `del` do temporário, o Drive/OneDrive/Dropbox reais, câmera/galeria/seletor em iPhone e Android de verdade (o `capture`, HEIC, `.mov` de iPhone é recusado), vídeo H.264/AAC exigido pela Meta, o tempo de uma função com arquivo de 25 MB (`maxDuration` 120 s), o cliente recebendo e abrindo cada tipo.
+
+
+## 35. Publicações: a fila confiável, o aviso do Projudi, a captura de e-mail e o robô (12/10/2026)
+
+Contexto: a Anna Clara via intimações repetidas depois da manifestação, e-mails de BTG/Lúmen entrando como publicação, e o robô estava parado desde 23/09/2026 (19 dias sem DJEN nem DataJud, com o site gravando "OK"). Entregue nos PRs #397 (robô) e #398 (site). O que **não pode voltar atrás**:
+
+- **Universo da fila = `estado: "ATIVA"`**, sempre via `publicacoesDaFilaWhere` (`lib/publicacoesVisiveis.ts`). `QUARENTENA` e `DESCARTADA` ficam fora de TODO contador, selo, painel, alerta, relatório, busca, lista de processo/cliente e do `/m`. Consumidor novo de `Publication` que não filtra por estado é bug. O DataJud só entra se for recente (até 45 dias) e com termos de intimação.
+- **Aviso de intimação do Projudi é tipo próprio** (`lib/classificarAto.ts`; Lei 11.419/2006, art. 5º, §3º): o e-mail só avisa que há intimação a abrir; o prazo só é conhecido depois de abrir no tribunal. Nunca "só ciência" (o servidor recusa em `concluirParaTodos`). O limite "abrir até dd/mm" é **estimativa de 10 dias corridos, a confirmar no tribunal**. Aviso nunca recebe cliente sugerido. Avisos repetidos do mesmo processo viram **pilha**.
+- **Chave de processo única** (`lib/processKey.ts`): CNJ de 20 dígitos ou número curto `NNNNNNN.NN` (Projudi de Goiás). Agrupamento, bloqueio e captura usam a mesma chave.
+- **Data do DJEN é dia civil**, gravada ao meio-dia UTC (`lib/dataDaPublicacao.ts`); o `build` roda `scripts/corrigir-data-djen.ts` (só DJEN, idempotente, não derruba o build).
+- **Captura de e-mail tem critério** (`lib/emailCaptura.ts`): número de processo + remetente, com três saídas (aceitar, quarentena, recusar), no Gmail e no Outlook. Regras de remetente em `EmailRemetenteRegra`; bloqueio de processo do escritório em `OfficeBlockedProcess`. E-mail enviado pelo próprio Lúmen leva `X-Lumen-Notificacao` e nunca é capturado. A quarentena guarda no máximo 1.000 caracteres do corpo e aparece na aba "Possível publicação".
+- **Saúde das fontes:** o selo e o aviso vêm da última execução bem-sucedida do robô (`RoboExecucaoLog`); um dia útil sem sucesso = captura parada. Ciclo parcial do DataJud não conta como sucesso.
+- **Tratar e Concluir** (`components/PublicationsTriage.tsx`, `components/ConcluirMenu.tsx`): **Tratar** = registrar prazo + delegar; **Concluir** = visto só para mim / concluir para todos / descartar (com bloqueio opcional do processo, por escritório ou só para mim, e do remetente). Ações do servidor em `lib/actions/publicacoesFila.ts`. Gestão dos bloqueios em Configurações.
+- **Auditoria por usuário:** toda ação sobre publicação grava `AuditEvent` com `kind: "PUBLICACAO"` (`lib/auditoriaPublicacoes.ts`), append-only, sem texto de publicação nem nome de parte; falha ao gravar não derruba a ação. Aba "Publicações (equipe)" na Trilha de auditoria, só para administradores. **Ação nova sobre publicação sem chamar `registrarAtividadePublicacao` é bug** (o dono monitora a equipe por ali).
+- **Gaveta do processo** (tecla O, `components/ProcessoGaveta.tsx`, `lib/actions/painelDoProcesso.ts`): consulta enxuta; o link do tribunal só aparece quando o processo está cadastrado com link.
+- **Mobile (`/m`) acompanha o mesmo modelo:** lista, início, relatórios e abas de processo filtram por estado ATIVA; o cartão mostra o selo "Aviso de intimação" e o limite estimado. O celular continua com "Marcar como lida" (visto só para mim) e Delegar; Tratar/Concluir com descarte e a quarentena existem só no site.
+- **Robô (`robo-publicacoes/`, Railway, sem repositório conectado até 12/10):** `src/dburl.py` reescreve qualquer URL Postgres para o driver instalado (a causa da queda foi `ModuleNotFoundError: psycopg`); a janela do DJEN estica sozinha até o último sucesso (teto 60 dias); `railway.json` tem `ON_FAILURE` com 2 tentativas. **No Railway, Root Directory é a pasta `/robo-publicacoes`** (já se digitou `dono/repositório` ali, e o build falha com "Root directory ... was not found"). A branch do serviço deve ser `main`. A variável é `INLABS_USERNAME` (já esteve gravada como `INLABS_USERNAM`).
+- **Merge do site roda `prisma db push`** e o script de data DJEN em produção (colunas `Publication.estado`, `motivoEstado`, `remetente`, `desfecho*` e as tabelas novas).
+
+**Não provado:** a tela nova num navegador real, o aviso de intimação com e-mails reais além do modelo visto num print, o limite de 10 dias (estimativa; o prazo real vem do tribunal) e a recuperação completa dos 19 dias parados.

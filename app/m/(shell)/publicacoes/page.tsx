@@ -8,6 +8,7 @@ import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadB
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
+import { tipoDoAto } from "@/lib/classificarAto";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,8 @@ export default async function MobilePublicacoes() {
     clientName: p.client?.name ?? null,
     processNumberRaw: p.processNumberRaw,
     assignedToId: p.assignedToId,
+    // Aviso de intimação (Projudi) não traz prazo: o card avisa para abrir no tribunal.
+    tipoAto: tipoDoAto({ source: p.source, kind: p.kind, content: p.content, emailSubject: p.emailSubject }),
   }));
 
   // A Início mobile só lista pendências (sem abas Lidas/Todos como no desktop) — mantém esse

@@ -54,6 +54,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
       cases: { include: { responsible: true }, orderBy: { title: "asc" } },
       caseLinks: { include: { case: { include: { responsible: true } } } },
       publications: {
+        where: { estado: "ATIVA" },
         include: { case: true, reads: { where: { userId: viewer.id }, select: { id: true } } },
         orderBy: { publishedAt: "desc" },
         take: 50,

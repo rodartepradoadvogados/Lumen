@@ -107,7 +107,11 @@ export default function PrivacidadePage() {
                   comunicações processuais que os tribunais e serviços de acompanhamento (como a Jusbrasil) enviam
                   por e-mail. De cada mensagem reconhecida como comunicação processual, o sistema grava no banco de
                   dados do escritório o remetente, o assunto, a data, o número do processo e um trecho do corpo da
-                  mensagem (até 3.000 caracteres). Mensagens que não correspondem a esses critérios não são gravadas.
+                  mensagem (até 3.000 caracteres). A busca usa critérios (número de processo e remetente do tribunal
+                  ou do serviço de acompanhamento). Mensagens que não correspondem a esses critérios não são gravadas.
+                  Mensagens duvidosas ficam em uma lista de conferência, em que o sistema guarda apenas o remetente, o
+                  assunto, a data e um trecho de até 1.000 caracteres do corpo, até que alguém da equipe as aceite ou
+                  descarte.
                 </li>
                 <li>
                   <b>Envio pelo Gmail</b> (<code>gmail.send</code>) — enviar a resposta ao cliente a partir da

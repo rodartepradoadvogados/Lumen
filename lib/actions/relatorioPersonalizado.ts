@@ -413,7 +413,7 @@ async function coletar(
   // que o relatório existe para medir.
   if (filtros.origens.includes("PUBLICACAO")) {
     const publicacoes = await prisma.publication.findMany({
-      where: { officeId, publishedAt: { gte: inicio, lt: fim } },
+      where: { officeId, estado: "ATIVA", publishedAt: { gte: inicio, lt: fim } },
       select: {
         id: true,
         kind: true,
