@@ -25,6 +25,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
+from .dburl import normalizar_database_url
+
 
 class Base(DeclarativeBase):
     pass
@@ -302,12 +304,10 @@ def build_engine(database_url: Optional[str]):
     senao SQLite local em ./robo.db.
     """
     if database_url:
-        # Railway costuma prover URLs no formato "postgres://"; SQLAlchemy
-        # com psycopg2 espera "postgresql://". Normalizamos por seguranca.
-        normalized = database_url
-        if normalized.startswith("postgres://"):
-            normalized = normalized.replace("postgres://", "postgresql://", 1)
-        return create_engine(normalized, pool_pre_ping=True, future=True)
+        # Qualquer escrita da URL Postgres (postgres://, postgresql://, +psycopg, +psycopg2) e
+        # reescrita para o driver instalado — ver src/dburl.py (o robo ja ficou 19 dias parado
+        # por um `import psycopg` que nunca deveria ter sido tentado).
+        return create_engine(normalizar_database_url(database_url), pool_pre_ping=True, future=True)
 
     return create_engine("sqlite:///./robo.db", future=True)
 

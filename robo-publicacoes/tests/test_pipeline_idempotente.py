@@ -7,7 +7,7 @@ from __future__ import annotations
 from sqlalchemy import select
 
 from src import pipeline
-from src.datajud import AndamentoNormalizado
+from src.datajud import AndamentoNormalizado, ConsultaDatajud
 from src.db import Andamento, ExecucaoLog, ProcessoMonitorado, Publicacao
 from src.djen import PublicacaoNormalizada
 
@@ -44,11 +44,11 @@ def test_ciclo_e_idempotente(monkeypatch, test_settings, session_factory):
     def fake_buscar_publicacoes(numero_oab, uf_oab, data_inicio, data_fim, **kwargs):
         return publicacoes_mock
 
-    def fake_buscar_andamentos(numero_processo, api_key):
-        return _andamentos_mockados(numero_processo)
+    def fake_consultar_andamentos(numero_processo, api_key):
+        return ConsultaDatajud(ok=True, andamentos=_andamentos_mockados(numero_processo))
 
     monkeypatch.setattr(pipeline.djen, "buscar_publicacoes", fake_buscar_publicacoes)
-    monkeypatch.setattr(pipeline.datajud, "buscar_andamentos", fake_buscar_andamentos)
+    monkeypatch.setattr(pipeline.datajud, "consultar_andamentos", fake_consultar_andamentos)
 
     emails_enviados = []
     monkeypatch.setattr(
@@ -97,7 +97,7 @@ def test_ciclo_e_idempotente(monkeypatch, test_settings, session_factory):
 
 def test_ciclo_sem_novidades_nao_envia_email(monkeypatch, test_settings, session_factory):
     monkeypatch.setattr(pipeline.djen, "buscar_publicacoes", lambda *a, **k: [])
-    monkeypatch.setattr(pipeline.datajud, "buscar_andamentos", lambda *a, **k: [])
+    monkeypatch.setattr(pipeline.datajud, "consultar_andamentos", lambda *a, **k: ConsultaDatajud(ok=True, andamentos=[]))
 
     emails_enviados = []
     monkeypatch.setattr(

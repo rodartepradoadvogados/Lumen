@@ -16,6 +16,7 @@ from typing import List, Optional
 
 from dotenv import load_dotenv
 
+from .dburl import normalizar_database_url
 from .logging_config import get_logger
 
 # Carrega variaveis de um arquivo .env local, se existir. Em producao
@@ -82,8 +83,9 @@ def carregar_oabs_do_banco(database_url: str) -> List[Oab]:
     """
     from sqlalchemy import create_engine, text
 
-    engine = create_engine(database_url)
+    engine = None
     try:
+        engine = create_engine(normalizar_database_url(database_url))
         with engine.connect() as conn:
             rows = conn.execute(
                 text(
@@ -97,7 +99,8 @@ def carregar_oabs_do_banco(database_url: str) -> List[Oab]:
         logger.exception("Falha ao consultar OABs no banco (tabela User/Office).")
         return []
     finally:
-        engine.dispose()
+        if engine is not None:
+            engine.dispose()
 
     oabs: List[Oab] = []
     vistos: set[tuple[str, str]] = set()
@@ -133,8 +136,9 @@ def carregar_termos_vigilancia_do_banco(database_url: str) -> List[tuple[str, st
     """
     from sqlalchemy import create_engine, text
 
-    engine = create_engine(database_url)
+    engine = None
     try:
+        engine = create_engine(normalizar_database_url(database_url))
         with engine.connect() as conn:
             rows = conn.execute(
                 text('SELECT "termo", "officeId" FROM "TermoVigilancia" WHERE "ativo" = true')
@@ -143,7 +147,8 @@ def carregar_termos_vigilancia_do_banco(database_url: str) -> List[tuple[str, st
         logger.exception("Falha ao consultar termos de vigilancia no banco (tabela TermoVigilancia).")
         return []
     finally:
-        engine.dispose()
+        if engine is not None:
+            engine.dispose()
 
     termos: List[tuple[str, str]] = []
     for termo, office_id in rows:
