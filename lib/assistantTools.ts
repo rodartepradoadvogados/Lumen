@@ -310,6 +310,7 @@ async function executarConsultarPublicacoes(input: ToolInput, officeId: string, 
     // um estado único compartilhado pelo escritório inteiro (ver PublicationRead no schema).
     const filtro = {
       officeId,
+      estado: "ATIVA",
       publishedAt: { gte: desde },
       reads: apenasNaoLidas ? { none: { userId } } : undefined,
       lawyerTag: lawyerTag ? { contains: lawyerTag, mode: "insensitive" as const } : undefined,

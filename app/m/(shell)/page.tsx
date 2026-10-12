@@ -35,6 +35,7 @@ import { podeVerAtendimentos, recorteDosAlertasDeAtendimento, filtroDoAtendiment
 import { quemEstaEsperando } from "@/lib/esperaDoAtendimento";
 import MobileAtendimentosCard from "@/components/mobile/MobileAtendimentosCard";
 import { podeAcessarAba } from "@/lib/peticionamentoAcesso";
+import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
 
 // Ordem de urgência pra escolher os alertas da prévia da Início — mesma leitura de severidade
 // da Central de Alertas (DESIGN-SYSTEM.md §8), só usada aqui pra ordenar, não pra pintar nada
@@ -79,7 +80,7 @@ export default async function MobileHome() {
   const user = await getCurrentUser();
   const [unreadPublicationsRaw, alerts, assessoriaCount, activeCasesCount, activeJudicialCount, activeAdministrativoCount, blockedSet] = await Promise.all([
     user
-      ? prisma.publication.findMany({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } }, select: { id: true, processNumberRaw: true, publishedAt: true } })
+      ? prisma.publication.findMany({ where: { ...publicacoesDaFilaWhere(user.officeId), triageStatus: { not: "TRATADA" }, reads: { none: { userId: user.id } } }, select: { id: true, processNumberRaw: true, publishedAt: true } })
       : Promise.resolve([]),
     // Lista completa (não só a contagem) — alimenta tanto o número do atalho quanto a prévia
     // dos alertas mais urgentes logo abaixo, sem precisar de uma segunda consulta.

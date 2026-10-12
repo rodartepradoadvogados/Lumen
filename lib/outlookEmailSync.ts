@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { getOutlookMessagesForOffice, isMicrosoftConfigured, type OutlookMessage } from "@/lib/microsoftGraph";
 import { enqueueNotification } from "@/lib/notificationOutbox";
+import { carregarContextoDoEscritorio, decidirComContexto, estaBloqueado, TAMANHO_MAXIMO_DA_QUARENTENA, type ContextoDoEscritorio } from "@/lib/emailCapturaDb";
+import { enderecoDoRemetente } from "@/lib/emailCaptura";
+import { ehAvisoDeIntimacao } from "@/lib/classificarAto";
 import {
   RELEVANT_SENDERS,
   BROAD_SUBJECT_KEYWORDS,
@@ -20,7 +23,7 @@ import {
   type SyncResult,
 } from "@/lib/jusbrasilEmailSync";
 
-async function processMessage(msg: OutlookMessage, officeId: string, result: SyncResult) {
+async function processMessage(msg: OutlookMessage, officeId: string, result: SyncResult, contextoDe: (officeId: string) => Promise<ContextoDoEscritorio>) {
   // Mesma decodificação do caminho do Gmail (ver lib/jusbrasilEmailSync.ts): antes da extração,
   // para as regex de rótulo acentuado casarem.
   const bodyText = decodificarEntidadesHtml(msg.bodyText.trim());
@@ -30,6 +33,31 @@ async function processMessage(msg: OutlookMessage, officeId: string, result: Syn
   const source = isKnownJusbrasilSender ? "JUSBRASIL_EMAIL" : detectCourtSystemSource(senderAddress);
 
   const defaultKind = /publica[cç][aã]o/i.test(subject) || senderAddress.includes("publicacoes-diarios") ? "PUBLICACAO" : "ANDAMENTO";
+  // Mesmo critério do Gmail (lib/emailCaptura.ts): o Outlook não expõe os cabeçalhos aqui, então a
+  // recusa do e-mail do próprio Lúmen vem do endereço/nome e do assunto de modelo.
+  let estado = "ATIVA";
+  let motivoEstado: string | null = null;
+  let numeroDecidido: string | null = null;
+  if (!isKnownJusbrasilSender) {
+    const ctx = await contextoDe(officeId);
+    const decisao = decidirComContexto({ from: enderecoDoRemetente(senderAddress), fromName: null, subject, text: bodyText }, ctx);
+    if (decisao.acao === "RECUSAR") {
+      result.recusados = (result.recusados ?? 0) + 1;
+      return;
+    }
+    numeroDecidido = decisao.numero;
+    if (decisao.acao === "QUARENTENA") {
+      estado = "QUARENTENA";
+      motivoEstado = decisao.motivo;
+    } else if (decisao.origemNaoReconhecida) {
+      motivoEstado = "Origem não reconhecida: confira o remetente";
+    }
+    if (estaBloqueado(ctx, numeroDecidido)) {
+      estado = "DESCARTADA";
+      motivoEstado = "Processo bloqueado pelo escritório";
+    }
+  }
+
   let entries: ExtractedEntry[] = [];
   if (senderAddress.includes("publicacoes-diarios")) {
     entries = extractPublicacoes(bodyText);
@@ -37,7 +65,8 @@ async function processMessage(msg: OutlookMessage, officeId: string, result: Syn
     entries = extractAndamentos(bodyText);
   }
   if (entries.length === 0) {
-    entries = [{ processNumber: extractProcessNumber(bodyText), content: bodyText.slice(0, 3000) || subject, kind: defaultKind }];
+    const corpo = estado === "QUARENTENA" ? bodyText.slice(0, TAMANHO_MAXIMO_DA_QUARENTENA) : bodyText.slice(0, 3000);
+    entries = [{ processNumber: numeroDecidido ?? extractProcessNumber(bodyText), content: corpo || subject, kind: defaultKind }];
   }
 
   for (const [idx, entry] of entries.entries()) {
@@ -61,7 +90,8 @@ async function processMessage(msg: OutlookMessage, officeId: string, result: Syn
     }
 
     const caseId = await findCaseIdByProcessNumber(entry.processNumber, officeId);
-    const clientId = caseId ? null : await findClientIdByName(entry.content, officeId);
+    const ehAviso = ehAvisoDeIntimacao({ source, content: entry.content, emailSubject: subject });
+    const clientId = caseId || ehAviso || estado !== "ATIVA" ? null : await findClientIdByName(entry.content, officeId);
 
     await prisma.publication.create({
       data: {
@@ -77,8 +107,16 @@ async function processMessage(msg: OutlookMessage, officeId: string, result: Syn
         clientId,
         lawyerTag: detectLawyerTag(entry.content),
         caseId,
+        estado,
+        motivoEstado,
+        remetente: enderecoDoRemetente(senderAddress) || null,
       },
     });
+    if (estado === "QUARENTENA") {
+      result.quarentena = (result.quarentena ?? 0) + 1;
+      continue;
+    }
+    if (estado !== "ATIVA") continue;
     result.created++;
     if (entry.kind === "PUBLICACAO") result.createdPublicacoes++;
     else result.createdAndamentos++;
@@ -91,6 +129,16 @@ export async function syncOutlookEmails(): Promise<SyncResult> {
 
   const creds = await prisma.microsoftCredential.findMany({ where: { syncEmail: true } });
   if (creds.length === 0) return result;
+
+  const contextos = new Map<string, Promise<ContextoDoEscritorio>>();
+  const contextoDe = (id: string) => {
+    let c = contextos.get(id);
+    if (!c) {
+      c = carregarContextoDoEscritorio(id);
+      contextos.set(id, c);
+    }
+    return c;
+  };
 
   for (const cred of creds) {
     result.accountsScanned++;
@@ -116,7 +164,7 @@ export async function syncOutlookEmails(): Promise<SyncResult> {
       for (const msg of relevant) {
         result.found++;
         try {
-          await processMessage(msg, cred.officeId, result);
+          await processMessage(msg, cred.officeId, result, contextoDe);
         } catch (e) {
           const message = e instanceof Error ? e.message : "erro desconhecido";
           result.errors.push(`[${cred.accountEmail}] Mensagem ${msg.id}: ${message}`);

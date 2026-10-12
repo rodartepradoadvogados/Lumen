@@ -521,7 +521,7 @@ export async function getAlerts(
   const decisaoCutoff = new Date(now.getTime() - DECISAO_JANELA_DIAS * 86400000);
   const publicacoesRecentes = apurarCaseIds.length
     ? await prisma.publication.findMany({
-        where: { officeId, caseId: { in: apurarCaseIds }, publishedAt: { gte: decisaoCutoff } },
+        where: { officeId, estado: "ATIVA", caseId: { in: apurarCaseIds }, publishedAt: { gte: decisaoCutoff } },
         select: { caseId: true, content: true, publishedAt: true },
         orderBy: { publishedAt: "desc" },
       })
@@ -994,7 +994,7 @@ export async function getAlertsCount(
   const decisaoCutoff = new Date(now.getTime() - DECISAO_JANELA_DIAS * 86400000);
   const publicacoesRecentes = apurarCaseIds.length
     ? await prisma.publication.findMany({
-        where: { officeId, caseId: { in: apurarCaseIds }, publishedAt: { gte: decisaoCutoff } },
+        where: { officeId, estado: "ATIVA", caseId: { in: apurarCaseIds }, publishedAt: { gte: decisaoCutoff } },
         select: { caseId: true, content: true },
       })
     : [];

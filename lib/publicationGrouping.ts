@@ -17,7 +17,7 @@
 // fora da própria tela de Publicações (Sidebar, início mobile) — a duplicidade de contagem de
 // não lidas é o mesmo problema da duplicidade de cards, só que em número em vez de em lista.
 
-import { normalizarNumeroProcesso } from "@/lib/roboBridge";
+import { chaveDoProcesso } from "@/lib/processKey";
 
 // Prioridade de fonte pra escolher qual publicação representa o grupo quando o mesmo evento
 // processual chega por mais de um canal: DJEN (Diário de Justiça Eletrônico Nacional) é a fonte
@@ -75,8 +75,8 @@ export type PublicationGroup<T extends GroupableItem> = {
   allRead: boolean;
 };
 
-// Agrupa por número de processo normalizado (CNJ de 20 dígitos, via normalizarNumeroProcesso) +
-// dia (fuso de Brasília) de publicação. Publicações sem número reconhecido (ou que não batem com
+// Agrupa por chave do processo (CNJ de 20 dígitos OU o número curto do Projudi-GO, via
+// chaveDoProcesso em lib/processKey.ts) + dia (fuso de Brasília) de publicação. Publicações sem número reconhecido (ou que não batem com
 // nenhuma outra do mesmo processo no mesmo dia) viram grupos de 1 item só — nunca são forçadas a
 // agrupar com outra coisa.
 export function groupPublicationsByProcess<T extends GroupableItem>(pubs: T[]): PublicationGroup<T>[] {
@@ -84,7 +84,7 @@ export function groupPublicationsByProcess<T extends GroupableItem>(pubs: T[]): 
   const singles: T[] = [];
 
   for (const pub of pubs) {
-    const normalized = normalizarNumeroProcesso(pub.processNumberRaw);
+    const normalized = chaveDoProcesso(pub.processNumberRaw);
     if (!normalized) {
       singles.push(pub);
       continue;
@@ -132,7 +132,7 @@ function buildGroup<T extends GroupableItem>(items: T[]): PublicationGroup<T> {
 export function countUnreadPublicationGroups(rows: { id: string; processNumberRaw: string | null; publishedAt: string | Date }[]): number {
   const seen = new Set<string>();
   for (const row of rows) {
-    const normalized = normalizarNumeroProcesso(row.processNumberRaw);
+    const normalized = chaveDoProcesso(row.processNumberRaw);
     seen.add(normalized ? `${normalized}|${saoPauloDayKey(row.publishedAt)}` : `id:${row.id}`);
   }
   return seen.size;

@@ -6,6 +6,7 @@ import { STATUS_ABERTOS, agregarCarga, type LinhaDeCarga } from "@/lib/gestao/ca
 // também a importa, e um módulo com prisma não pode ir para o navegador.
 export { STATUS_ABERTOS, agregarCarga, ordenarCarga, type LinhaDeCarga, type TarefaParaCarga } from "@/lib/gestao/cargaCalculo";
 import { inicioDoMesEmBrasilia, inicioDoProximoMesEmBrasilia } from "@/lib/horaDeBrasilia";
+import { publicacoesDaFilaWhere } from "@/lib/publicacoesVisiveis";
 
 // CARGA POR PESSOA — "quem está com o quê, e o que está pegando fogo".
 //
@@ -48,7 +49,7 @@ export async function cargaPorAdvogado(officeId: string, opts: { agora?: Date; s
       where: { officeId, status: { in: STATUS_ABERTOS }, responsibleId: { not: null } },
       select: { responsibleId: true, status: true, dueDate: true },
     }),
-    prisma.publication.findMany({ where: { officeId, triageStatus: "PENDENTE" }, select: { assignedToId: true } }),
+    prisma.publication.findMany({ where: { ...publicacoesDaFilaWhere(officeId), triageStatus: "PENDENTE" }, select: { assignedToId: true } }),
     prisma.task.findMany({
       where: { officeId, status: "CONCLUIDO", completedAt: { gte: inicioMes, lt: fimMes }, responsibleId: { not: null } },
       select: { responsibleId: true },

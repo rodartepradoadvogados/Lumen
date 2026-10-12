@@ -235,6 +235,8 @@ model Office {
 
   driveSyncIssues         DriveSyncIssue[]
   blockedProcessNumbers   BlockedProcessNumber[]
+  emailRemetenteRegras    EmailRemetenteRegra[]
+  processosBloqueadosDoEscritorio OfficeBlockedProcess[]
   alertDismissals         AlertDismissal[]
   assistantSessions       AssistantSession[]
   assistantAuditLogs      AssistantAuditLog[]
@@ -3517,11 +3519,66 @@ model Publication {
   assignedTo   User?   @relation("PublicationAssignee", fields: [assignedToId], references: [id])
   triageStatus String  @default("PENDENTE") // PENDENTE | EM_ANALISE | TRATADA
 
+  // ESTADO DO ITEM (12/10/2026). Só "ATIVA" entra na fila de Publicações, nos selos e nas
+  // contagens. "QUARENTENA" é o e-mail que parece publicação mas não tem número de processo válido
+  // ou vem de remetente desconhecido: fica na aba "Possível publicação" até alguém promover ou
+  // descartar, e NUNCA gera prazo, selo ou alerta antes disso. "DESCARTADA" saiu de vez da fila
+  // ("não é publicação" / "não é do escritório"), reversível. Tudo que já existia nasce ATIVA.
+  // Sempre filtre por `publicacoesDaFilaWhere` (lib/publicacoesVisiveis.ts), nunca à mão.
+  estado       String  @default("ATIVA") // ATIVA | QUARENTENA | DESCARTADA
+  motivoEstado String?
+  // Endereço do remetente (e-mail), minúsculo. Base das regras "permitir/bloquear remetente".
+  remetente    String?
+
+  // DESFECHO: por que o item saiu da fila para todo mundo. Pessoa e hora ficam aqui E na trilha de
+  // auditoria (AuditEvent kind "PUBLICACAO"); `triageStatus` continua TRATADA, para não quebrar nada
+  // que já o leia.
+  desfecho      String? // SO_CIENCIA | SEM_PROVIDENCIA | DUPLICADA | TRATADO_NO_TRIBUNAL | NAO_PUBLICACAO | NAO_DO_ESCRITORIO
+  desfechoPorId String?
+  desfechoEm    DateTime?
+
   tasks Task[]
   reads PublicationRead[]
 
   @@index([officeId])
   @@index([officeId, publishedAt])
+  @@index([officeId, estado])
+}
+
+// Regra de remetente da varredura de e-mail (lib/emailCaptura.ts): `padrao` é um endereço completo
+// ("sistema-projudi@tjgo.jus.br") ou um domínio iniciado por "@" ("@tjgo.jus.br"). PERMITIR vence
+// NEGAR quando o padrão é mais específico. Nasce de "Descartar e bloquear remetente" e de "Promover
+// e permitir este remetente" (aba Possível publicação); as regras de SISTEMA ficam no código.
+model EmailRemetenteRegra {
+  id          String   @id @default(cuid())
+  padrao      String
+  acao        String // PERMITIR | NEGAR
+  origem      String   @default("USUARIO") // USUARIO | SISTEMA
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@unique([officeId, padrao])
+  @@index([officeId, acao])
+}
+
+// Processo que o ESCRITÓRIO inteiro deixou de acompanhar ("Não é do escritório" + bloquear).
+// Diferente de BlockedProcessNumber, que é POR USUÁRIO: aqui, publicação futura do mesmo número
+// entra como DESCARTADA para todos. `processKey` vem de lib/processKey.ts (CNJ ou número curto).
+model OfficeBlockedProcess {
+  id            String   @id @default(cuid())
+  processKey    String
+  displayNumber String
+  motivo        String?
+  criadoPorId   String?
+  createdAt     DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@unique([officeId, processKey])
 }
 
 // Processo que um usuário optou por deixar de acompanhar (botão "Bloquear", só disponível para

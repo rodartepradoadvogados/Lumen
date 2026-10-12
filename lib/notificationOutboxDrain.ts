@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { sendRawPush } from "@/lib/push";
 import { sendSimpleEmail } from "@/lib/email";
-import { buildDigestEmailHtml, type TemplateVarValues } from "@/lib/emailTemplateRender";
+import { buildDigestEmailHtml, renderTemplateSubject, type TemplateVarValues } from "@/lib/emailTemplateRender";
 import { DEFAULT_TEMPLATES } from "@/lib/comunicadosTemplatesPadrao";
 import type { NotificationEvent } from "@/lib/comunicadosEventos";
 import { escapeHtml } from "@/lib/htmlEscape";
@@ -23,9 +23,11 @@ async function renderGroupEmail(officeId: string, items: (OutboxPayload & { even
     const event = item.event as NotificationEvent;
     const salvo = await prisma.emailTemplate.findUnique({ where: { officeId_event: { officeId, event } } });
     const template = salvo ?? DEFAULT_TEMPLATES[event] ?? { subject: item.title, bodyHtml: `<p>${escapeHtml(item.body)}</p>` };
+    // O assunto também passa pela renderização (antes saía "Nova publicação — {{processo}}" cru).
+    const subject = renderTemplateSubject(template.subject, item.vars ?? {});
     return {
-      subject: template.subject,
-      html: buildDigestEmailHtml({ subject: template.subject, bodyHtml: template.bodyHtml, url: item.url ?? undefined, vars: item.vars ?? {} }),
+      subject,
+      html: buildDigestEmailHtml({ subject, bodyHtml: template.bodyHtml, url: item.url ?? undefined, vars: item.vars ?? {} }),
     };
   }
   const listaHtml = items

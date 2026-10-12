@@ -311,7 +311,7 @@ async function FunilSection({ start, end, officeId, isAdmin }: { start: Date; en
 
 async function PublicacoesSection({ start, end, months, officeId }: { start: Date; end: Date; months: MonthBucket[]; officeId: string }) {
   const publications = await prisma.publication.findMany({
-    where: { officeId, publishedAt: { gte: start, lt: end } },
+    where: { officeId, estado: "ATIVA", publishedAt: { gte: start, lt: end } },
     select: { id: true, publishedAt: true, lawyerTag: true, triageStatus: true },
   });
 

@@ -41,6 +41,19 @@ export function renderTemplateBody(html: string, vars: TemplateVarValues): strin
   return kept.map((line) => line.replace(/\{\{(\w+)\}\}/g, (_, key: string) => escapeHtml(vars[key as TemplateVar]))).join("\n");
 }
 
+// ASSUNTO com variável. O assunto nunca passava pela renderização (só o corpo): o aviso saía com
+// "Nova publicação — {{processo}}" LITERAL (13 e-mails do Lúmen entraram assim na fila de
+// publicações, medido em 12/10/2026). Variável sem valor leva junto o separador que a antecede
+// (" — ", " - ", ": "), para não sobrar "Nova publicação —" pendurado. Valor presente entra puro
+// (assunto é texto, não HTML: escapar aqui viraria "&amp;" no cliente de e-mail).
+export function renderTemplateSubject(subject: string, vars: TemplateVarValues): string {
+  const semValor = subject.replace(/\s*(?:[—–-]|:)?\s*\{\{(\w+)\}\}/g, (todo, key: string) => (vars[key as TemplateVar] ? todo : ""));
+  return semValor
+    .replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key as TemplateVar] ?? "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 const NAVY = "#181b1f";
 const GOLD = "#c9707f";
 

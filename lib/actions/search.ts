@@ -65,7 +65,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
         orderBy: { createdAt: "desc" },
       }),
       prisma.publication.findMany({
-        where: { officeId, content: contains },
+        where: { officeId, estado: "ATIVA", content: contains },
         select: { id: true, content: true, processNumberRaw: true, source: true },
         take: 3,
         orderBy: { publishedAt: "desc" },
@@ -86,7 +86,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
       }),
       normalizedQuery
         ? prisma.publication.findMany({
-            where: { officeId, processNumberRaw: { not: null } },
+            where: { officeId, estado: "ATIVA", processNumberRaw: { not: null } },
             select: { id: true, content: true, processNumberRaw: true, source: true },
             orderBy: { publishedAt: "desc" },
             take: 1000,

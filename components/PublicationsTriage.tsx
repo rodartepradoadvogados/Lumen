@@ -50,6 +50,7 @@ import {
 import type { PublicationGroup } from "@/lib/publicationGrouping";
 import { matchesPublicationChip, type PublicationChipKey } from "@/lib/publicationChips";
 import type { FaixaPrazo, PrazoExtraido, SituacaoPrazo } from "@/lib/prazoExtraido";
+import type { TipoAto } from "@/lib/classificarAto";
 import { rotuloPrazo, CONFIANCA_TXT, type TomPrazo } from "@/lib/prazoRotulo";
 
 export type TriagePub = {
@@ -68,6 +69,8 @@ export type TriagePub = {
   taskCount?: number;
   assignedToId: string | null;
   triageStatus: string;
+  // O que o item É (lib/classificarAto.ts): aviso de intimação do Projudi nunca é "só ciência".
+  tipoAto: TipoAto;
 };
 
 export type TriageGroup = PublicationGroup<TriagePub> & {
@@ -78,6 +81,10 @@ export type TriageGroup = PublicationGroup<TriagePub> & {
   idadeDu: number;
   // Já existe tarefa/prazo criado a partir desta publicação.
   registrado: boolean;
+  tipoAto: TipoAto;
+  // Avisos abertos do MESMO processo (Projudi manda um por intimação, sem dizer qual): quantos e
+  // em que dias. null quando é um aviso só, ou quando o item não é aviso.
+  pilha: { total: number; datas: string[] } | null;
 };
 
 type UserLite = { id: string; name: string };
@@ -93,6 +100,7 @@ const IDADE_DESTAQUE_DU = 10;
 const BANDAS: { k: FaixaPrazo | "reg"; titulo: string; tom: "venc" | "hoje" | "neutro" }[] = [
   { k: "venc", titulo: "Vencidos", tom: "venc" },
   { k: "hoje", titulo: "Vencem hoje", tom: "hoje" },
+  { k: "aviso", titulo: "Aviso de intimação: abrir no tribunal", tom: "hoje" },
   { k: "d3", titulo: "Até 3 dias úteis", tom: "hoje" },
   { k: "d15", titulo: "Até 15 dias úteis", tom: "neutro" },
   { k: "dep", titulo: "Depois de 15 dias úteis", tom: "neutro" },
@@ -150,6 +158,10 @@ function duTxt(n: number): string {
 function partesDe(g: TriageGroup): string {
   const p = g.primary;
   if (p.case) return p.case.title;
+  // O aviso do Projudi é endereçado ao ADVOGADO ("Sr(a). <nome>"), então o nome que casa com um
+  // cliente cadastrado é o do próprio destinatário: 144 publicações viraram "Cliente compatível:
+  // <o advogado>". Num aviso o cliente nunca é pista.
+  if (g.tipoAto === "AVISO_INTIMACAO") return p.processNumberRaw ? `Aviso de intimação · processo ${p.processNumberRaw}` : "Aviso de intimação";
   if (p.client) return `Cliente compatível: ${p.client.name}`;
   return p.processNumberRaw ? `Sem processo vinculado · ${p.processNumberRaw}` : "Sem processo vinculado";
 }
@@ -1217,7 +1229,26 @@ function BlocoPrazo({ group }: { group: TriageGroup }) {
         <Icone size={20} aria-hidden="true" />
         {r.texto}
       </p>
-      {p.tipo === "PRAZO" && p.data ? (
+      {group.tipoAto === "AVISO_INTIMACAO" ? (
+        <div className="text-sm text-tx space-y-1.5">
+          <p>
+            <span className="font-semibold">Este e-mail é só o aviso de que há uma intimação/citação esperando na caixa de entrada do sistema do tribunal.</span> Ele não traz o ato nem o prazo, e diz que não tem valor legal. O prazo para responder só é conhecido depois de abrir a intimação no tribunal.
+          </p>
+          {group.situacao.limite && (
+            <p>
+              <span className="font-semibold">Abrir até {formatCalendarDate(group.situacao.limite)}</span>{" "}
+              <span className="text-tx-2">
+                (estimativa: 10 dias corridos do aviso mais antigo; sem consulta, a intimação pode ser considerada realizada ao fim desse prazo, Lei 11.419/2006, art. 5º, §3º. Confirme no sistema do tribunal.)
+              </span>
+            </p>
+          )}
+          {group.pilha && (
+            <p className="text-tx-2">
+              {group.pilha.total} avisos abertos deste processo: {group.pilha.datas.map((d) => dm(d)).join(", ")}. A data acima parte do mais antigo.
+            </p>
+          )}
+        </div>
+      ) : p.tipo === "PRAZO" && p.data ? (
         <p className="text-sm text-tx">
           <span className="font-semibold">Prazo citado no texto: {p.dias} dias {p.corridos ? "corridos" : "úteis"}</span> → <strong>{formatCalendarDate(p.data)}</strong>{" "}
           <span className="text-tx-2">(sugestão do sistema, confira na íntegra)</span>
