@@ -52,8 +52,12 @@ def build_session() -> requests.Session:
         }
     )
 
+    # Timeout de leitura nao se repete cinco vezes (eram ~4 min por consulta com o DataJud lento): uma
+    # nova tentativa basta, e o pipeline decide o que fazer com a falha.
     retry = Retry(
         total=MAX_RETRIES,
+        connect=3,
+        read=1,
         backoff_factor=BACKOFF_FACTOR,
         status_forcelist=RETRY_STATUS_FORCELIST,
         allowed_methods=("GET", "POST"),
