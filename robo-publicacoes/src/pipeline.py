@@ -17,6 +17,7 @@ e duplicado e nenhuma notificacao repetida e enviada para o mesmo dado.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import random
 import time
 from datetime import date, datetime, timedelta, timezone
 from typing import List
@@ -57,6 +58,10 @@ FRACAO_FALHA_TOLERADA = 0.5
 # restante dos processos dele e pulado, e a etapa inteira tem um orcamento de tempo.
 DATAJUD_FALHAS_SEGUIDAS_POR_TRIBUNAL = 3
 DATAJUD_ORCAMENTO_SEGUNDOS = 8 * 60
+# O DataJud so atualiza os andamentos uma vez por dia: consultar de 2 em 2 horas so gasta tempo e
+# aborrece o tribunal. Depois de um ciclo BEM-SUCEDIDO, a etapa espera este intervalo; depois de uma
+# falha, tenta de novo no ciclo seguinte (o disjuntor por tribunal mantem isso barato).
+DATAJUD_INTERVALO_HORAS = 20
 
 
 @dataclass
@@ -174,6 +179,22 @@ def _capturar_publicacoes_djen(session, settings: Settings) -> List[Publicacao]:
     return novas
 
 
+def _datajud_devido(session, agora: datetime | None = None) -> bool:
+    """True se o DataJud nunca teve sucesso ou se o ultimo sucesso foi ha mais de DATAJUD_INTERVALO_HORAS."""
+    agora = agora or datetime.now(timezone.utc)
+    ultimo = session.scalar(
+        select(ExecucaoLog.executado_em)
+        .where(ExecucaoLog.fonte == FONTE_DATAJUD, ExecucaoLog.sucesso.is_(True))
+        .order_by(ExecucaoLog.executado_em.desc())
+        .limit(1)
+    )
+    if ultimo is None:
+        return True
+    if ultimo.tzinfo is None:
+        ultimo = ultimo.replace(tzinfo=timezone.utc)
+    return agora - ultimo >= timedelta(hours=DATAJUD_INTERVALO_HORAS)
+
+
 def _descobrir_processos(session, publicacoes_novas: List[Publicacao]) -> int:
     numeros = [pub.numero_processo for pub in publicacoes_novas]
     return discovery.descobrir_processos_de_publicacoes(session, numeros)
@@ -186,6 +207,13 @@ def _capturar_andamentos_datajud(session, settings: Settings) -> List[Andamento]
 
     if not processos:
         return novos
+    if not _datajud_devido(session):
+        logger.info("DataJud: ultimo sucesso ha menos de %dh; etapa pulada neste ciclo.", DATAJUD_INTERVALO_HORAS)
+        return novos
+
+    # Ordem aleatoria: se o orcamento de tempo acabar, nao sao sempre os mesmos processos que ficam
+    # sem consulta.
+    random.shuffle(processos)
 
     falhas = 0
     detalhes: List[str] = []

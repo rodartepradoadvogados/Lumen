@@ -186,3 +186,32 @@ def test_captura_do_djen_fica_gravada_antes_da_etapa_do_datajud(monkeypatch, tes
     djen = s.scalars(select(ExecucaoLog).where(ExecucaoLog.fonte == "DJEN")).all()
     assert len(djen) == 1  # o registro do DJEN sobreviveu ao rollback da etapa seguinte
     s.close()
+
+
+def test_datajud_so_e_devido_depois_do_intervalo(test_settings, session_factory):
+    s = session_factory()
+    assert pipeline._datajud_devido(s) is True  # nunca rodou
+    _log(s, "DATAJUD", True, 0)
+    assert pipeline._datajud_devido(s) is False  # acabou de dar certo
+    s.close()
+
+
+def test_datajud_com_falha_recente_tenta_de_novo_no_proximo_ciclo(test_settings, session_factory):
+    s = session_factory()
+    _log(s, "DATAJUD", True, 3)  # sucesso antigo
+    _log(s, "DATAJUD", False, 0)  # falhou agora: nao conta como sucesso
+    assert pipeline._datajud_devido(s) is True
+    s.close()
+
+
+def test_datajud_pulado_nao_consulta_nada(monkeypatch, test_settings, session_factory):
+    s = session_factory()
+    _processos_goias(s, 3)
+    _log(s, "DATAJUD", True, 0)
+    chamadas = []
+    monkeypatch.setattr(
+        pipeline.datajud, "consultar_andamentos", lambda n, c: chamadas.append(n) or ConsultaDatajud(ok=True, andamentos=[])
+    )
+    pipeline._capturar_andamentos_datajud(s, test_settings)
+    assert chamadas == []
+    s.close()
