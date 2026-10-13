@@ -107,3 +107,82 @@ def test_consultar_andamentos_sem_chave_e_falha_mas_alias_desconhecido_nao_e(mon
     monkeypatch.setattr(datajud, "alias_do_tribunal", lambda n: None)
     r = datajud.consultar_andamentos("0000832-35.2018.4.01.3202", "chave")
     assert r.ok is True and r.andamentos == []
+
+
+# ---------------------------------------------------------------------------------------------
+# DataJud lento (TJGO com "Read timed out") nao pode prender nem derrubar o ciclo (12/10/2026)
+# ---------------------------------------------------------------------------------------------
+
+from src.db import ProcessoMonitorado  # noqa: E402
+
+
+def _processos_goias(session, quantos):
+    # NNNNNNN-DD.AAAA.8.09.OOOO: justica estadual de Goias (alias tjgo)
+    for i in range(quantos):
+        session.add(ProcessoMonitorado(numero_processo=f"{i:07d}0020248090011", origem="teste"))
+    session.commit()
+
+
+def test_tribunal_que_nao_responde_e_pulado_depois_de_poucas_falhas(monkeypatch, test_settings, session_factory):
+    s = session_factory()
+    _processos_goias(s, 10)
+    chamadas = []
+
+    def sempre_falha(numero, chave):
+        chamadas.append(numero)
+        return ConsultaDatajud(ok=False, andamentos=[], motivo="timeout")
+
+    monkeypatch.setattr(pipeline.datajud, "consultar_andamentos", sempre_falha)
+    pipeline._capturar_andamentos_datajud(s, test_settings)
+    assert len(chamadas) == pipeline.DATAJUD_FALHAS_SEGUIDAS_POR_TRIBUNAL
+    log = s.scalars(select(ExecucaoLog).where(ExecucaoLog.fonte == "DATAJUD")).all()[-1]
+    assert log.sucesso is False  # os pulados contam como falha: o alerta de duas falhas continua valendo
+    assert "nao consultado" in log.detalhe
+    s.close()
+
+
+def test_sucesso_zera_a_contagem_de_falhas_seguidas(monkeypatch, test_settings, session_factory):
+    s = session_factory()
+    _processos_goias(s, 8)
+    respostas = iter([False, False, True, False, False, True, False, False])
+
+    def alterna(numero, chave):
+        ok = next(respostas)
+        return ConsultaDatajud(ok=ok, andamentos=[], motivo=None if ok else "timeout")
+
+    monkeypatch.setattr(pipeline.datajud, "consultar_andamentos", alterna)
+    pipeline._capturar_andamentos_datajud(s, test_settings)
+    assert next(respostas, "esgotou") == "esgotou"  # nenhum processo foi pulado
+    s.close()
+
+
+def test_orcamento_de_tempo_interrompe_a_etapa(monkeypatch, test_settings, session_factory):
+    s = session_factory()
+    _processos_goias(s, 5)
+    monkeypatch.setattr(pipeline, "DATAJUD_ORCAMENTO_SEGUNDOS", -1)
+    chamadas = []
+    monkeypatch.setattr(
+        pipeline.datajud, "consultar_andamentos", lambda n, c: chamadas.append(n) or ConsultaDatajud(ok=True, andamentos=[])
+    )
+    pipeline._capturar_andamentos_datajud(s, test_settings)
+    assert chamadas == []
+    s.close()
+
+
+def test_captura_do_djen_fica_gravada_antes_da_etapa_do_datajud(monkeypatch, test_settings, session_factory):
+    """Queda de conexao no DataJud nao pode jogar fora o que o DJEN ja trouxe."""
+    monkeypatch.setattr(pipeline.djen, "buscar_publicacoes", lambda *a, **k: [])
+    monkeypatch.setattr(pipeline, "_descobrir_processos", lambda *a, **k: 0)
+
+    def cai(session, settings):
+        raise RuntimeError("SSL connection has been closed unexpectedly")
+
+    monkeypatch.setattr(pipeline, "_capturar_andamentos_datajud", cai)
+    try:
+        pipeline.executar_ciclo(test_settings, session_factory)
+    except RuntimeError:
+        pass
+    s = session_factory()
+    djen = s.scalars(select(ExecucaoLog).where(ExecucaoLog.fonte == "DJEN")).all()
+    assert len(djen) == 1  # o registro do DJEN sobreviveu ao rollback da etapa seguinte
+    s.close()

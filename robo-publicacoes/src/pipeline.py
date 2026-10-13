@@ -17,6 +17,7 @@ e duplicado e nenhuma notificacao repetida e enviada para o mesmo dado.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import time
 from datetime import date, datetime, timedelta, timezone
 from typing import List
 
@@ -50,6 +51,12 @@ JANELA_MAXIMA_DIAS = 60
 JANELA_FOLGA_DIAS = 2
 # Falha de uma fonte so conta como "ciclo falho" quando atinge esta fracao das consultas.
 FRACAO_FALHA_TOLERADA = 0.5
+
+# DataJud lento ou fora do ar (ex.: TJGO com "Read timed out" em todas as consultas) nao pode prender o
+# ciclo por horas nem derrubar o que ja foi capturado: apos tantas falhas SEGUIDAS no mesmo tribunal o
+# restante dos processos dele e pulado, e a etapa inteira tem um orcamento de tempo.
+DATAJUD_FALHAS_SEGUIDAS_POR_TRIBUNAL = 3
+DATAJUD_ORCAMENTO_SEGUNDOS = 8 * 60
 
 
 @dataclass
@@ -182,8 +189,23 @@ def _capturar_andamentos_datajud(session, settings: Settings) -> List[Andamento]
 
     falhas = 0
     detalhes: List[str] = []
+    falhas_seguidas_por_tribunal: dict = {}
+    tribunais_pulados: set = set()
+    inicio = time.monotonic()
+    orcamento_estourado = False
 
     for processo in processos:
+        alias = datajud.alias_do_tribunal(processo.numero_processo) or "?"
+        if time.monotonic() - inicio > DATAJUD_ORCAMENTO_SEGUNDOS:
+            orcamento_estourado = True
+        if orcamento_estourado or alias in tribunais_pulados:
+            falhas += 1
+            detalhes.append(
+                f"{processo.numero_processo}: nao consultado ("
+                + ("orcamento de tempo do DataJud esgotado" if orcamento_estourado else f"tribunal {alias} sem resposta neste ciclo")
+                + ")"
+            )
+            continue
         try:
             consulta = datajud.consultar_andamentos(
                 processo.numero_processo, settings.datajud_api_key
@@ -200,7 +222,17 @@ def _capturar_andamentos_datajud(session, settings: Settings) -> List[Andamento]
         if not consulta.ok:
             falhas += 1
             detalhes.append(f"{processo.numero_processo}: {consulta.motivo}")
+            seguidas = falhas_seguidas_por_tribunal.get(alias, 0) + 1
+            falhas_seguidas_por_tribunal[alias] = seguidas
+            if seguidas >= DATAJUD_FALHAS_SEGUIDAS_POR_TRIBUNAL and alias != "?":
+                tribunais_pulados.add(alias)
+                logger.warning(
+                    "DataJud: %s falhou %d vezes seguidas; o restante dos processos desse tribunal fica para o proximo ciclo.",
+                    alias,
+                    seguidas,
+                )
             continue
+        falhas_seguidas_por_tribunal[alias] = 0
         movimentos = consulta.andamentos
 
         for mov in movimentos:
@@ -223,6 +255,10 @@ def _capturar_andamentos_datajud(session, settings: Settings) -> List[Andamento]
             )
             session.add(novo)
             novos.append(novo)
+
+        # Libera a conexao entre uma consulta lenta e outra: a conexao do Neon que fica parada durante
+        # a espera pelo DataJud e fechada pelo servidor ("SSL connection has been closed unexpectedly").
+        session.commit()
 
     # Uma consulta que falha (sem chave, 403, rede) nao e "0 andamentos novos": e falha. O ciclo
     # so conta como sucesso se menos da metade das consultas falhou — assim um tribunal fora do
@@ -342,6 +378,9 @@ def executar_ciclo(settings: Settings, session_factory: sessionmaker) -> Resulta
     try:
         publicacoes_novas = _capturar_publicacoes_djen(session, settings)
         processos_novos = _descobrir_processos(session, publicacoes_novas)
+        # O que o DJEN trouxe e gravado AGORA, antes da etapa lenta do DataJud: uma queda de conexao
+        # depois dela nao pode jogar fora a captura (foi o que impediu a recuperacao dos 19 dias).
+        session.commit()
         andamentos_novos = _capturar_andamentos_datajud(session, settings)
 
         # Isolado em try/except PRÓPRIO (não é só o corpo da função que já se protege): mesmo uma
