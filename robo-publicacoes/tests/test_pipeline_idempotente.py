@@ -88,11 +88,12 @@ def test_ciclo_e_idempotente(monkeypatch, test_settings, session_factory):
     assert len(total_publicacoes) == 1
     assert len(total_andamentos) == 1
     assert len(total_processos) == 1
-    # 2 ciclos x 4 fontes (DJEN, DATAJUD, pncp, dou_inlabs) = 8 entradas de log. O PNCP roda
+    # 2 ciclos x 4 fontes (DJEN, DATAJUD, pncp, dou_inlabs) = 8 entradas de log, MENOS o DataJud do
+    # segundo ciclo, que e pulado (ultimo sucesso ha menos de 20 h) = 7. O PNCP roda
     # mockado (ver conftest.py:_pncp_sem_rede) e o DOU/INLABS nem tenta rede (test_settings sem
     # INLABS_USERNAME/PASSWORD, ver conftest.py), mas ambos ainda registram sua propria entrada
     # em ExecucaoLog por ciclo.
-    assert len(total_logs) == 8
+    assert len(total_logs) == 7
 
 
 def test_ciclo_sem_novidades_nao_envia_email(monkeypatch, test_settings, session_factory):
