@@ -1046,3 +1046,18 @@ Contexto: a Anna Clara via intimações repetidas depois da manifestação, e-ma
 - **Merge do site roda `prisma db push`** e o script de data DJEN em produção (colunas `Publication.estado`, `motivoEstado`, `remetente`, `desfecho*` e as tabelas novas).
 
 **Não provado:** a tela nova num navegador real, o aviso de intimação com e-mails reais além do modelo visto num print, o limite de 10 dias (estimativa; o prazo real vem do tribunal) e a recuperação completa dos 19 dias parados.
+
+
+## 36. Guarda das conversas: eliminação automática de atendimento sem desfecho (14/10/2026)
+
+Contexto: a política de privacidade do site do escritório Rodarte Prado (rodarteprado.com.br, seção 7) promete que "contatos que não se tornaram atendimento (inclusive as conversas com a Ana e os arquivos enviados nelas)" são eliminados até 12 meses após o último contato. O Lúmen não tinha como cumprir isso: a lixeira do atendimento foi tirada de propósito em 24/09/2026 (item da lista de `lib/actions/deletion.ts`), e nada eliminava sozinho. Pedido do dono (14/10/2026).
+
+- **Desligada por padrão, por escritório.** `WhatsappConfig.retencaoAtendimentosMeses` (nulo = nunca eliminar). Quem liga é o administrador, em Configurações → Atendente → "Guarda das conversas", com o prazo (12, 18, 24 ou 36 meses) e a prévia de quantos atendimentos seriam eliminados agora. O Lúmen atende vários escritórios: prazo de guarda é decisão de cada um.
+- **A regra é uma lista do que PODE ser eliminado** (`lib/retencaoRegras.ts`, com teste em `lib/testes/retencao.teste.ts`): status NOVO, EM_TRIAGEM ou ARQUIVADO; etapa NOVO, AGUARDANDO, QUALIFICACAO, PROPOSTA ou PERDIDO; sem processo nem cliente vinculado; criado e com última atividade (`ultimaAtividadeEm`) antes do corte; sem tarefa, anotação, pendência aberta, retorno agendado, documento em espera ou anexo usado em protocolo/envio. Status ou etapa novo, criado depois, nasce protegido. Não troque por uma lista de exceções.
+- **Ordem da eliminação** (`lib/retencaoEliminar.ts`): releitura da atividade, arquivos no provedor, pasta do atendimento, e só então o banco (anexos, problemas de sincronização do Drive e o atendimento, com a cascata das mensagens, transcrições, notas, e-mails, pendências e recusas). Falha no provedor que não seja "já não existe" (404): NADA é eliminado no banco e o atendimento volta no dia seguinte. Apagar o registro com o arquivo ainda no Drive deixaria dado pessoal sem rastro.
+- **Rodada diária** (`app/api/cron/retencao-atendimentos`, 05:30 UTC, `CRON_SECRET` fail-closed): até 50 atendimentos por escritório por dia. `RETENCAO_ATENDIMENTOS_DESLIGADA=1` na Vercel desliga tudo sem deploy. O rastro é uma linha `IntegrationRun` (integração `RETENCAO`) só com contagens: nome, telefone e texto da conversa nunca vão para o log.
+- **O áudio do WhatsApp NÃO é apagado depois da transcrição:** `processarMidiaRecebida` sobe o arquivo para o Drive/OneDrive/Dropbox do escritório e a transcrição lê de lá (`TranscricaoDeAudio.storageFileId`). Ele só sai pela retenção (ou quando alguém exclui o anexo).
+- **Schema:** coluna nova, anulável (`db push` no build de produção, sem passo manual).
+
+**Não provado:** a exclusão contra um Drive, OneDrive ou Dropbox reais e contra o banco real (só a ordem e as regras, com operações de mentira). Os 404 do OneDrive e do Dropbox foram lidos do código dos provedores, não de uma resposta real. Como o Lúmen começou a receber conversas em setembro de 2026, nenhum atendimento passa de 12 meses antes de setembro de 2027: ligar agora não elimina nada; a primeira rodada que apaga de verdade é a primeira depois que algum atendimento completar o prazo.
+

@@ -47,6 +47,8 @@ import { lerParametros } from "@/lib/actions/parametrosDaAna";
 import { DIAS_PARA_O_DOCUMENTO_PADRAO } from "@/lib/parametrosDaAna";
 import { motivosDoEscritorio } from "@/lib/motivosDeRecusa";
 import { transcricaoConfigurada } from "@/lib/transcricao";
+import RetencaoDeAtendimentosPanel from "@/components/atendente/RetencaoDeAtendimentosPanel";
+import { contarElegiveisParaTela } from "@/lib/retencaoAtendimentos";
 import { normalizarEstadoDaAssinatura, normalizarEstadoDoPerfil, diasCorridosVencidos, DIAS_DE_CARENCIA, precoAMostrar, quantasCampanhasAtivasAgora, type EstadoDoSlot } from "@/lib/moduloCampanhas";
 import { situacaoDoProvisionamento } from "@/lib/provisionamentoCampanhas";
 
@@ -190,6 +192,7 @@ export default async function ConfiguracoesPage({
           expedienteDias: true,
           expedienteInicio: true,
           expedienteFim: true,
+          retencaoAtendimentosMeses: true,
         },
       }),
       prisma.campanha.findMany({
@@ -256,6 +259,12 @@ export default async function ConfiguracoesPage({
   // nem abriu. Tudo aqui é LEITURA: as regras são das Frentes A/B/C (lib/moduloCampanhas.ts,
   // lib/provisionamentoCampanhas.ts), nunca recalculadas.
   const podeVerModuloDeCampanhas = isAdmin && modules.whatsapp && secao === "atendente";
+  // A prévia da guarda de conversas ("N atendimentos seriam eliminados"): só calculada quando a
+  // aba está aberta, pelo mesmo motivo do módulo de campanhas acima.
+  const previaDaRetencao =
+    isAdmin && secao === "atendente" && atendente
+      ? await contarElegiveisParaTela(officeId, atendente.retencaoAtendimentosMeses ?? null)
+      : null;
   const [assinaturaCampanhas, precoParametrosRaw, slotsPorCampanha] = podeVerModuloDeCampanhas
     ? await Promise.all([
         prisma.assinaturaModuloCampanhas.findUnique({
@@ -837,6 +846,14 @@ export default async function ConfiguracoesPage({
                 precoSlotExtraConfigurado: parametrosDePreco.precoSlotExtra != null,
               }}
             />
+            {atendente && previaDaRetencao && (
+              <div className="mt-8 border-t border-regua pt-8">
+                <RetencaoDeAtendimentosPanel
+                  mesesAtuais={atendente.retencaoAtendimentosMeses ?? null}
+                  previa={previaDaRetencao}
+                />
+              </div>
+            )}
           </div>
         </Card>
       )}

@@ -22,6 +22,7 @@
     { "path": "/api/cron/transcricoes-pendentes", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/avisos-de-figurinha", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/minutas-pendentes", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/pipeline-followup", "schedule": "0 11 * * *" }
+    { "path": "/api/cron/pipeline-followup", "schedule": "0 11 * * *" },
+    { "path": "/api/cron/retencao-atendimentos", "schedule": "30 5 * * *" }
   ]
 }

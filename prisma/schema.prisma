@@ -2793,6 +2793,14 @@ model WhatsappConfig {
   // O Brasil tem quatro fusos, então o padrão é o de Brasília e cada escritório ajusta o seu.
   fusoHorario String @default("America/Sao_Paulo")
 
+  // POR QUANTOS MESES GUARDAR ATENDIMENTO SEM DESFECHO. Nulo (o padrão) = nunca eliminar sozinho: o
+  // Lúmen atende vários escritórios, e prazo de guarda é decisão de cada um, com um clique
+  // consciente em Configurações → Atendente. Preenchido (12, 18, 24 ou 36), uma rodada diária
+  // (app/api/cron/retencao-atendimentos) elimina o atendimento que passou do prazo SEM virar
+  // processo, cliente ou contrato fechado — a conversa, os arquivos e a pasta no Drive. As regras
+  // do que pode ser apagado estão em lib/retencaoRegras.ts; a tela mostra, antes, quantos seriam.
+  retencaoAtendimentosMeses Int?
+
   // ONDE A FILA PAROU. Rodízio precisa lembrar de quem foi o último; sem isto, toda transferência
   // voltaria ao primeiro da lista e o rodízio viraria cascata.
   ultimoAdvogadoId String?
