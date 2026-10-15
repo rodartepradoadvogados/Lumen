@@ -62,8 +62,10 @@ teste("nenhuma coluna da Central tem largura fixa no JSX (`w-[NNNpx]`) — a med
   }
 });
 
-teste("a grade responde: 2 colunas até 1239px (trilho vira gaveta) e 1 coluna até 760px", () => {
-  verdade(/@media \(max-width:\s*1239px\)/.test(CSS), "sem o ponto de quebra das duas colunas (1239px)");
+// 1339px DESDE 15/10/2026: o trilho de navegação (88px) entrou à esquerda, então a terceira coluna
+// precisa de 100px a mais de janela para não espremer a conversa.
+teste("a grade responde: 2 colunas até 1339px (trilho vira gaveta) e 1 coluna até 760px", () => {
+  verdade(/@media \(max-width:\s*1339px\)/.test(CSS), "sem o ponto de quebra das duas colunas (1339px)");
   verdade(/@media \(max-width:\s*760px\)/.test(CSS), "sem o ponto de quebra de uma coluna (760px)");
   verdade(/\.atd-corpo\[data-trilho="aberto"\]\s*\.atd-trilho\s*\{[^}]*display:\s*flex/.test(CSS), "a gaveta aberta não aparece");
   verdade(/data-vista="lista"\]\s*\.atd-conversa/.test(CSS), "no celular a conversa não some quando a vista é a lista");

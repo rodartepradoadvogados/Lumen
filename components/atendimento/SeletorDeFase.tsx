@@ -117,7 +117,7 @@ export default function SeletorDeFase({
         aria-expanded={aberto}
         onClick={() => setAberto((v) => !v)}
         data-ativo={fase ? "true" : "false"}
-        className={`flex min-h-9 w-full items-center justify-between gap-1.5 border bg-[var(--frame-bg)] px-2.5 text-etiqueta font-semibold text-[var(--frame-tx-0)] focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)] ${
+        className={`flex min-h-10 w-full items-center justify-between gap-1.5 rounded-atd-pilula border bg-[var(--frame-bg)] px-4 text-corpo font-semibold text-[var(--frame-tx-0)] focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)] ${
           fase ? "border-[var(--frame-accent)]" : "border-[var(--frame-border-strong)]"
         }`}
       >
@@ -134,7 +134,7 @@ export default function SeletorDeFase({
           role="menu"
           aria-label="Fase do funil"
           onKeyDown={aoTeclar}
-          className="absolute inset-x-0 top-full z-20 mt-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg-raised)] p-1"
+          className="absolute inset-x-0 top-full z-20 mt-1 rounded-[16px] border border-[var(--frame-border)] bg-[var(--frame-bg-raised)] p-1.5"
           style={{ boxShadow: "var(--atd-shadow-card)" }}
         >
           {opcoes.map((o, i) => {
@@ -152,7 +152,7 @@ export default function SeletorDeFase({
                   aria-checked={marcada}
                   aria-label={`${o.rotulo}, ${n} ${n === 1 ? "conversa" : "conversas"}`}
                   onClick={() => setAberto(false)}
-                  className={`flex min-h-9 items-center gap-2 px-2.5 text-etiqueta text-[var(--frame-tx-0)] hover:bg-[var(--frame-accent-bg)] focus-visible:bg-[var(--frame-accent-bg)] focus-visible:outline-none ${
+                  className={`flex min-h-10 items-center gap-2 rounded-atd-balao px-3 text-corpo text-[var(--frame-tx-0)] hover:bg-[var(--frame-accent-bg)] focus-visible:bg-[var(--frame-accent-bg)] focus-visible:outline-none ${
                     marcada ? "font-bold" : "font-medium"
                   }`}
                 >

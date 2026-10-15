@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { podeVerAtendimentos, veTodoOAtendimento, filtroDoAtendimento } from "@/lib/acessoAtendimento";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 import { stageOptions, faseDaUrl, filtroDeFase } from "@/lib/funil";
-import { contagensPorFase, type ContagensPorFase } from "@/lib/listaDeAtendimentos";
+import { contagensPorFase, estaEsperandoResposta, type ContagensPorFase } from "@/lib/listaDeAtendimentos";
 import { ORDEM_POR_ATIVIDADE } from "@/lib/atividadeDoAtendimento";
 import { quemEstaEsperando } from "@/lib/esperaDoAtendimento";
 import { situacaoDaRecusa, type EstadoDaRecusa } from "@/lib/recusaDoLead";
@@ -21,7 +21,10 @@ import {
   ANCORA_DA_RECUSA,
 } from "@/lib/conversaDaCentral";
 import { dataDeBrasilia, dataEHoraDeBrasilia } from "@/lib/horaDeBrasilia";
-import ThemeToggle from "@/components/ThemeToggle";
+import { ArrowLeft, Search } from "lucide-react";
+import TrilhoDaCentral from "@/components/atendimento/TrilhoDaCentral";
+import BaloesEnviando from "@/components/atendimento/BaloesEnviando";
+import Avatar from "@/components/atendimento-app/ui/Avatar";
 import QuadroDoFunil, { type CardDoFunil } from "@/components/atendimento/QuadroDoFunil";
 import NovaConversaModal from "@/components/atendimento/NovaConversaModal";
 import FilaDeEspera from "@/components/atendimento/FilaDeEspera";
@@ -336,6 +339,10 @@ export default async function AtendimentoCentralPage({
   // outra pessoa, ou não existe). Ver CONVERSA_FORA_DO_SEU_ALCANCE — uma frase para os três.
   const pedidoNegado = Boolean(idPedido) && !selecionado;
 
+  // O PICO DA TELA (DESIGN.md §9): quantos clientes esperam resposta. Quem vê tudo lê a fila do
+  // escritório inteiro (a mesma do selo do trilho); quem só vê os próprios conta na própria lista.
+  const esperandoNaTela = veTodo ? esperando.length : listaAtendimentos.filter((l) => estaEsperandoResposta(l.whatsappMessages[0])).length;
+
   const hrefAba = (destino: AbaCentral) => `/atendimento-central?aba=${destino}`;
   const hrefSub = (destino: SubTriagem) => `/atendimento-central?aba=triagem&sub=${destino}`;
 
@@ -347,68 +354,37 @@ export default async function AtendimentoCentralPage({
   // Lúmen", "Atendimento", as abas) saía da janela do PWA (877x612). Agora só regiões internas
   // rolam: a lista, a conversa e a coluna do trilho.
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[var(--work-bg)]">
-      {/* ── MOLDURA: barra superior ─────────────────────────────────────────────────────────── */}
-      <div className="atd-barra-topo flex h-12 shrink-0 items-center justify-between gap-4 border-b border-[var(--frame-border)] bg-[var(--frame-bg)] px-5">
-        <a href="/painel" className="text-etiqueta font-semibold text-[var(--frame-tx-2)] transition-colors hover:text-[var(--frame-tx-0)]">
-          ← Sair para o Lúmen
-        </a>
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="min-w-0 truncate text-etiqueta text-[var(--frame-tx-2)]">{viewer.name}</span>
-          {/* Variante "cromo": a MESMA usada pelo rail e pelo blog para uma barra que nunca
-              retematiza — a moldura desta tela é fixa nos dois temas, exatamente essa superfície. */}
-          <ThemeToggle variant="cromo" />
-        </div>
-      </div>
-
-      {/* ── MOLDURA: título + abas principais ──────────────────────────────────────────────── */}
-      <div className="shrink-0 border-b border-[var(--frame-border)] bg-[var(--frame-bg)] px-5 py-3">
-        <div className="flex flex-wrap items-center gap-4">
-          <h1 className="text-destaque font-bold tracking-wide text-[var(--frame-tx-0)]">Atendimento</h1>
-          {/* Só existe seletor de aba quando há mais de uma aba para escolher — mesma regra de
-              components/PageSectionTabs.tsx (items.length < 2 não mostra nada para escolher). Quem
-              não tem `atendimentoTotal` só tem "Atendimentos": a aba Triagem não é desabilitada,
-              ela SOME — nem o botão dela é renderizado. */}
-          {veTodo && (
-            <div className="inline-flex overflow-hidden rounded-sm border border-[var(--frame-border-strong)]">
-              <Link
-                href={hrefAba("triagem")}
-                className={`px-4 py-2 text-etiqueta font-bold ${
-                  aba === "triagem" ? "bg-[var(--frame-accent-bg)] text-[var(--frame-tx-0)]" : "bg-[var(--frame-bg-raised)] text-[var(--frame-tx-1)] hover:text-[var(--frame-tx-0)]"
-                }`}
-              >
-                Triagem
-              </Link>
-              <Link
-                href={hrefAba("atendimentos")}
-                className={`border-l border-[var(--frame-border-strong)] px-4 py-2 text-etiqueta font-bold ${
-                  aba === "atendimentos" ? "bg-[var(--frame-accent-bg)] text-[var(--frame-tx-0)]" : "bg-[var(--frame-bg-raised)] text-[var(--frame-tx-1)] hover:text-[var(--frame-tx-0)]"
-                }`}
-              >
-                Atendimentos
-              </Link>
+    // A MOLDURA NOVA (DESIGN.md §9, 15/10/2026): o trilho de quatro alvos do app à esquerda (a
+    // barra inferior do celular, de pé) e a tela à direita. A barra "Sair para o Lúmen", o título de
+    // 18px e as abas segmentadas Triagem/Atendimentos saíram: o trilho faz a navegação, e cada
+    // destino tem o próprio título de 26px sobre o fundo, como no app. Os ENDEREÇOS são os mesmos.
+    <div className="atd-moldura h-full min-h-0">
+      <TrilhoDaCentral
+        ativo={aba === "atendimentos" ? "conversas" : sub === "funil" ? "funil" : "triagem"}
+        veTodo={veTodo}
+        esperando={esperando.length}
+        hrefConversas={hrefAba("atendimentos")}
+        hrefFunil={hrefSub("funil")}
+        hrefTriagem={hrefSub(sub === "recusados" ? "recusados" : "espera")}
+      />
+      <div className="atd-moldura-tela">
+      {aba === "triagem" && veTodo && (
+        <div className="shrink-0 px-6 pb-3 pt-5 max-[760px]:px-4">
+          <h1 className="atd-titulo-de-tela">{sub === "funil" ? "Funil" : "Triagem"}</h1>
+          {/* A Triagem tem duas filas; o Funil é o quadro. A FAIXA DE FILTROS NÃO QUEBRA LINHA
+              (etapa 3): ou cabe inteira, ou desliza. */}
+          {sub !== "funil" && (
+            <div className="mt-3 flex flex-nowrap gap-2 overflow-x-auto">
+              <SubAba href={hrefSub("espera")} ativa={sub === "espera"} rotulo="Esperando resposta" contagem={esperando.length} />
+              <SubAba href={hrefSub("recusados")} ativa={sub === "recusados"} rotulo="Recusados" contagem={naFilaDeRecusados.length} />
             </div>
           )}
         </div>
-
-        {aba === "triagem" && veTodo && (
-          // A FAIXA DE SUB-ABAS NÃO QUEBRA LINHA (etapa 3). Ela era `flex-wrap`: em largura
-          // intermediária a terceira guia caía para uma segunda linha e a régua de baixo
-          // (border-b) continuava desenhada só embaixo da primeira — o sublinhado da guia ativa
-          // ficava solto no meio da tela, e a faixa deixava de ler como uma faixa. Uma guia é um
-          // chip: ou cabe inteira na linha, ou a faixa desliza (overflow-x). Encolher o rótulo não
-          // é opção — o nome da guia é o que diz onde a pessoa está.
-          <div className="mt-3 flex flex-nowrap gap-4 overflow-x-auto border-b border-[var(--frame-border)]">
-            <SubAba href={hrefSub("funil")} ativa={sub === "funil"} numero={1} rotulo="Funil comercial" />
-            <SubAba href={hrefSub("espera")} ativa={sub === "espera"} numero={2} rotulo="Esperando resposta" contagem={esperando.length} />
-            <SubAba href={hrefSub("recusados")} ativa={sub === "recusados"} numero={3} rotulo="Recusados" contagem={naFilaDeRecusados.length} />
-          </div>
-        )}
-      </div>
+      )}
 
       {/* ── CONTEÚDO ────────────────────────────────────────────────────────────────────────── */}
       {aba === "triagem" && veTodo && (
-        <div className="flex-1 overflow-y-auto bg-[var(--work-bg)] p-5">
+        <div className="flex-1 overflow-y-auto bg-[var(--work-bg)] px-6 pb-6 pt-1 max-[760px]:px-4">
           {sub === "espera" && (
             <FilaDeEspera
               lista={esperando}
@@ -420,10 +396,10 @@ export default async function AtendimentoCentralPage({
           {sub === "funil" && (
             <>
               <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h2 className="text-etiqueta font-bold uppercase tracking-wider text-tx-3">Funil comercial</h2>
-                <span className="min-w-0 text-etiqueta text-tx-3">arraste entre as colunas — o estágio continua sendo movido por você, nunca pelo sistema</span>
+                <h2 className="sr-only">Funil comercial</h2>
+                <span className="min-w-0 text-corpo text-atd-terciario">Arraste entre as colunas. O estágio é movido por você, nunca pelo sistema.</span>
                 {conversionRate !== null && (
-                  <span className="ml-auto shrink-0 whitespace-nowrap text-etiqueta text-tx-3">
+                  <span className="ml-auto shrink-0 whitespace-nowrap text-corpo text-atd-terciario">
                     Taxa de conversão <span className="font-semibold tabular-nums text-concluido">{conversionRate.toFixed(0)}%</span> ({closed} de {closed + lost} decididos)
                   </span>
                 )}
@@ -445,8 +421,25 @@ export default async function AtendimentoCentralPage({
           <AtalhosDaCentral />
           {/* ── COLUNA DE LISTA ─────────────────────────────────────────────────────────────── */}
           <div className="atd-lista">
-            <div className="shrink-0 border-b border-[var(--frame-border)] bg-[var(--frame-bg-raised)] p-3">
-              <form className="flex gap-1.5">
+            <div className="flex shrink-0 flex-col gap-3 px-4 pb-2 pt-5">
+              {/* O TÍTULO DA TELA e, logo abaixo, o pico dela: quantos clientes esperam resposta agora
+                  (DESIGN.md §9, "bolder"). Para quem vê tudo, a contagem leva à fila da Triagem. */}
+              <div>
+                <h1 className="atd-titulo-de-tela">{veTodo ? "Atendimento" : "Suas conversas"}</h1>
+                {esperandoNaTela > 0 &&
+                  (veTodo ? (
+                    <Link href={hrefSub("espera")} className="mt-2.5 inline-flex min-h-8 items-center gap-2 rounded-atd-pilula bg-atd-ouro-suave pl-2.5 pr-3 text-corpo font-semibold text-atd-texto-ouro">
+                      <span aria-hidden="true" className="h-2 w-2 rounded-full bg-atd-ouro" />
+                      <span className="tabular-nums">{esperandoNaTela}</span> esperando resposta
+                    </Link>
+                  ) : (
+                    <p className="mt-2.5 inline-flex min-h-8 items-center gap-2 rounded-atd-pilula bg-atd-ouro-suave pl-2.5 pr-3 text-corpo font-semibold text-atd-texto-ouro">
+                      <span aria-hidden="true" className="h-2 w-2 rounded-full bg-atd-ouro" />
+                      <span className="tabular-nums">{esperandoNaTela}</span> esperando resposta
+                    </p>
+                  ))}
+              </div>
+              <form className="relative flex">
                 {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
                 <input type="hidden" name="aba" value="atendimentos" />
                 {/* A busca preserva o recorte: fase e "arquivados" viajam junto (a busca não os zera). */}
@@ -461,15 +454,16 @@ export default async function AtendimentoCentralPage({
                   name="q"
                   defaultValue={searchParams.q}
                   placeholder="Buscar por nome ou assunto"
-                  className="min-h-9 min-w-0 flex-1 border border-[var(--frame-border-strong)] bg-[var(--frame-bg)] px-2.5 py-1.5 text-etiqueta text-[var(--frame-tx-0)] placeholder:text-[var(--frame-tx-ghost)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
+                  className="min-h-11 min-w-0 flex-1 rounded-atd-pilula border border-transparent bg-atd-pilula py-2 pl-11 pr-4 text-corpo text-tx placeholder:text-atd-terciario focus:border-atd-campo-borda focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
                 />
+                <Search size={17} aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-atd-terciario" />
               </form>
               {/* F5.5 — "eu só consigo responder reativamente": este botão abre uma conversa nova
                   sem esperar o cliente escrever primeiro. Fica na coluna de lista, e não na moldura
                   de cima, porque é ação DESTA aba (Atendimentos), não da tela inteira.
                   A4 — o seletor de FASE mora AO LADO dele (pedido do dono): mesma linha, mesma altura. */}
-              <div className="mt-2 flex items-stretch gap-2">
-                <NovaConversaModal destino="central" />
+              <div className="flex items-stretch gap-2">
+                <NovaConversaModal destino="central" acabamento="app" />
                 <SeletorDeFase fase={faseEscolhida} contagens={contagens} q={recorte.q} arquivados={mostrarArquivados} id={idPedido} />
               </div>
             </div>
@@ -493,7 +487,7 @@ export default async function AtendimentoCentralPage({
           </div>
 
           {/* ── SUPERFÍCIE DE TRABALHO: conversa ────────────────────────────────────────────── */}
-          <div className="atd-conversa">
+          <div className="atd-conversa flex flex-col">
             {selecionado ? (
               <>
                 {/* A MEDIDA DE LEITURA (--atd-largura-leitura, ver atendimento-central.css) LIMITA O
@@ -503,25 +497,26 @@ export default async function AtendimentoCentralPage({
                     vale no cabeçalho e na conversa, senão o nome do cliente e as mensagens dele
                     ficariam em réguas diferentes. */}
                 <div className="shrink-0 border-b border-[var(--atd-border)] bg-[var(--work-bg-raised)] px-6 py-3 max-[760px]:px-3">
-                  <div className="flex w-full max-w-[var(--atd-largura-leitura)] items-start justify-between gap-3">
+                  <div className="flex w-full max-w-[var(--atd-largura-leitura)] items-center justify-between gap-3">
                     {/* Só em janela de celular: volta da conversa para a lista (o mesmo endereço, sem o
                         `id`). É <Link>, e não botão com estado: funciona sem JavaScript e o botão
                         Voltar do navegador leva ao mesmo lugar. */}
                     <Link
                       href={hrefDaLista(recorte)}
                       aria-label="Voltar à lista de conversas"
-                      className="atd-so-celular min-h-11 min-w-11 shrink-0 items-center justify-center border border-[var(--atd-border-strong)] text-etiqueta font-semibold text-tx-2 hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
+                      className="atd-so-celular min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-tx hover:bg-atd-linha-hover focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
                     >
-                      ←
+                      <ArrowLeft size={22} aria-hidden="true" />
                     </Link>
+                    <Avatar nome={selecionado.clientName} tamanho="sm" />
                     <div className="min-w-0 flex-1">
-                      <h2 className="flex items-center gap-2 truncate text-corpo font-bold text-tx">
+                      <h2 className="flex items-center gap-2 truncate text-app-nome font-bold text-tx">
                         {esperandoResposta && (
                           <span className="bolinha-espera" role="img" aria-label="O cliente está esperando resposta" title="O cliente escreveu e ninguém respondeu" />
                         )}
                         <span className="truncate">{selecionado.clientName}</span>
                       </h2>
-                      <p className="truncate text-etiqueta text-tx-3">{selecionado.subject}</p>
+                      <p className="truncate text-app-meta text-atd-terciario">{selecionado.subject}</p>
                     </div>
                     <RelogioDoAtendimento prazoISO={selecionado.prazoDeRespostaAte ? selecionado.prazoDeRespostaAte.toISOString() : null} />
                     <BotaoDaGaveta modo="abrir" />
@@ -537,7 +532,8 @@ export default async function AtendimentoCentralPage({
                     Conversa e o efeito de montagem não rodava de novo — a conversa nova abria onde a
                     anterior tinha parado. */}
                 <div data-rolagem-da-conversa="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 max-[760px]:px-3">
-                  <div className="w-full max-w-[var(--atd-largura-leitura)]">
+                  {/* `key` no invólucro: trocar de conversa remonta e o conteúdo esmaece (.atd-troca). */}
+                  <div key={selecionado.id} className="atd-troca w-full max-w-[var(--atd-largura-leitura)]">
                     <Conversa
                       key={selecionado.id}
                       mensagens={selecionado.whatsappMessages}
@@ -545,7 +541,10 @@ export default async function AtendimentoCentralPage({
                       nomeDoAtendente={nomeDoAtendente}
                       transferidoPor={selecionado.transferidoPor}
                       transferidoEm={selecionado.transferidoEm}
+                      acabamento="app"
                     />
+                    {/* O envio otimista: o balão que você mandou aparece aqui na hora (WhatsappReplyBox "app"). */}
+                    <BaloesEnviando attendanceId={selecionado.id} />
                   </div>
                 </div>
                 {/* A CAIXA DE RESPOSTA — a Central virou a tela oficial de atendimento e a conversa
@@ -569,7 +568,7 @@ export default async function AtendimentoCentralPage({
                           ultimaEhDoCliente={esperandoResposta}
                           nomeDoAtendente={nomeDoAtendente}
                         />
-                        <WhatsappReplyBox attendanceId={selecionado.id} nomeDoCliente={selecionado.clientName} janela={janelaDoWhatsapp} telefone={selecionado.waPhone} />
+                        <WhatsappReplyBox attendanceId={selecionado.id} nomeDoCliente={selecionado.clientName} janela={janelaDoWhatsapp} telefone={selecionado.waPhone} acabamento="app" />
                       </>
                     ) : (
                       <p className="py-2 text-etiqueta text-tx-3">
@@ -659,25 +658,29 @@ export default async function AtendimentoCentralPage({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
 
 function Tecla({ children }: { children: React.ReactNode }) {
-  return <kbd className="mr-0.5 border border-[var(--atd-border-strong)] bg-[var(--work-bg-raised)] px-1 font-semibold text-tx-2">{children}</kbd>;
+  return <kbd className="mr-0.5 rounded-atd-etiqueta bg-atd-pilula px-1.5 font-semibold text-atd-previa">{children}</kbd>;
 }
 
-function SubAba({ href, ativa, numero, rotulo, contagem }: { href: string; ativa: boolean; numero: number; rotulo: string; contagem?: number }) {
+function SubAba({ href, ativa, rotulo, contagem }: { href: string; ativa: boolean; rotulo: string; contagem?: number }) {
+  // A pílula de filtro do app (components/atendimento-app/ui/FiltroPilula.tsx): ativa em ouro suave
+  // com texto em ouro escuro; inativa com contorno fino. Nunca quebra o rótulo — o nome da fila é o
+  // que diz onde a pessoa está.
   return (
     <Link
       href={href}
-      className={`shrink-0 whitespace-nowrap border-b-2 pb-2 text-etiqueta font-semibold uppercase tracking-[.06em] transition-colors ${
-        ativa ? "border-[var(--frame-accent)] text-[var(--frame-tx-0)]" : "border-transparent text-[var(--frame-tx-2)] hover:text-[var(--frame-tx-0)]"
+      aria-current={ativa ? "page" : undefined}
+      className={`inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-atd-pilula px-3.5 text-corpo transition-colors focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)] ${
+        ativa ? "bg-atd-ouro-suave font-semibold text-atd-texto-ouro" : "border border-atd-pilula-borda font-medium text-atd-previa hover:text-tx"
       }`}
     >
-      <span className="mr-1.5 tabular-nums opacity-70">{numero}</span>
       {rotulo}
-      {contagem !== undefined && <span className="ml-1.5 tabular-nums text-[var(--frame-tx-2)]">({contagem})</span>}
+      {contagem !== undefined && <span className={`tabular-nums text-app-meta ${ativa ? "" : "text-atd-terciario"}`}>{contagem}</span>}
     </Link>
   );
 }

@@ -99,11 +99,13 @@ teste("a linha mostra a FASE (stage), não o status; 'Convertido' virou a marca 
   verdade(!/attendanceStatusLabels|\.status\b/.test(codigo), "a linha voltou a usar `status`");
   verdade(/convertedCaseId/.test(codigo) && />\s*Processo\s*</.test(codigo), "sem a marca 'Processo' para lead convertido");
   verdade(!/`f-\$\{/.test(codigo) && !/\bf-\$\{/.test(codigo), "classe de fase montada em tempo de execução — o Tailwind não a geraria");
-  verdade(/stageDot\[fase\]/.test(codigo), "o ponto da fase não vem do mapa estático stageDot");
+  // DESDE 15/10/2026 a fase é a etiqueta do app (Selinho tom "fase"), com o nome escrito.
+  verdade(/<Selinho tom="fase">\{stageLabels\[fase\]\}<\/Selinho>/.test(codigo), "a fase não é a etiqueta do app com o nome escrito");
 });
 
 teste("a bolinha da linha é o FATO 'a última mensagem é do cliente' — não depende da fase", () => {
-  verdade(/estaEsperandoResposta\(ultima\)/.test(codigoDe(LISTA)) && /bolinha-espera/.test(LISTA), "a linha perdeu a bolinha");
+  // DESDE 15/10/2026: o ponto em ouro do app (sem número — não há contador de não lidas), com nome acessível.
+  verdade(/estaEsperandoResposta\(ultima\)/.test(codigoDe(LISTA)) && /data-selo-contagem=""[^>]*aria-label="Esperando resposta"/.test(LISTA), "a linha perdeu o ponto de 'esperando resposta'");
   verdade(!/bolinha-espera[\s\S]{0,400}AGUARDANDO/.test(codigoDe(LISTA)), "a bolinha foi amarrada ao estágio Aguardando");
   verdade(estaEsperandoResposta({ direction: "IN", body: "", porAgente: false, createdAt: new Date() }), "IN não é 'esperando'");
   verdade(!estaEsperandoResposta({ direction: "OUT", body: "", porAgente: false, createdAt: new Date() }), "OUT é 'esperando'");

@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { stageLabels, stageDot, faseDoLead } from "@/lib/funil";
+import { stageLabels, faseDoLead } from "@/lib/funil";
+import ListaViva from "@/components/atendimento/ListaViva";
+import Avatar from "@/components/atendimento-app/ui/Avatar";
+import Selinho from "@/components/atendimento-app/ui/Selinho";
 import { hrefDaConversa, hrefDaLista, type RecorteDaLista } from "@/lib/conversaDaCentral";
 import {
   tempoRelativo,
@@ -76,17 +79,17 @@ export default function ListaDeConversas({
 
   return (
     <>
-      <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-[var(--atd-border)] px-4 py-2 text-etiqueta text-tx-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 px-5 pb-1 pt-1 text-app-meta text-atd-terciario">
         <span aria-live="polite">
           {linhas.length < naFase ? `${linhas.length} de ${naFase} conversas` : `${naFase} ${naFase === 1 ? "conversa" : "conversas"}`}
         </span>
         {fase && (
-          <span className="inline-flex min-h-6 items-center gap-1 border border-[var(--atd-border-strong)] bg-[var(--list-bg-hover)] pl-2 font-semibold text-tx">
+          <span className="inline-flex min-h-6 items-center gap-1 rounded-atd-pilula bg-atd-ouro-suave pl-2.5 font-semibold text-atd-texto-ouro">
             Fase: {stageLabels[fase]}
             <Link
               href={hrefSemFase}
               aria-label="Remover filtro de fase"
-              className="inline-flex min-h-6 min-w-6 items-center justify-center text-tx-3 hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
+              className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-full hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
             >
               ×
             </Link>
@@ -110,8 +113,8 @@ export default function ListaDeConversas({
           // O LEAD ABERTO QUE ESTÁ FORA DA LISTA — rótulo, e não posição. Ele NÃO é enfiado no topo como
           // se fosse a conversa mais recente: a lista é ordenada por atividade, e uma linha antiga no
           // topo mentiria sobre a ordem.
-          <div className="border-b border-[var(--atd-border-strong)]">
-            <p className="px-4 pb-1 pt-3 text-etiqueta font-bold uppercase tracking-wider text-tx-3">Conversa aberta</p>
+          <div className="mx-2 mb-2 border-b border-atd-barra-borda pb-2">
+            <p className="px-3 pb-1 pt-3 text-app-meta font-semibold text-atd-terciario">Conversa aberta</p>
             <Linha a={conversaAberta} agora={agora} nomeDoAtendente={nomeDoAtendente} recorte={recorte} selecionada={conversaAberta.id === idSelecionado} />
           </div>
         )}
@@ -125,20 +128,28 @@ export default function ListaDeConversas({
             {fase && (
               <Link
                 href={hrefSemFase}
-                className="mt-3 inline-flex min-h-9 items-center border border-[var(--atd-border-strong)] px-3 font-semibold text-tx hover:bg-[var(--list-bg-hover)] focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
+                className="mt-3 inline-flex min-h-10 items-center rounded-atd-pilula bg-atd-ouro-suave px-4 font-semibold text-atd-texto-ouro focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
               >
                 Ver todas as fases
               </Link>
             )}
           </div>
         ) : (
-          <ul>
+          // A FILA VIVA (components/atendimento/ListaViva.tsx): a cada atualização de 15 s a linha que
+          // recebeu mensagem DESLIZA até o lugar novo e acende, em vez de saltar.
+          <ListaViva className="px-2 pb-3">
             {linhas.map((a) => (
-              <li key={a.id}>
+              <li
+                key={a.id}
+                data-linha-viva={a.id}
+                data-marca={a.ultimaAtividadeEm.toISOString()}
+                data-esperando={estaEsperandoResposta(a.whatsappMessages[0]) ? "sim" : "nao"}
+                className="rounded-atd-balao"
+              >
                 <Linha a={a} agora={agora} nomeDoAtendente={nomeDoAtendente} recorte={recorte} selecionada={a.id === idSelecionado} />
               </li>
             ))}
-          </ul>
+          </ListaViva>
         )}
       </div>
     </>
@@ -162,6 +173,10 @@ function Linha({
   const esperando = estaEsperandoResposta(ultima);
   const fase = faseDoLead(a.stage);
   const previa = ultima ? previaDaMensagem(ultima.body) : a.subject;
+  // A LINHA DO APP (components/atendimento-app/ListaDeConversasApp.tsx), no computador: avatar com
+  // iniciais, nome em negrito SÓ quando o cliente espera resposta (e a hora em ouro), a prévia da
+  // última mensagem e a fase em etiqueta. Sem divisória: o respiro separa as linhas.
+  // CONTINUA SEM CONTADOR DE NÃO LIDAS (nota do topo): quem espera ganha o PONTO em ouro, não um número.
   return (
     <Link
       // O recorte (fase, busca, arquivados) viaja no clique: sem ele, abrir uma conversa devolveria a
@@ -169,34 +184,32 @@ function Linha({
       href={hrefDaConversa("central", a.id, recorte)}
       aria-current={selecionada ? "true" : undefined}
       data-conversa-id={a.id}
-      className={`block min-h-16 border-b border-[var(--atd-border)] px-4 py-3 transition-colors hover:bg-[var(--list-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--frame-accent)] ${
-        selecionada ? "bg-[var(--list-bg-hover)]" : ""
+      className={`flex min-h-[72px] gap-3.5 rounded-atd-balao px-2.5 py-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--frame-accent)] ${
+        selecionada ? "bg-atd-ouro-suave" : "hover:bg-atd-linha-hover"
       }`}
     >
-      <div className="flex items-center gap-2">
-        {esperando && (
-          <span className="bolinha-espera" role="img" aria-label="Esperando resposta" title="O cliente escreveu e ninguém respondeu" />
-        )}
-        <span className={`min-w-0 flex-1 truncate text-corpo text-tx ${selecionada || esperando ? "font-bold" : "font-medium"}`}>{a.clientName}</span>
-        <time dateTime={a.ultimaAtividadeEm.toISOString()} className="shrink-0 text-etiqueta tabular-nums text-tx-3">
-          {tempoRelativo(a.ultimaAtividadeEm, agora)}
-        </time>
-      </div>
-      <div className="mt-0.5 flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-etiqueta text-tx-3">
-          {ultima && prefixoDaPrevia(ultima, nomeDoAtendente) && <span className="text-tx-2">{prefixoDaPrevia(ultima, nomeDoAtendente)}</span>}
-          {previa}
+      <Avatar nome={a.clientName} />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className={`min-w-0 truncate text-app-nome text-tx ${esperando ? "font-bold" : "font-normal"}`}>{a.clientName}</span>
+          <time dateTime={a.ultimaAtividadeEm.toISOString()} className={`shrink-0 text-app-meta tabular-nums ${esperando ? "font-semibold text-atd-hora" : "text-atd-terciario"}`}>
+            {tempoRelativo(a.ultimaAtividadeEm, agora)}
+          </time>
         </span>
-        {a.convertedCaseId && (
-          <span className="shrink-0 border border-current px-1.5 text-etiqueta font-semibold uppercase tracking-wider text-concluido" title="Já virou processo">
-            Processo
+        <span className="mt-0.5 flex items-center justify-between gap-2">
+          <span className={`min-w-0 truncate text-app-previa ${esperando ? "text-atd-tinta" : "text-atd-previa"}`}>
+            {ultima && prefixoDaPrevia(ultima, nomeDoAtendente) && <span className="text-atd-terciario">{prefixoDaPrevia(ultima, nomeDoAtendente)}</span>}
+            {previa}
           </span>
-        )}
-        <span className="inline-flex shrink-0 items-center gap-1.5 text-etiqueta font-medium text-tx-2">
-          <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ background: stageDot[fase] }} />
-          {stageLabels[fase]}
+          {esperando && (
+            <span data-selo-contagem="" role="img" aria-label="Esperando resposta" title="O cliente escreveu e ninguém respondeu" className="h-3 w-3 shrink-0 rounded-full bg-atd-selo" />
+          )}
         </span>
-      </div>
+        <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <Selinho tom="fase">{stageLabels[fase]}</Selinho>
+          {a.convertedCaseId && <Selinho>Processo</Selinho>}
+        </span>
+      </span>
     </Link>
   );
 }

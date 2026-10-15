@@ -182,7 +182,8 @@ teste("a tela tem ALTURA travada na janela — com só um piso, quem rola é a p
   verdade(/(?<![\w-])h-full\b/.test(raiz.abertura) && /\bmin-h-0\b/.test(raiz.abertura),
     `a raiz da Central não preenche o invólucro de altura travada (${raiz.abertura.slice(0, 90)}) — sem h-full + min-h-0 a coluna cresce do tamanho da conversa`);
   const layout = codigoDe(readFileSync(join(RAIZ, "app", "atendimento-central", "layout.tsx"), "utf8"));
-  verdade(/className="atd-central atd-central-fixa"/.test(layout),
+  // Desde 15/10/2026 o invólucro também leva o escopo do app (`atendimento-shell atd-tema-do-site`, DESIGN.md §9.1).
+  verdade(/className="atd-central[^"]*\batd-central-fixa"/.test(layout),
     "o invólucro da Central não é `atd-central-fixa` — sem ele o documento volta a rolar e o cabeçalho sai da janela");
   verdade(!/atd-central min-h-screen">\{children\}/.test(layout), "o invólucro da Central voltou a ter só piso (min-h-screen)");
   const css = readFileSync(join(RAIZ, "app", "atendimento-central", "atendimento-central.css"), "utf8");

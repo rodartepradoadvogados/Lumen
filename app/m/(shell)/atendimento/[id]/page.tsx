@@ -11,7 +11,9 @@ import MobileCaseAttachmentsTab from "@/components/mobile/MobileCaseAttachmentsT
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import EditAttendanceSubject from "@/components/EditAttendanceSubject";
-import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
+import FiltroPilula from "@/components/atendimento-app/ui/FiltroPilula";
+import Avatar from "@/components/atendimento-app/ui/Avatar";
+import BaloesEnviando from "@/components/atendimento/BaloesEnviando";
 import Conversa from "@/components/atendimento/Conversa";
 import QuemEEsteNumero from "@/components/atendimento/QuemEEsteNumero";
 import RelogioDoAtendimento from "@/components/atendimento/RelogioDoAtendimento";
@@ -135,17 +137,21 @@ export default async function MobileAttendanceDetail({
     // devolve essa reserva, porque aqui quem manda na altura é esta caixa. Sem isto a conversa e o
     // compositor rolariam junto com a página, e a caixa de resposta fugiria para baixo.
     <div className="-mb-20 flex h-[calc(100dvh-132px)] flex-col animate-fade-in">
-      <div className="shrink-0 border-b border-regua bg-sf px-4 pb-0 pt-3">
-        <Link href="/m/atendimento" className="inline-flex min-h-[32px] items-center gap-1 text-corpo font-semibold text-tx-2">
-          <ArrowLeft size={13} /> Atendimentos
+      {/* ACABAMENTO DO APP DE ATENDIMENTO (DESIGN.md §9, 15/10/2026): cabeçalho sobre o fundo da tela,
+          avatar com iniciais, guias em pílula, balões. O layout (../layout.tsx) põe o escopo dos tokens. */}
+      <div className="shrink-0 border-b border-atd-barra-borda bg-atd-tela px-4 pb-2 pt-2">
+        <Link href="/m/atendimento" className="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-atd-pilula px-2 text-corpo font-semibold text-atd-previa hover:bg-atd-linha-hover">
+          <ArrowLeft size={18} aria-hidden="true" /> Conversas
         </Link>
 
         {/* O NOME OCUPA A LARGURA INTEIRA, e os dois seletores descem para a linha seguinte.
             Medido no navegador a 390px: com os seletores ao lado, "Carlos Eduardo da Silva" era
             cortado em "Carlos Eduardo da Si…" — e o nome de quem está do outro lado é a primeira
             coisa que a tela precisa dizer. */}
-        <div className="mt-1 min-w-0">
-          <h1 className="flex items-center gap-2 truncate text-lg font-bold leading-tight text-tx">
+        <div className="mt-1 flex min-w-0 items-center gap-3">
+          <Avatar nome={a.clientName} tamanho="sm" />
+          <div className="min-w-0 flex-1">
+          <h1 className="flex items-center gap-2 truncate text-app-nome font-bold leading-tight text-tx">
             {/* A bolinha que pisca: a última palavra é do cliente e ninguém respondeu. É FATO, e
                 não estágio — ver a nota em lib/funil.ts. Mesma marca das outras telas, para que
                 quem olha o celular e quem olha o computador esteja vendo a mesma coisa. */}
@@ -161,6 +167,7 @@ export default async function MobileAttendanceDetail({
           </h1>
           <div className="mt-0.5">
             <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
+          </div>
           </div>
         </div>
 
@@ -181,27 +188,27 @@ export default async function MobileAttendanceDetail({
           <RelogioDoAtendimento prazoISO={a.prazoDeRespostaAte ? a.prazoDeRespostaAte.toISOString() : null} compacto />
         </div>
 
-        <TiraDeGuias className="-mx-4 mt-3 px-4">
-          <GuiaLink href={guia("conversa")} ativa={aba === "conversa"}>Conversa</GuiaLink>
-          <GuiaLink href={guia("ficha")} ativa={aba === "ficha"}>Ficha</GuiaLink>
-          <GuiaLink href={guia("documentos")} ativa={aba === "documentos"} contagem={a.attachments.length}>
-            Documentos
-          </GuiaLink>
-          <GuiaLink href={guia("anotacoes")} ativa={aba === "anotacoes"} contagem={a.anotacoes.length}>
-            Anotações
-          </GuiaLink>
-        </TiraDeGuias>
+        <nav aria-label="Seções do atendimento" className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <FiltroPilula href={guia("conversa")} ativo={aba === "conversa"} rotulo="Conversa" />
+          <FiltroPilula href={guia("ficha")} ativo={aba === "ficha"} rotulo="Ficha" />
+          <FiltroPilula href={guia("documentos")} ativo={aba === "documentos"} rotulo="Documentos" contagem={a.attachments.length} />
+          <FiltroPilula href={guia("anotacoes")} ativo={aba === "anotacoes"} rotulo="Anotações" contagem={a.anotacoes.length} />
+        </nav>
       </div>
 
-      <div data-rolagem-da-conversa="" className="min-h-0 flex-1 overflow-y-auto bg-sf-fundo p-4">
+      <div data-rolagem-da-conversa="" className="min-h-0 flex-1 overflow-y-auto bg-atd-tela p-4">
         {aba === "conversa" && (
-          <Conversa
-            mensagens={a.whatsappMessages}
-            agora={new Date()}
-            nomeDoAtendente={nomeDoAtendente}
-            transferidoPor={a.transferidoPor}
-            transferidoEm={a.transferidoEm}
-          />
+          <>
+            <Conversa
+              mensagens={a.whatsappMessages}
+              agora={new Date()}
+              nomeDoAtendente={nomeDoAtendente}
+              transferidoPor={a.transferidoPor}
+              transferidoEm={a.transferidoEm}
+              acabamento="app"
+            />
+            <BaloesEnviando attendanceId={a.id} />
+          </>
         )}
 
         {aba === "ficha" && (
@@ -304,7 +311,7 @@ export default async function MobileAttendanceDetail({
       </div>
 
       {aba === "conversa" && (
-        <div className="shrink-0 border-t border-regua bg-sf px-4 pb-3 pt-2">
+        <div className="shrink-0 border-t border-atd-barra-borda bg-atd-tela px-4 pb-3 pt-2">
           {podeResponder ? (
             <>
               <AtendenteIaControle
@@ -315,7 +322,7 @@ export default async function MobileAttendanceDetail({
                 nomeDoAtendente={nomeDoAtendente}
                 compacto
               />
-              <WhatsappReplyBox attendanceId={a.id} nomeDoCliente={a.clientName} janela={janelaDoWhatsapp} telefone={a.waPhone} />
+              <WhatsappReplyBox attendanceId={a.id} nomeDoCliente={a.clientName} janela={janelaDoWhatsapp} telefone={a.waPhone} acabamento="app" />
             </>
           ) : (
             <p className="py-2 text-corpo text-tx-3">

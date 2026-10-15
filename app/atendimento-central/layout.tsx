@@ -34,11 +34,11 @@ export default async function AtendimentoCentralLayout({ children }: { children:
   const modules = await getOfficeModules(user.officeId);
   if (!modules.atendimento) {
     return (
-      <div className="atd-central min-h-screen">
+      <div className="atd-central atendimento-shell atd-tema-do-site min-h-screen">
         <ModuleDisabledNotice moduleName="Atendimento" />
       </div>
     );
   }
 
-  return <div className="atd-central atd-central-fixa">{children}</div>;
+  return <div className="atd-central atendimento-shell atd-tema-do-site atd-central-fixa">{children}</div>;
 }

@@ -20,7 +20,7 @@ export default function BotaoDaGaveta({ modo }: { modo: "abrir" | "fechar" }) {
       <button
         type="button"
         onClick={() => definirGaveta(false)}
-        className="atd-so-estreito m-2 min-h-11 items-center self-end border border-[var(--atd-border-strong)] px-3 text-etiqueta font-semibold text-tx-2 hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
+        className="atd-so-estreito m-2 min-h-11 items-center self-end rounded-atd-pilula border border-atd-pilula-borda px-4 text-corpo font-semibold text-tx-2 hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
       >
         Fechar ✕
       </button>
@@ -31,7 +31,7 @@ export default function BotaoDaGaveta({ modo }: { modo: "abrir" | "fechar" }) {
       type="button"
       aria-expanded={aberta}
       onClick={() => definirGaveta(!gavetaEstaAberta())}
-      className="atd-so-estreito min-h-11 shrink-0 items-center border border-[var(--atd-border-strong)] px-3 text-etiqueta font-semibold text-tx-2 hover:bg-[var(--list-bg-hover)] hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
+      className="atd-so-estreito min-h-10 shrink-0 items-center rounded-atd-pilula border border-atd-pilula-borda px-4 text-corpo font-semibold text-tx-2 hover:bg-[var(--list-bg-hover)] hover:text-tx focus-visible:ring-2 focus-visible:ring-[var(--frame-accent)]"
     >
       Detalhes
     </button>

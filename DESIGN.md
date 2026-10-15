@@ -401,7 +401,7 @@ sobre `var()` e por nome montado em runtime. Nenhum desses aparece no `tsc`, no 
 
 ## 9. Exceção deliberada: o aplicativo de Atendimento segue a direção "acabamento WhatsApp" (30/09/2026)
 
-O dono aprovou, só para o PWA de Atendimento (`/atendimento-app`), um visual no nível de acabamento de um app de mensagens. **O site (tudo fora de `/atendimento-app`) NÃO muda**: continua o sistema "Guias" acima (canto de 2px, régua no lugar de sombra, sem pílula). Os quatorze rompimentos aprovados, que só valem dentro do app:
+O dono aprovou, primeiro só para o PWA de Atendimento (`/atendimento-app`), um visual no nível de acabamento de um app de mensagens. Os quatorze rompimentos aprovados, que só valem dentro do Atendimento:
 
 1. **Pílulas arredondadas** (busca, filtros, campo de mensagem, abas, botão de enviar) no lugar de caixas de canto vivo.
 2. **Balões de ~14px** de raio (`--atd-raio-balao`).
@@ -418,4 +418,20 @@ O dono aprovou, só para o PWA de Atendimento (`/atendimento-app`), um visual no
 13. **Etiquetas em caixa alta 11px/600** e título de tela 26px/700.
 14. **Barra inferior de quatro alvos** (Conversas, Funil, Triagem, Mais; ícone + rótulo; a ativa com pílula suave atrás do ícone) e "nova conversa" como botão flutuante.
 
-Como fica isolado: os tokens são `--atd-*` em `.atendimento-shell` (Dia) e `.atendimento-dark` (Noite) de `app/globals.css`, mapeados em `tailwind.config.ts` (`bg-atd-*`, `rounded-atd-*`, `shadow-atd-flutuante`, `text-app-*`); os componentes comuns ficam em `components/atendimento-app/ui/`. Nada disso pode ser importado fora do app (um teste varre isso). Ouro: `#c9962f` (Dia) / `#d4a83a` (Noite); texto em ouro sobre fundo: `#7a5810` / `#e3bf5c`. Todo texto continua em AA (>= 4,5:1), calculado no teste `lib/testes/atendimentoAppVisual.teste.tsx`.
+### 9.1 O Atendimento inteiro na mesma casa (15/10/2026)
+
+Em 15/10/2026 o dono aprovou levar este acabamento às **três** superfícies do Atendimento, para que o atendimento do escritório e o do bolso sejam o mesmo produto:
+
+| Superfície | Rota | Tema que segue |
+|---|---|---|
+| App de Atendimento | `/atendimento-app` | o próprio (`.atendimento-dark`, lib/temaDoAtendimentoApp.ts) |
+| Central do site | `/atendimento-central` | o do site (`.dark` no `<html>`) — marcador `.atd-tema-do-site` |
+| Atendimento no PWA geral | `/m/atendimento` | o do PWA (`.mobile-dark`) — marcador `.atd-tema-do-pwa` |
+
+O resto do produto **continua "Guias"**. O que mudou na Central: saíram a moldura azul-marinho fixa e o acento azul (mockup "Tela B"); entrou o **trilho de quatro alvos** (Conversas, Funil, Triagem, Mais — a barra inferior do app de pé, `components/atendimento/TrilhoDaCentral.tsx`), que vira barra inferior em janela de celular. Os endereços (`?aba=`, `?sub=`) são os mesmos. Os tokens antigos da Central (`--frame-*`, `--list-*`, `--work-*`) continuam existindo, mas apontam para os `--atd-*` (`app/atendimento-central/atendimento-central.css`).
+
+Componentes compartilhados ganharam a variante `acabamento="app"`: `Conversa` (balões e tiques), `WhatsappReplyBox` (pílula + envio otimista), `NovaConversaModal`. Sem ela, o portal antigo (`/atendimento/[id]`) segue como era.
+
+**Movimento do Atendimento** (app/globals.css, bloco "FILA VIVA"): a lista se reordena por FLIP (`components/atendimento/ListaViva.tsx`) e a linha que recebeu mensagem acende em ouro suave; o tique de entrega se desenha quando avança (`MarcaDeEntregaViva`); o balão enviado sai da caixa de texto (`BaloesEnviando` fora do app); a pílula do trilho desliza; trocar de conversa esmaece em 160 ms. Tudo com alternativa para `prefers-reduced-motion`. Continua **sem contador de não lidas** (não há estado de leitura no banco): quem espera resposta ganha o ponto em ouro.
+
+Como fica isolado: os tokens são `--atd-*` em `.atendimento-shell` (Dia) e `.atendimento-dark` (Noite) de `app/globals.css`, mapeados em `tailwind.config.ts` (`bg-atd-*`, `rounded-atd-*`, `shadow-atd-flutuante`, `text-app-*`); os componentes comuns ficam em `components/atendimento-app/ui/`. Os componentes de `components/atendimento-app/` só podem ser importados pelas três superfícies do Atendimento (um teste varre isso). Ouro: `#c9962f` (Dia) / `#d4a83a` (Noite); texto em ouro sobre fundo: `#7a5810` / `#e3bf5c`. Todo texto continua em AA (>= 4,5:1), calculado no teste `lib/testes/atendimentoAppVisual.teste.tsx`.

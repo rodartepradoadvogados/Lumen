@@ -64,7 +64,8 @@ teste("CAIXA: fechada troca o campo pela MESMA faixa do app, tema do site; abert
   const c = codigoDe(le("components/WhatsappReplyBox.tsx"));
   verdade(c.includes('import FaixaDaJanelaFechada from "@/components/atendimento-app/FaixaDaJanelaFechada"'), "não reusa o componente do app");
   verdade(c.includes("janela && !janela.aberta"), "só fecha quando a janela vem e está fechada");
-  verdade(c.includes('tema="site"'), "sem o tema do site");
+  // A caixa no acabamento "app" (Central e /m, DESIGN.md §9.1) usa a faixa no tema do app; a do portal antigo, o do site.
+  verdade(c.includes('tema={app ? "app" : "site"}'), "sem o tema do site para o portal antigo");
   verdade(c.indexOf("janela && !janela.aberta") > c.indexOf("useTransition()"), "return antes dos hooks");
   verdade(c.includes("<textarea"), "o campo sumiu");
 });

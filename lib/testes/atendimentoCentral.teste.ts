@@ -125,7 +125,12 @@ teste("TRAVA: a Central de Atendimento decide a aba Triagem por veTodoOAtendimen
 
 teste("TRAVA: a Triagem só é oferecida (aba visível E dados de escritório inteiro buscados) quando veTodo é verdadeiro", () => {
   // O SELETOR DE ABAS: sem `veTodo &&` na frente, a aba apareceria para todo mundo.
-  verdade(/\{veTodo && \(/.test(PAGE), "o seletor de abas principais não está condicionado a `veTodo` — a aba Triagem apareceria para quem só tem atendimentoOnly");
+  // DESDE 15/10/2026 (DESIGN.md §9.1) o seletor de abas é o TRILHO de quatro alvos: a página entrega
+  // `veTodo` a ele, e o trilho só monta os alvos Funil e Triagem quando é verdadeiro.
+  verdade(/<TrilhoDaCentral[\s\S]*?veTodo=\{veTodo\}/.test(PAGE), "a página não entrega `veTodo` ao trilho — os alvos Funil/Triagem apareceriam para quem só tem atendimentoOnly");
+  const TRILHO = codigoDe(readFileSync(join(RAIZ, "components", "atendimento", "TrilhoDaCentral.tsx"), "utf8"));
+  verdade(/\.\.\.\(veTodo\s*\?/.test(TRILHO), "o trilho monta Funil/Triagem sem olhar `veTodo`");
+  verdade(/aba === "triagem" && veTodo && \(/.test(PAGE), "o conteúdo da Triagem não está condicionado a `veTodo`");
   // AS CONSULTAS DE ESCRITÓRIO INTEIRO (fila, funil, recusados): sem o gate, elas rodariam e a
   // aba mostraria dado de quem não deveria ver, mesmo que o botão da aba estivesse escondido.
   verdade(/if \(veTodo\) \{/.test(PAGE), "as consultas de Triagem (fila/funil/recusados) não estão dentro de `if (veTodo)` — rodariam para qualquer nível de acesso");
@@ -173,12 +178,14 @@ teste("os tokens de MOLDURA existem e aparecem UMA SÓ VEZ no arquivo — a prov
   }
 });
 
-teste("os tokens de LISTA e TRABALHO existem e trocam de valor entre os dois temas", () => {
+teste("os tokens de LISTA e TRABALHO existem e apontam para os tokens do app (que trocam sozinhos entre Dia e Noite)", () => {
+  // DESDE 15/10/2026 (DESIGN.md §9.1): uma declaração só, apontando para --atd-*. Quem troca de valor
+  // entre os temas é o bloco do app em app/globals.css (`.atendimento-shell` / Noite).
   const conteudoTokens = ["--list-bg", "--list-bg-hover", "--work-bg", "--work-bg-raised"];
   for (const t of conteudoTokens) {
     const vals = ocorrencias(t);
-    igual(vals.length, 2, `${t} deveria ter exatamente duas declarações (clara e escura) — encontrei ${vals.length}`);
-    verdade(vals[0] !== vals[1], `${t} tem o MESMO valor nos dois temas (${vals[0]}) — isto é um token de moldura, não de conteúdo`);
+    igual(vals.length, 1, `${t} deveria ter uma declaração só — encontrei ${vals.length}`);
+    verdade(/^var\(--atd-/.test(vals[0]), `${t} não aponta para um token do app (${vals[0]})`);
   }
 });
 
@@ -187,12 +194,11 @@ teste("--work-bg-raised do tema escuro é um TOKEN de verdade neste arquivo, nã
   // então qualquer ajuste legítimo de cor a derrubava — e ela não vigiava o que promete. O que
   // importa aqui é o MECANISMO: o token existe, é declarado no bloco do tema escuro deste arquivo
   // de paleta, e tem um valor de cor. Qual valor é decisão de design, não de teste.
-  const iEscuro = CSS.search(/^\.dark \.atd-central\s*\{/m);
-  verdade(iEscuro > 0, "não achei a regra do tema escuro no arquivo de paleta");
-  verdade(
-    /--work-bg-raised:\s*#[0-9a-fA-F]{6};/.test(CSS.slice(iEscuro)),
-    "--work-bg-raised (escuro) não está declarado como token no arquivo de paleta",
-  );
+  // DESDE 15/10/2026: o token é declarado neste arquivo e aponta para o do app; o valor escuro mora
+  // no bloco Noite do app (app/globals.css), que vale aqui pelo marcador `.atd-tema-do-site`.
+  verdade(/--work-bg-raised:\s*var\(--atd-[a-z-]+\);/.test(CSS), "--work-bg-raised não está declarado como token no arquivo de paleta");
+  const GLOBAL = readFileSync(join(RAIZ, "app", "globals.css"), "utf8");
+  verdade(/\.dark \.atendimento-shell\.atd-tema-do-site,[\s\S]{0,120}\.atendimento-dark \{/.test(GLOBAL), "o Noite do app não vale na Central quando o site está escuro");
   // E não pode estar solto em `page.tsx` como hex cru — só via var(--work-bg-raised) ou clases
   // Tailwind normais (bg-sf etc, dos componentes hospedados).
   verdade(!/#[0-9a-fA-F]{3,8}/.test(PAGE), "app/atendimento-central/page.tsx tem hex cru — algum token da paleta vazou como número mágico em vez de var(--...)");
