@@ -190,7 +190,9 @@ export default function PrivacidadePage() {
               <p>
                 O histórico de atendimento é mantido enquanto durar a relação com o escritório e pelo prazo necessário
                 para cumprir obrigações legais (incluindo prazos de prescrição aplicáveis a serviços advocatícios),
-                podendo ser excluído a pedido do titular, quando não houver impedimento legal para isso.
+                podendo ser excluído a pedido do titular, quando não houver impedimento legal para isso. O escritório
+                pode ainda configurar a eliminação automática de atendimentos que não se tornaram processo nem
+                cliente, com as conversas e os arquivos enviados nelas, depois de 12 a 36 meses sem contato.
               </p>
             </section>
 
