@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import CaixaDeAnexos from "@/components/CaixaDeAnexos";
 import clsx from "clsx";
 import { useTabs } from "@/components/TabsProvider";
 import { RAIL_SECTIONS, visibleSectionItems, itemContem, type SectionKey } from "@/lib/navSections";
@@ -59,16 +60,21 @@ export default function PageSectionTabs({
   // cima ao entrar no Painel e 40px para baixo ao sair — parte da mesma instabilidade que a
   // largura única resolve: o quadro da página não se mexe entre navegações.
   const items = def ? visibleSectionItems(def, { hasFinanceAccess, modules, podeAtendimento, veTodoAtendimento }) : [];
+  // A CAIXA DE ANEXOS (DESIGN.md §10) mora nesta barra, à direita, em TODA tela do portal — inclusive
+  // nas que não têm aba (o Painel), onde ela ocupa a barra inteira. Some só em Atendimento e Petições
+  // (a própria caixa decide: lib/caixaDeAnexos.ts:caixaVisivelEm).
+  const caixa = <CaixaDeAnexos podeAtendimento={podeAtendimento} assessoria={Boolean(modules?.assessoria)} />;
   if (!def || items.length < 2) {
-    return <div className="h-10 shrink-0 border-b-2 border-regua-forte bg-sf" aria-hidden="true" />;
+    return <div className="flex h-10 shrink-0 border-b-2 border-regua-forte bg-sf">{caixa}</div>;
   }
 
   return (
-    // <nav> com nome: era um <div> — leitor de tela não anunciava a barra como navegação, e a aba
-    // ativa só se distinguia pela cor/peso (sem aria-current).
+    <div className="flex h-10 shrink-0 border-b-2 border-regua-forte bg-sf">
+    {/* <nav> com nome: era um <div> — leitor de tela não anunciava a barra como navegação, e a aba
+        ativa só se distinguia pela cor/peso (sem aria-current). */}
     <nav
       aria-label="Seções"
-      className="secao-abas h-10 shrink-0 flex items-center gap-4 px-4 md:px-6 border-b-2 border-regua-forte bg-sf overflow-x-auto scrollbar-thin"
+      className="secao-abas h-full min-w-0 shrink flex items-center gap-4 pl-4 md:pl-6 overflow-x-auto scrollbar-thin"
     >
       {items.map((item) => {
         // O Peticionamento (e qualquer item futuro marcado assim) nunca passa pelo mecanismo de
@@ -105,5 +111,7 @@ export default function PageSectionTabs({
         );
       })}
     </nav>
+    {caixa}
+    </div>
   );
 }

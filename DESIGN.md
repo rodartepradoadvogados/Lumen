@@ -435,3 +435,16 @@ Componentes compartilhados ganharam a variante `acabamento="app"`: `Conversa` (b
 **Movimento do Atendimento** (app/globals.css, bloco "FILA VIVA"): a lista se reordena por FLIP (`components/atendimento/ListaViva.tsx`) e a linha que recebeu mensagem acende em ouro suave; o tique de entrega se desenha quando avança (`MarcaDeEntregaViva`); o balão enviado sai da caixa de texto (`BaloesEnviando` fora do app); a pílula do trilho desliza; trocar de conversa esmaece em 160 ms. Tudo com alternativa para `prefers-reduced-motion`. Continua **sem contador de não lidas** (não há estado de leitura no banco): quem espera resposta ganha o ponto em ouro.
 
 Como fica isolado: os tokens são `--atd-*` em `.atendimento-shell` (Dia) e `.atendimento-dark` (Noite) de `app/globals.css`, mapeados em `tailwind.config.ts` (`bg-atd-*`, `rounded-atd-*`, `shadow-atd-flutuante`, `text-app-*`); os componentes comuns ficam em `components/atendimento-app/ui/`. Os componentes de `components/atendimento-app/` só podem ser importados pelas três superfícies do Atendimento (um teste varre isso). Ouro: `#c9962f` (Dia) / `#d4a83a` (Noite); texto em ouro sobre fundo: `#7a5810` / `#e3bf5c`. Todo texto continua em AA (>= 4,5:1), calculado no teste `lib/testes/atendimentoAppVisual.teste.tsx`.
+
+## 10. A Caixa de Anexos do portal (15/10/2026)
+
+Aprovada pelo dono em 15/10/2026. Uma caixa pontilhada **fixa** na barra de sub-abas (`components/PageSectionTabs.tsx`), à direita das abas, até a coluna Anotações — em **toda** tela do portal, inclusive as que não têm abas (o Painel). Some só em Atendimento e Petições (`lib/caixaDeAnexos.ts:caixaVisivelEm`). Componente: `components/CaixaDeAnexos.tsx`.
+
+- **Entrada:** clique (seletor do computador), arrastar e soltar, ou Ctrl+U. Arrastar arquivo em qualquer lugar da janela abre um alvo maior logo abaixo da caixa; soltar fora dele não anexa nada (as outras áreas de soltar continuam valendo).
+- **Nada sem confirmação:** um pop-up pergunta "Anexar estes documentos?" antes de qualquer envio.
+- **Assistente de quatro passos:** Onde (Processo, Caso, Atendimento, Assessoria jurídica — nada financeiro) → Qual (busca + recentes; na assessoria, também a parte: documento da empresa, parecer ou licitação) → Tipo (um por arquivo, sugerido pelo nome em `sugerirTipoPeloNome`, sem sugestão = "Outro" com aviso para conferir) → Conferir. Quando a tela atual é um processo, atendimento ou assessoria, o primeiro passo oferece **"Anexar aqui"**, que pula para o Tipo.
+- **Envio pelos caminhos que já existem:** Blob temporário + `finalizeAttachmentUpload` (processo/caso/atendimento/licitação) ou `/api/assessoria/documentos/upload` (empresa/parecer). As buscas do assistente (`lib/actions/caixaDeAnexos.ts`) só leem e usam o mesmo recorte de acesso do envio.
+- **Resultado na própria caixa** (sem toast): verde com "N documentos anexados em … · abrir", ou o que falhou e por quê.
+- "Tarefa da agenda" ficou de fora: o servidor só anexa em tarefa de licitação.
+- Forma "Guias": canto de 2px, filete pontilhado de 1,5px em `regua-forte`, bordô só na ação; a única sombra é a do alvo de soltar, que flutua.
+
