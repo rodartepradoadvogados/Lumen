@@ -1,9 +1,10 @@
 "use client";
 
-import { AlertTriangle, Check, CheckCheck, Clock, Ear, HelpCircle, Info, Lock, MoreVertical, Pin, RefreshCw, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, Clock, Ear, HelpCircle, Info, Lock, MoreVertical, Pin, RefreshCw, Trash2 } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
 import MidiaDaBolha from "@/components/atendimento-app/MidiaDaBolha";
-import { ROTULO_DA_ENTREGA, type EntregaDaMensagem } from "@/lib/entregaDaMensagem";
+import { type EntregaDaMensagem } from "@/lib/entregaDaMensagem";
+import MarcaDeEntregaViva from "@/components/atendimento/MarcaDeEntregaViva";
 import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 
 // O BALÃO (acabamento WhatsApp, etapa 2): raio de 14 px com o canto do rabicho em 4 px, hora e ✓✓ DENTRO do balão.
@@ -29,7 +30,9 @@ import type { MensagemDoChat } from "@/lib/mensagensDoChat";
 // O CICLO DE ENTREGA (R2A): ✓ Enviada · ✓✓ Entregue (cinza, o tom da hora) · ✓✓ Lida (azul `--atd-lida`, traço mais grosso). Nunca só
 // cor: o número de marcas (1 ou 2), o traço mais grosso da "lida", o `title` e o texto do leitor de tela ("Enviada", "Entregue",
 // "Lida") dizem o estado. "Lida" revela que o cliente leu (docs, item 30). Nota interna só tem "Salva".
-function MarcaDeEntrega({ ehNota, entrega }: { ehNota: boolean; entrega: EntregaDaMensagem }) {
+// O tique SE DESENHA quando avança com a tela aberta (components/atendimento/MarcaDeEntregaViva.tsx);
+// na mensagem que você acabou de enviar daqui (`recente`), já desenha ao aparecer.
+function MarcaDeEntrega({ ehNota, entrega, recente = false }: { ehNota: boolean; entrega: EntregaDaMensagem; recente?: boolean }) {
   if (ehNota) {
     return (
       <span className="inline-flex items-center" title="Salva">
@@ -38,13 +41,7 @@ function MarcaDeEntrega({ ehNota, entrega }: { ehNota: boolean; entrega: Entrega
       </span>
     );
   }
-  const rotulo = ROTULO_DA_ENTREGA[entrega];
-  return (
-    <span className={`inline-flex items-center ${entrega === "lida" ? "text-atd-lida" : ""}`} title={rotulo} data-entrega={entrega}>
-      {entrega === "enviada" ? <Check size={15} aria-hidden="true" /> : <CheckCheck size={15} strokeWidth={entrega === "lida" ? 3 : 2} aria-hidden="true" />}
-      <span className="sr-only">{rotulo}</span>
-    </span>
-  );
+  return <MarcaDeEntregaViva entrega={entrega} desenharAoMontar={recente} />;
 }
 
 export default function BolhaDaMensagem({
@@ -152,7 +149,7 @@ export default function BolhaDaMensagem({
         </span>
       )}
       <time dateTime={m.criadoEm}>{m.hora}</time>
-      {(m.enviada || local?.estado === "enviada") && <MarcaDeEntrega ehNota={ehNota} entrega={m.enviada ? (m.entrega ?? "enviada") : "enviada"} />}
+      {(m.enviada || local?.estado === "enviada") && <MarcaDeEntrega ehNota={ehNota} entrega={m.enviada ? (m.entrega ?? "enviada") : "enviada"} recente={Boolean(local)} />}
     </>
   );
   const classeDaMeta = `inline-flex items-center gap-1.5 text-app-meta leading-none tabular-nums ${sec}`;
@@ -161,7 +158,7 @@ export default function BolhaDaMensagem({
     <div className={`flex flex-col ${saiu ? "items-end" : "items-start"}`} data-mensagem={m.id} data-tipo={ehNota ? "nota" : undefined} data-envio={local?.estado ?? (m.enviada ? "enviada" : undefined)}>
       <div className={`flex w-full items-end gap-0.5 ${saiu ? "flex-row-reverse" : ""}`}>
       <div
-        className={`min-w-0 max-w-[84%] break-words rounded-atd-balao [overflow-wrap:anywhere] ${foto ? "min-w-[15rem] p-[3px] pb-1" : "px-2.5 pb-1.5 pt-1.5"} ${superficie}`}
+        className={`min-w-0 max-w-[84%] break-words rounded-atd-balao [overflow-wrap:anywhere] ${foto ? "min-w-[15rem] p-[3px] pb-1" : "px-2.5 pb-1.5 pt-1.5"} ${superficie} ${enviando ? "atd-sai" : ""}`}
       >
         <span className="sr-only">{ehNota ? `Nota interna, só da equipe, de ${m.autor || "você"}: ` : `${autor} disse: `}</span>
         {ehNota && (

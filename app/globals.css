@@ -379,6 +379,15 @@
   --acao-bg: var(--atd-ouro-bg);
 }
 
+/* O Noite do Atendimento vale em três lugares (DESIGN.md §9, 15/10/2026):
+   - o app próprio (/atendimento-app), que liga `.atendimento-dark` sozinho (lib/temaDoAtendimentoApp.ts);
+   - a Central do site (/atendimento-central), que segue o tema do SITE (`.dark` no <html>, o mesmo
+     alternador do resto do Lúmen) — marcador `.atd-tema-do-site`;
+   - o Atendimento dentro do PWA geral (/m/atendimento), que segue o tema do PWA (`.mobile-dark` na
+     casca) — marcador `.atd-tema-do-pwa`.
+   Um bloco só de valores: três temas escuros diferentes seriam três produtos. */
+.dark .atendimento-shell.atd-tema-do-site,
+.mobile-dark .atendimento-shell.atd-tema-do-pwa,
 .atendimento-dark {
   /* Tokens do Atendimento App — Noite, alinhada à Ardósia-noite do DESIGN.md (era uma paleta Dracula). */
   --atd-ouro: #d4a83a;
@@ -2660,4 +2669,107 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
 .artigo .md-tabela th {
   font-weight: 600;
   background: var(--sf-apoio);
+}
+
+/* ============================================================================
+   ATENDIMENTO — FILA VIVA E MOVIMENTOS DE APOIO (15/10/2026, DESIGN.md §9)
+   Valem nas três superfícies do Atendimento (app, Central do site, /m/atendimento), sempre sob
+   `.atendimento-shell`. Cada movimento explica uma mudança; nenhum é enfeite:
+   - [data-chegou]  a linha da conversa que recebeu mensagem desde a última atualização: fundo em
+                    ouro suave que se apaga (o deslize até o topo é FLIP em components/atendimento/ListaViva.tsx);
+   - .atd-desenha   o tique de entrega que acabou de mudar se desenha (enviada → entregue → lida);
+   - .atd-sai       o balão que você acabou de enviar sai da caixa de texto;
+   - .atd-troca     o conteúdo da conversa esmaece ao trocar de conversa.
+   ============================================================================ */
+.atendimento-shell [data-chegou] {
+  animation: atd-chegou 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes atd-chegou {
+  0%,
+  35% {
+    background-color: var(--atd-ouro-suave);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.atendimento-shell [data-chegou] [data-selo-contagem],
+.atendimento-shell [data-chegou] [data-selo] {
+  animation: atd-acende 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes atd-acende {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.atd-desenha path,
+.atd-desenha polyline {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: atd-desenha 0.3s ease-out forwards;
+}
+.atd-desenha path + path {
+  animation-delay: 0.1s;
+}
+@keyframes atd-desenha {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.atd-sai {
+  transform-origin: 100% 100%;
+  animation: atd-sai 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes atd-sai {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.atd-troca {
+  animation: atd-troca 0.16s ease-out;
+}
+@keyframes atd-troca {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Movimento reduzido: sai o deslocamento, fica a troca de opacidade e de cor (que carregam estado). */
+@media (prefers-reduced-motion: reduce) {
+  .atendimento-shell [data-chegou] [data-selo-contagem],
+  .atendimento-shell [data-chegou] [data-selo] {
+    animation: none;
+  }
+  .atd-desenha path,
+  .atd-desenha polyline {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .atd-sai,
+  .atd-troca {
+    animation: atd-esmaece 0.16s ease-out;
+  }
+  @keyframes atd-esmaece {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }

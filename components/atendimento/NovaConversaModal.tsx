@@ -30,7 +30,10 @@ import { hrefDaConversa, type DestinoDaConversa } from "@/lib/conversaDaCentral"
 
 type Aba = "contato" | "numero";
 
-export default function NovaConversaModal({ destino = "classico" }: { destino?: DestinoDaConversa }) {
+// `acabamento="app"` (Central do site e /m/atendimento, DESIGN.md §9): o gatilho é a pílula em ouro
+// cheio do botão "nova conversa" do app, e a janela tem os cantos do app. Sem ele, o portal antigo.
+export default function NovaConversaModal({ destino = "classico", acabamento = "guias" }: { destino?: DestinoDaConversa; acabamento?: "guias" | "app" }) {
+  const app = acabamento === "app";
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [aba, setAba] = useState<Aba>("contato");
@@ -117,7 +120,11 @@ export default function NovaConversaModal({ destino = "classico" }: { destino?: 
       <button
         type="button"
         onClick={() => setAberto(true)}
-        className="inline-flex items-center gap-1.5 bg-acao px-3.5 py-2 text-sm font-semibold text-acao-tx transition-colors hover:bg-acao-hover"
+        className={
+          app
+            ? "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-atd-pilula bg-atd-ouro px-4 text-corpo font-semibold text-atd-selo-tx transition-transform hover:bg-[var(--atd-ouro-hover)] active:scale-95"
+            : "inline-flex items-center gap-1.5 bg-acao px-3.5 py-2 text-sm font-semibold text-acao-tx transition-colors hover:bg-acao-hover"
+        }
       >
         <MessageCirclePlus size={16} /> Iniciar conversa
       </button>
@@ -126,7 +133,7 @@ export default function NovaConversaModal({ destino = "classico" }: { destino?: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-grafite-900/40 p-4">
-      <div className="w-full max-w-md bg-sf shadow-pop" onClick={(e) => e.stopPropagation()}>
+      <div className={`w-full max-w-md overflow-hidden bg-sf shadow-pop ${app ? "rounded-[18px]" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-regua px-5 py-4">
           <h3 className="text-sm font-bold text-tx">Iniciar conversa no WhatsApp</h3>
           <button onClick={fechar} className="text-tx-3 hover:text-tx">

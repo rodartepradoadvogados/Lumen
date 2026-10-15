@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Send } from "lucide-react";
 import { replyWhatsapp } from "@/lib/actions/attendance";
 import FaixaDaJanelaFechada from "@/components/atendimento-app/FaixaDaJanelaFechada";
 import { nomeParaAFaixa } from "@/lib/faixaDaJanela";
 import type { JanelaDoWhatsapp } from "@/lib/janelaDe24h";
+import { avisarEnvio } from "@/components/atendimento/BaloesEnviando";
 
 // A caixa de resposta, presa no pé da conversa.
 //
@@ -26,22 +27,56 @@ export default function WhatsappReplyBox({
   nomeDoCliente,
   janela,
   telefone,
+  acabamento = "guias",
 }: {
   attendanceId: string;
   nomeDoCliente?: string;
   janela?: JanelaDoWhatsapp;
   telefone?: string | null;
+  /**
+   * "app" (Central do site e /m/atendimento, DESIGN.md §9): campo em pílula, botão redondo em ouro e
+   * ENVIO OTIMISTA — o balão aparece na hora (components/atendimento/BaloesEnviando.tsx, que precisa
+   * estar no pé da conversa) e o campo já fica livre. "guias": o portal antigo, como sempre foi.
+   */
+  acabamento?: "guias" | "app";
 }) {
+  const app = acabamento === "app";
   const primeiroNome = (nomeDoCliente || "").trim().split(/\s+/)[0] || "";
   const router = useRouter();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Quando o envio E a atualização da página terminam, a mensagem de verdade já está na conversa:
+  // os balões provisórios já confirmados saem (o `isPending` cobre também o router.refresh()).
+  const estavaEnviando = useRef(false);
+  useEffect(() => {
+    if (!app) return;
+    if (estavaEnviando.current && !isPending) avisarEnvio({ attendanceId, id: "", estado: "limpar" });
+    estavaEnviando.current = isPending;
+  }, [app, isPending, attendanceId]);
+
   function handleSend() {
     const text = body.trim();
     if (!text || isPending) return;
     setError(null);
+    if (app) {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      avisarEnvio({ attendanceId, id, texto: text, estado: "enviando" });
+      setBody("");
+      startTransition(async () => {
+        const res = await replyWhatsapp(attendanceId, text);
+        if (res.error) {
+          avisarEnvio({ attendanceId, id, estado: "remover" });
+          setBody(text);
+          setError(res.error);
+          return;
+        }
+        avisarEnvio({ attendanceId, id, estado: "enviada" });
+        router.refresh();
+      });
+      return;
+    }
     startTransition(async () => {
       const res = await replyWhatsapp(attendanceId, text);
       if (res.error) {
@@ -64,8 +99,51 @@ export default function WhatsappReplyBox({
           primeiroNome={nome}
           nomeTemporario={nomeTemporario}
           telefone={telefone ?? null}
-          tema="site"
+          tema={app ? "app" : "site"}
         />
+      </div>
+    );
+  }
+
+  if (app) {
+    return (
+      <div className="mt-2">
+        <div className="flex items-end gap-2">
+          <label htmlFor={`resposta-${attendanceId}`} className="sr-only">
+            {primeiroNome ? `Sua resposta para ${primeiroNome}` : "Sua resposta"}
+          </label>
+          <textarea
+            id={`resposta-${attendanceId}`}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            rows={1}
+            placeholder={primeiroNome ? `Escreva para ${primeiroNome}…` : "Escreva uma resposta pelo WhatsApp…"}
+            title="Enter envia · Shift+Enter quebra linha"
+            className="max-h-40 min-h-11 flex-1 resize-none rounded-[22px] border border-transparent bg-atd-pilula px-4 py-[11px] text-corpo text-tx placeholder:text-atd-terciario focus:border-atd-campo-borda focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!body.trim()}
+            aria-label="Enviar"
+            title="Enviar"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-atd-ouro text-atd-selo-tx transition-transform hover:bg-[var(--atd-ouro-hover)] active:scale-95 disabled:opacity-50"
+          >
+            <Send size={19} aria-hidden="true" />
+            <span className="sr-only">Enviar</span>
+          </button>
+        </div>
+        {error && (
+          <p role="alert" className="mt-2 text-xs font-medium text-urgente">
+            {error} O texto voltou para a caixa.
+          </p>
+        )}
       </div>
     );
   }

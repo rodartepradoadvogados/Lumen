@@ -88,9 +88,9 @@ teste("CRITÉRIO 10: sombra só onde algo flutua (gaveta, menu de fase, botão d
   const flutuantes = ["SeletorDeFase.tsx", "RolarParaOFim.tsx"];
   for (const f of flutuantes) verdade(/atd-shadow-card/.test(le("components", "atendimento", f)), `${f}: o flutuante perdeu a sombra`);
   verdade(!/shadow|atd-shadow-card/.test(codigoDe(le("components", "atendimento", "ListaDeConversas.tsx"))), "a lista ganhou sombra");
-  const gaveta = /\.atd-trilho\s*\{[^}]*box-shadow/.exec(CSS.slice(CSS.indexOf("@media (max-width: 1239px)")));
+  const gaveta = /\.atd-trilho\s*\{[^}]*box-shadow/.exec(CSS.slice(CSS.indexOf("@media (max-width: 1339px)")));
   verdade(!!gaveta, "a gaveta (trilho flutuante) não tem sombra");
-  const fora = CSS.slice(0, CSS.indexOf("@media (max-width: 1239px)"));
+  const fora = CSS.slice(0, CSS.indexOf("@media (max-width: 1339px)"));
   verdade(!/\.atd-(lista|conversa|trilho|corpo)\s*\{[^}]*box-shadow/.test(fora), "a sombra do trilho vale também quando ele é coluna");
 });
 

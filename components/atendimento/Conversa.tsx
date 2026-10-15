@@ -4,6 +4,8 @@ import RolarParaOFim from "@/components/atendimento/RolarParaOFim";
 import { horaDeBrasilia } from "@/lib/horaDeBrasilia";
 import { agruparPorDia, fraseDaTransferencia } from "@/lib/relogioDoAtendimento";
 import { rotuloDeTranscricaoNaTela, type TranscricaoDaMensagem } from "@/lib/transcricaoDeAudio";
+import { entregaDaLinha } from "@/lib/entregaDaMensagem";
+import MarcaDeEntregaViva from "@/components/atendimento/MarcaDeEntregaViva";
 
 // ============================================================================
 // A CONVERSA.
@@ -36,7 +38,18 @@ export type MensagemDaConversa = {
   createdAt: Date;
   /** Preenchido só quando esta mensagem É um áudio (ver prisma/schema.prisma:TranscricaoDeAudio). */
   transcricao?: TranscricaoDaMensagem;
+  /** Recibos do provedor (só mensagens nossas): viram os tiques no acabamento "app". */
+  entregueEm?: Date | null;
+  lidaEm?: Date | null;
 };
+
+/**
+ * "guias": a conversa do portal antigo (/atendimento/[id]) — caixa de canto vivo com filete.
+ * "app": o acabamento do app de Atendimento (DESIGN.md §9), usado na Central do site e no
+ * /m/atendimento — balão de 14px com a ponta do lado de quem fala, saída em ouro suave, tiques de
+ * entrega. Precisa estar sob `.atendimento-shell` (os tokens --atd-* só existem lá).
+ */
+export type AcabamentoDaConversa = "guias" | "app";
 
 export default function Conversa({
   mensagens,
@@ -44,13 +57,16 @@ export default function Conversa({
   nomeDoAtendente,
   transferidoPor,
   transferidoEm,
+  acabamento = "guias",
 }: {
   mensagens: MensagemDaConversa[];
   agora: Date;
   nomeDoAtendente: string;
   transferidoPor?: string | null;
   transferidoEm?: Date | null;
+  acabamento?: AcabamentoDaConversa;
 }) {
+  const app = acabamento === "app";
   const grupos = agruparPorDia(mensagens, (m) => m.createdAt, agora);
   const aviso = fraseDaTransferencia(transferidoPor, transferidoEm);
   // A frase da transferência entra no dia da PRIMEIRA mensagem que veio depois dela: é ali que ela
@@ -76,11 +92,17 @@ export default function Conversa({
     <div className="flex flex-col gap-2">
       {grupos.map((grupo) => (
         <div key={grupo.dia} className="flex flex-col gap-2">
-          <div className="flex items-center gap-4 pt-2">
-            <span className="h-px flex-1 bg-regua" />
-            <span className="text-etiqueta font-semibold uppercase tracking-wider text-tx-3">{grupo.rotulo}</span>
-            <span className="h-px flex-1 bg-regua" />
-          </div>
+          {app ? (
+            <div className="flex justify-center pt-2">
+              <span className="rounded-atd-pilula bg-atd-pilula px-3 py-1 text-app-meta font-semibold text-atd-terciario">{grupo.rotulo}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4 pt-2">
+              <span className="h-px flex-1 bg-regua" />
+              <span className="text-etiqueta font-semibold uppercase tracking-wider text-tx-3">{grupo.rotulo}</span>
+              <span className="h-px flex-1 bg-regua" />
+            </div>
+          )}
 
           {aviso && grupo.dia === diaDaTransferencia && (
             <p className="px-4 py-1 text-center text-xs text-tx-3">{aviso}</p>
@@ -93,12 +115,15 @@ export default function Conversa({
             // verdade: quem lê precisa perceber, num olhar, que aquele texto é o REGISTRO do que
             // foi dito (para consulta), não algo que alguém escreveu ou que foi enviado a alguém.
             const transcricao = rotuloDeTranscricaoNaTela(m.transcricao);
+            const entrega = app ? entregaDaLinha(m) : null;
+            const caixa = app
+              ? `max-w-[min(560px,85%)] rounded-atd-balao px-3.5 pb-1.5 pt-2.5 ${saiu ? "rounded-br-[4px] bg-atd-balao-out text-atd-balao-out-tx" : "rounded-bl-[4px] bg-atd-balao-in text-tx"}`
+              : `max-w-[560px] bg-sf px-4 py-3 border ${saiu ? "border-regua-forte" : "border-regua"}`;
+            const meta = app ? (saiu ? "text-atd-balao-out-sec" : "text-atd-terciario") : "text-tx-3";
             return (
-              <div key={m.id} className={saiu ? "flex justify-end" : "flex justify-start"}>
-                <div
-                  className={`max-w-[560px] bg-sf px-4 py-3 border ${saiu ? "border-regua-forte" : "border-regua"}`}
-                >
-                  <p className="whitespace-pre-wrap break-words text-sm text-tx">{m.body}</p>
+              <div key={m.id} className={saiu ? "flex justify-end" : "flex justify-start"} data-mensagem={m.id}>
+                <div className={caixa}>
+                  <p className={`whitespace-pre-wrap break-words ${app ? "text-corpo" : "text-sm text-tx"}`}>{m.body}</p>
                   {transcricao && (
                     <div className="mt-2 flex items-start gap-2 border-l-[3px] border-marca bg-marca-bg px-3 py-2">
                       <Ear size={14} className="mt-0.5 shrink-0 text-marca-tx" aria-hidden="true" />
@@ -116,13 +141,14 @@ export default function Conversa({
                       </div>
                     </div>
                   )}
-                  <div className={`mt-2 flex items-center gap-1.5 ${saiu ? "justify-end" : ""}`}>
-                    {saiu && m.porAgente && <IconeAgente size={12} className="text-tx-3" />}
-                    <span className="text-etiqueta text-tx-3">
+                  <div className={`${app ? "mt-1" : "mt-2"} flex items-center gap-1.5 ${saiu ? "justify-end" : ""}`}>
+                    {saiu && m.porAgente && <IconeAgente size={12} className={meta} />}
+                    <span className={`${app ? "text-app-meta tabular-nums" : "text-etiqueta"} ${meta}`}>
                       {saiu && m.porAgente ? `${nomeDoAtendente} · ` : ""}
                       {horaDeBrasilia(m.createdAt)}
-                      {saiu && m.status === "FAILED" ? " · falhou" : ""}
                     </span>
+                    {saiu && m.status === "FAILED" && <span className={`${app ? "text-app-meta font-semibold text-urgente" : "text-etiqueta text-tx-3"}`}>{app ? "Não enviada" : " · falhou"}</span>}
+                    {entrega && <MarcaDeEntregaViva entrega={entrega} className={meta} />}
                   </div>
                 </div>
               </div>

@@ -352,7 +352,10 @@ teste("o realce continua sendo comparação com o id SELECIONADO, e não com o p
 
 teste("a aba Triagem continua AUSENTE do DOM para quem não vê o escritório todo — o acabamento não afrouxou nada", () => {
   verdade(/const veTodo = veTodoOAtendimento\(viewer\);/.test(PAGE), "a página não calcula mais `veTodo` por veTodoOAtendimento");
-  verdade(/\{veTodo && \(/.test(PAGE), "o seletor de abas não está mais condicionado a `veTodo`");
+  // DESDE 15/10/2026 o seletor é o trilho de quatro alvos (DESIGN.md §9.1): a página entrega `veTodo`
+  // a ele, e o conteúdo da Triagem continua condicionado.
+  verdade(/<TrilhoDaCentral[\s\S]*?veTodo=\{veTodo\}/.test(PAGE), "o trilho não recebe `veTodo`");
+  verdade(/aba === "triagem" && veTodo && \(/.test(PAGE), "o conteúdo da Triagem não está mais condicionado a `veTodo`");
   verdade(/if \(veTodo\) \{/.test(PAGE), "as consultas de escritório inteiro saíram de dentro de `if (veTodo)`");
   verdade(/aba === "triagem" && veTodo/.test(PAGE), "o painel da Triagem é renderizado sem checar `veTodo`");
   // A linha nova (fixar o lead clicado) roda na aba Atendimentos, que existe para os dois níveis —

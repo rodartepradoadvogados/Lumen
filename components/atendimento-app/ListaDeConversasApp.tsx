@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ListaViva from "@/components/atendimento/ListaViva";
 import { AlertCircle, Check, CheckCheck, Clock, FileText, Image as IconeDeImagem, MessageSquare, Mic, Pin, Plus, Video } from "lucide-react";
 import { chipsDaLista, hrefDaListaApp, type FiltroDaLista, type LinhaPronta, type RecorteDaListaApp } from "@/lib/conversasDoApp";
 import type { ContagensPorFase } from "@/lib/listaDeAtendimentos";
@@ -73,13 +74,15 @@ export default function ListaDeConversasApp({
       {linhas.length === 0 ? (
         <Vazio q={q} filtro={filtro} nomeDoFiltro={nomeDoFiltro} recorte={recorte} haConversas={haConversas} />
       ) : (
-        <ul className="pt-1">
+        // A FILA VIVA (components/atendimento/ListaViva.tsx, DESIGN.md §9): a cada atualização de 15 s a
+        // linha que recebeu mensagem desliza até o lugar novo e acende, em vez de saltar.
+        <ListaViva className="pt-1">
           {linhas.map((l) => (
-            <li key={l.id}>
+            <li key={l.id} data-linha-viva={l.id} data-marca={l.quandoISO} data-esperando={l.esperando ? "sim" : "nao"}>
               <Linha l={l} />
             </li>
           ))}
-        </ul>
+        </ListaViva>
       )}
 
       {(ocultos > 0 || recorte.arq) && !recorte.q && (

@@ -14,5 +14,8 @@ export default async function MobileAtendimentoLayout({ children }: { children: 
     return <ModuleDisabledNotice moduleName="Atendimento" />;
   }
 
-  return <>{children}</>;
+  // ACABAMENTO DO APP DE ATENDIMENTO dentro do PWA geral (DESIGN.md §9, 15/10/2026): o escopo dos
+  // tokens --atd-* (ouro, pílula, balão) vale só no Atendimento; o resto do /m continua o sistema
+  // "Guias". O tema segue o do PWA (`.mobile-dark` na casca → bloco Noite do app, app/globals.css).
+  return <div className="atendimento-shell atd-tema-do-pwa min-h-full bg-atd-tela text-tx">{children}</div>;
 }

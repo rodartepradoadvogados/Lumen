@@ -1,195 +1,67 @@
 /* ============================================================================
-   CENTRAL DE ATENDIMENTO — tokens dos três planos.
+   CENTRAL DE ATENDIMENTO — a mesma casa do app de Atendimento (DESIGN.md §9, 15/10/2026).
 
-   Hex extraídos LITERALMENTE do mockup aprovado pelo dono
-   (.../atendimento-mockup/index.html, "Tela B") — ver PROPOSTA.md §2/§3 desse mockup para a
-   conta de cada valor, e CRITICA.md para os defeitos que a versão final já corrigiu (não
-   reintroduzir: chanfro no cabeçalho da lista, superfície de trabalho sem largura máxima, sub-aba
-   padrão que não é a primeira, rótulos em --tx-ghost contra fundo claro demais).
+   ANTES: três planos com hex próprios — moldura azul-marinho FIXA nos dois temas (#090d14) e acento
+   azul (#569ad2), do mockup "Tela B". O dono aprovou em 15/10/2026 levar a identidade do app de
+   Atendimento (o ouro, a pílula, o balão) para cá: a Central e o app são o MESMO atendimento, um no
+   escritório e outro no bolso, e não podiam parecer dois produtos. A história completa dos hex
+   antigos (saturação de --list-bg, contas de contraste) está no git, neste arquivo, antes desta data.
 
-   Mesmo lugar que a paleta do Peticionamento ocupa em app/peticionamento/peticionamento.css:
-   TODO hex desta tela mora AQUI, nunca solto num componente ou numa classe utilitária.
+   AGORA: esta folha não tem cor própria. O invólucro da Central (layout.tsx) leva
+   `.atendimento-shell .atd-tema-do-site`, e os nomes de sempre desta tela (--frame-*, --list-*,
+   --work-*, --atd-border*) passam a APONTAR para os tokens do app (--atd-*, app/globals.css).
+   Os nomes ficam porque os componentes hospedados (FilaDeEspera, QuadroDoFunil, TrilhoDoAtendimento,
+   RecusadosParaAnalise, SeletorDeFase…) já os leem — trocar o valor no lugar troca a tela inteira.
 
-   TRÊS PLANOS, da mais funda para a mais alta:
-   - MOLDURA   (--frame-*)  navegação: barra superior, cabeçalho de abas/sub-abas, cabeçalho de
-     cada lista. FIXA nos dois temas — nunca redeclarada no bloco `.dark` abaixo. É a peça central
-     do desenho aprovado: por ser sempre a mesma cor, ela ancora a tela como "onde estou",
-     independente do tema do conteúdo (mesma composição do Telegram Web / Digisac que o dono deu
-     como referência).
-   - LISTA     (--list-*)   coluna de escaneamento: linhas da fila, de recusados, da lista de
-     Atendimentos. Muda de tom com o tema.
-   - TRABALHO  (--work-*)   onde se age: conversa, quadro do funil, trilho de detalhe. Muda de
-     tom com o tema.
-
-   O ALTERNADOR DE TEMA DESTA TELA é o MESMO da casca do Lúmen (lib/theme.ts, classe `.dark` no
-   <html>) — de propósito, e diferente do Peticionamento (que tem `data-theme` próprio,
-   independente do resto do site). Motivo: esta tela HOSPEDA componentes de produção que já
-   existem (Conversa.tsx, TrilhoDoAtendimento.tsx, FilaDeEspera.tsx, QuadroDoFunil.tsx,
-   RecusadosParaAnalise.tsx, RecusarLeadPainel.tsx, RelogioDoAtendimento.tsx, QuemEEsteNumero.tsx)
-   e nenhum deles foi reescrito para esta tela — todos usam as classes Tailwind globais
-   (bg-sf/text-tx/border-regua/...) que já respondem SÓ à classe `.dark`. Um alternador próprio
-   aqui deixaria a moldura/lista/trabalho num tema e os componentes hospedados no outro, fora de
-   sincronia. Por isso esta tela reaproveita o próprio components/ThemeToggle.tsx (variante
-   "cromo", a mesma do rail e do blog — chrome que nunca retematiza), em vez de um alternador
-   próprio: ele troca a MESMA classe `.dark` do <html>, com a MESMA chave THEME_KEY — a tela lê e
-   escreve a preferência de tema do site inteiro, não uma preferência própria.
+   O TEMA: continua o do SITE (classe `.dark` no <html>, o mesmo alternador do resto do Lúmen). O
+   marcador `.atd-tema-do-site` faz o bloco Noite do app valer aqui quando o site está escuro
+   (app/globals.css). A moldura deixou de ser fixa: acompanha Dia e Noite, como no celular.
    ============================================================================ */
 
 .atd-central {
-  /* MOLDURA — fixa. Não existe (e não deve passar a existir) uma segunda declaração destes oito
-     tokens em nenhum lugar deste arquivo: é isso que prova, em código, que a moldura não muda de
-     tom com o tema.
+  /* MOLDURA — trilho, cabeçalhos e campos. Antes fixa em azul-marinho; agora a tela do app. */
+  --frame-bg: var(--atd-tela);
+  --frame-bg-raised: var(--atd-tela);
+  --frame-border: var(--atd-barra-borda);
+  --frame-border-strong: var(--atd-campo-borda);
+  --frame-tx-0: var(--atd-tinta);
+  --frame-tx-1: var(--atd-cinza-previa);
+  --frame-tx-2: var(--atd-cinza-terciario);
+  --frame-tx-ghost: var(--atd-cinza-terciario);
+  /* O acento é o ouro do app: em TEXTO, anel de foco e sublinhado vale o ouro escuro (>= 4,5:1,
+     --atd-texto-ouro); em FUNDO de seleção, o ouro suave; o ouro cheio fica para selo e envio. */
+  --frame-accent: var(--atd-texto-ouro);
+  --frame-accent-strong: var(--atd-ouro);
+  --frame-accent-bg: var(--atd-ouro-suave);
+  --frame-accent-tx: var(--atd-texto-ouro);
+  --frame-danger: var(--urgente);
+  --frame-danger-bg: var(--urgente-bg);
 
-     F5.5 (POLISH) — `--frame-accent`/`--frame-accent-strong`/`--frame-accent-bg` mais saturados.
-     Pedido do dono: "o fundo azul do atendimento está muito pálido [...] ficou meio parecendo sem
-     profissionalismo". O sotaque de #7fa8c9 tinha pouca saturação contra o `--frame-bg` quase
-     preto — lia como um azul-bebê desbotado, não como o acento intencional de um app de mensagens
-     (a referência do próprio mockup aprovado é Telegram Web/Digisac). O tom novo é MAIS SATURADO;
-     CONFERIDO (luminância relativa WCAG): o contraste contra `--frame-bg` (#090d14) cai de
-     7,73:1 para 5,94:1 — ainda bem acima do piso de 4,5:1 desta casa, com folga real, então a
-     saturação era a variável livre para resolver "pálido" sem chegar perto de arriscar
-     legibilidade. */
-  --frame-bg: #090d14;
-  --frame-bg-raised: #0e131c;
-  --frame-border: #202838;
-  --frame-border-strong: #2a3446;
-  --frame-tx-0: #e7eaed;
-  --frame-tx-1: #aab1ba;
-  --frame-tx-2: #838d97;
-  --frame-tx-ghost: #3d434b;
-  --frame-accent: #569ad2;
-  --frame-accent-strong: #2c5170;
-  --frame-accent-bg: rgba(91, 147, 196, 0.14);
-  --frame-accent-tx: #eef4f8;
-  --frame-danger: #c07268;
-  --frame-danger-bg: rgba(192, 114, 104, 0.13);
+  /* LISTA E TRABALHO — fundo uniforme da tela, como no app; o que separa é o respiro, não o degrau. */
+  --list-bg: var(--atd-tela);
+  --list-bg-hover: var(--atd-linha-hover);
+  --work-bg: var(--atd-tela);
+  --work-bg-raised: var(--atd-tela);
+  --atd-border: var(--atd-barra-borda);
+  --atd-border-strong: var(--atd-campo-borda);
+  --atd-shadow-card: var(--atd-sombra-flutuante);
 
-  /* LISTA e TRABALHO — valores do TEMA CLARO aqui, porque este seletor sem `.dark` na frente é o
-     que vale por padrão (mesma convenção de app/globals.css: claro em `:root`, escuro em
-     `.dark`). O bloco `.dark .atd-central` logo abaixo troca só estes tokens — nunca os de cima.
+  /* Os links e marcas em "marca" (bordô no site) viram o ouro do app, nos dois temas. */
+  --marca: var(--atd-ouro);
+  --marca-tx: var(--atd-texto-ouro);
+  --marca-bg: var(--atd-ouro-suave);
 
-     F5.5 (POLISH) — a raiz do "pálido" era SATURAÇÃO, não luminosidade. Medido: `--list-bg` velho
-     (#d7dce4) tinha só ~19% de saturação a 87% de luminosidade — um cinza quase neutro com uma
-     pitada de azul, não um tom desenhado de propósito; ao lado do `--work-bg` branco, lia como o
-     branco tivesse manchado, não como uma coluna própria (mesma composição de referência do
-     mockup — Telegram Web/Digisac — que usa um cinza-azulado NÍTIDO para a lista, não um lavado).
-     A correção SOBE a saturação (até ~58% em `--list-bg`) mantendo a luminosidade PARECIDA — em
-     azul isso é possível porque o canal azul pesa pouco na luminância percebida (fórmula WCAG), e
-     é o que preserva o contraste do texto sem escurecer nada.
-     CONFERIDO, não estimado (script à parte, luminância relativa WCAG): `--tx-3` (a tinta mais
-     clara do sistema, a que primeiro reprova) mede 4,65:1 sobre o `--list-bg` novo, 5,27:1 sobre
-     `--list-bg-hover` e 5,57:1 sobre `--work-bg-raised` — os três acima do piso de 4,5:1 que
-     PRODUCT.md fixa para texto normal, com folga. `--atd-border`/`--atd-border-strong` não levam
-     texto em cima (são só filete entre planos), então não precisam da mesma régua. */
-  /* ── POR QUE ESTAS SUPERFÍCIES SÃO NEUTRAS, E NÃO AZUIS (24/09/2026) ────────────────────────
-   *
-   * O dono reclamou duas vezes desta tela, com um mês de diferença: primeiro "pálido", depois
-   * "azul claro pouco profissional". São a MESMA causa, não duas. A lista fica encostada num
-   * branco puro (--work-bg, S=0%) com claridade parecida, e o olho discrimina MATIZ em
-   * luminosidade próxima muito melhor que claridade pura — então pouco azul lê como branco
-   * manchado e muito azul lê como pastel. Saturar nunca ia resolver, em direção nenhuma.
-   *
-   * A primeira correção subiu --list-bg de 19% para 58% de saturação. Ela mediu contraste (que
-   * continuou acima do piso) e concluiu que era segura. CONTRASTE E SOBRIEDADE SÃO EIXOS
-   * DIFERENTES: contraste mede luminosidade entre texto e fundo, não se um fundo de um terço da
-   * tela virou cor de marca. Saiu de "lavado demais" para "corado demais" pulando o meio.
-   *
-   * O meio é a régua que o resto do Lúmen já usa: --papel, --ficha-alt, --linha e --linha-forte
-   * (app/globals.css) vivem todos entre 16 e 17% de saturação, variando só a claridade. Estes
-   * tokens passaram a ficar entre 15 e 18%. O contraste de --tx-3 MELHOROU nos três:
-   * 4,65 -> 5,31 | 5,27 -> 5,83 | 5,57 -> 5,99.
-   *
-   * O TELEGRAM, que o dono deu como referência, foi lido no código-fonte (telegramdesktop, temas
-   * oficiais day/night), não de memória: no tema claro, a lista de conversas e a área de trabalho
-   * são o MESMO branco puro, e o hover é cinza de saturação ZERO. O azul de marca existe num papel
-   * só — estado ativo e selecionado —, nunca preenchendo um painel. Era exatamente o inverso do
-   * que esta tela fazia.
-   *
-   * Por isso --frame-accent SOBE (47% -> 58%): com as superfícies quietas, o acento pode
-   * finalmente ser a única cor com intenção na tela, que é o que "manter só a barra superior"
-   * pedia. Contraste dele sobre o fundo da moldura: 6,44 para 1.
-   *
-   * O TEMA ESCURO NÃO FOI TOCADO: ele já usa uma disciplina só (25-27%, variando claridade). */
-  --list-bg: #e1e5ea;
-  --list-bg-hover: #edeff2;
-  --work-bg: #ffffff;
-  --work-bg-raised: #f0f2f4;
-  --atd-border: #cad0d8;
-  --atd-border-strong: #a6b0bf;
-  --atd-shadow-card: 0 8px 20px rgba(20, 23, 27, 0.1), 0 2px 6px rgba(20, 23, 27, 0.08);
-
-  /* A LARGURA MÁXIMA DA SUPERFÍCIE DE LEITURA (etapa 3) — a conversa.
-     Ela se esticava até a largura da tela: em monitor grande, a mensagem que saiu ficava encostada
-     numa borda e a que chegou na outra, com um palmo de vazio no meio, e o olho perdia o fio.
-     (O CRITICA.md do mockup aprovado já listava "superfície de trabalho sem largura máxima" entre
-     os defeitos a não reintroduzir — esta era a reincidência dele.)
-
-     O NÚMERO NÃO É NOVO: são os mesmos 1040px de `.peticionamento .content`
-     (app/peticionamento/peticionamento.css), a superfície de trabalho da outra aba que abre em aba
-     própria. Duas telas irmãs com medidas de leitura diferentes seriam duas casas.
-
-     É TOKEN, e não `max-w-[1040px]` solto no JSX, pela mesma razão dos tokens de cor acima: a
-     medida desta tela mora nesta folha, num lugar só. Não muda com o tema — por isso está aqui, ao
-     lado da moldura, e não redeclarada no bloco `.dark`. E é ALINHADA À ESQUERDA (sem margem
-     automática), como `.peticionamento .content`: o canto onde o olho volta para reler fica no
-     lugar quando a janela muda de tamanho. */
+  /* MEDIDAS — as mesmas de antes (ver o git para o porquê de cada uma). */
   --atd-largura-leitura: 1040px;
-
-  /* AS MEDIDAS DA GRADE (A1 do plano de 29/09/2026) — só medida, nenhuma cor. Vivem aqui, e não
-     como `w-[340px]` no JSX, pela mesma razão do token de leitura acima: a medida de uma coluna é
-     decisão da tela, tem de ter um lugar só, e o teste de acabamento proíbe largura fixa travada
-     dentro de classe utilitária.
-       lista  340px (3 colunas) / 320px (2 colunas — a janela pequena do PWA, 877px, deixa 557px para
-              a conversa em vez dos 157px que sobravam com 340 + 380 fixos)
-       trilho 380px, e em janela estreita vira gaveta por cima da conversa */
-  --atd-largura-lista: 340px;
-  --atd-largura-lista-estreita: 320px;
-  --atd-largura-trilho: 380px;
+  --atd-largura-lista: 380px;
+  --atd-largura-lista-estreita: 340px;
+  --atd-largura-trilho: 360px;
+  --atd-largura-trilho-nav: 88px;
 
   color-scheme: light;
 }
 
 .dark .atd-central {
-  /* Os três primeiros valores são DERIVADOS, não literais do CSS-fonte do Peticionamento — a
-     "Ardósia fria" original (--bg-0..--bg-3) não tem degrau suficiente para separar lista e
-     trabalho visivelmente (medido no mockup: ~1,1:1 entre planos, abaixo do que o olho registra
-     como "degrau"). Os três escalam a MESMA razão de matiz de --bg-3 (28:35:48) por um fator
-     maior, preservando o azul-frio e abrindo a distância — a conta completa (por que cada fator,
-     e os dois métodos testados e descartados antes) está em PROPOSTA.md §0.4/§2.2 do mockup
-     aprovado. `--work-bg-raised` em particular NÃO é um valor solto: é este token, aqui, ao lado
-     dos outros — é o que a etapa 1 pedia explicitamente para não deixar "número mágico" nenhum. */
-  /* ── O ESCURO TAMBÉM SAI DO AZUL (25/09/2026) ──────────────────────────────────────────────
-   *
-   * ERRO MEU, e vale escrito: em 24/09 o tema CLARO foi trazido para a régua neutra da casa e o
-   * escuro ficou como estava, porque as duas avaliações disseram que ele "já usava uma disciplina
-   * só". Usava mesmo — uma disciplina de 26%, que é disciplinada E azul. O dono trabalha no tema
-   * escuro, olhou a tela e disse, com razão, que não tinha mudado nada. Disciplina não era o
-   * pedido; tirar o azul era.
-   *
-   * Saturação de ~26% para ~14%, matiz fixo em 218 (o mesmo de --frame-bg), variando só a
-   * claridade — a mesma gramática que o tema claro passou a usar.
-   *
-   * DOIS DEFEITOS CORRIGIDOS DE CARONA, os dois MEDIDOS e os dois anteriores a esta entrega:
-   *
-   *   1. --list-bg-hover e --work-bg eram A MESMA COR (#283245): a linha sob o cursor tinha
-   *      exatamente o tom do fundo da conversa. Agora L=16,5% e L=14,1%.
-   *   2. Três superfícies REPROVAVAM o piso de 4,5:1 com --tx-3, em silêncio, porque só quem
-   *      escolhe o tema escuro via:
-   *         --list-bg-hover   4,34 -> 4,94
-   *         --work-bg         4,34 -> 5,37
-   *         --work-bg-raised  3,63 -> 4,54
-   *
-   * O TELEGRAM, no tema escuro, faz o mesmo: a janela é S=30%, mas a área da CONVERSA — onde se
-   * lê — é #24292e, S=12%. A cor fica na moldura e no que está ativo, não na superfície de
-   * leitura. */
-  --list-bg: #181b20;
-  --list-bg-hover: #242930;
-  --work-bg: #1f2229;
-  --work-bg-raised: #2a2f37;
-  --atd-border: #272c34;
-  --atd-border-strong: #353b46;
-  --atd-shadow-card: 0 8px 20px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.35);
-
   color-scheme: dark;
 }
 
@@ -255,7 +127,7 @@ html:has(.atd-central-fixa) body {
   display: none;
 }
 
-@media (max-width: 1239px) {
+@media (max-width: 1339px) {
   .atd-corpo {
     grid-template-columns: var(--atd-largura-lista-estreita) minmax(0, 1fr);
   }
@@ -314,5 +186,233 @@ html:has(.atd-central-fixa) body {
   }
   .atd-dica {
     display: none;
+  }
+}
+
+
+/* ============================================================================
+   A MOLDURA NOVA (15/10/2026): trilho de navegação à esquerda + a tela.
+
+   O trilho (components/atendimento/TrilhoDaCentral.tsx) é a barra inferior do app em pé: quatro
+   alvos de 64px, a pílula em ouro suave atrás do ícone ativo DESLIZA de um alvo para o outro
+   (--atd-trilho-ind; é a única transição de navegação da tela). Em janela de celular ele deita e
+   vira a barra inferior, e some dentro de uma conversa — exatamente como no app.
+   ============================================================================ */
+.atd-moldura {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  background: var(--atd-tela);
+}
+.atd-moldura-tela {
+  display: flex;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+.atd-trilho-nav {
+  position: relative;
+  display: flex;
+  width: var(--atd-largura-trilho-nav);
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 0 12px;
+  border-right: 1px solid var(--atd-barra-borda);
+  background: var(--atd-tela);
+}
+.atd-trilho-marca {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 14px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--atd-ouro);
+  color: var(--atd-selo-tx);
+  font-weight: 700;
+  font-size: 19px;
+}
+.atd-trilho-alvos {
+  position: relative;
+}
+.atd-trilho-alvos ul {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.atd-trilho-ind {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 60px;
+  height: 32px;
+  margin-left: -30px;
+  border-radius: 9999px;
+  background: var(--atd-ouro-suave);
+  transform: translateY(var(--atd-trilho-ind, 0px));
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* Sem alvo ativo (o menu Mais não é tela) a pílula não aparece. */
+.atd-trilho-alvos:not(:has([aria-current="page"])) .atd-trilho-ind {
+  display: none;
+}
+.atd-trilho-alvo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 80px;
+  height: 64px;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 0 6px;
+  border: 0;
+  background: none;
+  color: var(--atd-cinza-previa);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.atd-trilho-alvo:hover {
+  color: var(--atd-tinta);
+}
+.atd-trilho-alvo:focus-visible {
+  outline: 2px solid var(--atd-texto-ouro);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+.atd-trilho-alvo[aria-current="page"] {
+  color: var(--atd-tinta);
+  font-weight: 700;
+}
+.atd-trilho-alvo[aria-current="page"] .atd-trilho-icone {
+  color: var(--atd-texto-ouro);
+}
+.atd-trilho-icone {
+  position: relative;
+  display: grid;
+  width: 60px;
+  height: 32px;
+  place-items: center;
+}
+.atd-trilho-selo {
+  position: absolute;
+  top: -3px;
+  right: 6px;
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--atd-selo-bg);
+  color: var(--atd-selo-tx);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.atd-trilho-mais {
+  position: relative;
+}
+.atd-trilho-menu {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 8px);
+  z-index: 30;
+  width: 290px;
+  padding: 6px;
+  border: 1px solid var(--atd-barra-borda);
+  border-radius: 16px;
+  background: var(--atd-tela);
+  box-shadow: var(--atd-sombra-flutuante);
+}
+.atd-trilho-pe {
+  display: grid;
+  margin-top: auto;
+  justify-items: center;
+  gap: 6px;
+}
+.atd-trilho-sair {
+  display: flex;
+  width: 80px;
+  min-height: 52px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--atd-cinza-previa);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  text-align: center;
+}
+.atd-trilho-sair:hover {
+  color: var(--atd-tinta);
+}
+
+/* O título de cada destino (Conversas / Funil / Triagem): 26px/700 sobre o fundo, como no app. */
+.atd-titulo-de-tela {
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--atd-tinta);
+}
+
+@media (max-width: 760px) {
+  .atd-moldura {
+    flex-direction: column-reverse;
+  }
+  .atd-trilho-nav {
+    width: 100%;
+    flex-direction: row;
+    padding: 0 8px env(safe-area-inset-bottom);
+    border-right: 0;
+    border-top: 1px solid var(--atd-barra-borda);
+  }
+  .atd-trilho-marca,
+  .atd-trilho-pe,
+  .atd-trilho-ind {
+    display: none;
+  }
+  .atd-trilho-alvos {
+    flex: 1;
+  }
+  .atd-trilho-alvos ul {
+    display: flex;
+  }
+  .atd-trilho-alvos li {
+    flex: 1;
+    min-width: 0;
+  }
+  .atd-trilho-alvo {
+    width: 100%;
+    height: 58px;
+    justify-content: center;
+  }
+  /* No celular a pílula fica atrás do ícone ativo, sem deslizar (a barra é horizontal). */
+  .atd-trilho-alvo[aria-current="page"] .atd-trilho-icone {
+    border-radius: 9999px;
+    background: var(--atd-ouro-suave);
+  }
+  .atd-trilho-menu {
+    top: auto;
+    bottom: calc(100% + 8px);
+    left: auto;
+    right: 0;
+    width: min(290px, calc(100vw - 24px));
+  }
+  /* Dentro de uma conversa a conversa é a tela (como no app): a barra sai. */
+  .atd-moldura:has(.atd-corpo[data-vista="conversa"]) .atd-trilho-nav {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atd-trilho-ind {
+    transition: none;
   }
 }

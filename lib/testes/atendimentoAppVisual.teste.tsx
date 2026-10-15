@@ -292,7 +292,12 @@ teste("NADA de ouro cheio fora de selo, botão flutuante, envio e play; nada de 
   }
 });
 
-teste("SITE INTACTO: nada fora de /atendimento-app importa o cabeçalho, a barra ou os componentes do acabamento", () => {
+// DESDE 15/10/2026 (DESIGN.md §9.1) o acabamento vale nas TRÊS superfícies do Atendimento: o app, a
+// Central do site e o Atendimento do PWA geral. Elas podem usar os componentes do acabamento; o resto do
+// produto (o portal "Guias", inclusive o /atendimento antigo) continua sem poder.
+const SUPERFICIES_DO_ATENDIMENTO = ["app/atendimento-central/", "app/m/(shell)/atendimento/", "components/atendimento/ListaDeConversas.tsx"];
+
+teste("SITE INTACTO: fora das três superfícies do Atendimento, nada importa o cabeçalho, a barra ou os componentes do acabamento", () => {
   const varrer = (dir: string, achados: string[]) => {
     for (const e of readdirSync(join(RAIZ, dir), { withFileTypes: true })) {
       const rel = `${dir}/${e.name}`;
@@ -307,7 +312,9 @@ teste("SITE INTACTO: nada fora de /atendimento-app importa o cabeçalho, a barra
   const achados: string[] = [];
   for (const d of ["app", "components", "lib"]) varrer(d, achados);
   // as próprias telas do app (app/atendimento-app) ficam de fora da varredura; o resto do produto não pode usar
-  igual(achados.filter((f) => !f.startsWith("components/atendimento-app/")), []);
+  igual(achados.filter((f) => !f.startsWith("components/atendimento-app/") && !SUPERFICIES_DO_ATENDIMENTO.some((x) => f.startsWith(x))), []);
+  // e as superfícies liberadas de fato usam (senão a lista acima vira liberação morta)
+  verdade(achados.some((f) => f.startsWith("app/atendimento-central/")) && achados.some((f) => f.startsWith("app/m/(shell)/atendimento/")), "as superfícies novas não usam o acabamento");
 });
 
 resumo("Atendimento app — acabamento WhatsApp (etapa 1)");
