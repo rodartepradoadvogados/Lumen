@@ -2735,6 +2735,21 @@ model AlertaMemoriaHermesParametro {
   updatedAt DateTime @updatedAt
 }
 
+// ============================================================================
+// ALERTA "A ANA NÃO CONSEGUIU RESPONDER UM CLIENTE" (incidente de 15 a 17/10/2026: o Hermes ficou lento, toda
+// chamada estourou e a Ana ficou dois dias muda sem ninguém saber). Guarda só o "já alertei hoje" — o MESMO
+// campo e a MESMA régua de AlertaMemoriaHermesParametro (dia de Brasília "AAAA-MM-DD", comparado por igualdade
+// de texto: lib/campanhasCobranca.ts:deveEnviarAvisoHoje), numa tabela PRÓPRIA porque aquela é um parâmetro
+// do alerta de memória (tem `limiarKB`) e misturar os dois alertas na mesma linha/chave confundiria o painel
+// mestre que lê a outra. Uma linha só, chave fixa "ANA_SEM_RESPOSTA". Tabela aditiva: `db push` cria, nenhuma
+// coluna existente muda. Nenhum dado de cliente mora aqui.
+// ============================================================================
+model AlertaDaAnaEstado {
+  chave                String   @id @default("ANA_SEM_RESPOSTA")
+  ultimoAlertaDiarioEm String?
+  updatedAt            DateTime @updatedAt
+}
+
 model WhatsappConfig {
   id String @id @default(cuid())
 

@@ -6,6 +6,8 @@ import { CornerUpLeft, Lock, Undo2 } from "lucide-react";
 import IconeAgente from "@/components/IconeAgente";
 import InterruptorDaAna from "@/components/InterruptorDaAna";
 import { definirAtendenteResponde, devolverAtendenteResponde, responderUltimaPergunta } from "@/lib/actions/attendance";
+import { textoDeEsperaDaAna } from "@/lib/esperaDaAna";
+import { useEsperaLongaDaAna } from "@/components/useEsperaLongaDaAna";
 
 // ============================================================================
 // A CHAVE DO ATENDENTE, NESTA CONVERSA.
@@ -52,6 +54,10 @@ export default function AtendenteIaControle({
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, comecar] = useTransition();
+  // "Responder à última pergunta" espera o Hermes por até 105 s. `respondendo` separa essa espera do resto de `pendente`
+  // (ligar/desligar/devolver são rápidos e não precisam de texto de espera); depois de ~30 s o texto troca (lib/esperaDaAna.ts).
+  const [respondendo, setRespondendo] = useState(false);
+  const esperaLonga = useEsperaLongaDaAna(respondendo);
   // A chave responde ao toque NA HORA (o servidor grava e o `router.refresh()` confirma); se a gravação
   // falhar, volta ao que era e a frase de erro aparece embaixo.
   const [ligado, setLigado] = useState(responde);
@@ -122,9 +128,14 @@ export default function AtendenteIaControle({
 
   function responderAgora() {
     setErro(null);
+    setRespondendo(true);
     comecar(async () => {
-      const r = await responderUltimaPergunta(attendanceId);
-      if (r.error) setErro(r.error);
+      try {
+        const r = await responderUltimaPergunta(attendanceId);
+        if (r.error) setErro(r.error);
+      } finally {
+        setRespondendo(false);
+      }
       router.refresh();
     });
   }
@@ -179,6 +190,14 @@ export default function AtendenteIaControle({
           )
         )}
       </p>
+
+      {/* A espera longa, dita à vista e ao leitor de tela (role="status" é aria-live educado): a troca do texto
+          depois de ~30 s é o sinal de que a tela não travou. O erro final continua no alerta logo abaixo. */}
+      {respondendo && (
+        <p role="status" className="mt-2 text-xs text-tx-2">
+          {textoDeEsperaDaAna(nomeDoAtendente, esperaLonga)}
+        </p>
+      )}
 
       {erro && <p role="alert" className="mt-2 text-xs font-medium text-urgente">{erro}</p>}
     </div>

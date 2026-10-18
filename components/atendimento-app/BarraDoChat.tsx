@@ -6,6 +6,8 @@ import DialogoDaAna from "@/components/atendimento-app/DialogoDaAna";
 import { definirAtendenteResponde, devolverAtendenteResponde, responderUltimaPergunta } from "@/lib/actions/attendance";
 import { abrirPerguntaDeResposta, dialogoDaPilula, pilulaDaAna, textosDoDialogo } from "@/lib/anaNoTopo";
 import type { EstadoDoChat } from "@/lib/estadoDoChat";
+import { textoDeEsperaDaAna } from "@/lib/esperaDaAna";
+import { useEsperaLongaDaAna } from "@/components/useEsperaLongaDaAna";
 
 // A ANA NA LINHA DAS ABAS (33). Não há mais barra abaixo das abas: o que era a barra virou UMA PÍLULA ("Ana: Ligada",
 // "Ana: Desligada", "Ana: pausada") que é desenhada, por portal, no espaço `data-slot-da-ana` da linha das abas
@@ -47,6 +49,8 @@ export default function BarraDoChat({
   const [gravando, setGravando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [respondendo, setRespondendo] = useState(false);
+  // O Hermes pode levar até 105 s: depois de ~30 s o texto do diálogo troca para dizer que a espera continua.
+  const esperaLonga = useEsperaLongaDaAna(respondendo);
   const [erroDaResposta, setErroDaResposta] = useState<string | null>(null);
   const [aviso, setAviso] = useState("");
   const [slot, setSlot] = useState<Element | null>(null);
@@ -167,7 +171,7 @@ export default function BarraDoChat({
           sim={textosResposta.sim}
           nao={textosResposta.nao}
           ocupado={respondendo}
-          ocupadoTexto={`${nomeDoAtendente} está respondendo…`}
+          ocupadoTexto={textoDeEsperaDaAna(nomeDoAtendente, esperaLonga)}
           erro={erroDaResposta}
           aoSim={() => void responderUltima()}
           aoNao={() => {

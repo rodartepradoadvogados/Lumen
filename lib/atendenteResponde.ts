@@ -20,7 +20,9 @@ import { nomeEhTemporario, assuntoPadraoWhatsapp } from "@/lib/nomeTemporarioDoL
 import { renomearPastaSeExistir } from "@/lib/renomeacaoDoAtendimento";
 import { relerAntesDeEnviar } from "@/lib/anaReleOSilencio";
 import { registrarAvisoDaAna } from "@/lib/notaDaConversaDb";
-import { motivoDaFalhaDoHermes, motivoDePonteNaoConfigurada, semSegredoDaPonte } from "@/lib/motivoDoAtendente";
+import { motivoDaFalhaDoHermes, motivoDeFalhaNoEnvio, motivoDePonteNaoConfigurada, semSegredoDaPonte } from "@/lib/motivoDoAtendente";
+import { alertarDonosQueAAnaFalhou } from "@/lib/actions/alertaDaAnaSemResposta";
+import type { CausaDaFalhaDaAna } from "@/lib/alertaDaAnaSemResposta";
 
 // ============================================================================
 // O ATENDENTE RESPONDE (ou explica por que não).
@@ -44,6 +46,30 @@ const QUANTAS_MENSAGENS_DE_CONTEXTO = 10;
 async function desistirComAviso(attendanceId: string, officeId: string, perguntaId: string, motivo: string) {
   await registrarAvisoDaAna({ id: attendanceId, officeId }, perguntaId, motivo);
   return { respondeu: false as const, motivo: `o atendente desistiu de enviar: ${motivo}` };
+}
+
+/**
+ * A Ana QUIS responder e não conseguiu (Hermes, ponte, envio, falha inesperada, resposta vazia): ninguém mais
+ * ficaria sabendo — os webhooks ignoram o retorno de `atendenteResponde` e o motivo só ia para o log da Vercel
+ * (incidente de 15 a 17/10/2026: dois dias sem resposta, sem ninguém perceber). Faz DUAS coisas, ambas que
+ * nunca lançam:
+ *  1. o AVISO NO CHAT ("A Ana não respondeu: <motivo>"), só da equipe, uma vez por pergunta do cliente;
+ *  2. o E-MAIL aos donos da plataforma, no máximo um por dia, só para causa de infraestrutura (não para a
+ *     resposta vazia) — lib/alertaDaAnaSemResposta.ts.
+ *
+ * SÓ SE CHAMA DEPOIS de a Ana ter decidido que devia responder (`deveResponder` aprovou e há uma pergunta do
+ * cliente pendente). As recusas de trava — módulo/agente desligado, conversa silenciada, não marcada, número
+ * fora da lista, última mensagem que não é do cliente — são ESCOLHAS do escritório, não defeito, e não passam
+ * por aqui. `motivo` tem de vir de lib/motivoDoAtendente.ts (já sem token/URL/telefone). Não devolve nada: o
+ * `return { respondeu, motivo }` do chamador não muda (o botão manual "Responder à última pergunta" o usa).
+ */
+async function avisarQueAAnaFalhou(
+  alvo: { attendanceId: string; officeId: string; perguntaId: string },
+  causa: CausaDaFalhaDaAna,
+  motivo: string,
+): Promise<void> {
+  await registrarAvisoDaAna({ id: alvo.attendanceId, officeId: alvo.officeId }, alvo.perguntaId, motivo);
+  await alertarDonosQueAAnaFalhou({ officeId: alvo.officeId, attendanceId: alvo.attendanceId, causa, motivo });
 }
 
 type CampanhaDoAtendimento = {
@@ -109,6 +135,12 @@ export async function atendenteResponde(
     orcamentoRestanteMs?: number;
   } = {},
 ): Promise<{ respondeu: boolean; motivo: string }> {
+  // PARA A FALHA INESPERADA (o `catch` final): quem a Ana ia responder e se a mensagem já saiu. Preenchidos
+  // quando o código chega nesses pontos. `alvo` só existe depois de a Ana ter decidido que devia responder, e
+  // `jaEnviou` impede o aviso "A Ana não respondeu" quando a exceção veio DEPOIS do envio (a resposta saiu;
+  // afirmar o contrário seria falso).
+  let alvo: { attendanceId: string; officeId: string; perguntaId: string } | null = null;
+  let jaEnviou = false;
   try {
     const atendimento = await prisma.attendance.findUnique({
       where: { id: attendanceId },
@@ -185,10 +217,6 @@ export async function atendenteResponde(
     );
     if (!veredito.responde) return { respondeu: false, motivo: veredito.motivo };
 
-    if (!hermesConfigurado()) {
-      return { respondeu: false, motivo: motivoDePonteNaoConfigurada() };
-    }
-
     const mensagens = await prisma.whatsappMessage.findMany({
       where: { attendanceId },
       orderBy: { createdAt: "desc" },
@@ -214,6 +242,20 @@ export async function atendenteResponde(
     // pendente — responder aqui seria o atendente falando sozinho.
     if (!ultima || ultima.direction !== "IN") {
       return { respondeu: false, motivo: "a última mensagem não é do cliente" };
+    }
+
+    // A PARTIR DAQUI A ANA DEVE RESPONDER: as travas do escritório passaram e há uma pergunta do cliente
+    // esperando (`ultima`). Qualquer falha daqui em diante vira aviso no chat + alerta (avisarQueAAnaFalhou).
+    alvo = { attendanceId, officeId: atendimento.officeId, perguntaId: ultima.id };
+
+    // "PONTE NÃO CONFIGURADA" É FALHA DE INFRAESTRUTURA, não escolha do escritório (faltam variáveis na
+    // Vercel): sem aviso, ninguém saberia. Por isso a checagem ficou DEPOIS das travas do escritório e da
+    // verificação da pergunta pendente — antes dela, "última mensagem não é do cliente" (nada a responder)
+    // geraria um aviso falso a cada mensagem nossa.
+    if (!hermesConfigurado()) {
+      const motivo = motivoDePonteNaoConfigurada();
+      await avisarQueAAnaFalhou(alvo, "ponte-nao-configurada", motivo);
+      return { respondeu: false, motivo };
     }
 
     const parametros = await lerParametros(atendimento.officeId);
@@ -259,7 +301,9 @@ export async function atendenteResponde(
       // O motivo REAL, em frase (não configurado / sem resposta / recusou / perfil), sem segredo:
       // lib/motivoDoAtendente.ts. O registro técnico completo continua indo só para o log do servidor.
       console.error("[atendente] agente indisponível:", semSegredoDaPonte(erro instanceof FalhaDoHermes ? `${erro.causa ?? "?"} ${erro.status ?? ""} ${erro.motivo}` : mensagemDeErro(erro)));
-      return { respondeu: false, motivo: motivoDaFalhaDoHermes(erro) };
+      const motivo = motivoDaFalhaDoHermes(erro);
+      await avisarQueAAnaFalhou(alvo, "hermes", motivo);
+      return { respondeu: false, motivo };
     }
 
     // AS MARCAS SAEM ANTES DE QUALQUER COISA. Elas são combinadas entre nós e o agente; vazar
@@ -291,6 +335,13 @@ export async function atendenteResponde(
       // dizer que a Ana só escreveu marcas; o caso segue para uma pessoa em vez de ficar parado.
       if (proposta) await registrarProposta(attendanceId, proposta);
       if (gatilho) await transferirLead(attendanceId, gatilho);
+      // Aviso no chat sim, e-mail não ("vazia" não alerta os donos): é o modelo respondendo mal, não a máquina caída.
+      // Se a Ana só escreveu marcas, a equipe já foi acionada (proposta / transferência) e o aviso diz isso.
+      await avisarQueAAnaFalhou(
+        alvo,
+        "vazia",
+        proposta || gatilho ? "o agente só devolveu uma decisão (transferência ou proposta), sem texto para o cliente" : "o agente devolveu resposta vazia, sem texto para enviar",
+      );
       return { respondeu: false, motivo: "o agente devolveu resposta vazia" };
     }
 
@@ -308,8 +359,12 @@ export async function atendenteResponde(
 
     const envio = await sendWhatsappText(atendimento.officeId, atendimento.waPhone, resposta);
     if (!envio.ok) {
+      // O retorno segue com o texto cru do provedor (o botão manual mostra); o AVISO usa a frase limpa (sem
+      // endereço, token nem telefone), porque ele fica gravado no chat e vai por e-mail.
+      await avisarQueAAnaFalhou(alvo, "envio", motivoDeFalhaNoEnvio(envio.error));
       return { respondeu: false, motivo: envio.error || "falha ao enviar" };
     }
+    jaEnviou = true;
 
     await registrarMensagem(
       {
@@ -382,6 +437,9 @@ export async function atendenteResponde(
   } catch (erro) {
     // Nunca lança: ver a nota no topo.
     console.error("[atendente] falha inesperada:", mensagemDeErro(erro));
+    // Aviso só se a Ana já sabia que devia responder (`alvo`) e a mensagem ainda NÃO saiu. Falha antes disso
+    // (ex.: o banco caiu ao ler o atendimento) não tem pergunta para ancorar o aviso: fica só no log, como estava.
+    if (alvo && !jaEnviou) await avisarQueAAnaFalhou(alvo, "inesperada", "falha inesperada ao responder");
     return { respondeu: false, motivo: "falha inesperada ao responder" };
   }
 }

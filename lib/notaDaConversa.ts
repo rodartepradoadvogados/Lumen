@@ -60,9 +60,17 @@ export function chaveDoAvisoDaAna(perguntaId: string): string {
   return `sistema:ana-desistiu:${perguntaId}`;
 }
 
-/** O motivo vem de `decidirDepoisDaReleitura` ("uma pessoa do escritório assumiu enquanto ela redigia"). */
+/**
+ * O motivo vem de `decidirDepoisDaReleitura` ("uma pessoa do escritório assumiu enquanto ela redigia") ou de
+ * lib/motivoDoAtendente.ts (falha do Hermes / do envio, já sem segredo). O teto de tamanho existe porque o
+ * corpo de erro de um provedor pode ser longo, e um balão de aviso não é lugar de despejar log: o detalhe
+ * técnico completo continua indo só para o log do servidor.
+ */
+const LIMITE_DO_MOTIVO = 400;
+
 export function fraseDoAvisoDaAna(motivo: string): string {
-  const limpo = motivo.trim().replace(/[.\s]+$/, "");
+  const inteiro = motivo.trim().replace(/[.\s]+$/, "");
+  const limpo = inteiro.length > LIMITE_DO_MOTIVO ? `${inteiro.slice(0, LIMITE_DO_MOTIVO - 3).trimEnd()}...` : inteiro;
   return `A Ana não respondeu: ${limpo || "ela desistiu de enviar"}.`;
 }
 
