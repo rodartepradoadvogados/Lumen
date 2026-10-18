@@ -53,3 +53,24 @@ export function motivoDaFalhaDoHermes(erro: unknown): string {
       return semSegredoDaPonte(`o assistente falhou: ${erro.motivo}`);
   }
 }
+
+/**
+ * A frase de uma falha ao ENVIAR a resposta pelo WhatsApp (Meta ou Evolution), para o aviso no chat e para o
+ * e-mail dos donos — textos que saem do servidor e ficam gravados/enviados.
+ *
+ * O erro cru do provedor NÃO vai direto: o texto da Meta e de `fetch` pode ecoar o endereço chamado, um
+ * cabeçalho Bearer ou até o número do cliente, e este texto vira registro permanente no chat (e e-mail, onde
+ * LGPD manda NÃO haver telefone de cliente). Por isso: a ponte do Hermes sai (`semSegredoDaPonte`), URL vira
+ * "[endereço]", sequência longa de dígitos (telefone) vira "[número]", token comprido vira "[oculto]" e o
+ * tamanho é cortado. Só sobra o que ajuda quem administra: "o que o provedor reclamou".
+ */
+export function motivoDeFalhaNoEnvio(erro: string | null | undefined): string {
+  const bruto = semSegredoDaPonte((erro ?? "").trim())
+    .replace(/https?:\/\/\S+/gi, "[endereço]")
+    .replace(/\+?\d[\d\s().-]{7,}\d/g, "[número]")
+    .replace(/\b[A-Za-z0-9_-]{28,}\b/g, "[oculto]")
+    .replace(/\s+/g, " ")
+    .trim();
+  const curto = bruto.length > 200 ? `${bruto.slice(0, 197).trimEnd()}...` : bruto;
+  return `não foi possível enviar a resposta pelo WhatsApp${curto ? ` (${curto.replace(/[.\s]+$/, "")})` : ""}`;
+}

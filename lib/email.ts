@@ -726,6 +726,42 @@ export async function sendAlertaMemoriaHermesEmail(
   }
 }
 
+/** Disparado (no máximo um por dia, ver lib/alertaDaAnaSemResposta.ts) quando a Ana quis responder um cliente e
+ * a infraestrutura não deixou (Hermes, ponte, envio). LGPD: SEM nome, telefone ou texto do cliente — só o
+ * escritório, a hora, o motivo (já sem segredo) e o endereço da conversa. */
+export async function sendAlertaAnaSemRespostaEmail(
+  to: string,
+  dados: { officeName: string; quando: string; motivo: string; caminhoDaConversa: string },
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const link = `${getAppUrl()}${dados.caminhoDaConversa}`;
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">A ANA NÃO CONSEGUIU RESPONDER</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#14161a;">A assistente <strong>Ana</strong> não conseguiu responder um cliente do escritório <strong>${escapeHtml(dados.officeName)}</strong> em <strong>${escapeHtml(dados.quando)}</strong> (horário de Brasília).</p>
+      <p style="font-size:14px;color:#14161a;"><strong>Motivo:</strong> ${escapeHtml(dados.motivo)}</p>
+      <p style="font-size:13px;color:#585c63;">Este é o único e-mail de hoje sobre isso: se a causa continuar, outros clientes também ficam sem resposta, e cada conversa afetada mostra o aviso &ldquo;A Ana não respondeu&rdquo; no chat da equipe. Vale conferir o Hermes (modelo lento, ponte fora do ar) e as variáveis de ambiente na Vercel.</p>
+      <p style="font-size:13px;margin:16px 0 0;"><a href="${escapeHtml(link)}" style="color:#8a2f42;font-weight:600;">Abrir a conversa</a><br/><span style="color:#585c63;font-size:11px;">Só abre para quem é do escritório. O e-mail não traz nome, telefone nem texto do cliente.</span></p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject: `A Ana não conseguiu responder um cliente — Lúmen — ${dados.officeName}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
 // ============================================================================
 // Resumo diário por e-mail (7h, cron em app/api/cron/resumo-diario) — pessoal por advogado,
 // bem diferente de buildDailyAgendaHtml/sendDailyAgendaEmail acima (que é por ESCRITÓRIO

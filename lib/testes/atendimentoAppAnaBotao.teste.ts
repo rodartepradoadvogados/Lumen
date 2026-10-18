@@ -204,7 +204,8 @@ teste("APP: 'Responder à última mensagem' (pop-up) reusa responderUltimaPergun
   const l = codigoDe(le("lib/anaNoTopo.ts"));
   verdade(/podeResponderUltima: e\.ultimaDirecao === "IN"/.test(l) && /return e\.ultimaDirecao === "IN"/.test(l), "só quando a última é do cliente (e a Ana pode falar: ligada/desligada, nunca pausada)");
   verdade(!b.includes("Responder última mensagem"), "o botão avulso saiu da tela");
-  verdade(b.includes("está respondendo…") && b.includes("ocupado={respondendo}"), "estado de carregando");
+  // O texto de espera mora em lib/esperaDaAna.ts (troca depois de ~30 s: ver lib/testes/anaFalhaAlerta.teste.tsx).
+  verdade(codigoDe(le("lib/esperaDaAna.ts")).includes("está respondendo…") && b.includes("textoDeEsperaDaAna(nomeDoAtendente, esperaLonga)") && b.includes("ocupado={respondendo}"), "estado de carregando");
   verdade(/erro=\{erroDaResposta\}/.test(b) && b.includes("setErroDaResposta(r.error)"), "o motivo devolvido pela ação vai para a tela (role=alert no pop-up)");
   verdade(codigoDe(le("components/atendimento-app/DialogoDaAna.tsx")).includes('role="alert"'), "erro anunciado");
   verdade(b.includes("aoResponder?.()"), "avisa a conversa para buscar a resposta na hora");
