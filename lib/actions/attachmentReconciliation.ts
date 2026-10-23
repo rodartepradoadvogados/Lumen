@@ -84,6 +84,9 @@ export type PendenciaNovo = {
   // escolhido pelo usuário diverge de uma sugestão não-nula — nunca "adivinha errado".
   tipoSugeridoKey: string | null;
   tipoSugeridoLabel: string | null;
+  // Tipo pré-selecionado na tela: o da pasta onde o arquivo está; sem sinal, o predominante da
+  // entidade; sem nada, "Outros documentos". Sempre preenchido, para a confirmação já nascer válida.
+  tipoPadraoKey: string;
 };
 export type PendenciaSumido = {
   tipo: "SUMIDO";
@@ -456,6 +459,7 @@ async function montarPendencias(officeId: string, ctx: ContextoEscopo): Promise<
       melhorSemelhanca: melhor,
       tipoSugeridoKey: sugestao?.key ?? null,
       tipoSugeridoLabel: sugestao?.label ?? null,
+      tipoPadraoKey: sugestao?.key ?? ctx.tipoPredominante ?? "OUTRO",
     };
   });
 
